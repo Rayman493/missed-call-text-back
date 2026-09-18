@@ -90,7 +90,7 @@ export default function CalendarDayCell({
           Enlarged hit target (w-7 h-7 on mobile, w-8 h-8 on desktop) for
           reliable tapping on crowded days. */}
       <div
-        className="relative z-10 flex items-center justify-center w-7 h-7 md:w-8 md:h-8 flex-none leading-none p-0"
+        className="relative z-10 flex items-start justify-start w-7 h-7 md:w-8 md:h-8 flex-none leading-none"
       >
         <span
           className={`

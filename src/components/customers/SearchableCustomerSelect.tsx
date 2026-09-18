@@ -396,7 +396,7 @@ export default function SearchableCustomerSelect({
         <div
           id={dropdownId}
           ref={dropdownRef}
-          className={`absolute z-[60] w-full bg-popover rounded-lg shadow-lg shadow-black/5 dark:shadow-black/30 border border-border/60 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${
+          className={`absolute z-[60] w-full bg-background rounded-lg shadow-xl shadow-black/10 dark:shadow-black/40 border border-border/70 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in duration-150 ${
             dropup ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
           style={{ maxHeight: maxDropdownHeight }}

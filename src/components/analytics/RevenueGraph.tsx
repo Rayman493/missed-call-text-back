@@ -8,7 +8,7 @@ import { DollarSign } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 import { formatCurrency } from '@/lib/utils'
@@ -29,8 +29,6 @@ export default function RevenueGraph() {
   // first fetch (full "Loading..." state) from subsequent range changes
   // (subtle "Updating..." indicator that keeps the previous chart visible).
   const hasInitialLoadRef = useRef(false)
-
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   useEffect(() => {
     let isStale = false
@@ -108,8 +106,6 @@ export default function RevenueGraph() {
     }
 
     fetchData()
-    // Clear stale active selection when range changes
-    setActiveIndex(null)
     return () => { isStale = true }
   }, [business, timeRange])
 
@@ -186,7 +182,7 @@ export default function RevenueGraph() {
                 Updating…
               </div>
             )}
-            <ChartTouchWrapper data={data} onActiveIndexChange={setActiveIndex}>
+            <div className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={CHART_STYLES.margin}>
                   <CartesianGrid
@@ -210,10 +206,12 @@ export default function RevenueGraph() {
                     tickLine={CHART_STYLES.tickLine}
                     tickFormatter={formatCurrencyAxis}
                   />
-                  <Tooltip
-                    content={<PremiumTooltip />}
-                    trigger="hover"
-                  />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
+                      trigger="hover"
+                    />
+                  )}
                   <Line
                     type="monotone"
                     dataKey="revenue"
@@ -228,7 +226,7 @@ export default function RevenueGraph() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </ChartTouchWrapper>
+            </div>
           </div>
         )}
       </div>

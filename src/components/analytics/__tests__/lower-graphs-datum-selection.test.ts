@@ -1,9 +1,8 @@
 /**
- * Lower dashboard graphs — per-datum selection polish
+ * Lower dashboard graphs — display-only contract
  *
- * Verifies that the remaining (non-first-two) Recharts graphs select exactly
- * one datum at a time, never render a broad active-bar rectangle, and surface
- * useful context for the selected datum.
+ * Verifies that Recharts graphs no longer use tap-to-select, selected datum
+ * popups, or chart touch wrappers, while still supporting explicit filters.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -14,42 +13,42 @@ const read = (rel: string) => readFileSync(rel, 'utf8')
 describe('CustomerPipelineGraph', () => {
   const content = read('src/components/analytics/CustomerPipelineGraph.tsx')
 
+  it('uses a compact funnel filter trigger', () => {
+    expect(content).toContain('ChartFilterButton')
+    expect(content).toMatch(/value=\{statusFilter\}[\s\S]*?options=\{PIPELINE_STATUS_OPTIONS\}/)
+  })
+
   it('disables Recharts activeBar to avoid the broad selection rectangle', () => {
     expect(content).toContain('activeBar={false}')
   })
 
-  it('selects a single bar via Bar onClick and toggles selection', () => {
-    expect(content).toMatch(/setSelectedIndex\(\(prev\) => \(prev === index \? null : index\)\)/)
+  it('does not select bars or render a selected-datum popup', () => {
+    expect(content).not.toContain('const [selectedIndex')
+    expect(content).not.toContain('setSelectedIndex')
+    expect(content).not.toContain('<ChartDatumPopup')
   })
 
-  it('shows selected datum context in a floating popup', () => {
-    expect(content).toMatch(/selectedIndex !== null && (?:data|displayData)\[selectedIndex\]/)
-    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.status/)
-    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.count/)
-  })
-
-  it('clears selection when tapping chart background/surface', () => {
-    expect(content).toContain("e.target === e.currentTarget")
-    expect(content).toContain("closest?")
-    expect(content).toContain('setSelectedIndex(null)')
+  it('does not attach tap selection handlers to chart data', () => {
+    expect(content).not.toMatch(/onClick=\{[^}]*index/)
   })
 })
 
 describe('CustomersStatusGraph', () => {
   const content = read('src/components/analytics/CustomersStatusGraph.tsx')
 
+  it('uses a compact funnel filter trigger', () => {
+    expect(content).toContain('ChartFilterButton')
+    expect(content).toMatch(/value=\{statusFilter\}[\s\S]*?options=\{STATUS_FILTER_OPTIONS\}/)
+  })
+
   it('disables Recharts activeBar to avoid the broad selection rectangle', () => {
     expect(content).toContain('activeBar={false}')
   })
 
-  it('selects a single bar via Bar onClick and toggles selection', () => {
-    expect(content).toMatch(/setSelectedIndex\(\(prev\) => \(prev === index \? null : index\)\)/)
-  })
-
-  it('shows selected datum context in a floating popup', () => {
-    expect(content).toMatch(/selectedIndex !== null && (?:data|displayData)\[selectedIndex\]/)
-    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.status/)
-    expect(content).toMatch(/(?:data|displayData)\[selectedIndex\]\.count/)
+  it('does not select bars or render a selected-datum popup', () => {
+    expect(content).not.toContain('const [selectedIndex')
+    expect(content).not.toContain('setSelectedIndex')
+    expect(content).not.toContain('<ChartDatumPopup')
   })
 })
 
@@ -60,54 +59,42 @@ describe('NewCustomersGraph', () => {
     expect(content).toContain('activeBar={false}')
   })
 
-  it('selects a single bar via Bar onClick and toggles selection', () => {
-    expect(content).toMatch(/setSelectedIndex\(\(prev\) => \(prev === index \? null : index\)\)/)
-  })
-
-  it('shows selected datum context in the summary area', () => {
-    expect(content).toMatch(/selectedIndex !== null && data\[selectedIndex\]/)
-    expect(content).toMatch(/data\[selectedIndex\]\.date/)
-    expect(content).toMatch(/data\[selectedIndex\]\.customers/)
+  it('does not select bars or render a selected-datum popup', () => {
+    expect(content).not.toContain('const [selectedIndex')
+    expect(content).not.toContain('setSelectedIndex')
+    expect(content).not.toContain('<ChartDatumPopup')
   })
 })
 
 describe('PaymentCollectionGraph', () => {
   const content = read('src/components/analytics/PaymentCollectionGraph.tsx')
 
-  it('uses ChartTouchWrapper chartType="pie" so taps reach the Pie onClick', () => {
-    expect(content).toContain('<ChartTouchWrapper chartType="pie">')
+  it('does not wrap chart in ChartTouchWrapper', () => {
+    expect(content).not.toContain('<ChartTouchWrapper')
   })
 
-  it('selects a single pie slice via Pie onClick and toggles selection', () => {
-    expect(content).toMatch(/setSelectedIndex\(selectedIndex === index \? null : index\)/)
-  })
-
-  it('shows selected slice context in the center label', () => {
-    expect(content).toMatch(/if \(selectedIndex !== null && data\[selectedIndex\]\)/)
-    expect(content).toMatch(/selected\.value/)
-    expect(content).toMatch(/selected\.name/)
-  })
-
-  it('clears selection when tapping outside the pie', () => {
-    expect(content).toContain('<div onClick={() => setSelectedIndex(null)}')
+  it('does not select slices or change the center label on tap', () => {
+    expect(content).not.toContain('const [selectedIndex')
+    expect(content).not.toContain('setSelectedIndex')
+    expect(content).not.toContain('selectedIndex !== null')
+    expect(content).not.toContain('selected.value')
+    expect(content).not.toContain('selected.name')
   })
 })
 
 describe('LeadsSourceGraph', () => {
   const content = read('src/components/analytics/LeadsSourceGraph.tsx')
 
-  it('uses ChartTouchWrapper chartType="pie" so taps reach the Pie onClick', () => {
-    expect(content).toContain('<ChartTouchWrapper chartType="pie">')
+  it('does not wrap chart in ChartTouchWrapper', () => {
+    expect(content).not.toContain('<ChartTouchWrapper')
   })
 
-  it('selects a single pie slice via Pie onClick and toggles selection', () => {
-    expect(content).toMatch(/setSelectedIndex\(selectedIndex === index \? null : index\)/)
-  })
-
-  it('shows selected slice context in the center label', () => {
-    expect(content).toMatch(/if \(selectedIndex !== null && data\[selectedIndex\]\)/)
-    expect(content).toMatch(/selected\.value/)
-    expect(content).toMatch(/selected\.name/)
+  it('does not select slices or change the center label on tap', () => {
+    expect(content).not.toContain('const [selectedIndex')
+    expect(content).not.toContain('setSelectedIndex')
+    expect(content).not.toContain('selectedIndex !== null')
+    expect(content).not.toContain('selected.value')
+    expect(content).not.toContain('selected.name')
   })
 })
 

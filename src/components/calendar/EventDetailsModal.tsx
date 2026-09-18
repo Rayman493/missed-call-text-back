@@ -1219,26 +1219,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </div>
             )}
 
-            {/* Meeting Complete Action */}
-            {!event.isHoliday && meetingStatus !== 'completed' && (
-              <div className="pt-3 border-t border-border/50 flex items-center justify-between gap-3">
-                <span className="hidden sm:block text-xs text-muted-foreground">Mark this meeting as complete once it has taken place.</span>
-                {!showCompleteConfirm ? (
-                  <button
-                    onClick={() => setShowCompleteConfirm(true)}
-                    className="ml-auto h-9 px-3 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border/50 transition-colors inline-flex items-center gap-1.5"
-                  >
-                    <CheckSquare className="w-4 h-4" />
-                    Mark Complete
-                  </button>
-                ) : (
-                  <div className="ml-auto flex items-center gap-2">
-                    <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="h-9 px-3 text-xs font-medium bg-muted text-foreground rounded-lg">Cancel</button>
-                    <button onClick={markComplete} disabled={isCompleting} className="h-9 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm'}</button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
           )}
         </div>
@@ -1307,9 +1287,42 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </button>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2">
               {/* Primary row */}
               <div className="flex gap-2">
+                {!event.isHoliday && meetingStatus !== 'completed' && !showCompleteConfirm && (
+                  <button
+                    onClick={() => setShowCompleteConfirm(true)}
+                    className="h-10 flex-1 px-4 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all active:scale-[0.98] inline-flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <CheckSquare className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Mark Complete</span>
+                  </button>
+                )}
+                {!event.isHoliday && meetingStatus !== 'completed' && showCompleteConfirm && (
+                  <div className="flex gap-2 flex-1">
+                    <button
+                      onClick={() => setShowCompleteConfirm(false)}
+                      disabled={isCompleting}
+                      className="h-10 flex-1 px-3 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={markComplete}
+                      disabled={isCompleting}
+                      className="h-10 flex-1 px-3 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+                    >
+                      {isCompleting ? 'Completing...' : 'Confirm'}
+                    </button>
+                  </div>
+                )}
+                {!event.isHoliday && meetingStatus === 'completed' && (
+                  <div className="h-10 flex-1 px-4 inline-flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                    <span>Completed</span>
+                  </div>
+                )}
                 {event.meetingUrl && (
                   <button
                     onClick={openMeetingLink}
@@ -1319,6 +1332,10 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     <span className="truncate">Join</span>
                   </button>
                 )}
+              </div>
+
+              {/* Secondary row */}
+              <div className="flex gap-2">
                 {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
                   <button
                     onClick={() => setIsSmsOpen(true)}

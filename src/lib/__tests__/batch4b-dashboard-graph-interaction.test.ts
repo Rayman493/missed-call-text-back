@@ -8,81 +8,70 @@ const readSrc = (rel: string) => readFileSync(join(repoRoot, rel), 'utf8').repla
 const chartUtils = readSrc('src/lib/chart-utils.tsx')
 const revenueGraph = readSrc('src/components/analytics/RevenueGraph.tsx')
 const businessActivityGraph = readSrc('src/components/analytics/BusinessActivityGraph.tsx')
+const globalsCss = readSrc('src/app/globals.css')
 
 describe('Batch 4B — Dashboard graph interaction cleanup', () => {
   describe('A. Shared architecture', () => {
-    it('1. RevenueGraph and BusinessActivityGraph both use ChartTouchWrapper', () => {
-      expect(revenueGraph).toContain('ChartTouchWrapper')
-      expect(businessActivityGraph).toContain('ChartTouchWrapper')
+    it('1. RevenueGraph and BusinessActivityGraph no longer use ChartTouchWrapper', () => {
+      expect(revenueGraph).not.toContain('ChartTouchWrapper')
+      expect(businessActivityGraph).not.toContain('ChartTouchWrapper')
     })
 
-    it('2. both line charts use hover trigger (not click) for synthetic touch activation', () => {
+    it('1b. Vertical scroll is preserved via globals.css touch-action pan-y', () => {
+      expect(globalsCss).toMatch(/\.recharts-surface[\s\S]*?touch-action:\s*pan-y/)
+      expect(globalsCss).toMatch(/\.recharts-wrapper[\s\S]*?touch-action:\s*pan-y/)
+    })
+
+    it('2. line charts gate tooltips on non-touch devices and keep hover trigger', () => {
+      expect(revenueGraph).toContain('!isTouchDevice')
       expect(revenueGraph).toMatch(/trigger\s*=\s*(['"])hover\1/)
+      expect(businessActivityGraph).toContain('!isTouchDevice')
       expect(businessActivityGraph).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
     it('3. ChartTouchWrapper installs NO document-level gesture listener', () => {
-      // The old hasSelection + document-pointerdown dismissal mechanism was
-      // removed: any document-level pointer/touch listener on the chart path
-      // can contest page scrolling. Outside dismissal now happens through the
-      // capture-phase click handler, which cannot trap gestures.
       expect(chartUtils).not.toContain("document.addEventListener('pointerdown'")
       expect(chartUtils).not.toContain("document.addEventListener('touchstart'")
       expect(chartUtils).not.toContain('hasSelection')
     })
+  })
 
-    it('4. ChartTouchWrapper dismissal lives in the capture-phase click handler', () => {
-      // A tap outside the plottable area clears the tooltip — no document
-      // listener lifecycle to leak or to hold the gesture.
-      const clickBlock = chartUtils.match(/const handleClickCapture = \([\s\S]*?\n  \}/)
-      expect(clickBlock).toBeTruthy()
-      expect(clickBlock![0]).toContain('clearRechartsState()')
-      expect(clickBlock![0]).toContain('onActiveIndexChange?.(null)')
+  describe('B. ChartTouchWrapper internals remain available but unused', () => {
+    it('4. wrapper still exposes touch handlers in chart-utils', () => {
+      expect(chartUtils).toContain('handleTouchStart')
+      expect(chartUtils).toContain('handleTouchMove')
+      expect(chartUtils).toContain('handleClickCapture')
+    })
+
+    it('5. wrapper still maps pointer position to nearest datum', () => {
+      expect(chartUtils).toContain('getNearestIndex')
+      expect(chartUtils).toContain('activateDatum')
     })
   })
 
-  describe('B. Outside dismissal and tap behavior', () => {
-    it('5. ChartTouchWrapper dismissal is a whitespace click, not a containment check', () => {
-      // No document listener means no containment test is needed: a tap that
-      // misses the plottable area resolves to idx === null inside
-      // handleClickCapture and clears the tooltip there.
-      const clickBlock = chartUtils.match(/const handleClickCapture = \([\s\S]*?\n  \}/)
-      expect(clickBlock).toBeTruthy()
-      expect(clickBlock![0]).toContain('idx === null')
+  describe('C. Display-only line charts', () => {
+    it('6. RevenueGraph has no activeIndex state', () => {
+      expect(revenueGraph).not.toContain('activeIndex')
+      expect(revenueGraph).not.toContain('onActiveIndexChange')
     })
 
-    it('6. outside pointerdown clears selection and notifies consumer', () => {
-      expect(chartUtils).toContain('clearRechartsState()')
-      expect(chartUtils).toContain('onActiveIndexChange?.(null)')
+    it('7. BusinessActivityGraph has no activeIndex state', () => {
+      expect(businessActivityGraph).not.toContain('activeIndex')
+      expect(businessActivityGraph).not.toContain('onActiveIndexChange')
     })
 
-    it('7. touch tap is handled in capture-phase click handler', () => {
-      expect(chartUtils).toContain('lastPointerTypeRef.current !== \'touch\'')
-      expect(chartUtils).toContain('const handleClickCapture')
+    it('8. BusinessActivityGraph legend remains informational only', () => {
+      expect(businessActivityGraph).toContain('aria-label="Series legend"')
+      expect(businessActivityGraph).not.toContain('onClick={() => toggleSeries(key)}')
+      expect(businessActivityGraph).not.toContain('aria-pressed={!hidden}')
     })
 
-    it('8. desktop click handler only suppresses post-drag clicks', () => {
-      expect(chartUtils).toContain('if (justDraggedRef.current)')
-    })
-  })
-
-  describe('C. Whitespace / empty payload guards', () => {
-    it('9. getNearestIndex can return null for taps outside plottable area', () => {
-      expect(chartUtils).toContain('clamp = true')
-      expect(chartUtils).toContain('if (relativeX < 0 || relativeX > plotWidth) return null')
+    it('9. line charts preserve activeDot for desktop hover accessibility', () => {
+      expect(revenueGraph).toContain('activeDot')
+      expect(businessActivityGraph).toContain('activeDot')
     })
 
-    it('10. whitespace taps clear state instead of leaving empty selection', () => {
-      expect(chartUtils).toContain('// Whitespace or outside the plottable area')
-      expect(chartUtils).toContain('if (idx === null)')
-    })
-
-    it('11. PremiumTooltip returns null when payload is empty', () => {
-      expect(chartUtils).toContain('if (!active || !payload || payload.length === 0)')
-      expect(chartUtils).toContain('return null')
-    })
-
-    it('12. BusinessActivityGraph custom tooltip also returns null for empty payload', () => {
+    it('10. empty tooltip payloads still guard against empty state', () => {
       expect(businessActivityGraph).toContain('if (!active || !payload || payload.length === 0) return null')
     })
   })

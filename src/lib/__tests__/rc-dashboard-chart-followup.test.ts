@@ -24,10 +24,10 @@ describe('RC Dashboard Chart Follow-up — Gestures (1-10)', () => {
     expect(chartUtils).toContain("touchAction: 'pan-y'")
   })
 
-  // 2. vertical swipe over Engagement allows page scroll
-  it('2. BusinessActivityGraph uses ChartTouchWrapper with pan-y', () => {
-    expect(activityGraph).toContain('ChartTouchWrapper')
-    expect(chartUtils).toContain("touchAction: 'pan-y'")
+  // 2. vertical swipe over Engagement allows page scroll via CSS
+  it('2. BusinessActivityGraph no longer uses ChartTouchWrapper; pan-y stays in globals.css', () => {
+    expect(activityGraph).not.toContain('ChartTouchWrapper')
+    expect(globalsCss).toContain('touch-action: pan-y')
   })
 
   // 3. vertical movement does not activate datum
@@ -106,13 +106,13 @@ describe('RC Dashboard Chart Follow-up — Gestures (1-10)', () => {
     }
   })
 
-  // 10. range change clears stale active selection
-  it('10. RevenueGraph clears activeIndex on range change', () => {
-    expect(revenueGraph).toContain('setActiveIndex(null)')
+  // 10. graphs no longer maintain an active tap selection
+  it('10. RevenueGraph has no activeIndex state', () => {
+    expect(revenueGraph).not.toContain('activeIndex')
   })
 
-  it('10b. BusinessActivityGraph clears activeIndex on range change', () => {
-    expect(activityGraph).toContain('setActiveIndex(null)')
+  it('10b. BusinessActivityGraph has no activeIndex state', () => {
+    expect(activityGraph).not.toContain('activeIndex')
   })
 })
 

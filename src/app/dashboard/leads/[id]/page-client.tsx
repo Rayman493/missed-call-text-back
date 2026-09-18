@@ -31,7 +31,7 @@ import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayNa
 import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { PhoneIncoming, UserPlus, RefreshCw, Plus } from 'lucide-react'
-import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { CustomerStatus, normalizeCustomerStatus, getCustomerStatusStyle } from '@/lib/customer-status'
@@ -70,6 +70,8 @@ import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smar
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import PaymentOverviewModal from '@/components/payments/PaymentOverviewModal'
 import CustomerDetailPreviewCard from '@/components/ui/CustomerDetailPreviewCard'
+import CustomerStatusPill from '@/components/ui/CustomerStatusPill'
+import StatusPill from '@/components/ui/StatusPill'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -3876,9 +3878,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     onClick={() => handleJobCardClick(job)}
                     ariaLabel="View job details"
                     badge={
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/40">
-                        {formatJobStatus(job.status).text}
-                      </span>
+                      <StatusPill variant="gray">{formatJobStatus(job.status).text}</StatusPill>
                     }
                   />
                 ))}
@@ -3926,13 +3926,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     onClick={() => handleTaskCardClick(task)}
                     ariaLabel="View reminder details"
                     badge={
-                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap border ${
-                        task.completed
-                          ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                          : 'bg-muted/80 text-muted-foreground/90 border-border/40'
-                      }`}>
+                      <StatusPill variant={task.completed ? 'green' : 'amber'}>
                         {task.completed ? 'Completed' : 'Pending'}
-                      </span>
+                      </StatusPill>
                     }
                   />
                 ))}
@@ -3979,15 +3975,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         onClick={() => handleOpenPaymentOverview(pr)}
                         ariaLabel="View payment details"
                         badge={
-                          <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap border ${
-                            pr.status === 'paid'
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                              : pr.status === 'pending'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                              : 'bg-muted/80 text-muted-foreground/90 border-border/40'
-                          }`}>
+                          <StatusPill variant={pr.status === 'paid' ? 'green' : pr.status === 'pending' ? 'amber' : 'gray'}>
                             {formatPaymentStatus(pr.status).text}
-                          </span>
+                          </StatusPill>
                         }
                       />
                     ))}
@@ -4070,11 +4060,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           subtitle={`${dateStr} • ${timeStr}`}
                           onClick={() => handleAppointmentCardClick(event)}
                           ariaLabel="View appointment details"
-                          badge={isPast ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/40">
-                              Past
-                            </span>
-                          ) : undefined}
+                          badge={isPast ? <StatusPill variant="gray">Past</StatusPill> : undefined}
                         />
                       )
                     })
@@ -5328,9 +5314,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     </p>
                                   </div>
                                 </div>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-slate-200/60 dark:border-border/30">
+                                <StatusPill variant={task.completed ? 'green' : 'amber'}>
                                   {task.completed ? 'Done' : 'Open'}
-                                </span>
+                                </StatusPill>
                               </div>
                               )
                             })}
@@ -5458,11 +5444,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                           Join
                                         </a>
                                       )}
-                                      {isPast && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/30">
-                                          Past
-                                        </span>
-                                      )}
+                                      {isPast && <StatusPill variant="gray">Past</StatusPill>}
                                     </div>
                                   </div>
                                 )
@@ -5861,13 +5843,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </p>
                       </div>
                       <div className="flex-shrink-0 flex flex-col items-end gap-1 ml-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap border border-border/50">
-                          {formatJobStatus(job.status).text}
-                        </span>
+                        <StatusPill variant="gray">{formatJobStatus(job.status).text}</StatusPill>
                         {job.payment_status && job.payment_status !== 'none' && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${job.payment_status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'}`}>
+                          <StatusPill variant={job.payment_status === 'paid' ? 'green' : 'amber'}>
                             {job.payment_status === 'paid' ? 'Paid' : 'Pay Req'}
-                          </span>
+                          </StatusPill>
                         )}
                       </div>
                     </div>
@@ -5948,9 +5928,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </p>
                         </div>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
+                      <StatusPill variant={task.completed ? 'green' : 'amber'}>
                         {task.completed ? 'Done' : 'Open'}
-                      </span>
+                      </StatusPill>
                     </div>
                     )
                   })}
@@ -6015,13 +5995,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       onClick={() => handleOpenPaymentOverview(pr)}
                       ariaLabel="View payment details"
                       badge={
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize whitespace-nowrap border ${
-                          pr.status === 'paid'
-                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                        }`}>
+                        <StatusPill variant={pr.status === 'paid' ? 'green' : pr.status === 'pending' ? 'amber' : 'gray'}>
                           {formatPaymentStatus(pr.status).text}
-                        </span>
+                        </StatusPill>
                       }
                     />
                   ))}
@@ -6133,11 +6109,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 Join
                               </a>
                             )}
-                            {isPast && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap">
-                                Past
-                              </span>
-                            )}
+                            {isPast && <StatusPill variant="gray">Past</StatusPill>}
                           </div>
                         </div>
                       )
@@ -6271,14 +6243,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
-                    {(() => {
-                      const statusStyle = getCustomerStatusStyle(leadData?.status || leadData?.lead_status || 'new')
-                      return (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle.badgeClass}`}>
-                          {statusStyle.label}
-                        </span>
-                      )
-                    })()}
+                    <CustomerStatusPill status={leadData?.status || leadData?.lead_status || 'new'} />
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>
@@ -7222,9 +7187,12 @@ If you have questions, reply to this message.`
                   <p className="text-xs text-muted-foreground">{formatDateTime(record.created_at)}</p>
                   <h3 className="text-lg font-semibold text-foreground break-words mt-0.5">{requestTitle}</h3>
                 </div>
-                <span className={`inline-flex items-center self-start text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap border ${getAIIntakeStatusColor(status)}`}>
+                <StatusPill
+                  variant={status === 'complete' ? 'green' : status === 'partial' ? 'amber' : status === 'failed' ? 'red' : 'gray'}
+                  className="self-start"
+                >
                   {getAIIntakeStatusLabel(status)}
-                </span>
+                </StatusPill>
               </div>
 
               <div>

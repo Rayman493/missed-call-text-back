@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Search, User, Phone, Briefcase, MapPin, Loader2, ChevronRight } from 'lucide-react'
+import { X, Search, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import PickerListRow from '@/components/ui/PickerListRow'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import type { JobPrefill } from './JobComposer'
 
@@ -201,56 +202,24 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
                 )}
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="divide-y divide-border/10">
                 {filtered.map(lead => {
                   const intake = getIntake(lead)
                   const name = intake.customerName || 'Unknown Caller'
                   const service = getLeadRequestTitle(lead) || intake.serviceRequested
                   const phone = fmtPhone(intake.customerPhone || lead.caller_phone)
-                  const activity = lead.last_activity_at || lead.created_at
+                  const location = intake.serviceAddress || ''
+                  const tertiary = [phone, location].filter(Boolean).join(' • ')
 
                   return (
-                    <button
+                    <PickerListRow
                       key={lead.id}
+                      primary={name}
+                      secondary={service || 'No service requested'}
+                      tertiary={tertiary || undefined}
                       onClick={() => handleSelect(lead)}
-                      className="w-full flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left group active:bg-slate-100 dark:active:bg-slate-800"
-                    >
-                      {/* Avatar */}
-                      <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                        <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-foreground truncate">{name}</p>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 flex-shrink-0">{timeAgo(activity)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {service && (
-                            <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                              <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="truncate">{service}</span>
-                            </span>
-                          )}
-                          {phone && (
-                            <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 flex-shrink-0">
-                              <Phone className="w-2.5 h-2.5 flex-shrink-0" />
-                              {phone}
-                            </span>
-                          )}
-                          {intake.serviceAddress && (
-                            <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 truncate">
-                              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                              <span className="truncate">{intake.serviceAddress}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Chevron */}
-                      <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-400 dark:group-hover:text-slate-400 flex-shrink-0 transition-colors" />
-                    </button>
+                      role="option"
+                    />
                   )
                 })}
               </div>

@@ -5,6 +5,8 @@ import { FileText, FileSpreadsheet, Edit, Trash2, Loader2, Eye, Download, Send, 
 import Modal from '@/components/ui/Modal'
 import { formatCurrency } from '@/lib/utils'
 import { effectiveStatus } from '@/lib/billing/document-presentation'
+import { showToast } from '@/lib/toast'
+import StatusPill from '@/components/ui/StatusPill'
 import type { BillingDocumentType } from './BillingEditorModal'
 
 export interface BillingDocumentListItem {
@@ -188,6 +190,17 @@ export default function BillingDocumentList({
         else if (effective === 'overdue') subline = 'Payment overdue'
         else if (isDeclined) subline = 'Customer declined'
 
+        const statusVariant: Parameters<typeof StatusPill>[0]['variant'] =
+          effective === 'paid'
+            ? 'green'
+            : effective === 'sent' || effective === 'accepted'
+            ? 'blue'
+            : effective === 'overdue' || effective === 'expired' || effective === 'declined' || effective === 'cancelled'
+            ? 'red'
+            : effective === 'pending' || effective === 'draft'
+            ? 'amber'
+            : 'gray'
+
         return (
           <div
             key={doc.id}
@@ -198,7 +211,7 @@ export default function BillingDocumentList({
               onClick={() => onView(doc)}
               className="min-w-0 flex-1 text-left"
             >
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <div className="flex items-center gap-2 mb-1 min-w-0">
                 {isQuote ? (
                   <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                 ) : (
@@ -206,9 +219,6 @@ export default function BillingDocumentList({
                 )}
                 <span className="text-sm font-semibold text-foreground truncate">
                   {doc.display_name || `${isQuote ? 'Quote' : 'Invoice'} ${doc.document_number}`}
-                </span>
-                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}>
-                  {badge.label}
                 </span>
               </div>
               {doc.display_name && (
@@ -229,10 +239,12 @@ export default function BillingDocumentList({
               )}
             </button>
 
-            {/* Right: actions — stable six-slot order across statuses
+            {/* Right: status pill + actions — stable six-slot order across statuses
                  col 1 Edit, col 2 Send/Resend, col 3 Convert/View Invoice,
                  col 4 Download, col 5 View, col 6 Delete */}
-            <div className="grid grid-cols-6 gap-1 w-48 flex-shrink-0">
+            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              <StatusPill variant={statusVariant}>{badge.label}</StatusPill>
+              <div className="grid grid-cols-6 gap-1 w-48">
               {[
                 {
                   col: 1,
@@ -241,6 +253,7 @@ export default function BillingDocumentList({
                   label: 'Edit document',
                   title: 'Edit',
                   enabled: isDraft || isDeclined,
+                  disabledReason: isQuote ? "Sent quotes can't be edited." : "Sent invoices can't be edited.",
                   onClick: () => onOpen(doc),
                   loading: false,
                 },
@@ -251,6 +264,11 @@ export default function BillingDocumentList({
                   label: isSent ? 'Resend SMS' : isQuote ? 'Send quote' : 'Send invoice',
                   title: isSent ? 'Resend' : isQuote ? 'Send Quote' : 'Send Invoice',
                   enabled: isDraft || (isSent && !isAccepted),
+                  disabledReason: isQuote && isAccepted
+                    ? 'This quote has already been accepted.'
+                    : isQuote
+                    ? 'This quote has already been sent.'
+                    : 'This invoice has already been sent.',
                   onClick: () => onSend(doc),
                   loading: sendingId === doc.id,
                 },
@@ -261,6 +279,9 @@ export default function BillingDocumentList({
                   label: doc.derived_invoice ? `View invoice ${doc.derived_invoice.document_number}` : 'Create Invoice',
                   title: doc.derived_invoice ? 'View Invoice' : 'Create Invoice',
                   enabled: isAccepted,
+                  disabledReason: doc.derived_invoice
+                    ? 'This quote already has an invoice.'
+                    : 'Only accepted quotes can be converted to an invoice.',
                   onClick: () => doc.derived_invoice ? onViewRelated?.(doc.derived_invoice.id) : onConvert(doc),
                   loading: convertingId === doc.id,
                 },
@@ -271,6 +292,7 @@ export default function BillingDocumentList({
                   label: 'Download PDF',
                   title: 'Download PDF',
                   enabled: true,
+                  disabledReason: '',
                   onClick: () => onDownload(doc),
                   loading: downloadingId === doc.id,
                 },
@@ -281,6 +303,7 @@ export default function BillingDocumentList({
                   label: 'View document',
                   title: 'View',
                   enabled: true,
+                  disabledReason: '',
                   onClick: () => onView(doc),
                   loading: false,
                 },
@@ -291,33 +314,52 @@ export default function BillingDocumentList({
                   label: 'Delete document',
                   title: 'Delete',
                   enabled: isDraft,
+                  disabledReason: "Sent documents can't be deleted.",
                   onClick: () => setDeleteTarget(doc),
                   loading: deletingId === doc.id,
                 },
               ].map((slot) => {
                 const Icon = slot.icon
-                const isDisabled = !slot.enabled || slot.loading
+                const isLoading = slot.enabled && slot.loading
                 const disabledByEligibility = !slot.enabled
+
+                if (disabledByEligibility) {
+                  return (
+                    <button
+                      key={slot.key}
+                      type="button"
+                      onClick={() => slot.disabledReason && showToast(slot.disabledReason)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          slot.disabledReason && showToast(slot.disabledReason)
+                        }
+                      }}
+                      aria-label={`${slot.title} unavailable`}
+                      style={{ gridColumn: slot.col }}
+                      className="w-8 h-8 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 text-slate-300 dark:text-slate-700 cursor-default"
+                    >
+                      <Icon className="w-4 h-4" />
+                    </button>
+                  )
+                }
+
                 return (
                   <button
                     key={slot.key}
                     type="button"
                     onClick={slot.onClick}
-                    disabled={isDisabled}
-                    aria-label={disabledByEligibility ? `${slot.title} unavailable` : slot.label}
-                    title={disabledByEligibility ? `${slot.title} unavailable` : slot.title}
+                    disabled={isLoading}
+                    aria-label={slot.label}
+                    title={slot.title}
                     style={{ gridColumn: slot.col }}
-                    className={[
-                      'w-8 h-8 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50',
-                      slot.enabled && !slot.loading
-                        ? 'active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors'
-                        : 'text-slate-300 dark:text-slate-700 cursor-default',
-                    ].join(' ')}
+                    className="w-8 h-8 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors disabled:opacity-50"
                   >
-                    {slot.enabled && slot.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
                   </button>
                 )
               })}
+              </div>
             </div>
           </div>
         )

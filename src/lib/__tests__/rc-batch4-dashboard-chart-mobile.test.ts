@@ -135,39 +135,32 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
     })
   })
 
-  describe('3. Point/bar-level selection — Tooltip always enabled', () => {
-    it('RevenueGraph always includes Tooltip (not gated by !isTouchDevice)', () => {
+  describe('3. Point/bar-level selection — touch popups removed', () => {
+    it('RevenueGraph gates Tooltip on non-touch devices', () => {
       const content = read('src/components/analytics/RevenueGraph.tsx')
-      expect(content).toContain('<Tooltip')
-      expect(content).not.toMatch(/\{!isTouchDevice\s*&&\s*\(\s*<Tooltip/)
-    })
-
-    it('RevenueGraph uses hover trigger and lets ChartTouchWrapper drive touch taps', () => {
-      const content = read('src/components/analytics/RevenueGraph.tsx')
+      expect(content).toContain('!isTouchDevice')
       expect(content).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
-    it('RevenueGraph preserves activeDot for datum selection', () => {
+    it('RevenueGraph does not use ChartTouchWrapper', () => {
       const content = read('src/components/analytics/RevenueGraph.tsx')
-      expect(content).toContain('activeDot')
+      expect(content).not.toContain('ChartTouchWrapper')
     })
 
-    it('BusinessActivityGraph always includes Tooltip (not gated by !isTouchDevice)', () => {
+    it('BusinessActivityGraph gates Tooltip on non-touch devices', () => {
       const content = read('src/components/analytics/BusinessActivityGraph.tsx')
-      expect(content).toContain('<Tooltip')
-      expect(content).not.toMatch(/\{!isTouchDevice\s*&&\s*\(\s*<Tooltip/)
-    })
-
-    it('BusinessActivityGraph uses hover trigger and lets ChartTouchWrapper drive touch taps', () => {
-      const content = read('src/components/analytics/BusinessActivityGraph.tsx')
+      expect(content).toContain('!isTouchDevice')
       expect(content).toMatch(/trigger\s*=\s*(['"])hover\1/)
     })
 
-    it('BusinessActivityGraph preserves activeDot on all Line components', () => {
+    it('BusinessActivityGraph does not use ChartTouchWrapper', () => {
       const content = read('src/components/analytics/BusinessActivityGraph.tsx')
-      const activeDotCount = (content.match(/activeDot/g) || []).length
-      // 4 lines, each with activeDot
-      expect(activeDotCount).toBeGreaterThanOrEqual(4)
+      expect(content).not.toContain('ChartTouchWrapper')
+    })
+
+    it('line graphs still preserve activeDot for desktop hover', () => {
+      const revenue = read('src/components/analytics/RevenueGraph.tsx')
+      expect(revenue).toContain('activeDot')
     })
   })
 
@@ -344,11 +337,13 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
   })
 
   describe('6. Shared components and preservation', () => {
-    it('both graphs use ChartTouchWrapper', () => {
+    it('neither line graph uses ChartTouchWrapper; vertical scroll via CSS', () => {
       const revenue = read('src/components/analytics/RevenueGraph.tsx')
       const activity = read('src/components/analytics/BusinessActivityGraph.tsx')
-      expect(revenue).toContain('ChartTouchWrapper')
-      expect(activity).toContain('ChartTouchWrapper')
+      const globals = read('src/app/globals.css')
+      expect(revenue).not.toContain('ChartTouchWrapper')
+      expect(activity).not.toContain('ChartTouchWrapper')
+      expect(globals).toMatch(/\.recharts-surface[\s\S]*?touch-action:\s*pan-y/)
     })
 
     it('both graphs use PremiumSelect for range selection', () => {

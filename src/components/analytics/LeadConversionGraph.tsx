@@ -5,11 +5,11 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart3 } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
-import { ChartDatumPopup } from '@/lib/chart-utils'
 
 interface ConversionStage {
   name: string
@@ -39,7 +39,6 @@ export default function LeadConversionGraph() {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const [stageFilter, setStageFilter] = useState<string>('all')
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,7 +65,6 @@ export default function LeadConversionGraph() {
 
         if (!leads || leads.length === 0) {
           setData([])
-          setSelectedIndex(null)
           setLoading(false)
           return
         }
@@ -79,7 +77,6 @@ export default function LeadConversionGraph() {
 
         if (filteredLeads.length === 0) {
           setData([])
-          setSelectedIndex(null)
           setLoading(false)
           return
         }
@@ -168,7 +165,6 @@ export default function LeadConversionGraph() {
         ]
 
         setData(conversionData)
-        setSelectedIndex(null)
       } catch (error) {
         console.error('[LeadConversionGraph] Error fetching data:', error)
         setData([])
@@ -199,20 +195,17 @@ export default function LeadConversionGraph() {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Lead Conversion</h3>
           <div className="flex items-center gap-2">
-            <PremiumSelect
+            <ChartFilterButton
               value={stageFilter}
               onChange={(value) => {
                 setStageFilter(value)
-                setSelectedIndex(null)
               }}
               options={STAGE_FILTER_OPTIONS}
-              className="text-xs"
             />
             <PremiumSelect
               value={timeRange}
               onChange={(value) => {
                 setTimeRange(value as AnalyticsTimeframe)
-                setSelectedIndex(null)
               }}
               options={ANALYTICS_TIMEFRAME_OPTIONS}
               className="text-xs"
@@ -246,29 +239,12 @@ export default function LeadConversionGraph() {
             description="Capture leads to track conversion outcomes."
           />
         ) : (
-          <div className="h-[260px] overflow-y-auto relative" onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedIndex(null)
-          }}>
-            {selectedIndex !== null && displayData[selectedIndex] && (
-              <ChartDatumPopup>
-                <p className="text-[11px] font-semibold text-foreground">{displayData[selectedIndex].name}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {displayData[selectedIndex].count} lead{displayData[selectedIndex].count === 1 ? '' : 's'} ({displayData[selectedIndex].percentage}%)
-                </p>
-              </ChartDatumPopup>
-            )}
+          <div className="h-[260px] overflow-y-auto relative">
             <div className="space-y-4 pt-1">
-              {displayData.map((stage, index) => (
-                <button
+              {displayData.map((stage) => (
+                <div
                   key={stage.name}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedIndex((prev) => (prev === index ? null : index))
-                  }}
-                  className={`w-full flex items-center gap-4 rounded-md p-2 -mx-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                    selectedIndex === index ? 'bg-muted/40' : 'hover:bg-muted/20'
-                  }`}
+                  className="w-full flex items-center gap-4 rounded-md p-2 -mx-2 text-left"
                 >
                   <div className="flex-shrink-0 w-20 sm:w-24 text-xs font-medium text-muted-foreground text-right">
                     {stage.name}
@@ -280,7 +256,7 @@ export default function LeadConversionGraph() {
                         style={{
                           width: `${stage.percentage}%`,
                           backgroundColor: stage.color,
-                          opacity: selectedIndex === index ? 1 : 0.9
+                          opacity: 0.9
                         }}
                       />
                     </div>
@@ -291,7 +267,7 @@ export default function LeadConversionGraph() {
                   <div className="flex-shrink-0 w-14 text-xs text-muted-foreground/70 text-right tabular-nums">
                     {stage.percentage}%
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>

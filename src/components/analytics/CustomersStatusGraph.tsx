@@ -6,9 +6,9 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
-import PremiumSelect from '@/components/ui/PremiumSelect'
+import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice, ChartDatumPopup } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice } from '@/lib/chart-utils'
 import { CUSTOMER_STATUS_STYLES, CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
 
 interface CustomerStatusData {
@@ -31,7 +31,6 @@ export default function CustomersStatusGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<CustomerStatusData[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const isTouchDevice = useTouchDevice()
 
@@ -74,7 +73,6 @@ export default function CustomersStatusGraph() {
 
         if (isMounted) {
           setData(chartData)
-          setSelectedIndex(null)
         }
       } catch (error) {
         if (isMounted) console.error('[CustomersStatusGraph] Error fetching data:', error)
@@ -111,11 +109,10 @@ export default function CustomersStatusGraph() {
           <div>
             <h3 className="text-sm font-semibold text-foreground">Customers by Status</h3>
           </div>
-          <PremiumSelect
+          <ChartFilterButton
             value={statusFilter}
             onChange={(value) => {
               setStatusFilter(value)
-              setSelectedIndex(null)
             }}
             options={STATUS_FILTER_OPTIONS}
           />
@@ -149,23 +146,7 @@ export default function CustomersStatusGraph() {
           />
         ) : (
           <div className="h-[260px] relative">
-            {selectedIndex !== null && displayData[selectedIndex] && (
-              <ChartDatumPopup>
-                <p className="text-[11px] font-semibold text-foreground">{displayData[selectedIndex].status}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {displayData[selectedIndex].count} {displayData[selectedIndex].count === 1 ? 'customer' : 'customers'}
-                </p>
-              </ChartDatumPopup>
-            )}
-            <ChartTouchWrapper chartType="bar">
-              <div
-                className="w-full h-full"
-                onClick={(e) => {
-                  if (e.target === e.currentTarget || (e.target as Element).closest?.('.recharts-surface')) {
-                    setSelectedIndex(null)
-                  }
-                }}
-              >
+            <div className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={displayData} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
                     <CartesianGrid
@@ -206,18 +187,12 @@ export default function CustomersStatusGraph() {
                       barSize={24}
                       maxBarSize={CHART_STYLES.barMaxSize}
                       activeBar={false}
-                      onClick={(_, index, event) => {
-                        event.stopPropagation()
-                        setSelectedIndex((prev) => (prev === index ? null : index))
-                      }}
                     >
                       {displayData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill={entry.color}
-                          fillOpacity={selectedIndex === index ? 1 : 0.85}
-                          stroke={selectedIndex === index ? 'hsl(var(--background))' : 'none'}
-                          strokeWidth={selectedIndex === index ? 2 : 0}
+                          fillOpacity={0.85}
                           className="transition-all duration-200"
                         />
                       ))}
@@ -225,7 +200,6 @@ export default function CustomersStatusGraph() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </ChartTouchWrapper>
           </div>
         )}
       </div>

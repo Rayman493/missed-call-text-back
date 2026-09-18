@@ -6,9 +6,10 @@ const read = (rel: string) => readFileSync(rel, 'utf8')
 describe('CustomersStatusGraph filter control', () => {
   const content = read('src/components/analytics/CustomersStatusGraph.tsx')
 
-  it('has a status Filter dropdown using PremiumSelect', () => {
+  it('has a status filter funnel button', () => {
     expect(content).toContain('const [statusFilter, setStatusFilter]')
     expect(content).toContain('STATUS_FILTER_OPTIONS')
+    expect(content).toContain('ChartFilterButton')
   })
 
   it('filter options include All and the canonical customer statuses', () => {
@@ -20,10 +21,9 @@ describe('CustomersStatusGraph filter control', () => {
     expect(content).toMatch(/const STATUS_ORDER[\s\S]*?'completed'/)
   })
 
-  it('derives displayData from the filter and clears selectedIndex on filter change', () => {
+  it('derives displayData from the filter', () => {
     expect(content).toContain('const displayData = useMemo')
     expect(content).toContain('setStatusFilter(value)')
-    expect(content).toContain('setSelectedIndex(null)')
   })
 
   it('renders the chart from displayData, not raw data', () => {
@@ -34,9 +34,10 @@ describe('CustomersStatusGraph filter control', () => {
 describe('CustomerPipelineGraph filter control', () => {
   const content = read('src/components/analytics/CustomerPipelineGraph.tsx')
 
-  it('has a status Filter dropdown using PremiumSelect', () => {
+  it('has a status filter funnel button', () => {
     expect(content).toContain('const [statusFilter, setStatusFilter]')
     expect(content).toContain('PIPELINE_STATUS_OPTIONS')
+    expect(content).toContain('ChartFilterButton')
   })
 
   it('filter options include All and known workflow statuses plus Unknown', () => {
@@ -53,9 +54,10 @@ describe('CustomerPipelineGraph filter control', () => {
 describe('LeadConversionGraph filter control', () => {
   const content = read('src/components/analytics/LeadConversionGraph.tsx')
 
-  it('has a stage Filter dropdown beside the time-range dropdown', () => {
+  it('has a stage filter funnel button beside the time-range dropdown', () => {
     expect(content).toContain('const [stageFilter, setStageFilter]')
     expect(content).toContain('STAGE_FILTER_OPTIONS')
+    expect(content).toContain('ChartFilterButton')
   })
 
   it('filter options include All and every conversion stage', () => {
@@ -67,7 +69,7 @@ describe('LeadConversionGraph filter control', () => {
   })
 
   it('renders rows from displayData', () => {
-    expect(content).toContain('displayData.map((stage, index)')
+    expect(content).toContain('displayData.map((stage')
   })
 })
 
@@ -82,15 +84,15 @@ describe('NewCustomersGraph has no status/type filter', () => {
 })
 
 describe('Shared filter behavior contract', () => {
-  it('filter change clears selected datum popup', () => {
+  it('no graph uses tap-selected datum state any more', () => {
     const statusGraph = read('src/components/analytics/CustomersStatusGraph.tsx')
     const pipelineGraph = read('src/components/analytics/CustomerPipelineGraph.tsx')
     const leadGraph = read('src/components/analytics/LeadConversionGraph.tsx')
     const activityGraph = read('src/components/analytics/BusinessActivityGraph.tsx')
 
-    expect(statusGraph).toMatch(/setStatusFilter\(value\)[\s\S]*?setSelectedIndex\(null\)/)
-    expect(pipelineGraph).toMatch(/setStatusFilter\(value\)[\s\S]*?setSelectedIndex\(null\)/)
-    expect(leadGraph).toMatch(/setStageFilter\(value\)[\s\S]*?setSelectedIndex\(null\)/)
-    expect(activityGraph).toMatch(/setSeriesFilter\(value\)[\s\S]*?setActiveIndex\(null\)/)
+    expect(statusGraph).not.toContain('selectedIndex')
+    expect(pipelineGraph).not.toContain('selectedIndex')
+    expect(leadGraph).not.toContain('selectedIndex')
+    expect(activityGraph).not.toContain('activeIndex')
   })
 })

@@ -508,30 +508,32 @@ export default function BillingEditorModal({
 
   const footer = (
     <div className="flex flex-col gap-2 px-1 pb-[env(safe-area-inset-bottom)]">
-      {/* Mobile: secondary actions on their own row; desktop: all in one row */}
+      {/* Mobile: primary actions on top; desktop: primary right, secondary left */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div className="flex items-center gap-2">
+        {/* Secondary row */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handlePreview}
-            className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-1.5"
             disabled={pendingAction !== null}
+            className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             <Eye className="w-4 h-4" />
             Preview
           </button>
           <button
             onClick={handleAttemptClose}
-            className="px-5 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
             disabled={pendingAction !== null}
+            className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+        {/* Primary row */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => handleSaveDraft(false)}
             disabled={pendingAction !== null}
-            className="px-4 py-2.5 text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {pendingAction === 'draft' && <Loader2 className="w-4 h-4 animate-spin" />}
             {existingDocument ? 'Save Changes' : 'Create Draft'}
@@ -546,7 +548,7 @@ export default function BillingEditorModal({
                 setShowCreateAndSendConfirm(true)
               }}
               disabled={pendingAction !== null}
-              className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {pendingAction === 'send' && <Loader2 className="w-4 h-4 animate-spin" />}
               Create & Send
@@ -1022,13 +1024,16 @@ export default function BillingEditorModal({
       <Modal
         isOpen={showCreateAndSendConfirm}
         onClose={() => { setShowCreateAndSendConfirm(false); setCreateAndSendError('') }}
-        title={`Create and send ${isInvoice ? 'invoice' : 'quote'}?`}
+        title={`Send ${isInvoice ? 'invoice' : 'quote'} to customer?`}
       >
-        <div className="space-y-4">
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>{displayName.trim() || `New ${isInvoice ? 'Invoice' : 'Quote'}`}</p>
-            <p>{customerName} • {customerPhone}</p>
-            <p className="font-medium text-foreground">{formatCurrency(total, true)}</p>
+        <div className="space-y-3">
+          <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-1">
+            <p className="text-xs text-muted-foreground">{isInvoice ? 'Invoice' : 'Quote'}</p>
+            <p className="text-sm font-semibold text-foreground truncate">
+              {displayName.trim() || `New ${isInvoice ? 'Invoice' : 'Quote'}`}
+            </p>
+            <p className="text-xs text-muted-foreground">{customerName} • {customerPhone}</p>
+            <p className="text-lg font-semibold text-foreground">{formatCurrency(total, true)}</p>
           </div>
           {createAndSendError && (
             <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 flex items-center gap-2">
@@ -1036,8 +1041,13 @@ export default function BillingEditorModal({
               <div className="flex-1 text-xs text-red-900 dark:text-red-100">{createAndSendError}</div>
             </div>
           )}
-          <div className="flex items-center justify-end gap-2">
-            <button onClick={() => { setShowCreateAndSendConfirm(false); setCreateAndSendError('') }} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg">Cancel</button>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={() => { setShowCreateAndSendConfirm(false); setCreateAndSendError('') }}
+              className="flex-1 h-10 px-4 text-sm font-medium text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
             <button
               onClick={() => {
                 if (isInvoice && total <= 0) {
@@ -1049,10 +1059,10 @@ export default function BillingEditorModal({
                 handleSaveDraft(true)
               }}
               disabled={pendingAction !== null}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+              className="flex-1 h-10 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {pendingAction === 'send' && <Loader2 className="w-4 h-4 animate-spin" />}
-              Send to Customer
+              Send {isInvoice ? 'Invoice' : 'Quote'}
             </button>
           </div>
         </div>

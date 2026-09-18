@@ -43,8 +43,8 @@ describe('PaymentCollectionGraph - Rendering Logic', () => {
     expect(content).toContain('<ResponsiveContainer width="100%" height="100%">')
   })
 
-  it('should wrap chart in ChartTouchWrapper', () => {
-    expect(content).toContain('<ChartTouchWrapper>')
+  it('should not wrap chart in a touch-interaction wrapper', () => {
+    expect(content).not.toContain('<ChartTouchWrapper')
   })
 
   it('should render PieChart', () => {

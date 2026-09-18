@@ -72,7 +72,7 @@ import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import LeadCard from '@/components/LeadCard'
 import FocusSection from '@/components/FocusSection'
-import { Wrench, FileText, Clock, CreditCard } from 'lucide-react'
+import { Wrench, FileText, Clock, CreditCard, Users } from 'lucide-react'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -118,7 +118,7 @@ const statusFilterOptions = [
 
 function getStatusFilterIcon(filter: string) {
   if (filter === 'all') {
-    return <span className="w-2 h-2 rounded-full bg-current" />
+    return <Users className="w-4 h-4 text-muted-foreground" />
   }
   const Icon = getCustomerStatusIcon(filter)
   const style = getCustomerStatusStyle(filter)
@@ -1547,19 +1547,8 @@ export default function LeadsPage() {
                       className="w-full h-10 px-3 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:ring-2 focus:ring-blue-500/40 focus:border-transparent focus:outline-none transition-all cursor-pointer flex items-center justify-between hover:bg-muted/50"
                     >
                       <div className="flex items-center gap-2">
-                        {statusFilter === 'all' ? (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
-                            </svg>
-                            <span className="whitespace-nowrap">Filters</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-xs">{getStatusFilterIcon(statusFilter)}</span>
-                            <span className="whitespace-nowrap">{getStatusFilterLabel(statusFilter)}</span>
-                          </>
-                        )}
+                        <span className="text-xs">{getStatusFilterIcon(statusFilter)}</span>
+                        <span className="whitespace-nowrap">{getStatusFilterLabel(statusFilter)}</span>
                       </div>
                       <svg 
                         className="w-3 h-3 transition-transform duration-200" 

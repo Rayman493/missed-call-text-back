@@ -169,7 +169,7 @@ describe('Batch 4 — Personal Voicemail Link', () => {
 })
 
 describe('Batch 4 — Desktop/Accessibility Preservation', () => {
-  it('line charts preserve activeDot for tap selection', () => {
+  it('line charts preserve activeDot for desktop hover', () => {
     const revenueContent = readContent('src/components/analytics/RevenueGraph.tsx')
     expect(revenueContent).toContain('activeDot')
 
@@ -177,25 +177,25 @@ describe('Batch 4 — Desktop/Accessibility Preservation', () => {
     expect(activityContent).toContain('activeDot')
   })
 
-  it('tooltips are always enabled and ChartTouchWrapper drives touch selection via hover trigger', () => {
+  it('line graphs gate Tooltips on non-touch devices to avoid mobile tap-to-popup', () => {
     const revenueContent = readContent('src/components/analytics/RevenueGraph.tsx')
-    // Tooltip should always be included; ChartTouchWrapper dispatches synthetic
-    // mousemove so the hover trigger is active for touch taps.
-    expect(revenueContent).toContain('<Tooltip')
+    expect(revenueContent).toContain('!isTouchDevice')
     expect(revenueContent).toMatch(/trigger\s*=\s*(['"])hover\1/)
-    // Should NOT gate Tooltip on !isTouchDevice
-    expect(revenueContent).not.toMatch(/\{!isTouchDevice\s*&&\s*\(\s*<Tooltip/)
+
+    const activityContent = readContent('src/components/analytics/BusinessActivityGraph.tsx')
+    expect(activityContent).toContain('!isTouchDevice')
+    expect(activityContent).toMatch(/trigger\s*=\s*(['"])hover\1/)
 
     const newCustomersContent = readContent('src/components/analytics/NewCustomersGraph.tsx')
     expect(newCustomersContent).toContain('!isTouchDevice')
   })
 
-  it('donut charts preserve onClick segment selection', () => {
+  it('donut charts no longer use onClick segment selection', () => {
     const paymentContent = readContent('src/components/analytics/PaymentCollectionGraph.tsx')
-    expect(paymentContent).toContain('onClick')
+    expect(paymentContent).not.toContain('onClick')
 
     const leadsContent = readContent('src/components/analytics/LeadsSourceGraph.tsx')
-    expect(leadsContent).toContain('onClick')
+    expect(leadsContent).not.toContain('onClick')
   })
 
   it('BusinessActivityGraph legend is informational only (no interactive buttons)', () => {
@@ -207,7 +207,7 @@ describe('Batch 4 — Desktop/Accessibility Preservation', () => {
 })
 
 describe('Batch 4 — Business Logic Unchanged', () => {
-  it('all 7 chart components still use ChartTouchWrapper', () => {
+  it('dashboard line and bar charts no longer use ChartTouchWrapper for display-only mode', () => {
     const charts = [
       'src/components/analytics/RevenueGraph.tsx',
       'src/components/analytics/BusinessActivityGraph.tsx',
@@ -219,7 +219,7 @@ describe('Batch 4 — Business Logic Unchanged', () => {
     ]
     for (const path of charts) {
       const content = readContent(path)
-      expect(content).toContain('ChartTouchWrapper')
+      expect(content).not.toContain('ChartTouchWrapper')
     }
   })
 

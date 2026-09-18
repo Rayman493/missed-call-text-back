@@ -8,7 +8,7 @@ import { CreditCard } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, ChartTouchWrapper, useTouchDevice } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
 import { normalizePaymentStatus, PAYMENT_STATUS_STYLES } from '@/lib/payment-status'
@@ -32,7 +32,6 @@ export default function PaymentCollectionGraph() {
   const [data, setData] = useState<PaymentStatusData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
@@ -143,83 +142,60 @@ export default function PaymentCollectionGraph() {
           />
         ) : (
           <div className="h-[260px] w-full">
-            <ChartTouchWrapper chartType="pie">
-              <div onClick={() => setSelectedIndex(null)} className="w-full h-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={CHART_STYLES.donutInnerRadius}
-                      outerRadius={CHART_STYLES.donutOuterRadius}
-                      paddingAngle={data.length === 1 ? 0 : CHART_STYLES.donutPaddingAngle}
-                      dataKey="value"
-                      onClick={(data: any, index: number, event: React.MouseEvent) => {
-                        event.stopPropagation()
-                        setSelectedIndex(selectedIndex === index ? null : index)
-                      }}
-                    >
-                      {data.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.color}
-                          stroke={selectedIndex === index ? 'hsl(var(--background))' : 'none'}
-                          strokeWidth={selectedIndex === index ? 2 : 0}
-                        />
-                      ))}
-                    </Pie>
-                    <Label
-                      content={({ viewBox }: any) => {
-                        if (!viewBox) return null
-                        const { x, y, width, height } = viewBox
-                        const cx = x + width / 2
-                        const cy = y + height / 2
-
-                        // Show selected segment value, or default collection rate
-                        if (selectedIndex !== null && data[selectedIndex]) {
-                          const selected = data[selectedIndex]
-                          return (
-                            <g>
-                              <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
-                                {selected.value}
-                              </text>
-                              <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
-                                {selected.name}
-                            </text>
-                            </g>
-                          )
-                        }
-
-                        return (
-                          <g>
-                            <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
-                              {collectionRate}%
-                            </text>
-                            <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
-                              Collected
-                            </text>
-                          </g>
-                        )
-                      }}
-                      position="center"
-                    />
-                    {!isTouchDevice && (
-                      <Tooltip
-                        content={<PremiumTooltip />}
+            <div className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={CHART_STYLES.donutInnerRadius}
+                    outerRadius={CHART_STYLES.donutOuterRadius}
+                    paddingAngle={data.length === 1 ? 0 : CHART_STYLES.donutPaddingAngle}
+                    dataKey="value"
+                  >
+                    {data.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
                       />
-                    )}
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      iconType="circle"
-                      iconSize={CHART_STYLES.legendIconSize}
-                      wrapperStyle={{ fontSize: `${CHART_STYLES.legendFontSize}px` }}
+                    ))}
+                  </Pie>
+                  <Label
+                    content={({ viewBox }: any) => {
+                      if (!viewBox) return null
+                      const { x, y, width, height } = viewBox
+                      const cx = x + width / 2
+                      const cy = y + height / 2
+
+                      return (
+                        <g>
+                          <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle" className="fill-foreground" style={{ fontSize: '20px', fontWeight: '600' }}>
+                            {collectionRate}%
+                          </text>
+                          <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground" style={{ fontSize: '10px' }}>
+                            Collected
+                          </text>
+                        </g>
+                      )
+                    }}
+                    position="center"
+                  />
+                  {!isTouchDevice && (
+                    <Tooltip
+                      content={<PremiumTooltip />}
                     />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartTouchWrapper>
+                  )}
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    iconType="circle"
+                    iconSize={CHART_STYLES.legendIconSize}
+                    wrapperStyle={{ fontSize: `${CHART_STYLES.legendFontSize}px` }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

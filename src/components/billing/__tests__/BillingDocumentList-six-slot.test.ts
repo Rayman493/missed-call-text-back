@@ -29,14 +29,16 @@ describe('BillingDocumentList six-slot action row', () => {
   })
 
   it('all six slots render as real buttons', () => {
-    expect(src).toContain('aria-label={disabledByEligibility ? `${slot.title} unavailable` : slot.label}')
-    expect(src).toContain('title={disabledByEligibility ? `${slot.title} unavailable` : slot.title}')
+    expect(src).toContain('aria-label={slot.label}')
+    expect(src).toContain('title={slot.title}')
     expect(src).toContain('onClick={slot.onClick}')
-    expect(src).toContain('disabled={isDisabled}')
+    expect(src).toContain('disabled={isLoading}')
   })
 
-  it('disabled slots render as non-focusable buttons with the same icon and dimensions', () => {
-    expect(src).not.toContain('aria-hidden="true"')
+  it('disabled-by-eligibility slots render as non-action buttons with explanation', () => {
+    expect(src).toContain('disabledByEligibility')
+    expect(src).toContain('showToast')
+    expect(src).toContain('aria-label={`${slot.title} unavailable`}')
     expect(src).toContain('cursor-default')
     expect(src).toContain('w-8 h-8')
   })
@@ -46,9 +48,9 @@ describe('BillingDocumentList six-slot action row', () => {
     expect(src).toContain('dark:text-slate-700')
   })
 
-  it('disabled placeholders are not keyboard-focusable through disabled semantics', () => {
-    expect(src).not.toMatch(/<button[^>]*tabIndex=/)
-    expect(src).toMatch(/disabled=\{isDisabled\}/)
+  it('disabled-by-eligibility slots do not fire the real action', () => {
+    expect(src).not.toMatch(/disabledByEligibility[\s\S]{0,300}onClick=\{slot\.onClick\}/)
+    expect(src).toContain('slot.disabledReason && showToast')
   })
 
   it('uses the same icon size in all buttons', () => {

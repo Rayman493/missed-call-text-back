@@ -6,9 +6,10 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice, ChartDatumPopup } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -53,7 +54,6 @@ export default function BusinessActivityGraph() {
   // first fetch (full "Loading..." state) from subsequent range changes
   // (subtle "Updating..." indicator that keeps the previous chart visible).
   const hasInitialLoadRef = useRef(false)
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   useEffect(() => {
     let isStale = false
@@ -173,8 +173,6 @@ export default function BusinessActivityGraph() {
     }
 
     fetchData()
-    // Clear stale active selection when range changes
-    setActiveIndex(null)
     return () => { isStale = true }
   }, [business, timeRange])
 
@@ -206,11 +204,10 @@ export default function BusinessActivityGraph() {
             <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
           </div>
           <div className="flex items-center gap-2">
-            <PremiumSelect
+            <ChartFilterButton
               value={seriesFilter}
               onChange={(value) => {
                 setSeriesFilter(value)
-                setActiveIndex(null)
               }}
               options={SERIES_FILTER_OPTIONS}
             />
@@ -218,7 +215,6 @@ export default function BusinessActivityGraph() {
               value={timeRange}
               onChange={(value) => {
                 setTimeRange(value)
-                setActiveIndex(null)
               }}
               options={ANALYTICS_TIMEFRAME_OPTIONS}
             />
@@ -260,32 +256,7 @@ export default function BusinessActivityGraph() {
                 Updating…
               </div>
             )}
-            {activeIndex !== null && data[activeIndex] && (
-              <ChartDatumPopup
-                className="right-auto"
-                style={{
-                  left: data.length > 1 ? `${(activeIndex / (data.length - 1)) * 100}%` : '50%',
-                  transform: 'translateX(-50%)',
-                }}
-              >
-                <p className="text-[11px] font-semibold text-foreground">{data[activeIndex].date}</p>
-                <div className="space-y-0.5">
-                  {visibleKeys.map((key) => (
-                    <div key={key as string} className="flex items-center justify-between gap-3 text-[11px]">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: SERIES_COLORS[key as keyof typeof SERIES_COLORS] }}
-                        />
-                        <span className="text-muted-foreground">{SERIES_LABELS[key as string]}</span>
-                      </div>
-                      <span className="font-medium text-foreground tabular-nums">{data[activeIndex][key]}</span>
-                    </div>
-                  ))}
-                </div>
-              </ChartDatumPopup>
-            )}
-            <ChartTouchWrapper data={data} onActiveIndexChange={setActiveIndex}>
+            <div className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ ...CHART_STYLES.margin, bottom: 12 }}>
                   <CartesianGrid
@@ -310,35 +281,37 @@ export default function BusinessActivityGraph() {
                     ticks={yTicks}
                     tickFormatter={formatInteger}
                   />
-                  <Tooltip
-                    cursor={false}
-                    content={({ active, payload, label }: any) => {
-                      if (!active || !payload || payload.length === 0) return null
+                  {!isTouchDevice && (
+                    <Tooltip
+                      cursor={false}
+                      content={({ active, payload, label }: any) => {
+                        if (!active || !payload || payload.length === 0) return null
 
-                      return (
-                        <div className="bg-card border border-border/50 rounded-lg shadow-lg px-2 py-1.5 w-fit max-w-[min(70vw,220px)]">
-                          <p className="text-[11px] font-semibold text-foreground mb-1">{label}</p>
-                          {payload.map((entry: any, index: number) => {
-                            const key = entry.dataKey as string
-                            const label = SERIES_LABELS[key] || entry.dataKey
-                            return (
-                              <div key={index} className="flex items-center justify-between gap-2 text-[11px]">
-                                <div className="flex items-center gap-1.5">
-                                  <div
-                                    className="w-2 h-2 rounded-full shrink-0"
-                                    style={{ backgroundColor: entry.color }}
-                                  />
-                                  <span className="text-muted-foreground truncate max-w-[120px]" title={label}>{label}</span>
+                        return (
+                          <div className="bg-card border border-border/50 rounded-lg shadow-lg px-2 py-1.5 w-fit max-w-[min(70vw,220px)]">
+                            <p className="text-[11px] font-semibold text-foreground mb-1">{label}</p>
+                            {payload.map((entry: any, index: number) => {
+                              const key = entry.dataKey as string
+                              const label = SERIES_LABELS[key] || entry.dataKey
+                              return (
+                                <div key={index} className="flex items-center justify-between gap-2 text-[11px]">
+                                  <div className="flex items-center gap-1.5">
+                                    <div
+                                      className="w-2 h-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: entry.color }}
+                                    />
+                                    <span className="text-muted-foreground truncate max-w-[120px]" title={label}>{label}</span>
+                                  </div>
+                                  <span className="font-medium text-foreground tabular-nums pl-1">{entry.value}</span>
                                 </div>
-                                <span className="font-medium text-foreground tabular-nums pl-1">{entry.value}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )
-                    }}
-                    trigger="hover"
-                  />
+                              )
+                            })}
+                          </div>
+                        )
+                      }}
+                      trigger="hover"
+                    />
+                  )}
                   <Legend
                     content={({ payload }: any) => (
                       <div className="flex flex-wrap gap-2 sm:gap-3 justify-center px-2" role="group" aria-label="Series legend">
@@ -417,7 +390,7 @@ export default function BusinessActivityGraph() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </ChartTouchWrapper>
+            </div>
           </div>
         )}
       </div>

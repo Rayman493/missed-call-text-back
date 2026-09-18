@@ -11,15 +11,10 @@ describe('BusinessActivityGraph', () => {
     expect(content).not.toContain('setHiddenSeries')
   })
 
-  it('exposes Filter and time-range controls independently', () => {
+  it('uses a compact funnel filter trigger', () => {
+    expect(content).toContain('ChartFilterButton')
     expect(content).toMatch(/value=\{seriesFilter\}[\s\S]*?options=\{SERIES_FILTER_OPTIONS\}/)
     expect(content).toMatch(/value=\{timeRange\}[\s\S]*?options=\{ANALYTICS_TIMEFRAME_OPTIONS\}/)
-  })
-
-  it('clears the selected datum when the filter or time range changes', () => {
-    expect(content).toContain('setSeriesFilter(value)')
-    expect(content).toContain('setActiveIndex(null)')
-    expect(content).toMatch(/setTimeRange\(value\)[\s\S]*?setActiveIndex\(null\)/)
   })
 
   it('renders an informational legend, not clickable metric buttons', () => {
@@ -43,8 +38,15 @@ describe('BusinessActivityGraph', () => {
     expect(content).toContain("completedJobs: 'Completed Jobs'")
   })
 
-  it('shows a contextual popup for the selected datum', () => {
-    expect(content).toContain('activeIndex !== null && data[activeIndex]')
-    expect(content).toContain('<ChartDatumPopup')
+  it('does not render tap-selected datum popups or chart touch wrappers', () => {
+    expect(content).not.toContain('activeIndex')
+    expect(content).not.toContain('ChartDatumPopup')
+    expect(content).not.toContain('ChartTouchWrapper')
+    expect(content).not.toContain('onActiveIndexChange')
+  })
+
+  it('does not attach tap selection handlers to chart data', () => {
+    expect(content).not.toMatch(/onClick=\{[^}]*index/)
+    expect(content).not.toContain('setSelectedIndex')
   })
 })

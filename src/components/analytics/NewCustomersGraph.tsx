@@ -8,7 +8,7 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, ChartTouchWrapper, useTouchDevice, ChartDatumPopup } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -22,7 +22,6 @@ export default function NewCustomersGraph() {
   const [data, setData] = useState<NewCustomersData[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
@@ -70,8 +69,6 @@ export default function NewCustomersGraph() {
     }
 
     fetchData()
-    // Clear stale bar selection when the data range changes
-    setSelectedIndex(null)
   }, [business, timeRange])
 
   const isEmpty = data.length === 0
@@ -136,25 +133,7 @@ export default function NewCustomersGraph() {
           />
         ) : (
           <div className="h-[260px] relative">
-            {selectedIndex !== null && data[selectedIndex] && (
-              <ChartDatumPopup>
-                <p className="text-[11px] font-semibold text-foreground">{data[selectedIndex].date}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {data[selectedIndex].customers} {data[selectedIndex].customers === 1 ? 'new customer' : 'new customers'}
-                </p>
-              </ChartDatumPopup>
-            )}
-            <ChartTouchWrapper chartType="bar">
-              <div
-                className="w-full h-full"
-                onClick={(e) => {
-                  // Tapping chart background/surface clears the selected bar.
-                  // Tapping an actual bar stops propagation from the Bar onClick handler.
-                  if (e.target === e.currentTarget || (e.target as Element).closest?.('.recharts-surface')) {
-                    setSelectedIndex(null)
-                  }
-                }}
-              >
+            <div className="w-full h-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
                     <CartesianGrid
@@ -190,16 +169,12 @@ export default function NewCustomersGraph() {
                       radius={CHART_STYLES.barRadius}
                       maxBarSize={CHART_STYLES.barMaxSize}
                       activeBar={false}
-                      onClick={(_, index, event) => {
-                        event.stopPropagation()
-                        setSelectedIndex((prev) => (prev === index ? null : index))
-                      }}
                     >
                       {data.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
                           fill="hsl(var(--primary))"
-                          fillOpacity={selectedIndex === index ? 1 : 0.8}
+                          fillOpacity={0.8}
                           className="transition-all duration-200"
                         />
                       ))}
@@ -207,7 +182,6 @@ export default function NewCustomersGraph() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </ChartTouchWrapper>
           </div>
         )}
       </div>

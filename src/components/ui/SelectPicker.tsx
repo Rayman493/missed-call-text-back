@@ -296,7 +296,7 @@ export default function SelectPicker({
         <div
           id={dropdownId}
           ref={dropdownRef}
-          className={`absolute z-[60] w-full bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150 ${
+          className={`absolute z-[60] w-full bg-background rounded-lg shadow-xl shadow-black/10 dark:shadow-black/40 border border-border/70 max-h-[300px] overflow-hidden flex flex-col animate-in fade-in duration-150 ${
             dropup ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
           style={{ maxHeight: maxDropdownHeight }}

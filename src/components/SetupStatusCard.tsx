@@ -395,9 +395,9 @@ export default function SetupStatusCard({
               e.preventDefault()
               expandWithHeaderAnchor()
             }}
-            className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-md transition-colors cursor-pointer flex-shrink-0"
+            className="w-10 h-10 sm:w-11 sm:h-11 inline-flex items-center justify-center rounded-lg border border-border/60 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
           >
-            <ChevronDown className="w-3.5 h-3.5" />
+            <ChevronDown className="w-5 h-5" />
           </button>
         </div>
         </div>
@@ -934,9 +934,9 @@ export default function SetupStatusCard({
                   setUserHasToggled(true)
                   setIsExpanded(false)
                 }}
-                className="flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-md transition-colors cursor-pointer flex-shrink-0"
+                className="w-10 h-10 sm:w-11 sm:h-11 inline-flex items-center justify-center rounded-lg border border-border/60 bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
               >
-                <ChevronUp className="w-3.5 h-3.5" />
+                <ChevronUp className="w-5 h-5" />
               </button>
             </div>
 

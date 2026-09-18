@@ -31,6 +31,7 @@ import Dropdown from '@/components/ui/Dropdown'
 import type { DropdownOption } from '@/components/ui/Dropdown'
 import PaymentEditModal from '@/components/payments/PaymentEditModal'
 import PaymentsNewRequestModal from '@/components/payments/PaymentsNewRequestModal'
+import PaymentActionBar from '@/components/payments/PaymentActionBar'
 import Modal from '@/components/ui/Modal'
 import SuccessBanner from '@/components/SuccessBanner'
 import BillingChooserModal from '@/components/billing/BillingChooserModal'
@@ -1480,7 +1481,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                         payment.status === 'failed' ? payment.failed_at :
                         payment.status === 'cancelled' ? payment.cancelled_at :
                         null
-                      const canEdit = payment.status === 'paid' || payment.status === 'pending'
+                      const canEdit = ['pending', 'paid', 'failed', 'cancelled'].includes(payment.status)
                       return (
                       <div key={payment.id} className="bg-muted/50 dark:bg-[#0f172a] rounded-lg p-3 border border-border dark:border-slate-700 flex flex-col">
                         {/* Header: Payment + Tap to Pay badge + Status badge */}
@@ -1537,99 +1538,31 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           )}
                         </div>
 
-                        {/* Divider */}
-                        <div className="flex items-center w-full mt-2.5 pt-2.5 border-t border-slate-700 min-h-[2.25rem]">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {payment.leads && (
-                              <button
-                                onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
-                              >
-                                View Customer
-                              </button>
-                            )}
-                            {canEdit && (
-                              <button
-                                onClick={() => handleOpenEditModal(payment)}
-                                className="p-1.5 text-muted-foreground hover:text-foreground"
-                                title="Rename payment"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                            )}
-                            {payment.status === 'pending' && payment.checkout_url && (
-                              <>
-                                <button
-                                  onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                  className="p-1.5 text-blue-400 hover:text-blue-300"
-                                  title="Copy payment link"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </button>
-                                <a
-                                  href={payment.checkout_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 text-blue-400 hover:text-blue-300"
-                                  title="Open payment link"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </a>
-                              </>
-                            )}
-                            {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
-                              <button
-                                onClick={() => {
-                                  setPaymentToMarkPaid(payment)
-                                  setShowMarkPaidConfirm(true)
-                                }}
-                                disabled={isMarkingPaid}
-                                className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                title="Mark as paid"
-                              >
-                                <CreditCard className="h-4 w-4" />
-                                Mark Paid
-                              </button>
-                            )}
-                            {canManuallyReversePaid(payment) && (
-                              <button
-                                onClick={() => {
-                                  setPaymentToMarkUnpaid(payment)
-                                  setShowMarkUnpaidConfirm(true)
-                                }}
-                                disabled={isMarkingUnpaid}
-                                className="p-1.5 text-amber-400 hover:text-amber-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                title="Mark as unpaid"
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                                Mark Unpaid
-                              </button>
-                            )}
-                            {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
-                              <button
-                                onClick={() => handleCheckStatus(payment)}
-                                disabled={isReconciling}
-                                className="p-1.5 text-blue-400 hover:text-blue-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                title="Check payment status with Stripe"
-                              >
-                                <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
-                                Check Status
-                              </button>
-                            )}
-                          </div>
-                          {payment.status === 'pending' && (
-                            <button
-                              onClick={() => {
-                                setPaymentToCancel(payment)
-                                setShowCancelConfirm(true)
-                              }}
-                              disabled={isCancelling}
-                              className="ml-auto p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0"
-                              title="Cancel payment request"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          )}
+                        {/* Actions */}
+                        <div className="w-full mt-2.5 pt-2.5 border-t border-slate-700 min-h-[3rem]">
+                          <PaymentActionBar
+                            payment={payment}
+                            canEdit={canEdit}
+                            isCancelling={isCancelling}
+                            isMarkingPaid={isMarkingPaid}
+                            isMarkingUnpaid={isMarkingUnpaid}
+                            isReconciling={isReconciling}
+                            onEdit={() => handleOpenEditModal(payment)}
+                            onCopyLink={() => copyPaymentLink(payment.checkout_url!)}
+                            onMarkPaid={() => {
+                              setPaymentToMarkPaid(payment)
+                              setShowMarkPaidConfirm(true)
+                            }}
+                            onMarkUnpaid={() => {
+                              setPaymentToMarkUnpaid(payment)
+                              setShowMarkUnpaidConfirm(true)
+                            }}
+                            onCheckStatus={() => handleCheckStatus(payment)}
+                            onCancel={() => {
+                              setPaymentToCancel(payment)
+                              setShowCancelConfirm(true)
+                            }}
+                          />
                         </div>
                       </div>
                       )
@@ -1700,109 +1633,30 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-center w-full mt-2.5 pt-2.5 border-t border-slate-700">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    {payment.leads && (
-                                      <button
-                                        onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                        className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
-                                      >
-                                        View Customer
-                                      </button>
-                                    )}
-                                    {payment.status === 'paid' && (
-                                      <button
-                                        onClick={() => handleOpenEditModal(payment)}
-                                        className="p-1.5 text-muted-foreground hover:text-foreground"
-                                        title="Rename payment"
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </button>
-                                    )}
-                                    {payment.status === 'pending' && payment.checkout_url && (
-                                      <>
-                                        <button
-                                          onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                          className="p-1.5 text-blue-400 hover:text-blue-300"
-                                          title="Copy payment link"
-                                        >
-                                          <Copy className="h-4 w-4" />
-                                        </button>
-                                        <a
-                                          href={payment.checkout_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="p-1.5 text-blue-400 hover:text-blue-300"
-                                          title="Open payment link"
-                                        >
-                                          <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                      </>
-                                    )}
-                                    {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
-                                      <button
-                                        onClick={() => {
-                                          setPaymentToMarkPaid(payment)
-                                          setShowMarkPaidConfirm(true)
-                                        }}
-                                        disabled={isMarkingPaid}
-                                        className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                        title="Mark as paid"
-                                      >
-                                        <CreditCard className="h-4 w-4" />
-                                        Mark Paid
-                                      </button>
-                                    )}
-                                    {canManuallyReversePaid(payment) && (
-                                      <button
-                                        onClick={() => {
-                                          setPaymentToMarkUnpaid(payment)
-                                          setShowMarkUnpaidConfirm(true)
-                                        }}
-                                        disabled={isMarkingUnpaid}
-                                        className="p-1.5 text-amber-400 hover:text-amber-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                        title="Mark as unpaid"
-                                      >
-                                        <RefreshCw className="h-4 w-4" />
-                                        Mark Unpaid
-                                      </button>
-                                    )}
-                                    {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
-                                      <button
-                                        onClick={() => handleCheckStatus(payment)}
-                                        disabled={isReconciling}
-                                        className="p-1.5 text-blue-400 hover:text-blue-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                        title="Check payment status with Stripe"
-                                      >
-                                        <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
-                                        Check Status
-                                      </button>
-                                    )}
-                                    {payment.status === 'pending' && payment.payment_method_type === 'card_present' && (
-                                      <button
-                                        onClick={() => handleCheckStatus(payment)}
-                                        disabled={isReconciling}
-                                        className="p-1.5 text-blue-400 hover:text-blue-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                        title="Check payment status with Stripe"
-                                      >
-                                        <RefreshCw className={`h-4 w-4 ${isReconciling ? 'animate-spin' : ''}`} />
-                                        Check Status
-                                      </button>
-                                    )}
-                                  </div>
-                                  {payment.status === 'pending' && (
-                                    <button
-                                      onClick={() => {
-                                        setPaymentToCancel(payment)
-                                        setShowCancelConfirm(true)
-                                      }}
-                                      disabled={isCancelling}
-                                      className="ml-auto p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0"
-                                      title="Cancel payment request"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  )}
+                                <div className="w-full mt-2.5 pt-2.5 border-t border-slate-700 min-h-[3rem]">
+                                  <PaymentActionBar
+                                    payment={payment}
+                                    canEdit={['pending', 'paid', 'failed', 'cancelled'].includes(payment.status)}
+                                    isCancelling={isCancelling}
+                                    isMarkingPaid={isMarkingPaid}
+                                    isMarkingUnpaid={isMarkingUnpaid}
+                                    isReconciling={isReconciling}
+                                    onEdit={() => handleOpenEditModal(payment)}
+                                    onCopyLink={() => copyPaymentLink(payment.checkout_url!)}
+                                    onMarkPaid={() => {
+                                      setPaymentToMarkPaid(payment)
+                                      setShowMarkPaidConfirm(true)
+                                    }}
+                                    onMarkUnpaid={() => {
+                                      setPaymentToMarkUnpaid(payment)
+                                      setShowMarkUnpaidConfirm(true)
+                                    }}
+                                    onCheckStatus={() => handleCheckStatus(payment)}
+                                    onCancel={() => {
+                                      setPaymentToCancel(payment)
+                                      setShowCancelConfirm(true)
+                                    }}
+                                  />
                                 </div>
                               </div>
                             ))}
@@ -2296,6 +2150,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         <Modal
           isOpen={showCancelConfirm && !!paymentToCancel}
           onClose={() => {
+            suppressNextHistoryBackCleanup()
             setShowCancelConfirm(false)
             setPaymentToCancel(null)
           }}
@@ -2304,6 +2159,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => {
+                  suppressNextHistoryBackCleanup()
                   setShowCancelConfirm(false)
                   setPaymentToCancel(null)
                 }}
