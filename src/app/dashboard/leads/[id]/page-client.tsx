@@ -65,6 +65,7 @@ import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skelet
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, ChevronDown, Video, ExternalLink, Pencil } from 'lucide-react'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
@@ -88,6 +89,7 @@ import { hasPhoneNumber } from '@/lib/utils'
 import { normalizeEditableContext, firstNonPlaceholder } from '@/components/payments/customer-search-helpers'
 import { getCurrentCustomerContext, getHistoricalJobRequestContext } from '@/lib/customer-context'
 import { getMonotonicMessageStatus } from '@/lib/twilio/status-monotonic'
+import { appendNativeDiagnostic, isNativeDiagnosticEnabled } from '@/lib/native-diagnostics'
 
 // Helper functions for consistent formatting
 const formatDate = (dateString: string | null | undefined): string => {
@@ -818,15 +820,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // native Android test build via a localStorage flag or a query param so
     // physical-device keyboard/scroll bugs can be diagnosed without exposing
     // verbose logs to normal users.
-    let nativeDebug = false
-    if (typeof window !== 'undefined') {
-      try {
-        nativeDebug = Capacitor.isNativePlatform() && (
-          window.localStorage?.getItem('rf_scroll_debug') === '1' ||
-          new URLSearchParams(window.location.search).has('rf_scroll_debug')
-        )
-      } catch {}
-    }
+    const nativeDebug = isNativeDiagnosticEnabled('rf_scroll_debug')
     if (process.env.NODE_ENV === 'production' && !nativeDebug) return
     if (typeof window === 'undefined') return
     const container = getScrollContainer()
@@ -837,7 +831,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const visualViewportOffsetTop = vv?.offsetTop ?? 0
     const effectiveVisibleBottom = visualViewportHeight + visualViewportOffsetTop
     scrollLogSeqRef.current += 1
-    console.log('[RF_CONVERSATION_SCROLL]', {
+    const payload = {
       seq: scrollLogSeqRef.current,
       reason,
       timestamp: Date.now(),
@@ -862,24 +856,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       reconcileScheduled: reconcileScheduledRef.current,
       keyboardOpen: visualViewportHeight > 0 && visualViewportHeight < window.innerHeight - 80,
       ...extra,
-    })
+    }
+    console.log('[RF_CONVERSATION_SCROLL]', payload)
+    // Native builds: also persist to the app-private external log file so the
+    // trace can be pulled with `adb pull` even when WebView console output is
+    // not forwarded to logcat.
+    void appendNativeDiagnostic('[RF_CONVERSATION_SCROLL]', payload, 'rf_scroll_debug')
   }, [getScrollContainer])
 
   // === [RF_REALTIME_SMS] diagnostic logger ===
   // Mirrors the conversation-scroll gating: off in production unless a native
   // Android test build explicitly enables it via localStorage or query flag.
   const logRealtimeSms = useCallback((stage: string, extra: Record<string, unknown> = {}) => {
-    let nativeDebug = false
-    if (typeof window !== 'undefined') {
-      try {
-        nativeDebug = Capacitor.isNativePlatform() && (
-          window.localStorage?.getItem('rf_realtime_sms_debug') === '1' ||
-          new URLSearchParams(window.location.search).has('rf_realtime_sms_debug')
-        )
-      } catch {}
-    }
+    const nativeDebug = isNativeDiagnosticEnabled('rf_realtime_sms_debug')
     if (process.env.NODE_ENV === 'production' && !nativeDebug) return
-    console.log('[RF_REALTIME_SMS]', {
+    const payload = {
       seq: ++realtimeSmsLogSeqRef.current,
       stage,
       timestamp: Date.now(),
@@ -889,8 +880,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       channelName: realtimeChannelNameRef.current,
       recoveryAttempts: realtimeRecoveryAttemptsRef.current,
       ...extra,
-    })
+    }
+    console.log('[RF_REALTIME_SMS]', payload)
+    // Native builds: persist to the app-private external log file so the trace
+    // can be pulled with `adb pull` even when WebView console is not forwarded.
+    void appendNativeDiagnostic('[RF_REALTIME_SMS]', payload, 'rf_realtime_sms_debug')
   }, [leadData?.id, leadData?.conversation_id, leadData?.conversationId])
+
+  // Prove the last hop: whether realtime-merged messages actually reach React
+  // state. If `message-insert-merge` fires but this never runs, the failure is
+  // a lost/replaced state update, not a dead channel.
+  const realtimeObservedMessages = leadData?.messages
+  const messagesCount = realtimeObservedMessages?.length ?? 0
+  const latestMessageId = realtimeObservedMessages?.[realtimeObservedMessages.length - 1]?.id ?? null
+  useEffect(() => {
+    logRealtimeSms('messages-state', { messagesCount, latestMessageId })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messagesCount, latestMessageId])
 
   // === Canonical bottom reconciler ===
   // ONE deterministic re-anchor path for all environment-driven geometry
@@ -928,6 +934,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         // event can also schedule a fresh reconcile, so this stays finite.
         requestAnimationFrame(step)
       } else {
+        logConversationScroll('reconcile-settled', { reason, frames })
         reconcileScheduledRef.current = false
         const c = getScrollContainer()
         logConversationScroll('reconcile-finished', {
@@ -3201,10 +3208,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       messagesInsertFilter: `lead_id=eq.${leadId}`,
       messagesUpdateFilter: `lead_id=eq.${leadId}`,
       leadsUpdateFilter: `id=eq.${leadId}`,
+      realtimeSocketState: (supabase as any).realtime?.connectionState?.() ?? null,
     })
 
     channel.subscribe((status: any) => {
-        logRealtimeSms('channel-status', { channelName, status, leadId })
+        logRealtimeSms('channel-status', {
+          channelName,
+          status,
+          leadId,
+          realtimeSocketState: (supabase as any).realtime?.connectionState?.() ?? null,
+        })
 
         if (status === 'SUBSCRIBED') {
           realtimeChannelStatusRef.current = 'subscribed'
@@ -4237,6 +4250,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <button
               type="button"
               onClick={() => {
+                // If a payment overview modal is open, suppress its synthetic
+                // history cleanup so it cannot race this navigation.
+                suppressNextHistoryBackCleanup()
                 setShowPaymentOverviewModal(false)
                 window.location.assign('/dashboard/payments')
               }}

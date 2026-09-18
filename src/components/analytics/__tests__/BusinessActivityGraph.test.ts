@@ -38,9 +38,11 @@ describe('BusinessActivityGraph', () => {
     expect(content).toContain("completedJobs: 'Completed Jobs'")
   })
 
-  it('attaches a tap selection handler to the line chart and tracks the selected datum', () => {
+  it('renders per-datum touch targets on every series and tracks the selected datum', () => {
     expect(content).toContain('const [selectedDatum, setSelectedDatum]')
-    expect(content).toMatch(/onClick=\{\(e: any\) => \{[\s\S]*?activeTooltipIndex/)
+    expect(content).toContain('ChartHitDot')
+    expect(content).toMatch(/dot=\{renderHitDot\('#3b82f6'\)\}/)
+    expect(content).toMatch(/dot=\{renderHitDot\('#8b5cf6'\)\}/)
   })
 
   it('renders a small tap-inspect popup inside the chart wrapper', () => {

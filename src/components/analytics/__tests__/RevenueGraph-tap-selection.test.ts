@@ -8,8 +8,13 @@ describe('RevenueGraph tap-to-inspect', () => {
     expect(content).toContain('const [selectedDatum, setSelectedDatum]')
   })
 
-  it('attaches a tap handler to the line chart using activeTooltipIndex', () => {
-    expect(content).toMatch(/onClick=\{\(e: any\) => \{[\s\S]*?activeTooltipIndex/)
+  it('renders per-datum touch targets that toggle the selected datum', () => {
+    // ChartPassiveTouchSurface blocks Recharts touch middleware, so each
+    // datum gets its own SVG hit target via ChartHitDot — tap select and
+    // same-point dismiss both flow through toggleDatum.
+    expect(content).toContain('ChartHitDot')
+    expect(content).toContain('toggleDatum')
+    expect(content).toMatch(/prev\?\.index === idx\s*\?\s*null/)
   })
 
   it('renders a small data popup for the selected datum', () => {

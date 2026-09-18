@@ -18,6 +18,13 @@ describe('PaymentOverview → Payments navigation', () => {
     expect(content).toMatch(/onClose\(\)[\s\S]*?window\.location\.assign\('\/dashboard\/payments'\)/)
   })
 
+  it('suppresses the modal synthetic history cleanup before navigating', () => {
+    // Without this, useModalBackButton's cleanup calls history.back() and
+    // races the pending navigation — the native bounce-back root cause.
+    expect(content).toContain('suppressNextHistoryBackCleanup')
+    expect(content).toMatch(/suppressNextHistoryBackCleanup\(\)[\s\S]*?onClose\(\)[\s\S]*?window\.location\.assign/)
+  })
+
   it('reads visually as a link (primary color + underline affordance)', () => {
     expect(content).toContain('text-primary')
     expect(content).toContain('hover:underline')

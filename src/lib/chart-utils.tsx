@@ -279,6 +279,45 @@ export function ChartPassiveTouchSurface({
   )
 }
 
+/**
+ * Per-datum touch target for tap-to-inspect selection on line charts.
+ *
+ * ChartPassiveTouchSurface deliberately stops Recharts' touch middleware, so
+ * chart-level `onClick`/`activeTooltipIndex` never resolves on Android. The
+ * synthesized click event still reaches SVG children, so each datum renders an
+ * invisible 14px-radius hit circle that owns its own click — no reliance on
+ * Recharts touch tracking, no overlay that would block vertical scrolling.
+ */
+export function ChartHitDot({
+  cx,
+  cy,
+  index,
+  onSelect,
+  fill = 'transparent',
+  visible = false,
+}: {
+  cx?: number
+  cy?: number
+  index: number
+  onSelect: (index: number) => void
+  fill?: string
+  visible?: boolean
+}) {
+  if (typeof cx !== 'number' || typeof cy !== 'number') return null
+  return (
+    <g
+      onClick={(e) => {
+        e.stopPropagation()
+        onSelect(index)
+      }}
+      style={{ cursor: 'pointer' }}
+    >
+      <circle cx={cx} cy={cy} r={14} fill="transparent" />
+      {visible && <circle cx={cx} cy={cy} r={4} fill={fill} />}
+    </g>
+  )
+}
+
 type GestureMode = 'idle' | 'vertical' | 'horizontal'
 
 /**

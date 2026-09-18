@@ -10,7 +10,7 @@ import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -218,6 +218,39 @@ export default function BusinessActivityGraph() {
   const maxValue = data.length > 0 ? Math.max(...data.map(getDayTotal)) : 0
   const yTicks = getIntegerTicks(maxValue)
 
+  // Tap-to-inspect: per-datum SVG hit targets (ChartHitDot) call this directly.
+  // The popup synthesizes a tooltip-shaped payload from the tapped datum's
+  // visible series. Tapping the same point again dismisses the popup.
+  const toggleDatum = (idx: number) => {
+    if (idx < 0 || idx >= data.length) return
+    setSelectedDatum(prev =>
+      prev?.index === idx
+        ? null
+        : {
+            index: idx,
+            label: data[idx].date,
+            payload: visibleKeys.map((key) => ({
+              dataKey: key,
+              color: SERIES_COLORS[key],
+              value: data[idx][key],
+            })),
+          }
+    )
+  }
+
+  // Per-datum invisible SVG hit targets — ChartPassiveTouchSurface blocks
+  // Recharts' own touch tracking, so each point owns its synthesized click.
+  const renderHitDot = (color: string) => (dotProps: any) => (
+    <ChartHitDot
+      key={dotProps.key}
+      cx={dotProps.cx}
+      cy={dotProps.cy}
+      index={dotProps.index}
+      fill={color}
+      onSelect={toggleDatum}
+    />
+  )
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
@@ -313,16 +346,6 @@ export default function BusinessActivityGraph() {
                 <LineChart
                   data={data}
                   margin={{ ...CHART_STYLES.margin, bottom: 12 }}
-                  onClick={(e: any) => {
-                    if (!e || typeof e.activeTooltipIndex !== 'number') return
-                    const idx = e.activeTooltipIndex
-                    if (idx < 0 || idx >= data.length) return
-                    if (selectedDatum?.index === idx) {
-                      setSelectedDatum(null)
-                      return
-                    }
-                    setSelectedDatum({ index: idx, label: data[idx].date, payload: e.activePayload || [] })
-                  }}
                 >
                   <CartesianGrid
                     strokeDasharray={CHART_STYLES.gridStrokeDasharray}
@@ -418,7 +441,7 @@ export default function BusinessActivityGraph() {
                     dataKey="conversations"
                     stroke="#3b82f6"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={false}
+                    dot={renderHitDot('#3b82f6')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#3b82f6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Conversations"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'conversations'}
@@ -428,7 +451,7 @@ export default function BusinessActivityGraph() {
                     dataKey="appointments"
                     stroke="#22c55e"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={false}
+                    dot={renderHitDot('#22c55e')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#22c55e', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Appointments"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'appointments'}
@@ -438,7 +461,7 @@ export default function BusinessActivityGraph() {
                     dataKey="paymentRequests"
                     stroke="#f59e0b"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={false}
+                    dot={renderHitDot('#f59e0b')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#f59e0b', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Payment Requests"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'paymentRequests'}
@@ -448,7 +471,7 @@ export default function BusinessActivityGraph() {
                     dataKey="completedJobs"
                     stroke="#8b5cf6"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={false}
+                    dot={renderHitDot('#8b5cf6')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#8b5cf6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Completed Jobs"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'completedJobs'}

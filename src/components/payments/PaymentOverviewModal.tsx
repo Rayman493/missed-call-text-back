@@ -5,6 +5,26 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getPaymentStatusStyle } from '@/lib/payment-status'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import { formatForDisplay } from '@/utils/phone-formatting'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
+import { appendNativeDiagnostic, isNativeDiagnosticEnabled } from '@/lib/native-diagnostics'
+
+/**
+ * [RF_PAYMENTS_NAV] diagnostic logger — off in production unless a native
+ * build enables the `rf_payments_nav_debug` flag. Logs only navigation
+ * lifecycle data; no payment amounts, names, or identifiers are emitted.
+ */
+const logPaymentsNav = (stage: string, extra: Record<string, unknown> = {}) => {
+  const nativeDebug = isNativeDiagnosticEnabled('rf_payments_nav_debug')
+  if (process.env.NODE_ENV === 'production' && !nativeDebug) return
+  const payload = {
+    stage,
+    timestamp: Date.now(),
+    pathname: typeof window !== 'undefined' ? window.location.pathname : null,
+    ...extra,
+  }
+  console.log('[RF_PAYMENTS_NAV]', payload)
+  void appendNativeDiagnostic('[RF_PAYMENTS_NAV]', payload, 'rf_payments_nav_debug')
+}
 
 export interface PaymentOverviewItem {
   id: string
@@ -104,9 +124,17 @@ export default function PaymentOverviewModal({ isOpen, onClose, payment }: Payme
         <div className="pt-2">
           <button
             type="button"
+            onPointerDown={() => logPaymentsNav('pointerdown')}
             onClick={() => {
+              logPaymentsNav('click-handler-start', { target: '/dashboard/payments' })
+              // The modal's useModalBackButton pushes a synthetic history entry
+              // when it opens. Without suppression, its cleanup calls
+              // history.back() and races with this navigation — the root cause
+              // of the native "View in Payments" bounce-back.
+              suppressNextHistoryBackCleanup()
               onClose()
               window.location.assign('/dashboard/payments')
+              logPaymentsNav('navigation-issued', { target: '/dashboard/payments' })
             }}
             className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 hover:underline underline-offset-4 transition-colors"
           >

@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 import { formatCurrency } from '@/lib/utils'
@@ -142,6 +142,17 @@ export default function RevenueGraph() {
   // Single-point state: emphasize the actual observation
   const isSinglePoint = data.length === 1
 
+  // Tap-to-inspect: per-datum SVG hit targets (ChartHitDot) call this directly.
+  // Tapping the same point again dismisses the popup.
+  const toggleDatum = (idx: number) => {
+    if (idx < 0 || idx >= data.length) return
+    setSelectedDatum(prev =>
+      prev?.index === idx
+        ? null
+        : { index: idx, label: data[idx].date, revenue: data[idx].revenue }
+    )
+  }
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
@@ -223,16 +234,6 @@ export default function RevenueGraph() {
                 <LineChart
                   data={data}
                   margin={CHART_STYLES.margin}
-                  onClick={(e: any) => {
-                    if (!e || typeof e.activeTooltipIndex !== 'number') return
-                    const idx = e.activeTooltipIndex
-                    if (idx < 0 || idx >= data.length) return
-                    if (selectedDatum?.index === idx) {
-                      setSelectedDatum(null)
-                      return
-                    }
-                    setSelectedDatum({ index: idx, label: data[idx].date, revenue: data[idx].revenue })
-                  }}
                 >
                   <CartesianGrid
                     strokeDasharray={CHART_STYLES.gridStrokeDasharray}
@@ -266,7 +267,17 @@ export default function RevenueGraph() {
                     dataKey="revenue"
                     stroke="#16a34a"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={isSinglePoint}
+                    dot={(dotProps: any) => (
+                      <ChartHitDot
+                        key={dotProps.key}
+                        cx={dotProps.cx}
+                        cy={dotProps.cy}
+                        index={dotProps.index}
+                        fill="#16a34a"
+                        visible={isSinglePoint}
+                        onSelect={toggleDatum}
+                      />
+                    )}
                     activeDot={{
                       r: isSinglePoint ? 6 : CHART_STYLES.activeDotRadius,
                       fill: '#16a34a',
