@@ -615,15 +615,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
               {/* Action buttons */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                {!isEditMode && (
-                  <button
-                    onClick={() => setIsEditMode(true)}
-                    className="p-1.5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                    aria-label="Edit customer details"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                )}
                 {isEditMode && (
                   <div className="flex items-center gap-1">
                     <button

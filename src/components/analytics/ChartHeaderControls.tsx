@@ -44,7 +44,7 @@ export function ChartHeaderControls({
         )}
       </div>
       {children && (
-        <div className="flex items-center justify-end gap-1.5 flex-shrink-0">
+        <div className="flex items-center justify-end gap-1 sm:gap-1.5 flex-shrink-0">
           {children}
         </div>
       )}

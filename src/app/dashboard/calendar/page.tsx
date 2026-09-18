@@ -31,6 +31,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import TodayCommandCenter from '@/components/schedule/TodayCommandCenter'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import ScheduleMap from '@/components/schedule/ScheduleMap'
+import Modal from '@/components/ui/Modal'
 import FocusSection from '@/components/FocusSection'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -38,6 +39,7 @@ import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
+import { formatPhoneNumber } from '@/lib/utils'
 import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
 import { openExternalLink } from '@/lib/external-link'
 import { formatDuration, JOB_TIME_CHANGED_EVENT, notifyJobTimeChanged } from '@/lib/job-time-utils'
@@ -84,6 +86,8 @@ function RemindersList({
   onToggleComplete: (taskId: string, completed: boolean) => void
   onDeleteTask: (taskId: string) => void
 }) {
+  const [viewingTask, setViewingTask] = useState<any | null>(null)
+
   const todayStr = new Date().toLocaleDateString('en-CA')
   const sorted = [...tasks].sort((a, b) => {
     // Overdue first, then by due date
@@ -122,7 +126,8 @@ function RemindersList({
         {list.map(task => (
           <div
             key={task.id}
-            className={`rounded-xl border p-4 transition-all hover:shadow-sm ${
+            onClick={() => setViewingTask(task)}
+            className={`rounded-xl border p-4 transition-all hover:shadow-sm cursor-pointer ${
               task.completed
                 ? 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200/40 dark:border-slate-700/20'
                 : accent === 'red'
@@ -132,7 +137,10 @@ function RemindersList({
           >
             <div className="flex items-center justify-between gap-3">
               <button
-                onClick={() => onToggleComplete(task.id, task.completed)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleComplete(task.id, task.completed)
+                }}
                 className={`flex-shrink-0 w-5 h-5 rounded border-2 transition-colors flex items-center justify-center ${
                   task.completed
                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20 hover:border-green-600'
@@ -171,14 +179,20 @@ function RemindersList({
               {/* RIGHT SIDE: management actions only */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
-                  onClick={() => onEditTask(task)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEditTask(task)
+                  }}
                   className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
                   aria-label="Edit reminder"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => onDeleteTask(task.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteTask(task.id)
+                  }}
                   className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
                   aria-label="Delete reminder"
                 >
@@ -213,6 +227,23 @@ function RemindersList({
     )
   }
 
+  const formatTaskDue = (task: any) => {
+    if (!task.due_date) return 'No date set'
+    const d = new Date(task.due_date + 'T00:00:00')
+    const dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    if (!task.due_time) return dateStr
+    const [h, m] = task.due_time.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour = h % 12 || 12
+    return `${dateStr} at ${hour}:${String(m).padStart(2, '0')} ${ampm}`
+  }
+
+  const getTaskCustomerName = (task: any) => {
+    if (!task.leads) return null
+    const meta = task.leads.raw_metadata || {}
+    return meta.customerName || meta.callerName || meta.name || formatPhoneNumber(task.leads.caller_phone || '') || null
+  }
+
   return (
     <div>
       {overdue.length > 0 && renderGroup('Overdue', overdue.length, overdue, 'red')}
@@ -220,6 +251,74 @@ function RemindersList({
       {upcoming.length > 0 && renderGroup('Upcoming', upcoming.length, upcoming)}
       {noDate.length > 0 && renderGroup('No Due Date', noDate.length, noDate)}
       {completed.length > 0 && renderGroup('Completed', completed.length, completed)}
+
+      {/* Read-only Reminder Summary */}
+      {viewingTask && (
+        <Modal
+          isOpen={!!viewingTask}
+          onClose={() => setViewingTask(null)}
+          title="Reminder Summary"
+          footer={
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewingTask(null)}
+                className="px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-1">Title</p>
+              <p className="text-sm font-medium text-foreground">{viewingTask.title}</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground font-medium mb-1">Status</p>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  viewingTask.completed
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                    : viewingTask.due_date && viewingTask.due_date < todayStr
+                      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                }`}>
+                  {viewingTask.completed ? 'Completed' : viewingTask.due_date && viewingTask.due_date < todayStr ? 'Overdue' : 'Active'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground font-medium mb-1">Scheduled</p>
+                <p className="text-sm text-foreground flex items-center gap-1">
+                  <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                  {formatTaskDue(viewingTask)}
+                </p>
+              </div>
+            </div>
+            {viewingTask.notes && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Notes</p>
+                <p className="text-sm text-foreground whitespace-pre-line">{viewingTask.notes}</p>
+              </div>
+            )}
+            {viewingTask.lead_id && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Customer</p>
+                <p className="text-sm text-foreground">
+                  {getTaskCustomerName(viewingTask) || 'Linked customer'}
+                </p>
+              </div>
+            )}
+            {viewingTask.job_id && viewingTask.jobs && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Job</p>
+                <p className="text-sm text-foreground">{viewingTask.jobs.title}</p>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

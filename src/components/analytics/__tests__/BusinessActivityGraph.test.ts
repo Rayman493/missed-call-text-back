@@ -38,15 +38,18 @@ describe('BusinessActivityGraph', () => {
     expect(content).toContain("completedJobs: 'Completed Jobs'")
   })
 
-  it('does not render tap-selected datum popups or chart touch wrappers', () => {
-    expect(content).not.toContain('activeIndex')
-    expect(content).not.toContain('ChartDatumPopup')
-    expect(content).not.toContain('ChartTouchWrapper')
-    expect(content).not.toContain('onActiveIndexChange')
+  it('attaches a tap selection handler to the line chart and tracks the selected datum', () => {
+    expect(content).toContain('const [selectedDatum, setSelectedDatum]')
+    expect(content).toMatch(/onClick=\{\(e: any\) => \{[\s\S]*?activeTooltipIndex/)
   })
 
-  it('does not attach tap selection handlers to chart data', () => {
-    expect(content).not.toMatch(/onClick=\{[^}]*index/)
-    expect(content).not.toContain('setSelectedIndex')
+  it('renders a small tap-inspect popup inside the chart wrapper', () => {
+    expect(content).toContain('chartWrapperRef')
+    expect(content).toContain('selectedDatum.label')
+  })
+
+  it('dismisses the popup on a tap outside the chart wrapper', () => {
+    expect(content).toContain("document.addEventListener('pointerdown'")
+    expect(content).toMatch(/!chartWrapperRef\.current\.contains\(target\)[\s\S]*?setSelectedDatum\(null\)/)
   })
 })

@@ -50,7 +50,28 @@ export default function BusinessActivityGraph() {
   const [updating, setUpdating] = useState(false)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const [seriesFilter, setSeriesFilter] = useState<string>('all')
+  const [selectedDatum, setSelectedDatum] = useState<{ index: number; label: string; payload: any[] } | null>(null)
+  const chartWrapperRef = useRef<HTMLDivElement>(null)
   const isTouchDevice = useTouchDevice()
+
+  useEffect(() => {
+    setSelectedDatum(null)
+  }, [timeRange, seriesFilter])
+
+  // Dismiss the tap-inspect popup when tapping outside the chart wrapper.
+  // The chart itself and the popup live inside the wrapper, so taps there
+  // keep the popup open and let the chart onClick update/close it.
+  useEffect(() => {
+    if (!selectedDatum) return
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null
+      if (chartWrapperRef.current && target && !chartWrapperRef.current.contains(target)) {
+        setSelectedDatum(null)
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [selectedDatum])
   // Tracks whether the initial load has completed. Distinguishes the
   // first fetch (full "Loading..." state) from subsequent range changes
   // (subtle "Updating..." indicator that keeps the previous chart visible).
@@ -243,7 +264,7 @@ export default function BusinessActivityGraph() {
             description="Daily customer interactions will appear here as ReplyFlow captures conversations, appointments, and payments."
           />
         ) : (
-          <div className="h-[260px] relative">
+          <div ref={chartWrapperRef} className="h-[260px] relative">
             {/* Single subtle updating indicator — absolutely positioned, does
                 NOT consume flex width, does NOT shift layout, does NOT blur
                 or dim the chart. Previous chart stays fully visible. */}
@@ -253,9 +274,56 @@ export default function BusinessActivityGraph() {
                 Updating…
               </div>
             )}
+            {selectedDatum && (
+              <div className="absolute top-1 right-1 z-20 max-w-[220px] bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm px-2.5 py-2 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-muted-foreground text-[10px] mb-1 truncate">{selectedDatum.label}</p>
+                    <div className="space-y-0.5">
+                      {selectedDatum.payload
+                        .filter((entry: any) => entry && typeof entry.value === 'number' && entry.value > 0)
+                        .map((entry: any, i: number) => {
+                          const key = entry.dataKey as string
+                          const label = SERIES_LABELS[key] || key
+                          return (
+                            <div key={i} className="flex items-center justify-between gap-3 text-[11px]">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                                <span className="text-muted-foreground truncate">{label}</span>
+                              </div>
+                              <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDatum(null)}
+                    className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                    aria-label="Dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
             <ChartPassiveTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ ...CHART_STYLES.margin, bottom: 12 }}>
+                <LineChart
+                  data={data}
+                  margin={{ ...CHART_STYLES.margin, bottom: 12 }}
+                  onClick={(e: any) => {
+                    if (!e || typeof e.activeTooltipIndex !== 'number') return
+                    const idx = e.activeTooltipIndex
+                    if (idx < 0 || idx >= data.length) return
+                    if (selectedDatum?.index === idx) {
+                      setSelectedDatum(null)
+                      return
+                    }
+                    setSelectedDatum({ index: idx, label: data[idx].date, payload: e.activePayload || [] })
+                  }}
+                >
                   <CartesianGrid
                     strokeDasharray={CHART_STYLES.gridStrokeDasharray}
                     stroke={CHART_STYLES.gridStroke}

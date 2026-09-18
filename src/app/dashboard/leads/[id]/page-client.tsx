@@ -66,7 +66,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, ChevronDown, Video, ExternalLink } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2, Paperclip, CheckCircle, ChevronDown, Video, ExternalLink, Pencil } from 'lucide-react'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import PaymentOverviewModal from '@/components/payments/PaymentOverviewModal'
 import CustomerDetailPreviewCard from '@/components/ui/CustomerDetailPreviewCard'
@@ -378,7 +378,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showMobileOverflow, setShowMobileOverflow] = useState(false)
   const [showInternalNotesModal, setShowInternalNotesModal] = useState(false)
   const [internalNotesValue, setInternalNotesValue] = useState('')
-  const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
   // Shared scroll position for all customer-page modals (Add Job, Reminder, Payment,
   // Appointment, Internal Note, etc.). Captured on open, restored on close.
   const [customerPageScrollBeforeModal, setCustomerPageScrollBeforeModal] = useState<number | null>(null)
@@ -575,6 +574,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // recovery signals (online/app-resume) only recreate a dead channel, never
   // tear down a healthy one.
   const realtimeChannelStatusRef = useRef<'idle' | 'subscribing' | 'subscribed' | 'error' | 'closed' | 'timed_out'>('idle')
+  const realtimeChannelNameRef = useRef<string | null>(null)
   // DEV-only [RF_REALTIME_SMS] sequence counter
   const realtimeSmsLogSeqRef = useRef(0)
   // latestMessageIdRef tracks the ID of the latest message the user has seen.
@@ -757,13 +757,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Android Back closes Customer Details modal (canonical modal back stack)
   useModalBackButton({ isOpen: showLeadInfo, onClose: () => setShowLeadInfo(false) })
 
-  // Reset triggerEditCustomerDetails after it's been consumed
-  useEffect(() => {
-    if (triggerEditCustomerDetails) {
-      setTriggerEditCustomerDetails(false)
-    }
-  }, [triggerEditCustomerDetails])
-
   // === CANONICAL SCROLL SYSTEM ===
   // ONE followLatest model: followLatestRef tracks user intent.
   // ONE near-bottom threshold: NEAR_BOTTOM_THRESHOLD_PX (150px).
@@ -821,11 +814,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // event so the physical-device failure order can be reconstructed.
   // DEV only — never emitted in production builds.
   const logConversationScroll = useCallback((reason: string, extra: Record<string, unknown> = {}) => {
-    if (process.env.NODE_ENV === 'production') return
+    // In production the trace is normally off, but it can be enabled for a
+    // native Android test build via a localStorage flag or a query param so
+    // physical-device keyboard/scroll bugs can be diagnosed without exposing
+    // verbose logs to normal users.
+    let nativeDebug = false
+    if (typeof window !== 'undefined') {
+      try {
+        nativeDebug = Capacitor.isNativePlatform() && (
+          window.localStorage?.getItem('rf_scroll_debug') === '1' ||
+          new URLSearchParams(window.location.search).has('rf_scroll_debug')
+        )
+      } catch {}
+    }
+    if (process.env.NODE_ENV === 'production' && !nativeDebug) return
     if (typeof window === 'undefined') return
     const container = getScrollContainer()
     const vv = window.visualViewport
     const rect = container?.getBoundingClientRect()
+    const composerRect = mobileTextareaRef.current?.getBoundingClientRect()
+    const visualViewportHeight = vv?.height ?? window.innerHeight
+    const visualViewportOffsetTop = vv?.offsetTop ?? 0
+    const effectiveVisibleBottom = visualViewportHeight + visualViewportOffsetTop
     scrollLogSeqRef.current += 1
     console.log('[RF_CONVERSATION_SCROLL]', {
       seq: scrollLogSeqRef.current,
@@ -838,15 +848,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       distanceFromBottom: container ? container.scrollHeight - container.clientHeight - container.scrollTop : null,
       containerRect: rect ? { top: Math.round(rect.top), bottom: Math.round(rect.bottom), height: Math.round(rect.height) } : null,
       windowInnerHeight: window.innerHeight,
-      visualViewportHeight: vv?.height ?? null,
-      visualViewportOffsetTop: vv?.offsetTop ?? null,
-      composerHeight: mobileTextareaRef.current?.getBoundingClientRect().height ?? null,
+      visualViewportHeight,
+      visualViewportOffsetTop,
+      effectiveVisibleBottom,
+      composerHeight: composerRect?.height ?? null,
+      composerRect: composerRect ? { top: Math.round(composerRect.top), bottom: Math.round(composerRect.bottom), height: Math.round(composerRect.height) } : null,
+      inputFocused: document.activeElement === mobileTextareaRef.current,
       followMode: followLatestRef.current ? 'latest' : 'history',
       userGestureArmed: userScrollGestureActiveRef.current,
+      userScrollDirection: userScrollDirectionRef.current,
+      lastUserGestureEndAt: lastUserGestureEndAtRef.current,
+      lastObservedScrollTop: lastObservedScrollTopRef.current,
       reconcileScheduled: reconcileScheduledRef.current,
+      keyboardOpen: visualViewportHeight > 0 && visualViewportHeight < window.innerHeight - 80,
       ...extra,
     })
   }, [getScrollContainer])
+
+  // === [RF_REALTIME_SMS] diagnostic logger ===
+  // Mirrors the conversation-scroll gating: off in production unless a native
+  // Android test build explicitly enables it via localStorage or query flag.
+  const logRealtimeSms = useCallback((stage: string, extra: Record<string, unknown> = {}) => {
+    let nativeDebug = false
+    if (typeof window !== 'undefined') {
+      try {
+        nativeDebug = Capacitor.isNativePlatform() && (
+          window.localStorage?.getItem('rf_realtime_sms_debug') === '1' ||
+          new URLSearchParams(window.location.search).has('rf_realtime_sms_debug')
+        )
+      } catch {}
+    }
+    if (process.env.NODE_ENV === 'production' && !nativeDebug) return
+    console.log('[RF_REALTIME_SMS]', {
+      seq: ++realtimeSmsLogSeqRef.current,
+      stage,
+      timestamp: Date.now(),
+      activeLeadId: leadData?.id ?? null,
+      activeConversationId: leadData?.conversation_id || leadData?.conversationId || null,
+      channelStatus: realtimeChannelStatusRef.current,
+      channelName: realtimeChannelNameRef.current,
+      recoveryAttempts: realtimeRecoveryAttemptsRef.current,
+      ...extra,
+    })
+  }, [leadData?.id, leadData?.conversation_id, leadData?.conversationId])
 
   // === Canonical bottom reconciler ===
   // ONE deterministic re-anchor path for all environment-driven geometry
@@ -877,6 +921,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
       scrollToTrueBottom(container)
       frames += 1
+      logConversationScroll('reconcile-frame', { reason, frames })
       if (frames < 4) {
         // Re-assert across a bounded frame window — keyboard animations and
         // composer reflows settle over several frames; each new environment
@@ -2204,52 +2249,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // State for task modal
   const [showTaskModal, setShowTaskModal] = useState(false)
-  const taskModalOpenSourceRef = useRef<string | null>(null)
 
-  // Diagnostic wrapper for task modal open
   const openTaskModal = useCallback((source: string) => {
-    taskModalOpenSourceRef.current = source
-    console.log('[TASK_MODAL_OPEN]', {
-      source,
-      pathname: window.location.pathname,
-      customerId: params.id,
-      previousOpenState: showTaskModal,
-      timestamp: Date.now(),
-      stackTrace: new Error().stack?.split('\n').slice(1, 5).join('\n')
-    })
     setEditingTask(null)
     setShowTaskModal(true)
-  }, [params.id, showTaskModal])
-
-  // Diagnostic: detect unexpected modal state changes
-  useEffect(() => {
-    if (showTaskModal && !taskModalOpenSourceRef.current) {
-      console.error('[TASK_MODAL_UNEXPECTED_OPEN]', {
-        pathname: window.location.pathname,
-        customerId: params.id,
-        timestamp: Date.now(),
-        stackTrace: new Error().stack?.split('\n').slice(1, 5).join('\n')
-      })
-    }
-  }, [showTaskModal, params.id])
-
-  // Diagnostic: log page mount and initial modal state
-  useEffect(() => {
-    console.log('[CUSTOMER_CONVERSATION_MOUNT]', {
-      pathname: window.location.pathname,
-      customerId: params.id,
-      initialModalState: showTaskModal,
-      timestamp: Date.now()
-    })
-    return () => {
-      console.log('[CUSTOMER_CONVERSATION_UNMOUNT]', {
-        pathname: window.location.pathname,
-        customerId: params.id,
-        modalStateAtUnmount: showTaskModal,
-        timestamp: Date.now()
-      })
-    }
-  }, [params.id])
+  }, [])
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
 
@@ -2900,9 +2904,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       timestamp: new Date().toISOString()
     })
 
-    // Only recreate subscription if lead ID actually changed (navigation to different lead)
-    if (currentLeadIdRef.current === leadId) {
-      console.log('[REALTIME SUBSCRIPTION] Skipping - lead ID unchanged:', leadId)
+    // Only skip recreation if we already have a healthy subscription for this lead.
+    // The previous early return also blocked recovery-driven re-subscription (via
+    // realtimeGeneration bumps after CHANNEL_ERROR/CLOSED/TIMED_OUT or app resume),
+    // which could leave the conversation permanently unsubscribed.
+    if (
+      currentLeadIdRef.current === leadId &&
+      realtimeChannelStatusRef.current === 'subscribed' &&
+      realtimeChannelRef.current
+    ) {
+      console.log('[REALTIME SUBSCRIPTION] Skipping - lead ID unchanged and channel healthy:', leadId)
+      logRealtimeSms('subscription-skip-healthy', { leadId })
       return
     }
 
@@ -2961,54 +2973,42 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         (payload: any) => {
           const newMessage = payload.new
 
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('[RF_REALTIME_SMS]', {
-              seq: ++realtimeSmsLogSeqRef.current,
-              stage: 'message-insert-callback',
-              timestamp: Date.now(),
-              channelName,
-              messageId: newMessage?.id,
-              leadId: newMessage?.lead_id,
-              conversationId: newMessage?.conversation_id,
-              businessId: newMessage?.business_id,
-              direction: newMessage?.direction,
-              type: newMessage?.type,
-              status: newMessage?.status,
-              createdAt: newMessage?.created_at,
-              viewedLeadId: leadId,
-              passesLeadGuard: !!newMessage?.lead_id && newMessage.lead_id === leadId,
-            })
-          }
+          logRealtimeSms('message-insert-callback', {
+            channelName,
+            messageId: newMessage?.id,
+            incomingLeadId: newMessage?.lead_id,
+            incomingConversationId: newMessage?.conversation_id,
+            direction: newMessage?.direction,
+            type: newMessage?.type,
+            status: newMessage?.status,
+            createdAt: newMessage?.created_at,
+            viewedLeadId: leadId,
+            passesLeadGuard: !!newMessage?.lead_id && newMessage.lead_id === leadId,
+          })
 
           // Client-side lead guard: only process messages for the currently viewed lead
           if (!newMessage?.lead_id || newMessage.lead_id !== leadId) {
-            console.log('[REALTIME INSERT] REJECTED DIFFERENT LEAD:', {
-              instanceId: realtimeInstanceIdRef.current,
+            logRealtimeSms('message-insert-rejected-lead', {
               messageId: newMessage?.id,
-              payloadLeadId: newMessage?.lead_id,
+              incomingLeadId: newMessage?.lead_id,
               viewedLeadId: leadId,
-              timestamp: new Date().toISOString()
+              reason: 'lead_mismatch',
             })
             return
           }
 
-          console.log('[REALTIME INSERT] ACCEPTED:', {
-            instanceId: realtimeInstanceIdRef.current,
+          logRealtimeSms('message-insert-accepted', {
+            channelName,
             messageId: newMessage?.id,
             clientMessageId: newMessage?.client_message_id,
-            twilioSid: newMessage?.twilio_message_sid,
-            leadId: newMessage?.lead_id,
-            viewedLeadId: leadId,
-            channelName,
             status: newMessage?.status,
             direction: newMessage?.direction,
             mediaCount: newMessage?.media_count,
-            timestamp: new Date().toISOString()
           })
 
           setLeadData((prev: any) => {
             if (!prev) {
-              console.log('[REALTIME INSERT] No prev leadData, skipping')
+              logRealtimeSms('message-insert-merge-no-prev', { messageId: newMessage?.id })
               return prev
             }
 
@@ -3023,18 +3023,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               (msg.client_message_id && msg.client_message_id === incomingClientMessageId)
             )
 
-            if (process.env.NODE_ENV !== 'production') {
-              console.log('[RF_REALTIME_SMS]', {
-                seq: ++realtimeSmsLogSeqRef.current,
-                stage: 'message-insert-merge',
-                timestamp: Date.now(),
-                messageId: newMessage?.id,
-                alreadyExisted: !isNewMessage,
-                previousCount: currentMessages.length,
-                mergedCount: mergedMessages.length,
-                willScroll: isNewMessage,
-              })
-            }
+            logRealtimeSms('message-insert-merge', {
+              messageId: newMessage?.id,
+              alreadyExisted: !isNewMessage,
+              previousCount: currentMessages.length,
+              mergedCount: mergedMessages.length,
+              willScroll: isNewMessage,
+            })
 
             if (isNewMessage) {
               // Deterministic: useLayoutEffect fires after the new message is rendered.
@@ -3099,42 +3094,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         (payload: any) => {
           const updatedMessage = payload.new
 
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('[RF_REALTIME_SMS]', {
-              seq: ++realtimeSmsLogSeqRef.current,
-              stage: 'message-update-callback',
-              timestamp: Date.now(),
-              channelName,
-              messageId: updatedMessage?.id,
-              leadId: updatedMessage?.lead_id,
-              conversationId: updatedMessage?.conversation_id,
-              direction: updatedMessage?.direction,
-              status: updatedMessage?.status,
-              viewedLeadId: leadId,
-              passesLeadGuard: !!updatedMessage?.lead_id && updatedMessage.lead_id === leadId,
-            })
-          }
+          logRealtimeSms('message-update-callback', {
+            channelName,
+            messageId: updatedMessage?.id,
+            incomingLeadId: updatedMessage?.lead_id,
+            incomingConversationId: updatedMessage?.conversation_id,
+            direction: updatedMessage?.direction,
+            status: updatedMessage?.status,
+            viewedLeadId: leadId,
+            passesLeadGuard: !!updatedMessage?.lead_id && updatedMessage.lead_id === leadId,
+          })
 
           // Client-side lead guard: only process messages for the currently viewed lead
           if (!updatedMessage?.lead_id || updatedMessage.lead_id !== leadId) {
-            console.log('[REALTIME UPDATE] REJECTED DIFFERENT LEAD:', {
-              instanceId: realtimeInstanceIdRef.current,
+            logRealtimeSms('message-update-rejected-lead', {
               messageId: updatedMessage?.id,
-              payloadLeadId: updatedMessage?.lead_id,
+              incomingLeadId: updatedMessage?.lead_id,
               viewedLeadId: leadId,
-              timestamp: new Date().toISOString()
+              reason: 'lead_mismatch',
             })
             return
           }
 
-          console.log('[REALTIME UPDATE] ACCEPTED:', {
-            instanceId: realtimeInstanceIdRef.current,
-            messageId: updatedMessage?.id,
-            leadId: updatedMessage?.lead_id,
-            viewedLeadId: leadId,
+          logRealtimeSms('message-update-accepted', {
             channelName,
+            messageId: updatedMessage?.id,
             status: updatedMessage?.status,
-            timestamp: new Date().toISOString()
           })
 
           setLeadData((prev: any) => {
@@ -3209,49 +3194,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[RF_REALTIME_SMS]', {
-        seq: ++realtimeSmsLogSeqRef.current,
-        stage: 'subscribe',
-        timestamp: Date.now(),
-        channelName,
-        leadId,
-        conversationId,
-        messagesInsertFilter: `lead_id=eq.${leadId}`,
-        messagesUpdateFilter: `lead_id=eq.${leadId}`,
-        leadsUpdateFilter: `id=eq.${leadId}`,
-      })
-    }
+    logRealtimeSms('subscribe', {
+      channelName,
+      leadId,
+      conversationId,
+      messagesInsertFilter: `lead_id=eq.${leadId}`,
+      messagesUpdateFilter: `lead_id=eq.${leadId}`,
+      leadsUpdateFilter: `id=eq.${leadId}`,
+    })
 
     channel.subscribe((status: any) => {
-        console.log('[REALTIME CHANNEL STATUS]', {
-          instanceId: realtimeInstanceIdRef.current,
-          leadId,
-          channelName,
-          status,
-          timestamp: new Date().toISOString()
-        })
-
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[RF_REALTIME_SMS]', {
-            seq: ++realtimeSmsLogSeqRef.current,
-            stage: 'channel-status',
-            timestamp: Date.now(),
-            channelName,
-            leadId,
-            status,
-          })
-        }
+        logRealtimeSms('channel-status', { channelName, status, leadId })
 
         if (status === 'SUBSCRIBED') {
           realtimeChannelStatusRef.current = 'subscribed'
+          realtimeChannelNameRef.current = channelName
           realtimeRecoveryAttemptsRef.current = 0
-          console.log('[REALTIME] Successfully subscribed to lead:', {
-            leadId,
-            channelName,
-            instanceId: realtimeInstanceIdRef.current,
-            timestamp: new Date().toISOString()
-          })
+          logRealtimeSms('channel-subscribed', { channelName, leadId })
         } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
           realtimeChannelStatusRef.current =
             status === 'CHANNEL_ERROR' ? 'error' : status === 'TIMED_OUT' ? 'timed_out' : 'closed'
@@ -3268,22 +3227,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             // Do not recover a channel this effect already replaced/tore down
             // (e.g. CLOSED delivered after a deliberate removeChannel).
             if (realtimeChannelRef.current !== channel || currentLeadIdRef.current !== leadId) {
-              if (process.env.NODE_ENV !== 'production') {
-                console.log('[RF_REALTIME_SMS]', {
-                  seq: ++realtimeSmsLogSeqRef.current,
-                  stage: 'recovery-skipped-stale-channel',
-                  timestamp: Date.now(),
-                  channelName,
-                  status,
-                })
-              }
+              logRealtimeSms('recovery-skipped-stale-channel', { channelName, status, currentLeadId: currentLeadIdRef.current, viewedLeadId: leadId })
               return
             }
-            console.log(`[REALTIME RECOVERY] Refreshing conversation data after channel ${status.toLowerCase()}`)
+            logRealtimeSms('recovery-refresh', { channelName, status, attempt: realtimeRecoveryAttemptsRef.current + 1 })
             handleRefresh({ silent: true })
             if (realtimeRecoveryAttemptsRef.current < 5) {
               realtimeRecoveryAttemptsRef.current += 1
-              console.log('[REALTIME RECOVERY] Recreating channel after', status, 'attempt', realtimeRecoveryAttemptsRef.current)
+              logRealtimeSms('recovery-recreate', { channelName, status, attempt: realtimeRecoveryAttemptsRef.current })
               setRealtimeGeneration(prev => prev + 1)
             }
           }, 2000)
@@ -3304,35 +3255,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // Only the currently viewed lead may recreate its channel; navigation
       // away must not resurrect a stale channel.
       if (currentLeadIdRef.current !== leadId) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[RF_REALTIME_SMS]', {
-            seq: ++realtimeSmsLogSeqRef.current,
-            stage: 'reconnection-signal-skipped-stale-lead',
-            timestamp: Date.now(),
-            source,
-            currentLeadId: currentLeadIdRef.current,
-            viewedLeadId: leadId,
-          })
-        }
+        logRealtimeSms('reconnection-signal-skipped-stale-lead', { source, currentLeadId: currentLeadIdRef.current, viewedLeadId: leadId })
         return
       }
       // A healthy channel needs no intervention.
       if (realtimeChannelStatusRef.current === 'subscribed') {
         realtimeRecoveryAttemptsRef.current = 0
+        logRealtimeSms('reconnection-signal-healthy', { source, channelName, leadId })
         return
       }
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[RF_REALTIME_SMS]', {
-          seq: ++realtimeSmsLogSeqRef.current,
-          stage: 'reconnection-signal',
-          timestamp: Date.now(),
-          source,
-          channelName,
-          leadId,
-          previousStatus: realtimeChannelStatusRef.current,
-          previousAttempts: realtimeRecoveryAttemptsRef.current,
-        })
-      }
+      logRealtimeSms('reconnection-signal', { source, channelName, leadId, previousStatus: realtimeChannelStatusRef.current, previousAttempts: realtimeRecoveryAttemptsRef.current })
       // Reset the bounded attempt window and force a single channel recreation.
       // The existing channel is removed by the effect cleanup that runs before
       // the generation bump re-runs this effect, so duplicates are impossible.
@@ -3902,6 +3834,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setError('')
     }
 
+    const messagesCountBefore = (leadData?.messages || []).length
+    logRealtimeSms('refetch-start', { silent, requestId, messagesCountBefore, latestMessageId: latestMessageIdRef.current })
+
     try {
       console.log('[Refresh] Refreshing conversation data for lead:', params.id, 'requestId:', requestId, 'silent:', silent)
 
@@ -3909,6 +3844,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Check if this is still the latest refresh request (ignore stale responses)
       if (requestId !== latestRefreshRequestRef.current) {
+        logRealtimeSms('refetch-stale-response', { requestId, latestRequestId: latestRefreshRequestRef.current })
         console.log('[Refresh] Ignoring stale refresh result, newer refresh in progress:', {
           requestId,
           latestRequestId: latestRefreshRequestRef.current
@@ -3928,9 +3864,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       } else if (result.ok && result.lead) {
         console.log('[Refresh] Successfully refreshed conversation data')
 
+        const prevLatestId = latestMessage?.id || null
         // Merge new data with existing to preserve optimistic state,
         // reconcile child lists by ID, and protect status from regression.
         setLeadData((prev: any) => mergeLeadFetchResult(prev, result.lead, mergeMessagesById))
+        logRealtimeSms('refetch-merged', { silent, requestId, messagesCountBefore, messagesCountAfter: (result.lead?.messages || []).length, prevLatestId, newLatestId: result.lead?.messages?.[result.lead.messages.length - 1]?.id })
 
         // Exactly ONE success signal: the button/menu label briefly becomes "Refreshed".
         // Silent refreshes do not touch the label.
@@ -4296,15 +4234,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <div className="bg-background dark:bg-background rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2 sm:mb-3">
             <h3 className="text-sm font-medium text-foreground">Payments</h3>
-            <Link
-              href="/dashboard/payments"
+            <button
+              type="button"
+              onClick={() => {
+                setShowPaymentOverviewModal(false)
+                window.location.assign('/dashboard/payments')
+              }}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               View
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-            </Link>
+            </button>
           </div>
           <div className="transition-all duration-200">
             {paymentRequests.length === 0 ? (
@@ -4548,7 +4490,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleCloseTaskModal = () => {
     setShowTaskModal(false)
     setEditingTask(null)
-    taskModalOpenSourceRef.current = null
   }
 
   const handleCloseAppointmentEvent = () => {
@@ -5050,6 +4991,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Actions — 44px mobile hit target, 32px visual treatment */}
               <div className="flex items-center gap-0.5 flex-shrink-0">
+                {/* Edit Customer Button */}
+                <button
+                  onClick={() => setShowEditCustomer(true)}
+                  className="group h-11 w-11 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground transition-colors duration-200"
+                  title="Edit customer"
+                  aria-label="Edit customer"
+                >
+                  <span className="h-8 w-8 inline-flex items-center justify-center rounded-lg group-hover:bg-muted/50 transition-colors duration-200">
+                    <Pencil className="w-4 h-4" />
+                  </span>
+                </button>
+
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -5281,6 +5234,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <div className="flex items-start gap-4">
                 {/* Left: Primary Actions */}
                 <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditCustomer(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted/50 border border-border/50 text-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Edit Customer</span>
+                  </button>
                   <button
                   type="button"
                   onClick={handleCreateJobClick}
@@ -6043,7 +6004,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Customer Context / Intake - origin-specific content (manual vs AI-intake) */}
           {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-            <VoicemailSummary leadData={leadData} triggerEdit={triggerEditCustomerDetails} />
+            <VoicemailSummary leadData={leadData} />
           )}
 
           {/* AI Intake - Collapsible (AI-intake customers' Customer Context) */}
@@ -6073,7 +6034,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     conversationId={leadData?.conversation?.id}
                     callerPhone={leadData?.phone_number || lead?.phone}
                     leadData={leadData}
-                    triggerEdit={triggerEditCustomerDetails}
                     collapsible={false}
                     onSave={async () => { await handleRefresh(); setSuccessMessage('Customer updated') }}
                     onNavigateToTimeline={handleNavigateToTimeline}

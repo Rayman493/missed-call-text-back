@@ -304,7 +304,7 @@ describe('Batch 4 — inbound SMS realtime contract', () => {
     })
 
     it('still performs a silent refetch to close the delivery gap', () => {
-      const recoveryBlock = pageClientSrc.match(/REALTIME RECOVERY[\s\S]*?\}, 2000\)/)?.[0] || ''
+      const recoveryBlock = pageClientSrc.match(/logRealtimeSms\('recovery-refresh'[\s\S]*?\}, 2000\)/)?.[0] || ''
       expect(recoveryBlock).toContain('handleRefresh({ silent: true })')
     })
   })
@@ -332,9 +332,9 @@ describe('Batch 4 — inbound SMS realtime contract', () => {
     })
 
     it('does not spin after exhaustion because the only automatic retry path is bounded by attempts', () => {
-      const recoveryBlock = pageClientSrc.match(/if \(realtimeRecoveryAttemptsRef\.current < 5\)[\s\S]*?\}/)?.[0] || ''
-      expect(recoveryBlock).toContain('setRealtimeGeneration(prev => prev + 1)')
-      expect(recoveryBlock).not.toContain('setInterval')
+      expect(pageClientSrc).toContain('realtimeRecoveryAttemptsRef.current < 5')
+      expect(pageClientSrc).toMatch(/if \(realtimeRecoveryAttemptsRef\.current < 5\)[\s\S]*?setRealtimeGeneration\(prev => prev \+ 1\)/)
+      expect(pageClientSrc).not.toMatch(/setInterval\([^)]*realtime/)
     })
   })
 
@@ -348,28 +348,28 @@ describe('Batch 4 — inbound SMS realtime contract', () => {
     })
 
     it('logs subscribe config with the exact filters and active lead', () => {
-      expect(pageClientSrc).toContain("stage: 'subscribe'")
+      expect(pageClientSrc).toContain("logRealtimeSms('subscribe'")
       expect(pageClientSrc).toContain('messagesInsertFilter')
     })
 
     it('logs insert/update callbacks with guard results', () => {
-      expect(pageClientSrc).toContain("stage: 'message-insert-callback'")
-      expect(pageClientSrc).toContain("stage: 'message-update-callback'")
+      expect(pageClientSrc).toContain("logRealtimeSms('message-insert-callback'")
+      expect(pageClientSrc).toContain("logRealtimeSms('message-update-callback'")
       expect(pageClientSrc).toContain('passesLeadGuard')
     })
 
     it('logs merge outcome and channel status transitions', () => {
-      expect(pageClientSrc).toContain("stage: 'message-insert-merge'")
+      expect(pageClientSrc).toContain("logRealtimeSms('message-insert-merge'")
       expect(pageClientSrc).toContain('alreadyExisted')
-      expect(pageClientSrc).toContain("stage: 'channel-status'")
+      expect(pageClientSrc).toContain("logRealtimeSms('channel-status'")
     })
 
-    it('all RF realtime logs are DEV-gated', () => {
-      const rfLogCount = (pageClientSrc.match(/\[RF_REALTIME_SMS\]/g) || []).length
-      expect(rfLogCount).toBeGreaterThanOrEqual(4)
-      // Each RF log site sits inside an explicit non-production gate.
-      const gates = pageClientSrc.match(/process\.env\.NODE_ENV !== 'production'/g) || []
-      expect(gates.length).toBeGreaterThanOrEqual(4)
+    it('all RF realtime logs are DEV-gated behind a single helper', () => {
+      expect(pageClientSrc).toMatch(/const logRealtimeSms = useCallback\(\(stage: string/)
+      expect(pageClientSrc).toContain("if (process.env.NODE_ENV === 'production' && !nativeDebug) return")
+      // Multiple call sites funnel through the gated helper.
+      const callSites = (pageClientSrc.match(/logRealtimeSms\(/g) || []).length
+      expect(callSites).toBeGreaterThanOrEqual(4)
     })
   })
 })
