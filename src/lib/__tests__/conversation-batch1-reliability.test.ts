@@ -74,13 +74,17 @@ describe('A. True-bottom conversation anchor', () => {
     expect(initialWindow).toContain('settleCount >= 2')
   })
 
-  it('A.7 realtime INSERT respects followLatest and uses smooth scroll', () => {
+  it('A.7 realtime INSERT respects followLatest via the canonical reconciler', () => {
     const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
     const realtimeSection = source.substring(
       source.indexOf('=== Realtime message scroll'),
       source.indexOf('const latestMessage = messagesArray')
     )
-    expect(realtimeSection).toContain("scrollToBottom('smooth', false)")
+    // The reconciler gates on followLatestRef intent — it never consults
+    // transient near-bottom geometry, so a keyboard-open viewport shrink
+    // cannot clear the follow mode (the previous scrollToBottom('smooth',
+    // false) path did exactly that via its not-near-bottom else branch).
+    expect(realtimeSection).toContain("reconcileConversationBottom('realtime-insert')")
     expect(realtimeSection).toContain('followLatestRef.current')
     expect(realtimeSection).toContain('setShowJumpButton(true)')
   })

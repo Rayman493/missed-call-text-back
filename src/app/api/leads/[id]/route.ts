@@ -213,6 +213,17 @@ export async function PATCH(
       if (company_name !== undefined) updateData.company_name = company_name
       if (notes !== undefined) updateData.notes = notes
 
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[RF_CUSTOMER_UPDATE_EVENT]', {
+          stage: 'simple-update-evaluated',
+          timestamp: Date.now(),
+          leadId,
+          changedCount,
+          correctedFieldKeys: Object.keys(correctedFields),
+          willStampCorrectionFlag: changedCount > 0,
+        })
+      }
+
       const mergedRawMetadata = {
         ...currentMetadata,
         corrected_fields: correctedFields,
@@ -313,6 +324,17 @@ export async function PATCH(
           correctedFieldsUpdatedAt[canonicalField] = now
         }
       }
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[RF_CUSTOMER_UPDATE_EVENT]', {
+          stage: 'raw-metadata-update-evaluated',
+          timestamp: Date.now(),
+          leadId,
+          changedCount,
+          correctedFieldKeys: Object.keys(correctedFields),
+          willStampCorrectionFlag: changedCount > 0,
+        })
+      }
+
       const mergedRawMetadata = {
         ...currentMetadata,
         ...raw_metadata,

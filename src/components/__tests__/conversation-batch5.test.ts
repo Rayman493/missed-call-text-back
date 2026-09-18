@@ -418,13 +418,15 @@ describe('Batch 5 — Remote MMS Near-Bottom Rules', () => {
     expect(content).toContain('setRealtimeScrollGeneration')
   })
 
-  it('realtime scroll useLayoutEffect uses force=false (near-bottom rules)', () => {
+  it('realtime scroll useLayoutEffect respects follow-latest intent (never forces)', () => {
     const content = readContent('src/app/dashboard/leads/[id]/page-client.tsx')
-    // Realtime should NOT force scroll — respects user scroll position
+    // Realtime routes through the canonical reconciler, which gates on
+    // followLatestRef intent — it cannot force-scroll or clear follow mode
+    // on transient near-bottom geometry.
     const realtimeMatch = content.match(/useLayoutEffect\(\(\) => \{[\s\S]*?realtimeScrollGeneration[\s\S]*?\}\)/)
     expect(realtimeMatch).toBeTruthy()
     if (realtimeMatch) {
-      expect(realtimeMatch[0]).toContain("scrollToBottom('smooth', false)")
+      expect(realtimeMatch[0]).toContain("reconcileConversationBottom('realtime-insert')")
     }
   })
 

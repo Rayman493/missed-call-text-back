@@ -96,24 +96,25 @@ describe('Batch B — Part 1: Touch / Scroll Ownership', () => {
 
 describe('Batch B — Part 2: Media Anchor', () => {
   it('7. media height growth while near bottom keeps user pinned', () => {
-    // handleCoalescedImageLoad calls scrollToBottom with force=false for inbound media
-    // (respects near-bottom). Outgoing media force-scrolls (force=true).
+    // handleCoalescedImageLoad re-anchors inbound media through the canonical
+    // reconciler, which gates on followLatestRef intent. Outgoing media
+    // force-scrolls (force=true).
     const sectionStartIdx = pageClientSrc.indexOf('Coalesced Image Load Scroll')
     expect(sectionStartIdx).toBeGreaterThan(0)
-    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 1000)
-    expect(coalescedSection).toContain("scrollToBottom('smooth', false)")
+    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 1400)
+    expect(coalescedSection).toContain("reconcileConversationBottom('inbound-image-load')")
   })
 
   it('8. media height growth while scrolled up does not pull user down (inbound)', () => {
-    // For inbound media, scrollToBottom with force=false shows jump button if user is scrolled up
-    // The coalesced image load does NOT force scroll for inbound media
+    // For inbound media, the reconciler only re-anchors when following latest —
+    // it never consults transient near-bottom geometry, so a keyboard-open
+    // viewport shrink cannot clear the follow mode.
     const sectionStartIdx = pageClientSrc.indexOf('Coalesced Image Load Scroll')
     expect(sectionStartIdx).toBeGreaterThan(0)
-    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 1000)
-    expect(coalescedSection).toContain("force")
+    const coalescedSection = pageClientSrc.substring(sectionStartIdx, sectionStartIdx + 1400)
     expect(coalescedSection).toContain("Inbound media")
-    // Inbound media must use force=false (respect near-bottom)
-    expect(coalescedSection).toContain("scrollToBottom('smooth', false)")
+    // Inbound media must route through the canonical reconciler (follow-intent gated)
+    expect(coalescedSection).toContain("reconcileConversationBottom('inbound-image-load')")
     // Outgoing media must use force=true (anchor to true bottom)
     expect(coalescedSection).toContain("scrollToBottom('auto', true)")
   })
@@ -161,22 +162,24 @@ describe('Batch B — Part 2: Media Anchor', () => {
   })
 
   it('11. realtime new message near bottom remains pinned', () => {
-    // realtimeScrollGeneration uses scrollToBottom with force=false
+    // realtimeScrollGeneration re-anchors through the canonical reconciler,
+    // gated on followLatestRef intent
     const realtimeMatch = pageClientSrc.match(
-      /realtimeScrollGeneration[^}]*scrollToBottom\('smooth',\s*false\)/
+      /realtimeScrollGeneration[^}]*reconcileConversationBottom\('realtime-insert'\)/
     )
     expect(realtimeMatch).toBeTruthy()
   })
 
   it('12. realtime new message while scrolled up does not yank user down', () => {
-    // The realtime scroll effect calls scrollToBottom with force=false
-    // This means if user is scrolled up, it shows jump button instead of forcing
+    // The realtime scroll effect gates on followLatestRef: when the user is
+    // reading history it shows the jump button instead of scrolling.
     const realtimeSection = pageClientSrc.substring(
       pageClientSrc.indexOf('Realtime message scroll'),
-      pageClientSrc.indexOf('Realtime message scroll') + 500
+      pageClientSrc.indexOf('Realtime message scroll') + 800
     )
-    expect(realtimeSection).toContain('respects near-bottom')
-    expect(realtimeSection).toContain("scrollToBottom('smooth', false)")
+    expect(realtimeSection).toContain('followLatestRef.current')
+    expect(realtimeSection).toContain("reconcileConversationBottom('realtime-insert')")
+    expect(realtimeSection).toContain('setShowJumpButton(true)')
   })
 })
 

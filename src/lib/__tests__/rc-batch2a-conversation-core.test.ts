@@ -16,11 +16,13 @@ describe('Batch 2A conversation core polish', () => {
   })
 
   it('fullscreen open/close anchors to true bottom when following latest', () => {
-    // The fullscreen toggle effect uses the active container and followLatestRef
+    // The fullscreen toggle effect gates on recorded followLatestRef intent and
+    // re-anchors through the canonical reconciler (which resolves the active
+    // post-toggle container at run time).
     const block = pageClient.match(/Preserve and restore scroll position when toggling full-screen[\s\S]*?}\s*,\s*\[isFullScreen\]\)/)
     expect(block).toBeTruthy()
     if (block) {
-      expect(block[0]).toContain('active.scrollTop = active.scrollHeight')
+      expect(block[0]).toContain('reconcileConversationBottom')
       expect(block[0]).toContain('followLatestRef.current')
     }
   })

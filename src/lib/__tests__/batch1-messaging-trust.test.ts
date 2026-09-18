@@ -252,9 +252,11 @@ describe('Batch 1 — Part 3: Timeline labeling rules', () => {
   })
 
   it('case 27: low-level normalization/system events are suppressed', () => {
-    // The event is only generated when corrected_fields or customer_corrected_info exists
-    // It does NOT generate events for whitespace/normalization changes
-    const eventGuard = pageClientSrc.match(/customer_corrected_info.*\|\|.*corrected_fields/)
+    // The event is only generated when the API recorded an actual manual
+    // correction (customer_corrected_info === true) AND at least one
+    // corrected field exists — a bare/empty corrected_fields object or a
+    // same-value re-save must not mint a divider.
+    const eventGuard = pageClientSrc.match(/customer_corrected_info === true && correctedFieldKeys\.length > 0/)
     expect(eventGuard).toBeTruthy()
   })
 

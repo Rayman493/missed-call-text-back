@@ -202,15 +202,24 @@ describe('Batch A — realtime + keyboard true-bottom contracts', () => {
       expect(focusHandler).not.toContain('isContainerNearBottom(container)')
     })
 
-    it('uses double requestAnimationFrame in visualViewport resize handler', () => {
-      // handleResize should contain two nested requestAnimationFrame calls before measuring.
+    it('visualViewport resize handler re-anchors via the canonical reconciler', () => {
+      // handleResize delegates to reconcileConversationBottom, which holds the
+      // double-RAF + bounded re-assert loop internally.
       const resizeHandler = pageClientSrc.match(/const handleResize = \(\) => \{[\s\S]*?\n    \}/)?.[0] || ''
-      expect(resizeHandler).toMatch(/requestAnimationFrame\(\(\) => \{\s*requestAnimationFrame/)
+      expect(resizeHandler).toContain("reconcileConversationBottom('visual-viewport-resize')")
     })
 
-    it('uses double requestAnimationFrame in visualViewport scroll handler', () => {
+    it('visualViewport scroll handler re-anchors via the canonical reconciler', () => {
       const scrollHandler = pageClientSrc.match(/const handleViewportScroll = \(\) => \{[\s\S]*?\n      \}/)?.[0] || ''
-      expect(scrollHandler).toMatch(/requestAnimationFrame\(\(\) => \{\s*requestAnimationFrame/)
+      expect(scrollHandler).toContain("reconcileConversationBottom('visual-viewport-scroll')")
+    })
+
+    it('canonical reconciler contains the double-RAF settle + bounded re-assert', () => {
+      const reconciler = pageClientSrc.match(/const reconcileConversationBottom = useCallback\([\s\S]*?\}, \[getScrollContainer, scrollToTrueBottom, logConversationScroll\]\)/)?.[0] || ''
+      expect(reconciler).toBeTruthy()
+      expect(reconciler).toMatch(/requestAnimationFrame\(\(\) => requestAnimationFrame\(step\)/)
+      expect(reconciler).toContain('scrollToTrueBottom(container)')
+      expect(reconciler).toContain('reconcileScheduledRef')
     })
   })
 

@@ -201,11 +201,12 @@ describe('Part D: Return-to-Conversation Behavior', () => {
 
   describe('D3. Preserves reading position when scrolled up', () => {
     it('does not scroll if followLatest is false', () => {
-      // The effect only scrolls when followLatestRef.current is true
+      // The effect only re-anchors via the canonical reconciler, which gates
+      // internally on followLatestRef — history mode preserves position.
       const effectBlock = pageClientContent.match(/latestMessageIdRef\.current && latestMessageIdRef\.current !== currentLatestId[\s\S]*?\}\)/)
       expect(effectBlock).toBeTruthy()
       if (effectBlock) {
-        expect(effectBlock[0]).toMatch(/followLatestRef\.current/)
+        expect(effectBlock[0]).toMatch(/reconcileConversationBottom\('latest-message-advanced'\)/)
       }
     })
   })
@@ -233,7 +234,7 @@ describe('Part E: Keyboard/VisualViewport Behavior', () => {
     it('does not use separate threshold for keyboard resize', () => {
       // The old code used `scrollThreshold = isDesktop ? 200 : 40` for keyboard
       // The new code uses followLatestRef
-      const keyboardBlock = pageClientContent.match(/Handle keyboard resize[\s\S]*?\}, \[getScrollContainer, scrollToTrueBottom\]\)/)
+      const keyboardBlock = pageClientContent.match(/Handle keyboard resize[\s\S]*?\}, \[getScrollContainer, scrollToTrueBottom, reconcileConversationBottom, logConversationScroll\]\)/)
       expect(keyboardBlock).toBeTruthy()
       if (keyboardBlock) {
         expect(keyboardBlock[0]).toMatch(/followLatestRef\.current/)
@@ -272,12 +273,13 @@ describe('Part F: Media Load Anchoring', () => {
     })
 
     it('does not create a second independent media scrolling algorithm', () => {
-      // The media load handler reuses the same scrollToBottom + followLatestRef
-      const mediaBlock = pageClientContent.match(/handleCoalescedImageLoad = useCallback\([\s\S]*?\}, \[\]\)/)
+      // The media load handler reuses scrollToBottom for outgoing media and
+      // the canonical reconciler for inbound media (follow-intent gated).
+      const mediaBlock = pageClientContent.match(/handleCoalescedImageLoad = useCallback\([\s\S]*?\}, \[scrollToBottom, reconcileConversationBottom\]\)/)
       expect(mediaBlock).toBeTruthy()
       if (mediaBlock) {
         expect(mediaBlock[0]).toMatch(/scrollToBottom/)
-        expect(mediaBlock[0]).toMatch(/followLatestRef/)
+        expect(mediaBlock[0]).toMatch(/reconcileConversationBottom/)
       }
     })
   })
@@ -291,13 +293,13 @@ describe('Part F: Media Load Anchoring', () => {
 
   describe('F3. Inbound media respects followLatest', () => {
     it('inbound media only scrolls if followLatestRef is true', () => {
-      const mediaBlock = pageClientContent.match(/Inbound media[\s\S]*?followLatestRef\.current[\s\S]*?scrollToBottom/)
+      const mediaBlock = pageClientContent.match(/Inbound media[\s\S]*?reconcileConversationBottom\('inbound-image-load'\)/)
       expect(mediaBlock).toBeTruthy()
     })
 
     it('does not yank user down if they scrolled up', () => {
-      // When followLatestRef is false, inbound media does not scroll
-      expect(pageClientContent).toMatch(/Inbound media: only follow if user is already near bottom/)
+      // The reconciler gates on followLatestRef — history mode is never yanked
+      expect(pageClientContent).toMatch(/Inbound media: re-anchor through the canonical reconciler/)
     })
   })
 })
@@ -428,7 +430,7 @@ describe('Part J: Test Matrix Verification', () => {
 
   // 8. Incoming media loads while user scrolled up → reading position preserved
   it('8. incoming media + scrolled up: followLatestRef check prevents yank', () => {
-    expect(pageClientContent).toMatch(/Inbound media: only follow if user is already near bottom/)
+    expect(pageClientContent).toMatch(/Inbound media: re-anchor through the canonical reconciler/)
   })
 
   // 9. Embedded conversation → same behavior

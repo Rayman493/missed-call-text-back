@@ -65,7 +65,10 @@ describe('Issue B — "Customer information updated" only on meaningful change',
 
   it('timeline divider still keyed once per lead and gated on correction metadata', () => {
     expect(pageClient).toContain('id: `correction-${leadData.id}`')
-    expect(pageClient).toMatch(/customer_corrected_info.*\|\|.*corrected_fields/)
+    // The divider requires an explicit correction flag AND at least one
+    // corrected field — a bare corrected_fields object (possibly empty or
+    // populated by a same-value re-save) must not mint a divider.
+    expect(pageClient).toMatch(/customer_corrected_info === true && correctedFieldKeys\.length > 0/)
   })
 
   it('toast claims an update only when the server reported a change', () => {

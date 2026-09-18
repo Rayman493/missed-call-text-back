@@ -332,6 +332,12 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
 // 150px allows for reasonable content growth (images, audio) without yanking users reading history
 const NEAR_BOTTOM_THRESHOLD_PX = 150
 
+// Bounded window for attributing post-release inertial scroll events to a user
+// gesture. After this window, scroll events can no longer be treated as user
+// momentum — browser-generated scrolls (keyboard/visualViewport resize, scroll
+// anchoring, programmatic pins) must never clear the follow-latest intent.
+const MOMENTUM_ATTRIBUTION_MS = 700
+
 async function getLeadDetails(leadId: string) {
   const supabase = createBrowserClient()
   const { data: { session } } = await supabase.auth.getSession()
@@ -550,6 +556,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const userScrollGestureActiveRef = useRef(false)
   const userScrollDirectionRef = useRef<0 | 1 | -1>(0)
   const lastObservedScrollTopRef = useRef(-1)
+  // Bounded momentum attribution: a scroll direction armed by a real gesture is
+  // only honored for a short window after the gesture ends. Without this bound,
+  // a stale direction misclassified the browser's own keyboard-resize /
+  // scroll-anchoring scroll events as user momentum and cleared followLatestRef
+  // — the physical Android failure that stranded the user above the newest
+  // message after the keyboard opened.
+  const lastUserGestureEndAtRef = useRef(0)
+  const touchLastYRef = useRef<number | null>(null)
+  const pointerLastYRef = useRef<number | null>(null)
+  // DEV-only [RF_CONVERSATION_SCROLL] sequence counter
+  const scrollLogSeqRef = useRef(0)
+  // Canonical bottom reconciler coalescing flag
+  const reconcileScheduledRef = useRef(false)
+  // Bounded realtime channel recovery attempts per subscription instance
+  const realtimeRecoveryAttemptsRef = useRef(0)
+  // Track the latest known Supabase realtime channel status so lifecycle
+  // recovery signals (online/app-resume) only recreate a dead channel, never
+  // tear down a healthy one.
+  const realtimeChannelStatusRef = useRef<'idle' | 'subscribing' | 'subscribed' | 'error' | 'closed' | 'timed_out'>('idle')
+  // DEV-only [RF_REALTIME_SMS] sequence counter
+  const realtimeSmsLogSeqRef = useRef(0)
   // latestMessageIdRef tracks the ID of the latest message the user has seen.
   // Used to detect when new messages arrived while away from the conversation.
   const latestMessageIdRef = useRef<string | null>(null)
@@ -650,17 +677,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (typeof window === 'undefined') return
     const isDesktop = window.innerWidth >= 1024
     const source = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
-    const active = isFullScreen ? fullScreenScrollRef.current : source
     const wasFollowingLatest = followLatestRef.current
 
     if (wasFollowingLatest) {
-      // Anchor to true bottom of the active container after layout settles.
-      const raf = requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (active) active.scrollTop = active.scrollHeight
-        })
-      })
-      return () => cancelAnimationFrame(raf)
+      // Anchor to true bottom of the active container through the canonical
+      // reconciler — it resolves the post-toggle container at run time and
+      // re-asserts the pin across the settle frames.
+      reconcileConversationBottom('fullscreen-toggle')
     } else {
       // User was reading history: preserve relative position as before.
       if (isFullScreen) {
@@ -792,6 +815,86 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const isContainerNearBottom = useCallback((container: HTMLDivElement): boolean => {
     return container.scrollHeight - container.scrollTop - container.clientHeight <= NEAR_BOTTOM_THRESHOLD_PX
   }, [])
+
+  // === [RF_CONVERSATION_SCROLL] DEV instrumentation ===
+  // Structured, monotonically sequenced logging for every scroll-relevant
+  // event so the physical-device failure order can be reconstructed.
+  // DEV only — never emitted in production builds.
+  const logConversationScroll = useCallback((reason: string, extra: Record<string, unknown> = {}) => {
+    if (process.env.NODE_ENV === 'production') return
+    if (typeof window === 'undefined') return
+    const container = getScrollContainer()
+    const vv = window.visualViewport
+    const rect = container?.getBoundingClientRect()
+    scrollLogSeqRef.current += 1
+    console.log('[RF_CONVERSATION_SCROLL]', {
+      seq: scrollLogSeqRef.current,
+      reason,
+      timestamp: Date.now(),
+      scrollTop: container?.scrollTop ?? null,
+      scrollHeight: container?.scrollHeight ?? null,
+      clientHeight: container?.clientHeight ?? null,
+      maxScrollTop: container ? Math.max(0, container.scrollHeight - container.clientHeight) : null,
+      distanceFromBottom: container ? container.scrollHeight - container.clientHeight - container.scrollTop : null,
+      containerRect: rect ? { top: Math.round(rect.top), bottom: Math.round(rect.bottom), height: Math.round(rect.height) } : null,
+      windowInnerHeight: window.innerHeight,
+      visualViewportHeight: vv?.height ?? null,
+      visualViewportOffsetTop: vv?.offsetTop ?? null,
+      composerHeight: mobileTextareaRef.current?.getBoundingClientRect().height ?? null,
+      followMode: followLatestRef.current ? 'latest' : 'history',
+      userGestureArmed: userScrollGestureActiveRef.current,
+      reconcileScheduled: reconcileScheduledRef.current,
+      ...extra,
+    })
+  }, [getScrollContainer])
+
+  // === Canonical bottom reconciler ===
+  // ONE deterministic re-anchor path for all environment-driven geometry
+  // changes (keyboard/visualViewport resize, visualViewport pan, container
+  // resize, message-list growth, realtime insert, late image layout).
+  // followLatestRef encodes the user's follow mode — 'latest' | 'history':
+  // history mode preserves position; latest mode re-pins to the exact
+  // scrollable maximum across a bounded frame window so a late resize/layout
+  // phase cannot undo the pin. This function NEVER mutates followLatestRef.
+  const reconcileConversationBottom = useCallback((reason: string) => {
+    if (typeof window === 'undefined') return
+    if (!followLatestRef.current) {
+      logConversationScroll('reconcile-skipped-history', { reason })
+      return
+    }
+    if (reconcileScheduledRef.current) {
+      logConversationScroll('reconcile-coalesced', { reason })
+      return
+    }
+    reconcileScheduledRef.current = true
+    logConversationScroll('reconcile-scheduled', { reason })
+    let frames = 0
+    const step = () => {
+      const container = getScrollContainer()
+      if (!container || !followLatestRef.current) {
+        reconcileScheduledRef.current = false
+        return
+      }
+      scrollToTrueBottom(container)
+      frames += 1
+      if (frames < 4) {
+        // Re-assert across a bounded frame window — keyboard animations and
+        // composer reflows settle over several frames; each new environment
+        // event can also schedule a fresh reconcile, so this stays finite.
+        requestAnimationFrame(step)
+      } else {
+        reconcileScheduledRef.current = false
+        const c = getScrollContainer()
+        logConversationScroll('reconcile-finished', {
+          reason,
+          frames,
+          finalScrollTop: c?.scrollTop ?? null,
+          distanceFromBottom: c ? c.scrollHeight - c.clientHeight - c.scrollTop : null,
+        })
+      }
+    }
+    requestAnimationFrame(() => requestAnimationFrame(step))
+  }, [getScrollContainer, scrollToTrueBottom, logConversationScroll])
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Container selection: fullScreenScrollRef.current when isFullScreen is true,
@@ -1041,14 +1144,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         outgoingMediaAnchorRef.current = false
         scrollToBottom('auto', true)
       } else {
-        // Inbound media: only follow if user is already near bottom (followLatestRef)
-        // respects near-bottom: do not force scroll if the user has scrolled up
-        if (followLatestRef.current) {
-          scrollToBottom('smooth', false)
-        }
+        // Inbound media: re-anchor through the canonical reconciler, which
+        // gates on followLatestRef intent (never transient geometry) and
+        // cannot clear the follow mode the way a near-bottom check could
+        // during a keyboard-open viewport shrink.
+        reconcileConversationBottom('inbound-image-load')
       }
     })
-  }, [])
+  }, [scrollToBottom, reconcileConversationBottom])
 
   // === Local Send Scroll — deterministic, no setTimeout ===
   // Fires after the optimistic message is rendered (DOM committed, before paint).
@@ -1064,18 +1167,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // === Realtime message scroll — deterministic, respects followLatestRef.
   // If user is intentionally scrolled up (followLatest=false), preserve their position (show jump button).
-  // If user is following latest (followLatest=true), anchor to true bottom.
-  // respects near-bottom: scrollToBottom('smooth', false) — only auto-scroll if already near bottom
+  // If user is following latest (followLatest=true), re-anchor via the canonical
+  // reconciler — it never consults transient near-bottom geometry, so it cannot
+  // clear the follow mode during a keyboard-open viewport shrink.
   useLayoutEffect(() => {
     if (realtimeScrollGeneration > 0) {
       if (followLatestRef.current) {
-        scrollToBottom('smooth', false)
+        reconcileConversationBottom('realtime-insert')
       } else {
         // User is reading history — show jump button, don't scroll
         setShowJumpButton(true)
       }
     }
-  }, [realtimeScrollGeneration, scrollToBottom])
+  }, [realtimeScrollGeneration, reconcileConversationBottom])
 
   const handleMobileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -1265,10 +1369,44 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     // Add address/information update event (neutral wording — no claim of customer intent)
-    if (leadData?.raw_metadata?.customer_corrected_info || leadData?.raw_metadata?.corrected_fields) {
-      const correctionTimestamp = leadData.raw_metadata.last_customer_reply_at || leadData.last_activity_at || leadData.created_at
-      const correctedFieldKeys = Object.keys(leadData.raw_metadata.corrected_fields || {})
+    //
+    // MATERIAL-CHANGE CONTRACT: this divider may exist ONLY when the API
+    // recorded an actual manual correction (customer_corrected_info === true)
+    // AND at least one corrected field exists. The corrected_fields object
+    // alone is NOT sufficient evidence — it can be present as an empty object
+    // or populated by a same-value re-save where the API deliberately did NOT
+    // stamp the correction flag (changedCount === 0). The timestamp must be the
+    // stable correction time (last_correction_at / corrected_fields_updated_at),
+    // NOT last_customer_reply_at: anchoring to the last inbound reply made a
+    // historical correction re-render as a fresh divider beside every new
+    // inbound SMS — the "false Customer Information updated" failure.
+    const correctedFields = leadData?.raw_metadata?.corrected_fields
+    const correctedFieldKeys = correctedFields ? Object.keys(correctedFields) : []
+    if (leadData?.raw_metadata?.customer_corrected_info === true && correctedFieldKeys.length > 0) {
+      const correctionStamps = Object.values(leadData.raw_metadata.corrected_fields_updated_at || {})
+        .map((t: any) => new Date(t).getTime())
+        .filter((t: number) => Number.isFinite(t))
+      // The timestamp MUST be a correction-specific value. last_activity_at,
+      // updated_at, and last_customer_reply_at advance on normal messaging,
+      // which re-anchors a historical correction beside fresh inbound/outbound
+      // SMS and creates a false "Customer information updated" divider. If no
+      // trustworthy correction timestamp exists for legacy data, omit rather
+      // than fabricate a misleading event.
+      const correctionTimestamp =
+        leadData.raw_metadata.last_correction_at ||
+        (correctionStamps.length > 0 ? new Date(Math.max(...correctionStamps)).toISOString() : null)
+      if (!correctionTimestamp) return systemEvents
       const hasOnlyAddressChange = correctedFieldKeys.length === 1 && correctedFieldKeys.includes('address')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[RF_CUSTOMER_UPDATE_EVENT]', {
+          stage: 'timeline-divider-emitted',
+          timestamp: Date.now(),
+          leadId: leadData.id,
+          correctedFieldKeys,
+          correctionTimestamp,
+          source: leadData.raw_metadata.last_correction_source,
+        })
+      }
       systemEvents.push({
         type: 'system_event',
         id: `correction-${leadData.id}`,
@@ -1470,20 +1608,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const currentLatestId = latestMessage?.id || null
     if (currentLatestId && latestMessageIdRef.current && latestMessageIdRef.current !== currentLatestId) {
       // Latest message advanced while we were away (or realtime arrived).
-      // If followLatest was true, settle to true bottom after layout.
-      if (followLatestRef.current) {
-        const container = getScrollContainer()
-        if (container) {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              scrollToTrueBottom(container)
-            })
-          })
-        }
-      }
+      // Re-anchor through the canonical reconciler when following latest.
+      reconcileConversationBottom('latest-message-advanced')
     }
     latestMessageIdRef.current = currentLatestId
-  }, [latestMessage?.id, getScrollContainer, scrollToTrueBottom])
+  }, [latestMessage?.id, reconcileConversationBottom])
 
   // Scroll to bottom after messages load with ResizeObserver for dynamic content
   // Uses the canonical true-bottom helper (scrollTop = scrollHeight) and a single
@@ -1650,6 +1779,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     followLatestRef.current = true
     // Clear latest message tracking so we don't trigger a false "messages arrived while away"
     latestMessageIdRef.current = null
+    // Reset gesture/momentum attribution so a direction armed in the previous
+    // conversation cannot leak into the new one's scroll classification.
+    userScrollGestureActiveRef.current = false
+    userScrollDirectionRef.current = 0
+    lastUserGestureEndAtRef.current = 0
+    touchLastYRef.current = null
+    pointerLastYRef.current = null
+    lastObservedScrollTopRef.current = -1
+    reconcileScheduledRef.current = false
   }, [params.id])
 
   // App-resume refresh for Business Number payment handoff and realtime subscription
@@ -1746,23 +1884,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Only scroll if we're near bottom (using canonical threshold) or if followLatest is true
-      const container = getScrollContainer()
-
-      if (container) {
-        const isNearBottom = isContainerNearBottom(container)
-
-        if (isNearBottom || followLatestRef.current) {
-          // Use double requestAnimationFrame to ensure React has finished rendering
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              scrollToBottom('auto', false)
-            })
-          })
-        }
-      }
+      // Re-anchor through the canonical reconciler — it gates on followLatestRef
+      // intent, coalesces with any in-flight reconcile, and re-asserts true
+      // bottom across the settle window. History mode preserves position.
+      logConversationScroll('messages-array-changed', { messageCount: messagesArray.length })
+      reconcileConversationBottom('messages-array-changed')
     }
-  }, [messagesArray.length, isFullScreen, getScrollContainer, isContainerNearBottom, scrollToBottom])
+  }, [messagesArray.length, isFullScreen, reconcileConversationBottom, logConversationScroll])
 
   // Check scroll position to show/hide jump button
   useEffect(() => {
@@ -1780,29 +1908,72 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // inertial momentum keeps attribution via userScrollDirectionRef until a
     // scroll event moves in a different direction or the gesture settles.
     //
-    // IMPORTANT: taps on the composer (textarea, buttons) live inside the
-    // scroll container and must NOT be misclassified as a scroll gesture. If
-    // a pointerdown on the composer arms the gesture tracker, the subsequent
-    // keyboard-open resize/scroll events will be treated as user-driven and
-    // clear followLatestRef, leaving the newest message hidden below the fold.
-    const isInteractiveScrollTarget = (e: Event): boolean => {
-      const target = e.target as HTMLElement
-      if (!target) return false
-      return !!target.closest('textarea, input, button, a, [role="button"], [role="textbox"]')
-    }
-
-    const handleGestureStart = (e: Event) => {
-      if (isInteractiveScrollTarget(e)) return
+    // NOTE: the composer (textarea, send/attach buttons) is a SIBLING of the
+    // scroll container, not a descendant — composer taps never reach these
+    // listeners, so arming on every touchstart inside the container is safe.
+    // A plain tap produces no scroll events, so arming is harmless; a drag
+    // that starts on a message button/link/image IS a genuine scroll gesture
+    // and must be attributed (previously an interactive-target guard skipped
+    // arming, so scrolls begun on interactive message content could not enter
+    // history mode and the reconciler later yanked the user back to bottom).
+    const handleTouchStart = (e: TouchEvent) => {
       userScrollGestureActiveRef.current = true
+      touchLastYRef.current = e.touches[0]?.clientY ?? null
+      // Each new gesture starts with no armed direction — a direction is only
+      // armed by actual finger movement (touchmove), so a stale direction from
+      // an older gesture cannot leak into this one.
+      userScrollDirectionRef.current = 0
+      logConversationScroll('gesture-touch-start')
+    }
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!userScrollGestureActiveRef.current || touchLastYRef.current === null) return
+      const y = e.touches[0]?.clientY
+      if (y === undefined) return
+      const dy = y - touchLastYRef.current
+      if (Math.abs(dy) >= 2) {
+        // Finger moving up scrolls content down (scrollTop increases).
+        userScrollDirectionRef.current = dy < 0 ? 1 : -1
+        touchLastYRef.current = y
+      }
+    }
+    const handlePointerStart = (e: PointerEvent) => {
+      // Touch gestures are armed by the touchstart/touchmove pair above —
+      // pointer events here cover mouse/pen only.
+      if (e.pointerType === 'touch') return
+      userScrollGestureActiveRef.current = true
+      pointerLastYRef.current = e.clientY
+      userScrollDirectionRef.current = 0
+      logConversationScroll('gesture-pointer-start')
+    }
+    const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' || !userScrollGestureActiveRef.current || !(e.buttons & 1)) return
+      if (pointerLastYRef.current === null) {
+        pointerLastYRef.current = e.clientY
+        return
+      }
+      const dy = e.clientY - pointerLastYRef.current
+      if (Math.abs(dy) >= 2) {
+        // Mouse/scrollbar drag: downward drag scrolls content down.
+        userScrollDirectionRef.current = dy > 0 ? 1 : -1
+        pointerLastYRef.current = e.clientY
+      }
     }
     const handleGestureEnd = () => {
+      if (userScrollGestureActiveRef.current) {
+        lastUserGestureEndAtRef.current = Date.now()
+        logConversationScroll('gesture-end')
+      }
       userScrollGestureActiveRef.current = false
+      touchLastYRef.current = null
+      pointerLastYRef.current = null
     }
     const handleWheel = (e: WheelEvent) => {
-      if (isInteractiveScrollTarget(e)) return
       // A wheel tick is a user scroll with an inherent direction; arm the
       // direction tracker so its scroll events are attributed to the user.
-      if (e.deltaY !== 0) userScrollDirectionRef.current = e.deltaY > 0 ? 1 : -1
+      if (e.deltaY !== 0) {
+        userScrollDirectionRef.current = e.deltaY > 0 ? 1 : -1
+        lastUserGestureEndAtRef.current = Date.now()
+      }
     }
 
     const handleScroll = () => {
@@ -1818,36 +1989,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       const isNearBottom = isContainerNearBottom(container)
 
-      // Attribute the scroll to the user only when a gesture is active or the
-      // event continues an armed gesture/momentum direction. Non-user scrolls
-      // (keyboard/visualViewport resize, scroll anchoring, programmatic pins)
-      // may only RE-ENABLE following when they land at the bottom — they must
-      // never clear it, or a keyboard-open resize would strand the user above
-      // the newest message.
+      // Attribute the scroll to the user only when a gesture is active, or
+      // when an inertial momentum scroll continues in the armed direction
+      // within MOMENTUM_ATTRIBUTION_MS of the gesture ending. The bound is
+      // essential: previously the armed direction lived indefinitely, so
+      // browser-generated scrolls from keyboard/visualViewport resize and
+      // scroll anchoring — when they happened to share the stale direction —
+      // were misclassified as user momentum and cleared followLatestRef,
+      // stranding the user above the newest message until manual scroll.
+      const gestureActive = userScrollGestureActiveRef.current
+      const momentumActive = !gestureActive &&
+        userScrollDirectionRef.current !== 0 &&
+        Date.now() - lastUserGestureEndAtRef.current <= MOMENTUM_ATTRIBUTION_MS
       const isUserDriven =
-        userScrollGestureActiveRef.current ||
-        (delta !== 0 &&
-          userScrollDirectionRef.current !== 0 &&
-          Math.sign(delta) === userScrollDirectionRef.current)
+        gestureActive ||
+        (momentumActive && delta !== 0 && Math.sign(delta) === userScrollDirectionRef.current)
 
       if (isUserDriven) {
         followLatestRef.current = isNearBottom
         setShowJumpButton(!isNearBottom && messagesArray.length > 0)
         if (delta !== 0) {
           userScrollDirectionRef.current = Math.sign(delta) as 1 | -1
+          // Ongoing momentum keeps the attribution window alive while the
+          // scroll events continue in the armed direction.
+          lastUserGestureEndAtRef.current = Date.now()
         }
       } else if (isNearBottom) {
         followLatestRef.current = true
         setShowJumpButton(false)
       }
+
+      logConversationScroll('scroll-event', {
+        delta,
+        isUserDriven,
+        gestureActive,
+        momentumActive,
+        isNearBottom,
+        followModeAfter: followLatestRef.current ? 'latest' : 'history',
+      })
     }
 
     lastObservedScrollTopRef.current = container.scrollTop
     container.addEventListener('scroll', handleScroll)
-    container.addEventListener('touchstart', handleGestureStart, { passive: true })
+    container.addEventListener('touchstart', handleTouchStart, { passive: true })
+    container.addEventListener('touchmove', handleTouchMove, { passive: true })
     container.addEventListener('touchend', handleGestureEnd, { passive: true })
     container.addEventListener('touchcancel', handleGestureEnd, { passive: true })
-    container.addEventListener('pointerdown', handleGestureStart)
+    container.addEventListener('pointerdown', handlePointerStart)
+    container.addEventListener('pointermove', handlePointerMove)
     container.addEventListener('pointerup', handleGestureEnd)
     container.addEventListener('pointercancel', handleGestureEnd)
     container.addEventListener('wheel', handleWheel, { passive: true })
@@ -1859,15 +2048,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     return () => {
       container.removeEventListener('scroll', handleScroll)
-      container.removeEventListener('touchstart', handleGestureStart)
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
       container.removeEventListener('touchend', handleGestureEnd)
       container.removeEventListener('touchcancel', handleGestureEnd)
-      container.removeEventListener('pointerdown', handleGestureStart)
+      container.removeEventListener('pointerdown', handlePointerStart)
+      container.removeEventListener('pointermove', handlePointerMove)
       container.removeEventListener('pointerup', handleGestureEnd)
       container.removeEventListener('pointercancel', handleGestureEnd)
       container.removeEventListener('wheel', handleWheel)
     }
-  }, [messagesArray.length, isFullScreen, getScrollContainer, isContainerNearBottom])
+  }, [messagesArray.length, isFullScreen, getScrollContainer, isContainerNearBottom, logConversationScroll])
 
   // Track viewport size for conditional rendering
   useEffect(() => {
@@ -1916,34 +2107,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const handleResize = () => {
       const currentHeight = window.visualViewport?.height || window.innerHeight
       updateVisibleHeight(currentHeight)
+      logConversationScroll('visual-viewport-resize', { nextViewportHeight: currentHeight })
 
       // Re-anchor to the true bottom on any viewport/keyboard/window resize
-      // when the user is following the latest message. This avoids arbitrary
-      // 100 px thresholds and keeps the conversation pinned through dynamic
-      // viewport changes on both desktop and mobile.
-      if (followLatestRef.current) {
-        // Two RAF passes let the browser apply the CSS --visual-viewport-height
-        // change and resize the container before we measure scrollHeight.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const c = getContainer()
-            if (c) scrollToTrueBottom(c)
-          })
-        })
-      }
+      // through the canonical reconciler. It gates on followLatestRef intent
+      // (never transient geometry), coalesces duplicate events, and re-asserts
+      // the pin across the keyboard animation's settle frames.
+      reconcileConversationBottom('visual-viewport-resize')
     }
 
     // Re-anchor on ANY container resize, including composer auto-grow and
     // footer changes that shrink the viewport without a visualViewport event.
-    // ResizeObserver callbacks run before paint, so the pin is applied
-    // before the resized frame is visible. Only when following latest —
-    // a user reading history keeps their scroll position untouched.
+    // ResizeObserver callbacks run before paint, so the synchronous pin is
+    // applied before the resized frame is visible; the reconciler covers the
+    // following layout frames. Only when following latest — a user reading
+    // history keeps their scroll position untouched.
     let containerObserver: ResizeObserver | null = null
     if (typeof ResizeObserver !== 'undefined') {
       containerObserver = new ResizeObserver(() => {
+        logConversationScroll('container-resize')
         if (followLatestRef.current) {
           scrollToTrueBottom(container)
         }
+        reconcileConversationBottom('container-resize')
       })
       containerObserver.observe(container)
     }
@@ -1956,14 +2142,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // true bottom on those offset changes too — same deterministic write,
       // gated on the user's follow intent.
       const handleViewportScroll = () => {
-        if (followLatestRef.current) {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              const c = getContainer()
-              if (c) scrollToTrueBottom(c)
-            })
-          })
-        }
+        logConversationScroll('visual-viewport-scroll')
+        reconcileConversationBottom('visual-viewport-scroll')
       }
       window.visualViewport.addEventListener('scroll', handleViewportScroll)
       return () => {
@@ -1987,7 +2167,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       }
     }
-  }, [getScrollContainer, scrollToTrueBottom])
+  }, [getScrollContainer, scrollToTrueBottom, reconcileConversationBottom, logConversationScroll])
 
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
@@ -2781,6 +2961,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         (payload: any) => {
           const newMessage = payload.new
 
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[RF_REALTIME_SMS]', {
+              seq: ++realtimeSmsLogSeqRef.current,
+              stage: 'message-insert-callback',
+              timestamp: Date.now(),
+              channelName,
+              messageId: newMessage?.id,
+              leadId: newMessage?.lead_id,
+              conversationId: newMessage?.conversation_id,
+              businessId: newMessage?.business_id,
+              direction: newMessage?.direction,
+              type: newMessage?.type,
+              status: newMessage?.status,
+              createdAt: newMessage?.created_at,
+              viewedLeadId: leadId,
+              passesLeadGuard: !!newMessage?.lead_id && newMessage.lead_id === leadId,
+            })
+          }
+
           // Client-side lead guard: only process messages for the currently viewed lead
           if (!newMessage?.lead_id || newMessage.lead_id !== leadId) {
             console.log('[REALTIME INSERT] REJECTED DIFFERENT LEAD:', {
@@ -2823,6 +3022,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               (msg.clientMessageId && msg.clientMessageId === incomingClientMessageId) ||
               (msg.client_message_id && msg.client_message_id === incomingClientMessageId)
             )
+
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[RF_REALTIME_SMS]', {
+                seq: ++realtimeSmsLogSeqRef.current,
+                stage: 'message-insert-merge',
+                timestamp: Date.now(),
+                messageId: newMessage?.id,
+                alreadyExisted: !isNewMessage,
+                previousCount: currentMessages.length,
+                mergedCount: mergedMessages.length,
+                willScroll: isNewMessage,
+              })
+            }
 
             if (isNewMessage) {
               // Deterministic: useLayoutEffect fires after the new message is rendered.
@@ -2886,6 +3098,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         },
         (payload: any) => {
           const updatedMessage = payload.new
+
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[RF_REALTIME_SMS]', {
+              seq: ++realtimeSmsLogSeqRef.current,
+              stage: 'message-update-callback',
+              timestamp: Date.now(),
+              channelName,
+              messageId: updatedMessage?.id,
+              leadId: updatedMessage?.lead_id,
+              conversationId: updatedMessage?.conversation_id,
+              direction: updatedMessage?.direction,
+              status: updatedMessage?.status,
+              viewedLeadId: leadId,
+              passesLeadGuard: !!updatedMessage?.lead_id && updatedMessage.lead_id === leadId,
+            })
+          }
 
           // Client-side lead guard: only process messages for the currently viewed lead
           if (!updatedMessage?.lead_id || updatedMessage.lead_id !== leadId) {
@@ -2981,6 +3209,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[RF_REALTIME_SMS]', {
+        seq: ++realtimeSmsLogSeqRef.current,
+        stage: 'subscribe',
+        timestamp: Date.now(),
+        channelName,
+        leadId,
+        conversationId,
+        messagesInsertFilter: `lead_id=eq.${leadId}`,
+        messagesUpdateFilter: `lead_id=eq.${leadId}`,
+        leadsUpdateFilter: `id=eq.${leadId}`,
+      })
+    }
+
     channel.subscribe((status: any) => {
         console.log('[REALTIME CHANNEL STATUS]', {
           instanceId: realtimeInstanceIdRef.current,
@@ -2990,41 +3232,129 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           timestamp: new Date().toISOString()
         })
 
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[RF_REALTIME_SMS]', {
+            seq: ++realtimeSmsLogSeqRef.current,
+            stage: 'channel-status',
+            timestamp: Date.now(),
+            channelName,
+            leadId,
+            status,
+          })
+        }
+
         if (status === 'SUBSCRIBED') {
+          realtimeChannelStatusRef.current = 'subscribed'
+          realtimeRecoveryAttemptsRef.current = 0
           console.log('[REALTIME] Successfully subscribed to lead:', {
             leadId,
             channelName,
             instanceId: realtimeInstanceIdRef.current,
             timestamp: new Date().toISOString()
           })
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[REALTIME] Channel error for lead:', leadId, '- attempting recovery')
-          // Attempt recovery after a short delay
+        } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
+          realtimeChannelStatusRef.current =
+            status === 'CHANNEL_ERROR' ? 'error' : status === 'TIMED_OUT' ? 'timed_out' : 'closed'
+          const log = status === 'CHANNEL_ERROR' ? console.error : status === 'TIMED_OUT' ? console.warn : console.log
+          log(`[REALTIME] Channel ${status} for lead:`, leadId, '- attempting recovery')
+
+          // Bounded recovery: a CLOSED/ERRORED channel does NOT resubscribe
+          // itself — previously the only response was a one-shot refresh,
+          // which meant a transient Android network drop permanently killed
+          // live message delivery until the next remount/app-resume. Now we
+          // recreate the channel via realtimeGeneration (bounded attempts)
+          // AND silently refetch to close the delivery gap.
           setTimeout(() => {
-            console.log('[REALTIME RECOVERY] Refreshing conversation data after channel error')
+            // Do not recover a channel this effect already replaced/tore down
+            // (e.g. CLOSED delivered after a deliberate removeChannel).
+            if (realtimeChannelRef.current !== channel || currentLeadIdRef.current !== leadId) {
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('[RF_REALTIME_SMS]', {
+                  seq: ++realtimeSmsLogSeqRef.current,
+                  stage: 'recovery-skipped-stale-channel',
+                  timestamp: Date.now(),
+                  channelName,
+                  status,
+                })
+              }
+              return
+            }
+            console.log(`[REALTIME RECOVERY] Refreshing conversation data after channel ${status.toLowerCase()}`)
             handleRefresh({ silent: true })
-          }, 2000)
-        } else if (status === 'CLOSED') {
-          console.log('[REALTIME] Channel closed for lead:', leadId, '- attempting recovery')
-          // Attempt recovery after a short delay
-          setTimeout(() => {
-            console.log('[REALTIME RECOVERY] Refreshing conversation data after channel close')
-            handleRefresh({ silent: true })
-          }, 2000)
-        } else if (status === 'TIMED_OUT') {
-          console.warn('[REALTIME] Channel timed out for lead:', leadId, '- attempting recovery')
-          // Attempt recovery after a short delay
-          setTimeout(() => {
-            console.log('[REALTIME RECOVERY] Refreshing conversation data after channel timeout')
-            handleRefresh({ silent: true })
+            if (realtimeRecoveryAttemptsRef.current < 5) {
+              realtimeRecoveryAttemptsRef.current += 1
+              console.log('[REALTIME RECOVERY] Recreating channel after', status, 'attempt', realtimeRecoveryAttemptsRef.current)
+              setRealtimeGeneration(prev => prev + 1)
+            }
           }, 2000)
         }
       })
 
     realtimeChannelRef.current = channel
+    realtimeChannelStatusRef.current = 'subscribing'
 
     // Capture channel name for cleanup logging
     const ownedChannelName = channelName
+
+    // Re-arm recovery on network/app-resume signals: if all 5 attempts were
+    // consumed while offline/backgrounded, a later `online` event or Capacitor
+    // app-foreground must start a fresh recovery window rather than leaving the
+    // conversation permanently unsubscribed.
+    const handleReconnectionSignal = (source: string) => {
+      // Only the currently viewed lead may recreate its channel; navigation
+      // away must not resurrect a stale channel.
+      if (currentLeadIdRef.current !== leadId) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[RF_REALTIME_SMS]', {
+            seq: ++realtimeSmsLogSeqRef.current,
+            stage: 'reconnection-signal-skipped-stale-lead',
+            timestamp: Date.now(),
+            source,
+            currentLeadId: currentLeadIdRef.current,
+            viewedLeadId: leadId,
+          })
+        }
+        return
+      }
+      // A healthy channel needs no intervention.
+      if (realtimeChannelStatusRef.current === 'subscribed') {
+        realtimeRecoveryAttemptsRef.current = 0
+        return
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[RF_REALTIME_SMS]', {
+          seq: ++realtimeSmsLogSeqRef.current,
+          stage: 'reconnection-signal',
+          timestamp: Date.now(),
+          source,
+          channelName,
+          leadId,
+          previousStatus: realtimeChannelStatusRef.current,
+          previousAttempts: realtimeRecoveryAttemptsRef.current,
+        })
+      }
+      // Reset the bounded attempt window and force a single channel recreation.
+      // The existing channel is removed by the effect cleanup that runs before
+      // the generation bump re-runs this effect, so duplicates are impossible.
+      realtimeRecoveryAttemptsRef.current = 0
+      setRealtimeGeneration(prev => prev + 1)
+    }
+
+    const handleOnline = () => handleReconnectionSignal('window-online')
+    window.addEventListener('online', handleOnline)
+
+    let capacitorAppListener: { remove: () => Promise<void> } | null = null
+    if (typeof window !== 'undefined') {
+      import('@capacitor/app')
+        .then(({ App }) => App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) handleReconnectionSignal('capacitor-app-active')
+        }))
+        .then(listener => { capacitorAppListener = listener })
+        .catch(() => {
+          // Capacitor app plugin unavailable outside hybrid shell; browser-only
+          // environments still have the `online` event above.
+        })
+    }
 
     // Start stuck message check interval (bounded recovery - only check twice)
     let checkCount = 0
@@ -3080,6 +3410,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (stuckMessageCheckIntervalRef.current) {
         clearInterval(stuckMessageCheckIntervalRef.current)
         stuckMessageCheckIntervalRef.current = null
+      }
+      window.removeEventListener('online', handleOnline)
+      if (capacitorAppListener) {
+        capacitorAppListener.remove().catch(() => {})
+        capacitorAppListener = null
       }
     }
   }, [leadData?.id, realtimeGeneration]) // Depend on leadId and realtimeGeneration for resume-triggered re-subscription
@@ -3670,10 +4005,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // rely on visualViewport/ResizeObserver re-anchors through the resize.
   const handleMobileTextareaFocus = () => {
     const container = mobileConversationContainerRef.current
+    logConversationScroll('composer-focus')
     if (!container) return
     if (followLatestRef.current) {
       scrollToTrueBottom(container)
     }
+    // Schedule the canonical reconcile so the pin is re-asserted as the
+    // keyboard animation and composer reflow settle over the next frames.
+    reconcileConversationBottom('composer-focus')
+  }
+
+  const handleMobileTextareaBlur = () => {
+    logConversationScroll('composer-blur')
+    // Keyboard close shrinks the visual viewport back — the visualViewport
+    // resize handler reconciles; schedule one here too so WebViews that only
+    // fire window resize still re-anchor when following latest.
+    reconcileConversationBottom('composer-blur')
   }
 
   // Reset embedded mobile textarea height when message is cleared externally (after send).
@@ -5662,6 +6009,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           onChange={handleMobileTextareaChange}
                           onKeyDown={handleMobileKeyDown}
                           onFocus={handleMobileTextareaFocus}
+                          onBlur={handleMobileTextareaBlur}
                           placeholder="Type a message..."
                           autoCapitalize="sentences"
                           autoCorrect="on"

@@ -11,7 +11,7 @@ describe('Batch 2B — visual viewport height variable', () => {
   it('1. initializes --visual-viewport-height on mount', () => {
     expect(pageClientSrc).toContain("--visual-viewport-height")
     expect(pageClientSrc).toContain('setProperty(\'--visual-viewport-height\'')
-    expect(pageClientSrc).toContain('updateVisibleHeight(previousHeight)')
+    expect(pageClientSrc).toContain('updateVisibleHeight(currentHeight)')
   })
 
   it('2. removes --visual-viewport-height on cleanup', () => {

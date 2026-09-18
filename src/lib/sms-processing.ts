@@ -605,6 +605,20 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       body: sanitizedBody.substring(0, 50)
     })
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[RF_REALTIME_SMS]', {
+        stage: 'inbound-persisted',
+        timestamp: Date.now(),
+        messageId: inboundMessage.id,
+        businessId: business.id,
+        leadId: lead.id,
+        conversationId: conversation.id,
+        direction: 'inbound',
+        type: message_type,
+        createdAt: inboundMessage.created_at,
+      })
+    }
+
     // Create notification for customer reply immediately after the inbound
     // message is persisted. This must not wait on the enrichment/correction
     // pipeline below (LLM calls and follow-up cancellation are not required to
