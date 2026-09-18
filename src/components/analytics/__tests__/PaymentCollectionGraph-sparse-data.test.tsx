@@ -44,7 +44,7 @@ describe('PaymentCollectionGraph - Sparse Data Rendering', () => {
     // Line 154: ResponsiveContainer configuration
     expect(content).toContain('<ResponsiveContainer width="100%" height="100%">')
     // Line 151: container has fixed height and width
-    expect(content).toContain('className="h-[260px] w-full"')
+    expect(content).toContain('className="h-[260px] w-full relative"')
   })
 
   it('should fetch payment_requests with status field only', () => {

@@ -24,6 +24,13 @@ describe('PaymentActionBar fixed slot system', () => {
     expect(content).toContain('w-4 h-4')
   })
 
+  it('uses a chain/link icon and "Copy Link" label for the copy slot', () => {
+    expect(content).toContain("icon: Link2")
+    expect(content).toContain("title: 'Copy Link'")
+    expect(content).toContain("label: 'Copy Link'")
+    expect(content).not.toContain("icon: Copy")
+  })
+
   it('does not execute the action when a disabled slot is tapped', () => {
     expect(content).toContain('slot.reason && showToast(slot.reason)')
     expect(content).not.toMatch(/disabledByEligibility[\s\S]{0,200}onClick=\{slot\.onClick\}/)

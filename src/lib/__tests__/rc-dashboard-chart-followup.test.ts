@@ -173,19 +173,19 @@ describe('RC Dashboard Chart Follow-up — Loading (16-26)', () => {
   })
 
   // 18. title does not change wrapping during loading
-  it('18. header uses items-center to keep title and control aligned; no inline Updating span', () => {
-    // The header uses items-center so the title and right-side PremiumSelect
-    // share a visual vertical centerline without an inline Updating span.
-    const revenueHeader = revenueGraph.match(/<div className="flex items-center justify-between mb-3">[\s\S]*?<\/div>\s*<\/div>/)
+  it('18. header uses shared ChartHeaderControls with consistent alignment; no inline Updating span', () => {
+    // The header now routes through the shared ChartHeaderControls rail so every
+    // graph shares the same responsive alignment (title row + right-aligned
+    // control rail on mobile, single baseline-aligned row on sm+).
+    expect(revenueGraph).toContain('<ChartHeaderControls title="Payments Received">')
+    expect(activityGraph).toContain('<ChartHeaderControls title="Customer Engagement">')
+    // The "Updating…" indicator is a body overlay, never part of the header rail.
+    const revenueHeader = revenueGraph.match(/<ChartHeaderControls title="Payments Received">[\s\S]*?<\/ChartHeaderControls>/)
+    const activityHeader = activityGraph.match(/<ChartHeaderControls title="Customer Engagement">[\s\S]*?<\/ChartHeaderControls>/)
     expect(revenueHeader).toBeTruthy()
-    if (revenueHeader) {
-      expect(revenueHeader[0]).not.toContain('Updating…')
-    }
-    const activityHeader = activityGraph.match(/<div className="flex items-center justify-between mb-3">[\s\S]*?<\/div>\s*<\/div>/)
     expect(activityHeader).toBeTruthy()
-    if (activityHeader) {
-      expect(activityHeader[0]).not.toContain('Updating…')
-    }
+    if (revenueHeader) expect(revenueHeader[0]).not.toContain('Updating…')
+    if (activityHeader) expect(activityHeader[0]).not.toContain('Updating…')
   })
 
   // 19. range selector does not move

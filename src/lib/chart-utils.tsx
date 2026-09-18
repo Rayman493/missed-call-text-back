@@ -241,6 +241,44 @@ export const CHART_STYLES = {
 import { useState, useRef, useCallback } from 'react'
 import { GESTURE_MOVEMENT_THRESHOLD } from '@/lib/gesture/tap-guard'
 
+/**
+ * Mobile-safe chart body wrapper.
+ *
+ * Recharts v3 installs a global touch-events middleware that intercepts
+ * touchstart/touchmove/touchend on every chart surface, even when no tooltip or
+ * touch interaction is desired. On mobile WebKit/WebView this middleware can
+ * hijack native page scrolling, producing the "sticky" vertical-swipe
+ * regression reported on Android QA.
+ *
+ * ChartPassiveTouchSurface stops those synthetic events in the capture phase
+ * before they reach Recharts, while declaring `touch-action: pan-y` on the
+ * wrapper so the browser continues to scroll the page. Mouse/pointer events are
+ * untouched, so desktop hover tooltips remain fully functional.
+ */
+export function ChartPassiveTouchSurface({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  const stopTouchPropagation = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation()
+  }, [])
+
+  return (
+    <div
+      className={className}
+      style={{ touchAction: 'pan-y' }}
+      onTouchStartCapture={stopTouchPropagation}
+      onTouchMoveCapture={stopTouchPropagation}
+      onTouchEndCapture={stopTouchPropagation}
+    >
+      {children}
+    </div>
+  )
+}
+
 type GestureMode = 'idle' | 'vertical' | 'horizontal'
 
 /**

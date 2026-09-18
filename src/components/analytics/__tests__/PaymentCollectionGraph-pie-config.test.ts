@@ -66,7 +66,7 @@ describe('PaymentCollectionGraph - Pie Configuration', () => {
   })
 
   it('should have fixed height container', () => {
-    expect(content).toContain('className="h-[260px] w-full"')
+    expect(content).toContain('className="h-[260px] w-full relative"')
   })
 })
 

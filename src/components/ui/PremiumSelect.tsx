@@ -9,6 +9,7 @@ interface PremiumSelectProps<T extends string> {
   onChange: (value: T) => void
   options: { value: T; label: string }[]
   className?: string
+  buttonClassName?: string
   disabled?: boolean
 }
 
@@ -17,6 +18,7 @@ export default function PremiumSelect<T extends string>({
   onChange,
   options,
   className = '',
+  buttonClassName = '',
   disabled = false
 }: PremiumSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
@@ -74,6 +76,7 @@ export default function PremiumSelect<T extends string>({
           disabled:opacity-50 disabled:cursor-not-allowed
           transition-all duration-200
           min-w-[120px]
+          ${buttonClassName}
         `}
         aria-haspopup="listbox"
         aria-expanded={isOpen}

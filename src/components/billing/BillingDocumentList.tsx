@@ -244,13 +244,13 @@ export default function BillingDocumentList({
                  col 4 Download, col 5 View, col 6 Delete */}
             <div className="flex flex-col items-end gap-2 flex-shrink-0">
               <StatusPill variant={statusVariant}>{badge.label}</StatusPill>
-              <div className="grid grid-cols-6 gap-1 w-48">
+              <div className="grid grid-cols-6 gap-1 w-full max-w-[240px]">
               {[
                 {
                   col: 1,
                   key: 'edit',
                   icon: Edit,
-                  label: 'Edit document',
+                  label: 'Edit',
                   title: 'Edit',
                   enabled: isDraft || isDeclined,
                   disabledReason: isQuote ? "Sent quotes can't be edited." : "Sent invoices can't be edited.",
@@ -261,7 +261,7 @@ export default function BillingDocumentList({
                   col: 2,
                   key: 'send',
                   icon: isSent ? RefreshCw : Send,
-                  label: isSent ? 'Resend SMS' : isQuote ? 'Send quote' : 'Send invoice',
+                  label: isSent ? 'Resend' : 'Send',
                   title: isSent ? 'Resend' : isQuote ? 'Send Quote' : 'Send Invoice',
                   enabled: isDraft || (isSent && !isAccepted),
                   disabledReason: isQuote && isAccepted
@@ -276,7 +276,7 @@ export default function BillingDocumentList({
                   col: 3,
                   key: 'convert',
                   icon: ArrowRight,
-                  label: doc.derived_invoice ? `View invoice ${doc.derived_invoice.document_number}` : 'Create Invoice',
+                  label: doc.derived_invoice ? 'Invoice' : 'Convert',
                   title: doc.derived_invoice ? 'View Invoice' : 'Create Invoice',
                   enabled: isAccepted,
                   disabledReason: doc.derived_invoice
@@ -289,7 +289,7 @@ export default function BillingDocumentList({
                   col: 4,
                   key: 'download',
                   icon: Download,
-                  label: 'Download PDF',
+                  label: 'Download',
                   title: 'Download PDF',
                   enabled: true,
                   disabledReason: '',
@@ -300,7 +300,7 @@ export default function BillingDocumentList({
                   col: 5,
                   key: 'view',
                   icon: Eye,
-                  label: 'View document',
+                  label: 'View',
                   title: 'View',
                   enabled: true,
                   disabledReason: '',
@@ -311,7 +311,7 @@ export default function BillingDocumentList({
                   col: 6,
                   key: 'delete',
                   icon: Trash2,
-                  label: 'Delete document',
+                  label: 'Delete',
                   title: 'Delete',
                   enabled: isDraft,
                   disabledReason: "Sent documents can't be deleted.",
@@ -337,9 +337,10 @@ export default function BillingDocumentList({
                       }}
                       aria-label={`${slot.title} unavailable`}
                       style={{ gridColumn: slot.col }}
-                      className="w-8 h-8 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 text-slate-300 dark:text-slate-700 cursor-default"
+                      className="flex flex-col items-center justify-center gap-0.5 h-12 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 text-slate-300 dark:text-slate-700 cursor-default"
                     >
                       <Icon className="w-4 h-4" />
+                      <span className="text-[9px] leading-none">{slot.label}</span>
                     </button>
                   )
                 }
@@ -350,12 +351,13 @@ export default function BillingDocumentList({
                     type="button"
                     onClick={slot.onClick}
                     disabled={isLoading}
-                    aria-label={slot.label}
+                    aria-label={slot.title}
                     title={slot.title}
                     style={{ gridColumn: slot.col }}
-                    className="w-8 h-8 flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors disabled:opacity-50"
+                    className="flex flex-col items-center justify-center gap-0.5 h-12 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:scale-[0.98] text-slate-400 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors disabled:opacity-50"
                   >
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+                    <span className="text-[9px] leading-none">{slot.label}</span>
                   </button>
                 )
               })}

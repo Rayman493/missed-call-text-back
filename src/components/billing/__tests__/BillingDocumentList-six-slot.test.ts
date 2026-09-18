@@ -29,7 +29,7 @@ describe('BillingDocumentList six-slot action row', () => {
   })
 
   it('all six slots render as real buttons', () => {
-    expect(src).toContain('aria-label={slot.label}')
+    expect(src).toContain('aria-label={slot.title}')
     expect(src).toContain('title={slot.title}')
     expect(src).toContain('onClick={slot.onClick}')
     expect(src).toContain('disabled={isLoading}')
@@ -40,7 +40,19 @@ describe('BillingDocumentList six-slot action row', () => {
     expect(src).toContain('showToast')
     expect(src).toContain('aria-label={`${slot.title} unavailable`}')
     expect(src).toContain('cursor-default')
-    expect(src).toContain('w-8 h-8')
+    expect(src).toContain('h-12')
+  })
+
+  it('slots use payment-style labeled fixed action buttons', () => {
+    // Same visual pattern as PaymentActionBar: icon + short label, 48px target.
+    expect(src).toContain('flex flex-col items-center justify-center gap-0.5 h-12')
+    expect(src).toContain('text-[9px] leading-none')
+    expect(src).toContain("label: 'Edit'")
+    expect(src).toContain("label: isSent ? 'Resend' : 'Send'")
+    expect(src).toContain("label: doc.derived_invoice ? 'Invoice' : 'Convert'")
+    expect(src).toContain("label: 'Download'")
+    expect(src).toContain("label: 'View'")
+    expect(src).toContain("label: 'Delete'")
   })
 
   it('disabled placeholders use muted grey styling', () => {

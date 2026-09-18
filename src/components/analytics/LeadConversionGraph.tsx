@@ -10,6 +10,7 @@ import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
+import { ChartHeaderControls } from './ChartHeaderControls'
 
 interface ConversionStage {
   name: string
@@ -192,26 +193,23 @@ export default function LeadConversionGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground">Lead Conversion</h3>
-          <div className="flex items-center gap-2">
-            <ChartFilterButton
-              value={stageFilter}
-              onChange={(value) => {
-                setStageFilter(value)
-              }}
-              options={STAGE_FILTER_OPTIONS}
-            />
-            <PremiumSelect
-              value={timeRange}
-              onChange={(value) => {
-                setTimeRange(value as AnalyticsTimeframe)
-              }}
-              options={ANALYTICS_TIMEFRAME_OPTIONS}
-              className="text-xs"
-            />
-          </div>
-        </div>
+        <ChartHeaderControls title="Lead Conversion">
+          <ChartFilterButton
+            value={stageFilter}
+            onChange={(value) => {
+              setStageFilter(value)
+            }}
+            options={STAGE_FILTER_OPTIONS}
+          />
+          <PremiumSelect
+            value={timeRange}
+            onChange={(value) => {
+              setTimeRange(value as AnalyticsTimeframe)
+            }}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
+            buttonClassName="h-10 sm:h-11 py-0"
+          />
+        </ChartHeaderControls>
 
         {!isEmpty && (
           <div className="mb-4">

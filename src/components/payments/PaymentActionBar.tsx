@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { User, Edit, Copy, ExternalLink, CreditCard, RefreshCw, X, Loader2 } from 'lucide-react'
+import { User, Edit, Link2, ExternalLink, CreditCard, RefreshCw, X, Loader2 } from 'lucide-react'
 import { showToast } from '@/lib/toast'
 
 export interface PaymentActionBarPayment {
@@ -36,7 +36,7 @@ const SLOT_ORDER: {
 }[] = [
   { key: 'customer', icon: User, title: 'View Customer', label: 'Customer' },
   { key: 'edit', icon: Edit, title: 'Edit', label: 'Edit' },
-  { key: 'copy', icon: Copy, title: 'Copy Link', label: 'Copy' },
+  { key: 'copy', icon: Link2, title: 'Copy Link', label: 'Copy Link' },
   { key: 'open', icon: ExternalLink, title: 'Open Link', label: 'Open' },
   { key: 'status', icon: CreditCard, title: 'Mark Paid', label: 'Paid' },
   { key: 'cancel', icon: X, title: 'Cancel', label: 'Cancel' },
@@ -129,9 +129,9 @@ export default function PaymentActionBar({
     },
     {
       key: 'copy',
-      icon: Copy,
+      icon: Link2,
       title: 'Copy Link',
-      label: 'Copy',
+      label: 'Copy Link',
       enabled: canCopyOrOpen,
       reason: canCopyOrOpen ? '' : 'No active payment link to copy.',
       loading: false,

@@ -36,7 +36,7 @@ describe('PaymentCollectionGraph - Rendering Logic', () => {
   })
 
   it('should use fixed height for chart container', () => {
-    expect(content).toContain('className="h-[260px] w-full"')
+    expect(content).toContain('className="h-[260px] w-full relative"')
   })
 
   it('should use ResponsiveContainer with 100% width and height', () => {

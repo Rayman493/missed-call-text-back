@@ -8,7 +8,8 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice } from '@/lib/chart-utils'
+import { ChartHeaderControls } from './ChartHeaderControls'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -91,16 +92,14 @@ export default function NewCustomersGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">New Customers</h3>
-          </div>
+        <ChartHeaderControls title="New Customers">
           <PremiumSelect
             value={timeRange}
             onChange={setTimeRange}
             options={ANALYTICS_TIMEFRAME_OPTIONS}
+            buttonClassName="h-10 sm:h-11 py-0"
           />
-        </div>
+        </ChartHeaderControls>
 
         {!isEmpty && (
           <div className="mb-4">
@@ -133,8 +132,8 @@ export default function NewCustomersGraph() {
           />
         ) : (
           <div className="h-[260px] relative">
-            <div className="w-full h-full">
-                <ResponsiveContainer width="100%" height="100%">
+            <ChartPassiveTouchSurface className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
                     <CartesianGrid
                       strokeDasharray={CHART_STYLES.gridStrokeDasharray}
@@ -181,7 +180,7 @@ export default function NewCustomersGraph() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
+            </ChartPassiveTouchSurface>
           </div>
         )}
       </div>

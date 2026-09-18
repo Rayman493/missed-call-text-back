@@ -9,7 +9,8 @@ import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice } from '@/lib/chart-utils'
+import { ChartHeaderControls } from './ChartHeaderControls'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
 
 interface PipelineData {
   status: string
@@ -117,8 +118,7 @@ export default function CustomerPipelineGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground">Customer Workflow</h3>
+        <ChartHeaderControls title="Customer Workflow">
           <ChartFilterButton
             value={statusFilter}
             onChange={(value) => {
@@ -126,7 +126,7 @@ export default function CustomerPipelineGraph() {
             }}
             options={PIPELINE_STATUS_OPTIONS}
           />
-        </div>
+        </ChartHeaderControls>
 
         {!isEmpty && totalCustomers > 0 && (
           <div className="mb-4">
@@ -160,8 +160,8 @@ export default function CustomerPipelineGraph() {
           />
         ) : (
           <div className="h-[260px] relative">
-            <div className="w-full h-full">
-                <ResponsiveContainer width="100%" height="100%">
+            <ChartPassiveTouchSurface className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={displayData} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
                     <CartesianGrid
                       strokeDasharray={CHART_STYLES.gridStrokeDasharray}
@@ -213,7 +213,7 @@ export default function CustomerPipelineGraph() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
+            </ChartPassiveTouchSurface>
           </div>
         )}
       </div>

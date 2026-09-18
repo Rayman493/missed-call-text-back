@@ -114,6 +114,8 @@ describe('ChartTouchWrapper — chart focus rectangle removal (8-11)', () => {
   it('11. SVG surface has outline-none (touch focus suppressed via CSS)', () => {
     expect(chartUtilsContent).toContain('[&_.recharts-surface]:outline-none')
     expect(chartUtilsContent).toContain('[&_.recharts-wrapper]:outline-none')
-    expect(chartUtilsContent).toContain('[&_.recharts-rectangle-wrapper]:outline-none')
+    expect(chartUtilsContent).toContain('[&_.recharts-bar-rectangles]:outline-none')
+    expect(chartUtilsContent).toContain('[&_.recharts-pie-sector]:outline-none')
+    expect(chartUtilsContent).toContain('[&_.recharts-line-dot]:outline-none')
   })
 })

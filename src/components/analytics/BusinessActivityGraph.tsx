@@ -9,7 +9,8 @@ import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice } from '@/lib/chart-utils'
+import { ChartHeaderControls } from './ChartHeaderControls'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -199,27 +200,23 @@ export default function BusinessActivityGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <ChartFilterButton
-              value={seriesFilter}
-              onChange={(value) => {
-                setSeriesFilter(value)
-              }}
-              options={SERIES_FILTER_OPTIONS}
-            />
-            <PremiumSelect
-              value={timeRange}
-              onChange={(value) => {
-                setTimeRange(value)
-              }}
-              options={ANALYTICS_TIMEFRAME_OPTIONS}
-            />
-          </div>
-        </div>
+        <ChartHeaderControls title="Customer Engagement">
+          <ChartFilterButton
+            value={seriesFilter}
+            onChange={(value) => {
+              setSeriesFilter(value)
+            }}
+            options={SERIES_FILTER_OPTIONS}
+          />
+          <PremiumSelect
+            value={timeRange}
+            onChange={(value) => {
+              setTimeRange(value)
+            }}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
+            buttonClassName="h-10 sm:h-11 py-0"
+          />
+        </ChartHeaderControls>
 
         {!isEmpty && (
           <div className="mb-4">
@@ -256,7 +253,7 @@ export default function BusinessActivityGraph() {
                 Updating…
               </div>
             )}
-            <div className="w-full h-full">
+            <ChartPassiveTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ ...CHART_STYLES.margin, bottom: 12 }}>
                   <CartesianGrid
@@ -390,7 +387,7 @@ export default function BusinessActivityGraph() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </ChartPassiveTouchSurface>
           </div>
         )}
       </div>

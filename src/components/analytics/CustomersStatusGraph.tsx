@@ -8,7 +8,8 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice } from '@/lib/chart-utils'
+import { ChartHeaderControls } from './ChartHeaderControls'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
 import { CUSTOMER_STATUS_STYLES, CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
 
 interface CustomerStatusData {
@@ -105,10 +106,7 @@ export default function CustomersStatusGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Customers by Status</h3>
-          </div>
+        <ChartHeaderControls title="Customers by Status">
           <ChartFilterButton
             value={statusFilter}
             onChange={(value) => {
@@ -116,7 +114,7 @@ export default function CustomersStatusGraph() {
             }}
             options={STATUS_FILTER_OPTIONS}
           />
-        </div>
+        </ChartHeaderControls>
 
         {!isEmpty && (
           <div className="mb-4">
@@ -146,8 +144,8 @@ export default function CustomersStatusGraph() {
           />
         ) : (
           <div className="h-[260px] relative">
-            <div className="w-full h-full">
-                <ResponsiveContainer width="100%" height="100%">
+            <ChartPassiveTouchSurface className="w-full h-full">
+              <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={displayData} layout="vertical" margin={{ top: 8, right: 12, bottom: 8, left: 4 }}>
                     <CartesianGrid
                       strokeDasharray={CHART_STYLES.gridStrokeDasharray}
@@ -199,7 +197,7 @@ export default function CustomersStatusGraph() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
+            </ChartPassiveTouchSurface>
           </div>
         )}
       </div>

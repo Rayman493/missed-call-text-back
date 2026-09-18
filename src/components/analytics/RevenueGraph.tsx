@@ -8,7 +8,8 @@ import { DollarSign } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice } from '@/lib/chart-utils'
+import { ChartHeaderControls } from './ChartHeaderControls'
+import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice, ChartPassiveTouchSurface } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 import { formatCurrency } from '@/lib/utils'
@@ -123,18 +124,14 @@ export default function RevenueGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Payments Received</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <PremiumSelect
-              value={timeRange}
-              onChange={setTimeRange}
-              options={ANALYTICS_TIMEFRAME_OPTIONS}
-            />
-          </div>
-        </div>
+        <ChartHeaderControls title="Payments Received">
+          <PremiumSelect
+            value={timeRange}
+            onChange={setTimeRange}
+            options={ANALYTICS_TIMEFRAME_OPTIONS}
+            buttonClassName="h-10 sm:h-11 py-0"
+          />
+        </ChartHeaderControls>
 
         {!isEmpty && isStripeConnected && (
           <div className="mb-4">
@@ -182,7 +179,7 @@ export default function RevenueGraph() {
                 Updating…
               </div>
             )}
-            <div className="w-full h-full">
+            <ChartPassiveTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={CHART_STYLES.margin}>
                   <CartesianGrid
@@ -226,7 +223,7 @@ export default function RevenueGraph() {
                   />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </ChartPassiveTouchSurface>
           </div>
         )}
       </div>

@@ -8,6 +8,8 @@ import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
+import { ChartHeaderControls } from './ChartHeaderControls'
+import { ChartPieTouchSurface } from './ChartPieTouchSurface'
 import { PremiumTooltip, CHART_STYLES, formatInteger, useTouchDevice } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
@@ -25,6 +27,7 @@ export default function LeadsSourceGraph() {
   const [loading, setLoading] = useState(true)
   const [unclassifiedCount, setUnclassifiedCount] = useState(0)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('90d')
+  const [activeSlice, setActiveSlice] = useState<LeadSourceData | null>(null)
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
@@ -174,16 +177,14 @@ export default function LeadsSourceGraph() {
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Leads by Source</h3>
-          </div>
+        <ChartHeaderControls title="Leads by Source">
           <PremiumSelect
             value={timeRange}
             onChange={setTimeRange}
             options={ANALYTICS_TIMEFRAME_OPTIONS}
+            buttonClassName="h-10 sm:h-11 py-0"
           />
-        </div>
+        </ChartHeaderControls>
 
         {!isEmpty && (
           <div className="mb-4">
@@ -215,8 +216,8 @@ export default function LeadsSourceGraph() {
             description="Leads will appear here as ReplyFlow captures missed calls and you add customers."
           />
         ) : (
-          <div className="h-[260px]">
-            <div className="w-full h-full">
+          <div className="h-[260px] relative">
+            <ChartPieTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -227,11 +228,14 @@ export default function LeadsSourceGraph() {
                     outerRadius={CHART_STYLES.donutOuterRadius}
                     paddingAngle={CHART_STYLES.donutPaddingAngle}
                     dataKey="value"
+                    activeShape={false}
+                    onClick={(_, index) => setActiveSlice(data[index] ?? null)}
                   >
                     {data.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={entry.color}
+                        className="[&:focus]:outline-none"
                       />
                     ))}
                   </Pie>
@@ -269,7 +273,23 @@ export default function LeadsSourceGraph() {
                   />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
+            </ChartPieTouchSurface>
+            {activeSlice && (
+              <button
+                type="button"
+                onClick={() => setActiveSlice(null)}
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-card/90 backdrop-blur-sm border border-border/60 rounded-full px-2.5 py-1 shadow-sm text-[11px] text-foreground"
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: activeSlice.color }}
+                  aria-hidden="true"
+                />
+                <span className="truncate max-w-[110px]">{activeSlice.name}</span>
+                <span className="font-medium tabular-nums">{formatInteger(activeSlice.value)}</span>
+                <span className="text-muted-foreground/70">{Math.round((activeSlice.value / trueTotal) * 100)}%</span>
+              </button>
+            )}
           </div>
         )}
       </div>
