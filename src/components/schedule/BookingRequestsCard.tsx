@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { CalendarPlus, Copy, RefreshCw, Settings } from 'lucide-react'
+import { CalendarPlus, ChevronRight, Copy, RefreshCw, Settings } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { showToast } from '@/lib/toast'
@@ -68,9 +68,14 @@ export default function BookingRequestsCard() {
   const [bookingUrl, setBookingUrl] = useState<string | null>(null)
   const realtimeRef = useRef<any>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const recoveryAttemptsRef = useRef(0)
+  const channelStatusRef = useRef<string>('idle')
+  const [realtimeGeneration, setRealtimeGeneration] = useState(0)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    // Silent refresh keeps the list (and any open detail modal) mounted —
+    // no loading flash while realtime/conversion updates reconcile.
+    if (!opts?.silent) setLoading(true)
     setError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -94,33 +99,93 @@ export default function BookingRequestsCard() {
     }
   }, [supabase])
 
+  const silentLoad = useCallback(() => load({ silent: true }), [load])
+
   useEffect(() => { load() }, [load])
 
   // Realtime reconciliation: when any booking_request row for this business
-  // changes, refresh the list so status/time updates feel instant.
+  // changes, silently refresh the list so status/time updates feel instant.
+  // The binding is intentionally UNFILTERED — server-side postgres_changes
+  // filters on this project previously yielded SUBSCRIBED-but-zero-events —
+  // with a client-side business guard and RLS as the security boundary.
   useEffect(() => {
     if (!business?.id) return
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
 
+    let cancelled = false
+    channelStatusRef.current = 'subscribing'
+    const businessId = business.id
     const channel = supabase
-      .channel(`booking-requests-list:${business.id}`)
+      .channel(`booking-requests-list:${businessId}:${realtimeGeneration}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'booking_requests', filter: `business_id=eq.${business.id}` },
-        () => {
+        { event: '*', schema: 'public', table: 'booking_requests' },
+        (payload: any) => {
+          const row = (payload?.new ?? payload?.old) as { business_id?: string } | undefined
+          if (row?.business_id !== businessId) return
           if (debounceRef.current) clearTimeout(debounceRef.current)
-          debounceRef.current = setTimeout(() => load(), 300)
+          debounceRef.current = setTimeout(() => silentLoad(), 300)
         }
       )
-      .subscribe()
+
+    ;(async () => {
+      // Resolve realtime auth before joining — an unauthenticated websocket
+      // reports SUBSCRIBED but RLS blocks all postgres_changes events because
+      // auth.uid() is NULL with the anon key.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) await (supabase as any).realtime.setAuth(session.access_token)
+      } catch { /* best effort — foreground reconcile still covers gaps */ }
+      if (cancelled) return
+
+      channel.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          channelStatusRef.current = 'subscribed'
+          recoveryAttemptsRef.current = 0
+        } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
+          channelStatusRef.current = 'error'
+          setTimeout(() => {
+            if (cancelled || realtimeRef.current !== channel) return
+            silentLoad()
+            if (recoveryAttemptsRef.current < 3) {
+              recoveryAttemptsRef.current += 1
+              setRealtimeGeneration((g) => g + 1)
+            }
+          }, 2000)
+        }
+      })
+    })()
+
     realtimeRef.current = channel
 
     return () => {
+      cancelled = true
       if (debounceRef.current) clearTimeout(debounceRef.current)
       if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
       realtimeRef.current = null
     }
-  }, [business?.id, load, supabase])
+  }, [business?.id, silentLoad, supabase, realtimeGeneration])
+
+  // Foreground reconcile: focus/visibility/online → one silent refresh, and
+  // re-arm a dead channel via a bounded recreation window. No polling.
+  useEffect(() => {
+    const reconcile = () => {
+      silentLoad()
+      if (channelStatusRef.current !== 'subscribed' && channelStatusRef.current !== 'subscribing') {
+        recoveryAttemptsRef.current = 0
+        setRealtimeGeneration((g) => g + 1)
+      }
+    }
+    const onVisibility = () => { if (document.visibilityState === 'visible') reconcile() }
+    window.addEventListener('focus', reconcile)
+    window.addEventListener('online', reconcile)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', reconcile)
+      window.removeEventListener('online', reconcile)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [silentLoad])
 
   const handleCopyLink = async () => {
     if (!bookingUrl || typeof window === 'undefined') return
@@ -150,7 +215,7 @@ export default function BookingRequestsCard() {
           <p className="text-sm text-muted-foreground">{error}</p>
           <button
             type="button"
-            onClick={load}
+            onClick={() => load()}
             className="inline-flex items-center gap-1 rounded-lg border border-border/50 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Retry
@@ -165,7 +230,7 @@ export default function BookingRequestsCard() {
 
   return (
     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
         <div className="flex items-center gap-2">
           <CalendarPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <h3 className="text-sm font-semibold text-foreground">Booking Requests</h3>
@@ -178,7 +243,7 @@ export default function BookingRequestsCard() {
       </div>
 
       {hasRequests ? (
-        <ul className="divide-y divide-border/30 mb-3">
+        <ul className="mt-3 mb-3 space-y-2">
           {requests.map(r => {
             const converted = !!r.appointment_id || !!r.job_id
             const start = new Date(r.current_proposed_start ?? r.requested_start)
@@ -194,7 +259,7 @@ export default function BookingRequestsCard() {
                 <button
                   type="button"
                   onClick={() => setOpenId(r.id)}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg py-2.5 px-2 -mx-2 text-left transition-colors hover:bg-muted/60 hover:text-primary-600"
+                  className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:border-primary-300 hover:bg-primary-50/60 active:bg-primary-100/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 dark:hover:bg-primary-900/20 dark:active:bg-primary-900/30"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
@@ -203,16 +268,19 @@ export default function BookingRequestsCard() {
                     </p>
                     <p className="truncate text-xs text-muted-foreground">{`${day}, ${t.format(start)} – ${t.format(end)}`}</p>
                   </div>
-                  <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_PILL[converted ? '_converted' : r.status]}`}>
-                    {converted ? (r.job_id ? 'Job' : 'Appointment') : STATUS_LABEL[r.status]}
-                  </span>
+                  <div className="flex flex-shrink-0 items-center gap-1.5">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_PILL[converted ? '_converted' : r.status]}`}>
+                      {converted ? (r.job_id ? 'Job' : 'Appointment') : STATUS_LABEL[r.status]}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/70 transition-colors group-hover:text-primary-500" />
+                  </div>
                 </button>
               </li>
             )
           })}
         </ul>
       ) : (
-        <p className="mb-3 text-sm text-muted-foreground">No booking requests yet.</p>
+        <p className="mt-3 mb-3 text-sm text-muted-foreground">No booking requests yet.</p>
       )}
 
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/30">
@@ -247,7 +315,7 @@ export default function BookingRequestsCard() {
           requestId={openId}
           businessId={business?.id ?? null}
           onClose={() => setOpenId(null)}
-          onRefresh={load}
+          onRefresh={silentLoad}
         />
       )}
     </div>

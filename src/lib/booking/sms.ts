@@ -118,15 +118,19 @@ export async function sendBookingConfirmationSms(
   return send(request, body, 'booking_confirmation', business ?? undefined)
 }
 
-/** "[Business] couldn't confirm your booking request. Request another: <link>" */
+/** "[Business] can't accommodate your requested time for <time>. Choose another: <link>" */
 export async function sendBookingDeclinedSms(
-  request: Pick<BookingRequest, 'id' | 'business_id' | 'normalized_phone' | 'customer_phone'>,
+  request: Pick<BookingRequest, 'id' | 'business_id' | 'normalized_phone' | 'customer_phone' | 'requested_start' | 'timezone'>,
   slug: string,
 ): Promise<BookingSmsResult> {
   const business = await getBusinessForSms(request.business_id)
   const businessName = business?.name ?? 'The business'
+  const timePhrase =
+    request.requested_start && request.timezone
+      ? formatSlot(request.requested_start, request.timezone)
+      : 'your requested time'
   const body =
-    `${businessName} couldn't confirm your booking request. ` +
-    `You can request another time here: ${publicUrl(`/book/${slug}`)}`
+    `${businessName} can’t accommodate your requested time for ${timePhrase}. ` +
+    `You’re welcome to choose another time here: ${publicUrl(`/book/${slug}`)}`
   return send(request, body, 'booking_declined', business ?? undefined)
 }

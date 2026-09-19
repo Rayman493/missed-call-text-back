@@ -80,6 +80,9 @@ export default function BookingRequestDetailModal({
   const effectiveBusinessId = businessId ?? business?.id ?? null
   const realtimeRef = useRef<any>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const recoveryAttemptsRef = useRef(0)
+  const channelStatusRef = useRef<string>('idle')
+  const [realtimeGeneration, setRealtimeGeneration] = useState(0)
   const [detail, setDetail] = useState<BookingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<BusyAction>(null)
@@ -117,21 +120,24 @@ export default function BookingRequestDetailModal({
   // Realtime reconciliation for this specific request. When the customer
   // accepts, rejects, or otherwise updates the row, the modal refreshes
   // automatically without requiring the business to close/reopen it.
+  // The postgres_changes binding is intentionally UNFILTERED: server-side
+  // filters on this project previously produced SUBSCRIBED-but-zero-events,
+  // so filtering happens client-side on the payload while RLS remains the
+  // security boundary.
   useEffect(() => {
     if (!effectiveBusinessId || !requestId) return
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
 
+    let cancelled = false
+    channelStatusRef.current = 'subscribing'
     const channel = supabase
-      .channel(`booking-request-detail:${effectiveBusinessId}:${requestId}`)
+      .channel(`booking-request-detail:${effectiveBusinessId}:${requestId}:${realtimeGeneration}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'booking_requests',
-          filter: `id=eq.${requestId}`,
-        },
-        () => {
+        { event: '*', schema: 'public', table: 'booking_requests' },
+        (payload: any) => {
+          const row = (payload?.new ?? payload?.old) as { id?: string; business_id?: string } | undefined
+          if (row?.id !== requestId || row?.business_id !== effectiveBusinessId) return
           if (debounceRef.current) clearTimeout(debounceRef.current)
           debounceRef.current = setTimeout(() => {
             load()
@@ -139,15 +145,69 @@ export default function BookingRequestDetailModal({
           }, 300)
         }
       )
-      .subscribe()
+
+    ;(async () => {
+      // Resolve realtime auth before joining — an unauthenticated websocket
+      // reports SUBSCRIBED but RLS blocks all postgres_changes events because
+      // auth.uid() is NULL with the anon key.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) await (supabase as any).realtime.setAuth(session.access_token)
+      } catch { /* best effort — foreground reconcile still covers gaps */ }
+      if (cancelled) return
+
+      channel.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          channelStatusRef.current = 'subscribed'
+          recoveryAttemptsRef.current = 0
+        } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
+          channelStatusRef.current = 'error'
+          // Bounded recovery: refetch to close the gap, then recreate the
+          // channel via the generation bump (effect cleanup removes this one).
+          setTimeout(() => {
+            if (cancelled || realtimeRef.current !== channel) return
+            load()
+            onRefresh?.()
+            if (recoveryAttemptsRef.current < 3) {
+              recoveryAttemptsRef.current += 1
+              setRealtimeGeneration((g) => g + 1)
+            }
+          }, 2000)
+        }
+      })
+    })()
+
     realtimeRef.current = channel
 
     return () => {
+      cancelled = true
       if (debounceRef.current) clearTimeout(debounceRef.current)
       if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
       realtimeRef.current = null
     }
-  }, [effectiveBusinessId, requestId, load, onRefresh, supabase])
+  }, [effectiveBusinessId, requestId, load, onRefresh, supabase, realtimeGeneration])
+
+  // Foreground reconcile: on focus/visibility/online, silently refetch and
+  // re-arm a dead channel (one bounded recreation window — no polling).
+  useEffect(() => {
+    const reconcile = () => {
+      load()
+      onRefresh?.()
+      if (channelStatusRef.current !== 'subscribed' && channelStatusRef.current !== 'subscribing') {
+        recoveryAttemptsRef.current = 0
+        setRealtimeGeneration((g) => g + 1)
+      }
+    }
+    const onVisibility = () => { if (document.visibilityState === 'visible') reconcile() }
+    window.addEventListener('focus', reconcile)
+    window.addEventListener('online', reconcile)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', reconcile)
+      window.removeEventListener('online', reconcile)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [load, onRefresh])
 
   const refresh = useCallback(() => {
     onRefresh?.()
@@ -249,13 +309,11 @@ export default function BookingRequestDetailModal({
   return (
     <Modal isOpen onClose={onClose} title={detail?.customer_name ?? 'Booking request'}>
       <div className="space-y-4">
-        {status && (
+        {status && !converted && (
           <span
             className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
               status === 'accepted'
-                ? converted
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                  : 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
                 : status === 'pending' || status === 'customer_reselected'
                   ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
                   : status === 'business_proposed'
@@ -263,7 +321,7 @@ export default function BookingRequestDetailModal({
                     : 'bg-muted text-muted-foreground'
             }`}
           >
-            {converted ? `Created as ${detail?.job_id ? 'Job' : 'Appointment'}` : STATUS_LABEL[status]}
+            {STATUS_LABEL[status]}
           </span>
         )}
             {loading ? (
@@ -283,26 +341,32 @@ export default function BookingRequestDetailModal({
             </div>
           ) : (
             <>
-              <div className="space-y-1.5 text-sm text-foreground/90">
-                <a href={`tel:${detail.customer_phone}`} className="flex items-center gap-2 hover:text-primary-600">
-                  <Phone className="h-3.5 w-3.5 text-muted-foreground" /> {detail.customer_phone}
-                </a>
-                {detail.customer_email && <p className="pl-5 text-muted-foreground">{detail.customer_email}</p>}
-                {detail.customer_address && (
-                  <p className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> {detail.customer_address}
-                  </p>
-                )}
-                {detail.service && <p className="font-medium text-foreground">{detail.service}</p>}
-                {detail.notes && <p className="rounded-lg bg-muted/60 p-2.5 text-[13px] text-muted-foreground">{detail.notes}</p>}
+              <div>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</p>
+                <div className="space-y-1.5 text-sm text-foreground/90">
+                  <a href={`tel:${detail.customer_phone}`} className="flex items-center gap-2 hover:text-primary-600">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" /> {detail.customer_phone}
+                  </a>
+                  {detail.customer_email && <p className="pl-5 text-muted-foreground">{detail.customer_email}</p>}
+                  {detail.customer_address && (
+                    <p className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> {detail.customer_address}
+                    </p>
+                  )}
+                </div>
               </div>
 
+              {(detail.service || detail.notes) && (
+                <div>
+                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Request</p>
+                  {detail.service && <p className="text-sm font-medium text-foreground">{detail.service}</p>}
+                  {detail.notes && (
+                    <p className="mt-1.5 rounded-lg bg-muted/60 p-2.5 text-[13px] text-muted-foreground">{detail.notes}</p>
+                  )}
+                </div>
+              )}
+
               <div className="rounded-xl border border-border/40 bg-muted/30 p-3 text-sm">
-                {status === 'accepted' && (
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                    Accepted
-                  </p>
-                )}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-foreground">
                   <CalendarDays className="h-4 w-4 text-primary-500" />
                   <span className="font-medium">
@@ -329,24 +393,6 @@ export default function BookingRequestDetailModal({
                 )}
               </div>
 
-              {detail.lead_id && (
-                <div className="rounded-xl border border-border/40 bg-muted/30 p-3">
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose()
-                      router.push(`/dashboard/leads/${detail.lead_id}`)
-                    }}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400"
-                  >
-                    {detail.customer_name}
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    View Customer
-                  </button>
-                </div>
-              )}
-
               {actionError && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/30 dark:text-amber-200">
                   <p>{actionError}</p>
@@ -363,30 +409,46 @@ export default function BookingRequestDetailModal({
               )}
 
               {actionable && !picking && (
-                <div className="flex flex-wrap gap-2">
-                  {canAccept && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    {canAccept && (
+                      <button
+                        disabled={busy !== null}
+                        onClick={() => runAction('accept')}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                      >
+                        <Check className="h-4 w-4" /> {busy === 'accept' ? 'Accepting…' : 'Accept'}
+                      </button>
+                    )}
                     <button
                       disabled={busy !== null}
-                      onClick={() => runAction('accept')}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                      onClick={openPicker}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
                     >
-                      <Check className="h-4 w-4" /> {busy === 'accept' ? 'Accepting…' : 'Accept'}
+                      <Clock className="h-4 w-4" /> Suggest New Time
                     </button>
-                  )}
-                  <button
-                    disabled={busy !== null}
-                    onClick={openPicker}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
-                  >
-                    <Clock className="h-4 w-4" /> Suggest New Time
-                  </button>
-                  <button
-                    disabled={busy !== null}
-                    onClick={() => runAction('reject')}
-                    className="rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:text-red-300 dark:hover:bg-red-900/30"
-                  >
-                    {busy === 'reject' ? 'Declining…' : 'Reject'}
-                  </button>
+                    {detail.lead_id && (
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => {
+                          router.push(`/dashboard/leads/${detail.lead_id}`)
+                          onClose()
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                      >
+                        <ExternalLink className="h-4 w-4" /> View Customer
+                      </button>
+                    )}
+                    <button
+                      disabled={busy !== null}
+                      onClick={() => runAction('reject')}
+                      className="rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:text-red-300 dark:hover:bg-red-900/30"
+                    >
+                      {busy === 'reject' ? 'Declining…' : 'Reject'}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -453,24 +515,38 @@ export default function BookingRequestDetailModal({
               )}
 
               {status === 'accepted' && !converted && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Create this booking as:</p>
-                  <div className="flex gap-2">
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</p>
+                  <p className="mb-2 text-xs text-muted-foreground">Create this booking as:</p>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       disabled={busy !== null}
                       onClick={() => runAction('create-appointment')}
-                      className="flex-1 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                      className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
                     >
                       {busy === 'create-appointment' ? 'Creating…' : 'Create Appointment'}
                     </button>
                     <button
                       disabled={busy !== null}
                       onClick={() => runAction('create-job')}
-                      className="flex-1 rounded-lg border border-primary-600 px-3.5 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 disabled:opacity-50 dark:hover:bg-primary-900/20"
+                      className="rounded-lg border border-primary-600 px-3.5 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 disabled:opacity-50 dark:hover:bg-primary-900/20"
                     >
                       {busy === 'create-job' ? 'Creating…' : 'Create Job'}
                     </button>
                   </div>
+                  {detail.lead_id && (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => {
+                        router.push(`/dashboard/leads/${detail.lead_id}`)
+                        onClose()
+                      }}
+                      className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                    >
+                      <ExternalLink className="h-4 w-4" /> View Customer
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -479,20 +555,34 @@ export default function BookingRequestDetailModal({
                   <p className="mb-2 text-sm font-medium text-emerald-800 dark:text-emerald-200">
                     Created as {detail.appointment_id ? 'Appointment' : 'Job'}
                   </p>
-                  <button
-                    onClick={() => {
-                      onClose()
-                      router.push(
-                        detail.appointment_id
-                          ? '/dashboard/calendar?tab=appointments'
-                          : '/dashboard/calendar?tab=jobs'
-                      )
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    {detail.appointment_id ? 'View Appointment' : 'View Job'}
-                  </button>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <button
+                      onClick={() => {
+                        router.push(
+                          detail.appointment_id
+                            ? '/dashboard/calendar?tab=appointments'
+                            : '/dashboard/calendar?tab=jobs'
+                        )
+                        onClose()
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {detail.appointment_id ? 'View Appointment' : 'View Job'}
+                    </button>
+                    {detail.lead_id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          router.push(`/dashboard/leads/${detail.lead_id}`)
+                          onClose()
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
+                      >
+                        <ExternalLink className="h-4 w-4" /> View Customer
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 

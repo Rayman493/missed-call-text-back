@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { formatInTimeZone } from 'date-fns-tz'
 import { getAuthedBusiness } from '@/lib/booking/api-auth'
 import { bookingAdmin } from '@/lib/booking/settings'
 import { computeBookingAvailability } from '@/lib/booking/availability'
@@ -22,7 +23,7 @@ export async function GET(
   const { id } = await params
   const { data: req } = await bookingAdmin()
     .from('booking_requests')
-    .select('id')
+    .select('id, requested_start, current_proposed_start, timezone')
     .eq('id', id)
     .eq('business_id', auth.businessId)
     .maybeSingle()
@@ -36,5 +37,21 @@ export async function GET(
     return NextResponse.json({ error: 'Online booking is not enabled' }, { status: 409 })
   }
 
-  return NextResponse.json({ timezone: result.timezone, slots: result.slots })
+  // Anchor the picker at the negotiation's current date: the proposed slot
+  // if one is in play, otherwise the customer's original requested date.
+  // Days earlier than the anchor are dropped so the picker opens near the
+  // relevant date instead of weeks of prior slots. The full engine contract
+  // (horizon, min notice, holds, conflicts, duration) is unchanged.
+  const anchorIso = req.current_proposed_start ?? req.requested_start
+  const anchor = anchorIso ? new Date(anchorIso) : null
+  let slots = result.slots
+  if (anchor && anchor.getTime() > Date.now()) {
+    const tz = req.timezone || result.timezone
+    const anchorDay = formatInTimeZone(anchor, tz, 'yyyy-MM-dd')
+    slots = result.slots.filter(
+      (s) => formatInTimeZone(new Date(s.start), tz, 'yyyy-MM-dd') >= anchorDay
+    )
+  }
+
+  return NextResponse.json({ timezone: result.timezone, slots })
 }

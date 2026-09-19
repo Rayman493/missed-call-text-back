@@ -283,7 +283,11 @@ describe('BookingRequestDetailModal accepted-flow UX', () => {
 
   it('subscribes to realtime updates for the open request and the list', () => {
     expect(modal).toMatch(/booking-request-detail:/)
-    expect(modal).toMatch(/filter: `id=eq\.\$\{requestId\}`/)
+    // Unfiltered binding + client-side payload guard — server-side
+    // postgres_changes filters previously yielded SUBSCRIBED-but-zero-events.
+    expect(modal).not.toMatch(/filter: `id=eq\.\$\{requestId\}`/)
+    expect(modal).toMatch(/row\?\.id !== requestId \|\| row\?\.business_id !== effectiveBusinessId/)
+    expect(modal).toMatch(/realtime\.setAuth/)
   })
 })
 
