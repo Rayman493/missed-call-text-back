@@ -317,12 +317,14 @@ describe('D. MMS optimistic reconcile preserves local previews', () => {
 // ===========================================================================
 describe('E. page-client.tsx source contracts', () => {
   const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+  // The canonical merge lives in the shared lib module (imported by page-client).
+  const mergeSource = readSrc('src/lib/message-merge.ts')
 
   it('merge treats optimistic sending as pending for the monotonic comparison', () => {
-    expect(source).toContain("existingMessage.isOptimistic && existingMessage.status === 'sending'")
-    expect(source).toContain("? 'pending'")
-    expect(source).toContain('effectiveExistingStatus')
-    expect(source).toContain('status: getMonotonicStatus(effectiveExistingStatus, incomingMessage.status)')
+    expect(mergeSource).toContain("existingMessage.isOptimistic && existingMessage.status === 'sending'")
+    expect(mergeSource).toContain("? 'pending'")
+    expect(mergeSource).toContain('effectiveExistingStatus')
+    expect(mergeSource).toContain('status: getMonotonicStatus(effectiveExistingStatus, incomingMessage.status)')
   })
 
   it('send API response reconciles via clientMessageId + persisted message', () => {

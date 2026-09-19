@@ -462,7 +462,8 @@ describe('Batch 5 — Paperclip Opens Action Sheet', () => {
 
 describe('Batch 5 — Realtime Dedupe Preserved', () => {
   it('mergeMessageWithMonotonicity matches by database ID, clientMessageId, and Twilio SID', () => {
-    const content = readContent('src/app/dashboard/leads/[id]/page-client.tsx')
+    // Canonical merge lives in the shared lib module (imported by page-client).
+    const content = readContent('src/lib/message-merge.ts')
     expect(content).toContain('messageMap.has(incomingMessage.id)')
     expect(content).toContain('incomingClientMessageId')
     expect(content).toContain('incomingTwilioSid')
@@ -471,7 +472,7 @@ describe('Batch 5 — Realtime Dedupe Preserved', () => {
   it('realtime INSERT has client-side lead guard', () => {
     const content = readContent('src/app/dashboard/leads/[id]/page-client.tsx')
     expect(content).toContain('newMessage.lead_id !== leadId')
-    expect(content).toContain('REJECTED DIFFERENT LEAD')
+    expect(content).toContain('message-insert-rejected-lead')
   })
 
   it('realtime subscription uses generation tracking for resume', () => {

@@ -26,6 +26,8 @@ const readSrc = (rel: string) =>
   readFileSync(join(repoRoot, rel), 'utf8').replace(/\r\n/g, '\n')
 
 const pageClientSrc = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+// Canonical merge now lives in the shared lib module (imported by page-client).
+const mergeSrc = readSrc('src/lib/message-merge.ts')
 const eventDetailsModalSrc = readSrc('src/components/calendar/EventDetailsModal.tsx')
 const recentLeadsSectionSrc = readSrc('src/components/RecentLeadsSection.tsx')
 const dashboardContentSrc = readSrc('src/app/dashboard/DashboardContent.tsx')
@@ -109,12 +111,12 @@ describe('2. EVENT DETAILS MODAL — ROOT CAUSE FIX', () => {
 describe('3. MESSAGE MERGE NULL GUARD', () => {
   it('11. mergeMessageWithMonotonicity guards against null incomingMessage', () => {
     // The function must early-return if incomingMessage is null/undefined
-    expect(pageClientSrc).toContain('if (!incomingMessage) return existingMessages')
+    expect(mergeSrc).toContain('if (!incomingMessage) return existingMessages')
   })
 
   it('12. null message in array does not crash (early return preserves existing)', () => {
     // The guard must return the existing messages unchanged
-    expect(pageClientSrc).toMatch(
+    expect(mergeSrc).toMatch(
       /if \(!incomingMessage\) return existingMessages/
     )
   })
@@ -183,7 +185,7 @@ describe('5. NO BLANKET OPTIONAL CHAINING', () => {
     // The fix must NOT add optional chaining to every .id access
     // Only EventDetailsModal hooks and mergeMessageWithMonotonicity were changed
     expect(eventDetailsModalSrc).toContain('event?.id')
-    expect(pageClientSrc).toContain('if (!incomingMessage) return existingMessages')
+    expect(mergeSrc).toContain('if (!incomingMessage) return existingMessages')
   })
 })
 
@@ -236,6 +238,6 @@ describe('7. REALTIME SUBSCRIPTION SAFETY', () => {
 
   it('28. realtime null message does not crash merge (null guard added)', () => {
     // The merge function must guard against null incoming messages
-    expect(pageClientSrc).toContain('if (!incomingMessage) return existingMessages')
+    expect(mergeSrc).toContain('if (!incomingMessage) return existingMessages')
   })
 })

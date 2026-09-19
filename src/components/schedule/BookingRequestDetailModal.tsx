@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BookingRequestEvent, BookingRequestStatus, BookingSlot } from '@/lib/booking/types'
-import { CalendarDays, Check, ChevronDown, Clock, ExternalLink, MapPin, Phone, RefreshCw, X } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, Clock, ExternalLink, MapPin, Phone, RefreshCw } from 'lucide-react'
 import { showToast } from '@/lib/toast'
 import { formatInTimeZone } from 'date-fns-tz'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
+import Modal from '@/components/ui/Modal'
 
 interface BookingDetail {
   id: string
@@ -246,44 +247,25 @@ export default function BookingRequestDetailModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 py-6 sm:items-center sm:py-8" onClick={onClose}>
-      <div
-        className="flex max-h-[min(90vh,800px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-slate-900/95 dark:shadow-slate-900/60"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b border-border/40 px-5 py-4">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold text-foreground">
-              {detail?.customer_name ?? 'Booking request'}
-            </h2>
-            {status && (
-              <span
-                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  status === 'accepted'
-                    ? converted
-                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                      : 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                    : status === 'pending' || status === 'customer_reselected'
-                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                      : status === 'business_proposed'
-                        ? 'bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300'
-                        : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {converted ? `Created as ${detail?.job_id ? 'Job' : 'Appointment'}` : STATUS_LABEL[status]}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+    <Modal isOpen onClose={onClose} title={detail?.customer_name ?? 'Booking request'}>
+      <div className="space-y-4">
+        {status && (
+          <span
+            className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
+              status === 'accepted'
+                ? converted
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                  : 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                : status === 'pending' || status === 'customer_reselected'
+                  ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                  : status === 'business_proposed'
+                    ? 'bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300'
+                    : 'bg-muted text-muted-foreground'
+            }`}
           >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <div className="space-y-4 px-5 py-4">
+            {converted ? `Created as ${detail?.job_id ? 'Job' : 'Appointment'}` : STATUS_LABEL[status]}
+          </span>
+        )}
             {loading ? (
             <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
@@ -354,7 +336,7 @@ export default function BookingRequestDetailModal({
                     type="button"
                     onClick={() => {
                       onClose()
-                      router.push(`/dashboard/customers/${detail.lead_id}`)
+                      router.push(`/dashboard/leads/${detail.lead_id}`)
                     }}
                     className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400"
                   >
@@ -503,9 +485,7 @@ export default function BookingRequestDetailModal({
                       router.push(
                         detail.appointment_id
                           ? '/dashboard/calendar?tab=appointments'
-                          : detail.lead_id
-                            ? `/dashboard/customers/${detail.lead_id}`
-                            : '/dashboard/calendar?tab=jobs'
+                          : '/dashboard/calendar?tab=jobs'
                       )
                     }}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
@@ -546,9 +526,7 @@ export default function BookingRequestDetailModal({
               )}
             </>
           )}
-          </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

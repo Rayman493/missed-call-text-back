@@ -314,7 +314,7 @@ export default function NavbarNotifications() {
 
     // Don't show displayName if title already includes customer name
     // These notification types include customer name in the title
-    const nameInTitleTypes = ['new_lead', 'followup_completed', 'ai_intake_completed', 'missed_call']
+    const nameInTitleTypes = ['new_lead', 'followup_completed', 'ai_intake_completed', 'missed_call', 'booking_request']
     if (nameInTitleTypes.includes(notification.type)) {
       return null
     }

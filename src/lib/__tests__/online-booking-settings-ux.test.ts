@@ -134,6 +134,69 @@ describe('Online Booking settings UX contracts', () => {
   it('uses one shared URL helper for both settings and schedule', () => {
     expect(card).toMatch(/bookingPageUrl/)
   })
+
+  describe('mobile responsive overflow contract', () => {
+    it('booking-hours day rows stack on mobile and stay horizontal on desktop', () => {
+      // The old `flex items-center gap-3` + `w-28` row forced label + two time
+      // inputs + "to" onto one line wider than a 360px viewport.
+      expect(section).toMatch(/key=\{d\} className="flex flex-col gap-1\.5 sm:flex-row sm:items-center sm:gap-3"/)
+      // Desktop keeps the fixed weekday column.
+      expect(section).toMatch(/sm:w-28 sm:flex-shrink-0/)
+      // No unresponsive fixed-width label remains.
+      expect(section).not.toMatch(/flex w-28 items-center/)
+    })
+
+    it('start/end time controls get equal-width shrinkable columns on mobile', () => {
+      expect(section).toMatch(/grid grid-cols-\[1fr_auto_1fr\] items-center gap-2 pl-6 sm:pl-0 sm:flex sm:items-center/)
+      // Both time inputs are full-width shrinkable on mobile, intrinsic on desktop.
+      const timeInputs = section.match(/type="time"[\s\S]*?className=\{`\$\{inputCls\} w-full min-w-0 sm:w-auto`\}/g)
+      expect(timeInputs?.length).toBe(2)
+    })
+
+    it('closed days render no time controls and stay compact', () => {
+      expect(section).toMatch(/\{week\[d\]\.open \? \(/)
+      expect(section).toMatch(/pl-6 text-xs text-muted-foreground sm:pl-0">Closed/)
+    })
+
+    it('"Use my business hours" label wraps without overflowing', () => {
+      expect(section).toMatch(/mb-3 flex items-start gap-2 text-sm text-foreground/)
+      expect(section).toMatch(/mt-0\.5 h-4 w-4 flex-shrink-0 rounded border-border/)
+      expect(section).toMatch(/<span className="min-w-0">[\s\S]*?Use my business hours/)
+    })
+
+    it('blocked-date fields stack full-width on mobile and inline on desktop', () => {
+      expect(section).toMatch(/flex flex-col sm:flex-row sm:items-end gap-2/)
+      const dateLabels = section.match(/<label className="block w-full sm:w-auto">/g)
+      expect(dateLabels?.length).toBe(2)
+      const dateInputs = section.match(/type="date"[\s\S]*?className=\{`\$\{inputCls\} w-full sm:w-auto`\}/g)
+      expect(dateInputs?.length).toBe(2)
+    })
+
+    it('inner booking cards use tighter mobile padding', () => {
+      const paddedCards = section.match(/border border-border\/30 rounded-lg p-3 sm:p-4/g)
+      expect(paddedCards?.length).toBe(2)
+    })
+
+    it('the Online Booking settings card relaxes padding on mobile', () => {
+      expect(settingsContent).toMatch(/id="online-booking" tabIndex=\{-1\} className="[^"]*p-4 sm:p-6/)
+    })
+
+    it('sticky unsaved-changes bar stacks into two rows on mobile', () => {
+      expect(actionBar).toMatch(/flex flex-col gap-2 rounded-2xl border/)
+      expect(actionBar).toMatch(/sm:flex-row sm:items-center sm:justify-between sm:gap-3/)
+      // Action cluster spans the second mobile row; buttons share it evenly.
+      expect(actionBar).toMatch(/flex w-full items-center gap-2 sm:w-auto sm:gap-3/)
+      expect(actionBar).toMatch(/flex-1 rounded-xl border border-slate-200/)
+      expect(actionBar).toMatch(/min-w-0 flex-1 items-center justify-center/)
+      // Desktop keeps the fixed save minimum width.
+      expect(actionBar).toMatch(/sm:min-w-\[128px\]/)
+    })
+
+    it('sticky bar keeps bottom-nav offset and safe-area handling', () => {
+      expect(actionBar).toMatch(/env\(safe-area-inset-bottom, 0px\)/)
+      expect(actionBar).toMatch(/var\(--bottom-nav-height, 0px\)/)
+    })
+  })
 })
 
 describe('booking URL helper', () => {

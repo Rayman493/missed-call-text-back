@@ -147,7 +147,7 @@ export function getNotificationCustomerContext(notification: Notification): stri
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'missed_call' | 'ai_intake_completed' | 'payment_requested' | 'payment_created' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail' | 'reminder'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'missed_call' | 'ai_intake_completed' | 'payment_requested' | 'payment_created' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail' | 'reminder' | 'booking_request'
   title: string
   message: string
   data?: any
@@ -324,6 +324,16 @@ export const NOTIFICATION_TEMPLATES = {
       message: `From ${formattedPhone}`,
       action_url: '/dashboard/personal-voicemail',
       action_text: 'Listen'
+    }
+  },
+
+  booking_request: (data: { leadName?: string | null; event?: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName ?? null, null)
+    return {
+      title: displayName === 'Customer' ? 'Booking Request' : `${displayName}`,
+      message: 'Online booking update',
+      action_url: '/dashboard/calendar',
+      action_text: 'View Schedule'
     }
   },
 

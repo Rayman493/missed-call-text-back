@@ -228,8 +228,8 @@ describe('Batch 4 — conversation true-bottom root-cause contract', () => {
       expect(pageClientSrc).toContain("logConversationScroll('gesture-end')")
       expect(pageClientSrc).toContain("logConversationScroll('visual-viewport-resize'")
       expect(pageClientSrc).toContain("logConversationScroll('container-resize')")
-      expect(pageClientSrc).toContain("logConversationScroll('composer-focus')")
-      expect(pageClientSrc).toContain("logConversationScroll('composer-blur')")
+      expect(pageClientSrc).toContain("logConversationScroll('composer-focus'")
+      expect(pageClientSrc).toContain("logConversationScroll('composer-blur'")
     })
   })
 
@@ -251,24 +251,39 @@ describe('Batch 4 — conversation true-bottom root-cause contract', () => {
 // Physical failure: fresh inbound SMS persisted but the open conversation did
 // not update live; a refresh revealed the message.
 //
-// Proven root cause (audit): a CHANNEL_ERROR / CLOSED / TIMED_OUT channel was
-// answered with only a one-shot silent refresh — the channel itself was NEVER
-// recreated. A transient Android network drop (radio sleep, WiFi↔LTE switch,
-// WebView suspend without appStateChange) permanently killed live delivery
-// while the page stayed open. The subscription filter itself is NOT the
-// failure: createMessageWithConversation writes lead_id at INSERT time, so
-// the server-side lead_id=eq filter matches the persisted row shape.
+// Delivery root cause (current batch): the `lead_id=eq` server-side filter on
+// the messages INSERT/UPDATE bindings reproduced the historical "SUBSCRIBED
+// but zero events" failure — commit 1cf6494f originally fixed live delivery
+// by REMOVING that filter (RLS provides cross-business isolation, client-side
+// lead guard provides conversation isolation), and af11113d re-added it.
+// The filter is removed again here.
 //
-// Fixes: bounded channel recreation via realtimeGeneration (max 5 attempts,
-// guarded against stale-channel callbacks), one-shot silent refetch retained
-// to close the gap, and [RF_REALTIME_SMS] provenance logs from DB insert →
-// channel status → callback → merge.
+// Resilience root cause (earlier audit): a CHANNEL_ERROR / CLOSED / TIMED_OUT
+// channel was answered with only a one-shot silent refresh — the channel
+// itself was NEVER recreated. A transient Android network drop permanently
+// killed live delivery while the page stayed open.
+//
+// Fixes: unfiltered messages bindings + client lead guard, bounded channel
+// recreation via realtimeGeneration (max 5 attempts, guarded against
+// stale-channel callbacks), focus/visibility foreground self-heal, one-shot
+// silent refetch retained to close the gap, and [RF_REALTIME_SMS] provenance
+// logs from DB insert → channel status → callback → merge.
 
 describe('Batch 4 — inbound SMS realtime contract', () => {
-  describe('Subscription keeps server-side lead filter + client guard', () => {
-    it('messages INSERT and UPDATE keep the lead_id filter (field is set at insert)', () => {
-      expect(pageClientSrc).toMatch(/event: 'INSERT',[\s\S]*?table: 'messages',[\s\S]*?filter: `lead_id=eq\.\$\{leadId\}`/)
-      expect(pageClientSrc).toMatch(/event: 'UPDATE',[\s\S]*?table: 'messages',[\s\S]*?filter: `lead_id=eq\.\$\{leadId\}`/)
+  describe('Subscription uses unfiltered messages bindings + client guard', () => {
+    it('messages INSERT and UPDATE carry NO server-side lead filter', () => {
+      const insertBlock = pageClientSrc.substring(
+        pageClientSrc.indexOf("event: 'INSERT'"),
+        pageClientSrc.indexOf('(payload: any) =>', pageClientSrc.indexOf("event: 'INSERT'"))
+      )
+      const updateBlock = pageClientSrc.substring(
+        pageClientSrc.indexOf("event: 'UPDATE'"),
+        pageClientSrc.indexOf('(payload: any) =>', pageClientSrc.indexOf("event: 'UPDATE'"))
+      )
+      expect(insertBlock).toContain("table: 'messages'")
+      expect(updateBlock).toContain("table: 'messages'")
+      expect(insertBlock).not.toContain('filter:')
+      expect(updateBlock).not.toContain('filter:')
     })
 
     it('retains the client-side lead guards', () => {

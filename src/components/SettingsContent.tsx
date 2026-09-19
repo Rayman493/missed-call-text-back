@@ -4101,7 +4101,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Online Booking Section */}
-              <div id="online-booking" tabIndex={-1} className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
+              <div id="online-booking" tabIndex={-1} className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 sm:p-6 scroll-mt-[64px]">
                 <div className="mb-6">
                   <h2 className="text-lg font-semibold text-foreground mb-2">Online Booking</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Let customers request times from a public booking link.</p>

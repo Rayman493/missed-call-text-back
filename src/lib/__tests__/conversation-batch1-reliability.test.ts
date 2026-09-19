@@ -162,7 +162,9 @@ describe('G. Sentinel DOM geometry and composer clearance', () => {
 
 describe('B. Outbound SMS status reconciliation', () => {
   it('B.1 message merge matches by id, clientMessageId, and twilio_message_sid', () => {
-    const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+    // The canonical merge now lives in the shared lib module (imported by
+    // page-client) so its contract is unit-testable directly.
+    const source = readSrc('src/lib/message-merge.ts')
     const mergeSection = source.substring(
       source.indexOf('Canonical message merge function'),
       source.indexOf('Convert back to array and sort chronologically')
@@ -181,7 +183,7 @@ describe('B. Outbound SMS status reconciliation', () => {
   })
 
   it('B.3 optimistic flag is cleared on server reconciliation without duplicating', () => {
-    const source = readSrc('src/app/dashboard/leads/[id]/page-client.tsx')
+    const source = readSrc('src/lib/message-merge.ts')
     const mergeSection = source.substring(
       source.indexOf('Canonical message merge function'),
       source.indexOf('Convert back to array and sort chronologically')

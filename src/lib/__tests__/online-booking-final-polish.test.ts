@@ -236,10 +236,10 @@ describe('BookingRequestDetailModal accepted-flow UX', () => {
     expect(modal).not.toMatch(/runAction\('create_job'\)/)
   })
 
-  it('keeps the suggestion picker viewport-contained and internally scrollable', () => {
-    expect(modal).toMatch(/flex-1 overflow-y-auto/)
+  it('uses the canonical ReplyFlow Modal shell so the card stays viewport-contained', () => {
+    expect(modal).toMatch(/import Modal from '@\/components\/ui\/Modal'/)
+    expect(modal).toMatch(/<Modal isOpen onClose=\{onClose\} title=\{detail\?\.customer_name \?\? 'Booking request'\}>/)
     expect(modal).toMatch(/max-h-56 space-y-3 overflow-y-auto/)
-    expect(modal).toMatch(/max-h-\[min\(90vh,800px\)\].*flex-col/)
   })
 
   it('shows a strong selected-time summary before sending the proposal', () => {
@@ -256,6 +256,24 @@ describe('BookingRequestDetailModal accepted-flow UX', () => {
     expect(modal).toMatch(/Accepted/)
     expect(modal).toMatch(/View Customer/)
     expect(modal).toMatch(/detail\.lead_id/)
+  })
+
+  it('routes View Customer to the canonical lead detail route', () => {
+    expect(modal).toMatch(/router\.push\(`\/dashboard\/leads\/\$\{detail\.lead_id\}`\)/)
+    expect(modal).not.toMatch(/\/dashboard\/customers\//)
+  })
+
+  it('routes View Job to the canonical Schedule jobs surface', () => {
+    expect(modal).toMatch(/\/dashboard\/calendar\?tab=jobs/)
+  })
+
+  it('routes View Appointment to the canonical Schedule appointments surface', () => {
+    expect(modal).toMatch(/\/dashboard\/calendar\?tab=appointments/)
+  })
+
+  it('hides both create actions once the booking is converted', () => {
+    expect(modal).toMatch(/status === 'accepted' && !converted/)
+    expect(modal).toMatch(/detail\.appointment_id \? 'Appointment' : 'Job'/)
   })
 
   it('subscribes to realtime updates for the open request and the list', () => {

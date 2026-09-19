@@ -5,6 +5,8 @@ import { normalizePaypalLink, normalizePaypalUsername } from '../payment-links'
 const read = (path: string) => readFileSync(path, 'utf8').replace(/\r\n/g, '\n')
 const migration = read('supabase/migrations/20260919000100_billing_conversion_lifecycle.sql')
 const convertRoute = read('src/app/api/billing-documents/[id]/convert/route.ts')
+const sendRoute = read('src/app/api/billing-documents/[id]/send/route.ts')
+const preparePayment = read('src/lib/billing/prepare-payment.ts')
 const paymentsPage = read('src/app/dashboard/payments/page.tsx')
 const editor = read('src/components/billing/BillingEditorModal.tsx')
 const list = read('src/components/billing/BillingDocumentList.tsx')
@@ -114,6 +116,41 @@ describe('quote to invoice conversion UI feedback', () => {
   })
 })
 
+describe('zero-dollar invoice send validation', () => {
+  const sendPrepareFn = preparePayment.slice(preparePayment.indexOf('export async function prepareInvoicePayment'))
+
+  it('server-side prepare rejects zero-dollar invoices before any payment_request insert', () => {
+    expect(sendPrepareFn).toContain('invoice.total_cents <= 0')
+    const guard = sendPrepareFn.slice(sendPrepareFn.indexOf('invoice.total_cents <= 0'), sendPrepareFn.indexOf('// ── Step 1:'))
+    expect(guard).toContain('Add an amount greater than $0')
+    expect(guard).toMatch(/status:\s*400/)
+  })
+
+  it('send route rejects zero-dollar invoices before token persistence or payment prepare', () => {
+    // Guard must appear before the token-persist block and before prepareInvoicePayment call.
+    const guardIndex = sendRoute.indexOf('doc.total_cents <= 0')
+    const prepareIndex = sendRoute.indexOf('prepareInvoicePayment(supabase')
+    expect(guardIndex).toBeGreaterThan(-1)
+    expect(guardIndex).toBeLessThan(prepareIndex)
+    expect(sendRoute).toContain('Add an amount greater than $0 before sending this invoice')
+    expect(sendRoute).toMatch(/return NextResponse\.json\(\{ error: 'Add an amount greater than \$0 before sending this invoice\.' \}, \{ status: 400 \}\)/)
+  })
+
+  it('payments page send modal validates invoice total > 0 before dispatching send', () => {
+    expect(paymentsPage).toContain("target.document_type === 'invoice'")
+    expect(paymentsPage).toContain('target.total_cents <= 0')
+    expect(paymentsPage).toContain('Add an amount greater than $0 before sending this invoice')
+    expect(paymentsPage).toContain('setBillingSendError(')
+  })
+
+  it('editor create-and-send validates invoice total > 0 before dispatching save-and-send', () => {
+    const confirmBlock = editor.slice(editor.indexOf('createAndSendError && ('), editor.indexOf('createAndSendError && (') + 1800)
+    expect(confirmBlock).toContain('isInvoice && total <= 0')
+    expect(confirmBlock).toContain('Add an amount greater than $0 before sending this invoice')
+    expect(confirmBlock).toContain('setCreateAndSendError(')
+  })
+})
+
 describe('document realtime and safe actions', () => {
   it('publishes full billing document updates for realtime acceptance', () => {
     expect(migration).toContain('ALTER PUBLICATION supabase_realtime ADD TABLE billing_documents')
@@ -150,9 +187,10 @@ describe('document realtime and safe actions', () => {
   })
 
   it('uses stable action columns', () => {
-    expect(list).toContain('grid grid-cols-6 gap-1 w-48')
-    expect(list).toContain('style={{ gridColumn: 1 }}')
-    expect(list).toContain('style={{ gridColumn: 6 }}')
+    expect(list).toContain('grid grid-cols-6 gap-1 w-full')
+    expect(list).toContain('col: 1')
+    expect(list).toContain('col: 6')
+    expect(list).toContain('style={{ gridColumn: slot.col }}')
   })
 
   it('maps actual share cancellation to transient normal feedback', () => {

@@ -196,7 +196,7 @@ describe('Batch A — realtime + keyboard true-bottom contracts', () => {
       // Focus handler must preserve the user's follow-latest INTENT and not
       // re-derive it from near-bottom geometry, which is unstable during the
       // keyboard-open resize sequence.
-      const focusHandler = pageClientSrc.match(/handleMobileTextareaFocus\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\}/)?.[0] || ''
+      const focusHandler = pageClientSrc.match(/handleMobileTextareaFocus\s*=\s*\(\)\s*=>\s*\{[\s\S]*?\n  \}/)?.[0] || ''
       expect(focusHandler).toContain('followLatestRef.current')
       expect(focusHandler).toContain('scrollToTrueBottom(container)')
       expect(focusHandler).not.toContain('isContainerNearBottom(container)')

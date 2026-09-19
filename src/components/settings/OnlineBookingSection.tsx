@@ -419,7 +419,7 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
           )}
 
           {/* Weekly hours */}
-          <div className="border border-border/30 rounded-lg p-4">
+          <div className="border border-border/30 rounded-lg p-3 sm:p-4">
             <div className="flex items-start justify-between gap-4 mb-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">Booking hours</p>
@@ -430,14 +430,16 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
             </div>
 
             {businessHours?.start && businessHours?.end && (
-              <label className="mb-3 flex items-center gap-2 text-sm text-foreground">
+              <label className="mb-3 flex items-start gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={useBusinessHours}
                   onChange={e => setUseBusinessHours(e.target.checked)}
-                  className="h-4 w-4 rounded border-border"
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-border"
                 />
-                Use my business hours (Mon–Fri {businessHours.start}–{businessHours.end})
+                <span className="min-w-0">
+                  Use my business hours (Mon–Fri {businessHours.start}–{businessHours.end})
+                </span>
               </label>
             )}
             {!businessHours?.start && (
@@ -449,30 +451,30 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
             {!useBusinessHours && (
               <div className="space-y-2">
                 {DAY_ORDER.map(d => (
-                  <div key={d} className="flex items-center gap-3">
-                    <label className="flex w-28 items-center gap-2 text-sm text-foreground">
+                  <div key={d} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                    <label className="flex items-center gap-2 text-sm text-foreground sm:w-28 sm:flex-shrink-0">
                       <input
                         type="checkbox"
                         checked={week[d].open}
                         onChange={e =>
                           setWeek(prev => ({ ...prev, [d]: { ...prev[d], open: e.target.checked } }))
                         }
-                        className="h-4 w-4 rounded border-border"
+                        className="h-4 w-4 flex-shrink-0 rounded border-border"
                       />
                       {DAY_NAMES[d]}
                     </label>
                     {week[d].open ? (
-                      <div className="flex items-center gap-2">
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pl-6 sm:pl-0 sm:flex sm:items-center">
                         <input type="time" value={week[d].start}
                           onChange={e => setWeek(prev => ({ ...prev, [d]: { ...prev[d], start: e.target.value } }))}
-                          className={inputCls} />
+                          className={`${inputCls} w-full min-w-0 sm:w-auto`} />
                         <span className="text-xs text-muted-foreground">to</span>
                         <input type="time" value={week[d].end}
                           onChange={e => setWeek(prev => ({ ...prev, [d]: { ...prev[d], end: e.target.value } }))}
-                          className={inputCls} />
+                          className={`${inputCls} w-full min-w-0 sm:w-auto`} />
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Closed</span>
+                      <span className="pl-6 text-xs text-muted-foreground sm:pl-0">Closed</span>
                     )}
                   </div>
                 ))}
@@ -481,7 +483,7 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
           </div>
 
           {/* Exceptions */}
-          <div className="border border-border/30 rounded-lg p-4">
+          <div className="border border-border/30 rounded-lg p-3 sm:p-4">
             <p className="text-sm font-semibold text-foreground">Blocked dates</p>
             <p className="mt-0.5 mb-3 text-xs text-muted-foreground">
               Vacations, days off, personal time — customers just see no availability.
@@ -508,13 +510,13 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-end gap-2">
-              <label className="block">
+              <label className="block w-full sm:w-auto">
                 <span className="mb-1 block text-xs text-muted-foreground">From</span>
-                <input type="date" value={exStart} onChange={e => setExStart(e.target.value)} className={inputCls} />
+                <input type="date" value={exStart} onChange={e => setExStart(e.target.value)} className={`${inputCls} w-full sm:w-auto`} />
               </label>
-              <label className="block">
+              <label className="block w-full sm:w-auto">
                 <span className="mb-1 block text-xs text-muted-foreground">To</span>
-                <input type="date" value={exEnd} onChange={e => setExEnd(e.target.value)} className={inputCls} />
+                <input type="date" value={exEnd} onChange={e => setExEnd(e.target.value)} className={`${inputCls} w-full sm:w-auto`} />
               </label>
               <label className="block flex-1">
                 <span className="mb-1 block text-xs text-muted-foreground">Note (private)</span>

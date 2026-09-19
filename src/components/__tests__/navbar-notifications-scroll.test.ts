@@ -6,7 +6,9 @@ describe('NavbarNotifications mobile scroll structure', () => {
 
   it('renders the notification panel as a flex column with bounded height', () => {
     expect(content).toContain('flex flex-col')
-    expect(content).toMatch(/maxHeight: isMobile \? 'calc\(100dvh - 120px\)' : '600px'/)
+    // Mobile panel is dvh-bounded against the trigger position + bottom nav;
+    // desktop caps at 600px. Assert the bounded contract, not the formula.
+    expect(content).toMatch(/maxHeight: isMobile \? `calc\(100dvh - [^`]+` : '600px'/)
   })
 
   it('marks the header and footer as non-shrinking', () => {

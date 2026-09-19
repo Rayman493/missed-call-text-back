@@ -134,7 +134,7 @@ export default function SettingsActionBar({
         style={{ bottom: showMobileBar ? bottomOffset : 0 }}
       >
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pb-3 sm:pb-4">
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/95 dark:bg-slate-950/95 px-3 py-2.5 shadow-[0_18px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:px-4 sm:py-3">
+          <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/95 dark:bg-slate-950/95 px-3 py-2.5 shadow-[0_18px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <div className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${saveSuccess ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
               <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -142,7 +142,7 @@ export default function SettingsActionBar({
               </span>
             </div>
             
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:gap-3">
               {saveError && (
                 <div className="hidden max-w-[320px] truncate rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700 dark:border-red-800/40 dark:bg-red-950/40 dark:text-red-300 sm:block">
                   {saveError}
@@ -152,7 +152,7 @@ export default function SettingsActionBar({
               <button
                 onClick={handleDiscard}
                 disabled={isSaving || saveSuccess}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:px-4 sm:text-sm"
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:flex-none sm:px-4 sm:text-sm"
               >
                 {showMobileBar ? 'Discard' : 'Discard'}
               </button>
@@ -160,7 +160,7 @@ export default function SettingsActionBar({
               <button
                 onClick={handleSave}
                 disabled={isSaving || saveSuccess}
-                className={`inline-flex min-w-[104px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed sm:min-w-[128px] sm:px-4 sm:text-sm ${
+                className={`inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed sm:min-w-[128px] sm:flex-none sm:px-4 sm:text-sm ${
                   saveSuccess
                     ? 'bg-emerald-600'
                     : 'bg-blue-600 hover:bg-blue-500 hover:shadow-[0_8px_24px_rgba(37,99,235,0.28)] disabled:bg-blue-500/70'
