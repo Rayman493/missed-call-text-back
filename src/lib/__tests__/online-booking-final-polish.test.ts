@@ -213,7 +213,12 @@ describe('Settings back to top', () => {
   })
 
   it('uses intentional desktop right alignment shared with ReplyFlow floating controls', () => {
-    expect(backToTop).toMatch(/right-4 sm:right-8 lg:right-\[calc\(50%-700px\)\]/)
+    // Anchored to the viewport-right gutter outside the 1200px content column
+    // (content edge = 50%-600px): icon-only pill below 2xl, labeled pill at
+    // 2xl+ where the gutter provably fits it. Floored at 1.5rem on narrow
+    // desktops so it never rides inward over the cards.
+    expect(backToTop).toMatch(/right-4 sm:right-6 lg:right-\[max\(1\.5rem,calc\(50%-664px\)\)\] 2xl:right-\[max\(1\.5rem,calc\(50%-732px\)\)\]/)
+    expect(backToTop).not.toMatch(/calc\(50%-700px\)/)
   })
 })
 
@@ -285,8 +290,13 @@ describe('BookingRequestDetailModal accepted-flow UX', () => {
 describe('Settings deep-link positioning', () => {
   const settings = read('src/components/SettingsContent.tsx')
 
-  it('targets the section card so the heading is visible, falling back to divider', () => {
-    expect(settings).toMatch(/document\.getElementById\(section\) \?\? document\.getElementById\(`\$\{section\}-divider`\)/)
+  it('targets the section divider (true section start), falling back to the card', () => {
+    // The divider is the canonical anchor — the same boundary the scroll-spy
+    // uses — so the section heading lands just below the sticky nav.
+    expect(settings).toMatch(/document\.getElementById\(`\$\{section\}-divider`\) \?\? document\.getElementById\(section\)/)
+    expect(settings).toMatch(/document\.getElementById\(`\$\{hash\}-divider`\) \?\? document\.getElementById\(hash\)/)
+    const scrollFn = settings.slice(settings.indexOf('const scrollToSection = useCallback'))
+    expect(scrollFn).toMatch(/document\.getElementById\(`\$\{sectionId\}-divider`\) \?\? document\.getElementById\(sectionId\)/)
   })
 
   it('keeps one canonical scroll function used by query-param and hash paths', () => {

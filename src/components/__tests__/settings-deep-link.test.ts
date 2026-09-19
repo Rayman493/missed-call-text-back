@@ -94,3 +94,55 @@ describe('Settings deep-link navigation — canonical mechanism (8-21)', () => {
     })
   })
 })
+
+describe('Settings deep-link — canonical divider anchor + settle correction', () => {
+  const backToTop = readFileSync('src/components/settings/BackToTopButton.tsx', 'utf8').replace(/\r\n/g, '\n')
+
+  it('scrollToSection anchors to the section divider (true section start) before the card', () => {
+    const fnStart = settingsContent.indexOf('const scrollToSection = useCallback')
+    const fnBlock = settingsContent.slice(fnStart, fnStart + 800)
+    const dividerIdx = fnBlock.indexOf('`${sectionId}-divider`')
+    const cardIdx = fnBlock.indexOf('document.getElementById(sectionId)')
+    expect(dividerIdx).toBeGreaterThan(-1)
+    expect(cardIdx).toBeGreaterThan(-1)
+    expect(dividerIdx).toBeLessThan(cardIdx)
+  })
+
+  it('?section= path prefers the divider anchor and starts a bounded drift watch', () => {
+    expect(settingsContent).toContain('getElementById(`${section}-divider`) ?? document.getElementById(section)')
+    expect(settingsContent).toContain('watchDeepLinkAnchor(section)')
+    expect(settingsContent).toContain('watchDeepLinkAnchor(hash)')
+  })
+
+  it('drift watch re-snaps only on document-space anchor movement (>8px) inside a bounded window', () => {
+    expect(settingsContent).toContain('deepLinkAnchorTopRef')
+    expect(settingsContent).toMatch(/Math\.abs\(top - deepLinkAnchorTopRef\.current\) > 8/)
+    expect(settingsContent).toMatch(/setTimeout\(stopDeepLinkWatch, \d+\)/)
+    expect(settingsContent).toContain('stopDeepLinkWatch()')
+    // User scrolls never trigger corrections — drift compares
+    // getBoundingClientRect().top + window.scrollY, not scrollY alone.
+    expect(settingsContent).toContain('getBoundingClientRect().top + window.scrollY')
+  })
+
+  it('every canonical section has a divider anchor including online-booking', () => {
+    expect(settingsConfig).toContain("id: 'online-booking'")
+    expect(settingsContent).toContain('id="online-booking-divider"')
+    expect(settingsContent).toContain('id="online-booking"')
+  })
+
+  it('Back to top sits in the viewport gutter on desktop, never overlapping the 1200px content column', () => {
+    // Content column is max-w-[1200px] centered → edge at 50%-600px.
+    // Icon-only pill (~56px) below 2xl, labeled pill (~124px) at 2xl+.
+    expect(backToTop).toContain('lg:right-[max(1.5rem,calc(50%-664px))]')
+    expect(backToTop).toContain('2xl:right-[max(1.5rem,calc(50%-732px))]')
+    // The broken calc that pinned the button inside the card must be gone.
+    expect(backToTop).not.toContain('calc(50%-700px)')
+    // Label only appears where the gutter provably fits the wider pill.
+    expect(backToTop).toContain('hidden 2xl:inline')
+    // Mobile/tablet edge inset preserved.
+    expect(backToTop).toContain('right-4 sm:right-6')
+    // Stays fixed to the viewport and above content.
+    expect(backToTop).toContain('fixed')
+    expect(backToTop).toContain('z-40')
+  })
+})

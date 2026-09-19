@@ -119,10 +119,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
     const tryScroll = () => {
       if (pendingSectionRef.current !== section) return
-      const element = document.getElementById(section) ?? document.getElementById(`${section}-divider`)
+      const element = document.getElementById(`${section}-divider`) ?? document.getElementById(section)
       if (element) {
         scrollToSectionRef.current(section)
         pendingSectionRef.current = null
+        // Keep a bounded drift watch so sections still rendering async content
+        // above cannot push the anchor down after the first scroll.
+        watchDeepLinkAnchor(section)
         // Replace ?section= with a hash so the URL keeps pointing at the
         // section without re-triggering the prop scroll on remount.
         const url = new URL(window.location.href)
@@ -142,17 +145,21 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
     tryScroll()
 
+    let timeout: NodeJS.Timeout | null = null
     if (pendingSectionRef.current === section) {
       sectionObserverRef.current = new MutationObserver(tryScroll)
       sectionObserverRef.current.observe(document.body, { childList: true, subtree: true })
-      const timeout = setTimeout(() => {
+      timeout = setTimeout(() => {
         if (sectionObserverRef.current) {
           sectionObserverRef.current.disconnect()
           sectionObserverRef.current = null
         }
         pendingSectionRef.current = null
       }, 5000)
-      return () => clearTimeout(timeout)
+    }
+    return () => {
+      if (timeout) clearTimeout(timeout)
+      stopDeepLinkWatch()
     }
   }, [section])
 
@@ -321,10 +328,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
         const tryScroll = () => {
           if (pendingSectionRef.current !== hash) return
-          const element = document.getElementById(hash) ?? document.getElementById(`${hash}-divider`)
+          const element = document.getElementById(`${hash}-divider`) ?? document.getElementById(hash)
           if (element) {
             scrollToSectionRef.current(hash)
             pendingSectionRef.current = null
+            // Same bounded drift watch as the ?section= path so async layout
+            // growth above cannot push the anchor down after the first scroll.
+            watchDeepLinkAnchor(hash)
             // Focus the section card after scroll so focus() doesn't trigger
             // an extra scrollIntoView.
             setTimeout(() => {
@@ -386,6 +396,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         sectionObserverRef.current.disconnect()
         sectionObserverRef.current = null
       }
+      stopDeepLinkWatch()
     }
   }, [])
 
@@ -798,6 +809,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const sectionScrollHandledRef = useRef(false) // Track if section deep-link scroll has been handled
   const pendingSectionRef = useRef<string | null>(null) // Track requested section destination for async render
   const sectionObserverRef = useRef<MutationObserver | null>(null) // Track MutationObserver for async section rendering
+  const deepLinkAnchorTopRef = useRef<number | null>(null) // Document-space top of the deep-link anchor for drift correction
+  const deepLinkObserverRef = useRef<MutationObserver | null>(null) // Watches async layout shifts after a deep-link scroll
+  const deepLinkSettleTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Bounds the drift-watch window
 
   // Listen for visibility change and focus events to trigger Stripe Connect return check
   // This ensures the effect runs when user returns from external browser on Android
@@ -2729,9 +2743,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   // Shared scroll-to-section helper
   const scrollToSection = useCallback((sectionId: string) => {
-    // Target the section content so its heading lands just below the sticky
-    // tab bar; fall back to the divider if the section is not rendered yet.
-    const element = document.getElementById(sectionId) ?? document.getElementById(`${sectionId}-divider`)
+    // Target the section divider (the true start of the section — the same
+    // boundary the scroll-spy uses) so its heading lands just below the
+    // sticky tab bar; fall back to the section card if the divider is not
+    // rendered yet.
+    const element = document.getElementById(`${sectionId}-divider`) ?? document.getElementById(sectionId)
     if (element) {
       const offset = getScrollOffset()
       const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
@@ -2789,6 +2805,41 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   useEffect(() => {
     scrollToSectionRef.current = scrollToSection
   }, [scrollToSection])
+
+  const stopDeepLinkWatch = useCallback(() => {
+    deepLinkAnchorTopRef.current = null
+    if (deepLinkObserverRef.current) {
+      deepLinkObserverRef.current.disconnect()
+      deepLinkObserverRef.current = null
+    }
+    if (deepLinkSettleTimeoutRef.current) {
+      clearTimeout(deepLinkSettleTimeoutRef.current)
+      deepLinkSettleTimeoutRef.current = null
+    }
+  }, [])
+
+  // After a deep-link scroll, sections above can keep growing async content
+  // and push the anchor down (the historical "lands too low" bug). For a
+  // short settle window, re-snap to the canonical position whenever the
+  // anchor's document position drifts. Comparing document-space top (not
+  // scrollY) means the user's own scrolling never triggers a correction.
+  const watchDeepLinkAnchor = useCallback((sectionId: string) => {
+    const anchor = document.getElementById(`${sectionId}-divider`) ?? document.getElementById(sectionId)
+    if (!anchor) return
+    deepLinkAnchorTopRef.current = anchor.getBoundingClientRect().top + window.scrollY
+    deepLinkObserverRef.current = new MutationObserver(() => {
+      if (deepLinkAnchorTopRef.current == null) return
+      const el = document.getElementById(`${sectionId}-divider`) ?? document.getElementById(sectionId)
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY
+      if (Math.abs(top - deepLinkAnchorTopRef.current) > 8) {
+        deepLinkAnchorTopRef.current = top
+        scrollToSectionRef.current(sectionId)
+      }
+    })
+    deepLinkObserverRef.current.observe(document.body, { childList: true, subtree: true })
+    deepLinkSettleTimeoutRef.current = setTimeout(stopDeepLinkWatch, 2000)
+  }, [stopDeepLinkWatch])
 
   // Smooth scroll handler
   const handleSectionClick = (sectionId: string) => {
