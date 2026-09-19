@@ -26,6 +26,11 @@ export default function NewCustomersGraph() {
   const [selectedDatum, setSelectedDatum] = useState<NewCustomersData | null>(null)
   const isTouchDevice = useTouchDevice()
 
+  // A pinned popup belongs to a specific filter view; changing filters hides it.
+  useEffect(() => {
+    setSelectedDatum(null)
+  }, [timeRange])
+
   const toggleDatum = (index: number) => {
     setSelectedDatum((prev) =>
       prev && prev.date === data[index]?.date ? null : (data[index] ?? null)

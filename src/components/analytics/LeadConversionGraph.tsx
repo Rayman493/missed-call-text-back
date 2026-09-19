@@ -42,6 +42,11 @@ export default function LeadConversionGraph() {
   const [stageFilter, setStageFilter] = useState<string>('all')
   const [selectedDatum, setSelectedDatum] = useState<ConversionStage | null>(null)
 
+  // A pinned popup belongs to a specific filter view; changing filters hides it.
+  useEffect(() => {
+    setSelectedDatum(null)
+  }, [timeRange, stageFilter])
+
   useEffect(() => {
     const fetchData = async () => {
       if (!business) return

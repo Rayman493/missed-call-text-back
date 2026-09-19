@@ -75,6 +75,7 @@ export function getIntegerTicks(maxValue: number): number[] {
  * - Proper currency/number formatting
  */
 import React from 'react'
+import { openDashboardOverlay, useDashboardOverlayDismissal } from '@/lib/dashboard-overlay-events'
 
 interface PremiumTooltipProps {
   active?: boolean
@@ -88,21 +89,21 @@ export function PremiumTooltip({ active, payload, label }: PremiumTooltipProps) 
   }
 
   return (
-    <div className="bg-card border border-border/50 rounded-lg shadow-lg px-2 py-1.5 w-fit max-w-[min(70vw,220px)]">
+    <div className="bg-card/95 backdrop-blur-sm border border-border/40 rounded-xl shadow-lg px-3 py-2.5 w-fit max-w-[min(70vw,240px)]">
       {label && (
-        <p className="text-[11px] font-semibold text-foreground mb-1">{label}</p>
+        <p className="text-[11px] font-medium text-muted-foreground mb-1.5 truncate">{label}</p>
       )}
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center justify-between gap-2 text-[11px]">
-            <div className="flex items-center gap-1.5">
+          <div key={index} className="flex items-center justify-between gap-3 text-[11px]">
+            <div className="flex items-center gap-1.5 min-w-0">
               <div
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: entry.color || entry.payload?.fill || 'hsl(var(--primary))' }}
               />
               <span className="text-muted-foreground truncate max-w-[120px]" title={entry.name || entry.dataKey}>{entry.name || entry.dataKey}</span>
             </div>
-            <span className="font-medium text-foreground tabular-nums pl-1">
+            <span className="font-semibold text-foreground tabular-nums pl-1">
               {entry.value !== undefined ? formatNumber(entry.value, entry.name) : '-'}
             </span>
           </div>
@@ -174,8 +175,9 @@ export function ChartDatumPopup({
  * Shared selected-datum popup for all dashboard charts.
  *
  * Compact, non-modal popup anchored to the top-right of the chart area.
- * Shows a label (date/category) and one or more value rows. Tapping the ×
- * or tapping outside the chart dismisses.
+ * Shows a label (date/category) and one or more value rows. Tapping the ×,
+ * tapping outside the popup, scrolling the page, or selecting another chart's
+ * datum dismisses it.
  */
 export function ChartSelectionPopup({
   label,
@@ -186,14 +188,38 @@ export function ChartSelectionPopup({
   values: { label: string; value: string | number; color?: string }[]
   onDismiss: () => void
 }) {
+  const id = React.useId()
+  const popupRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    openDashboardOverlay(id)
+  }, [id])
+
+  useDashboardOverlayDismissal(id, onDismiss, { popupRef }, { closeOnScroll: true, closeOnForeignOpen: true })
+
+  // Close on pointer down outside the popup itself.
+  React.useEffect(() => {
+    const handlePointerDown = (e: Event) => {
+      const target = e.target as Node | null
+      if (!target) return
+      if (popupRef.current?.contains(target)) return
+      onDismiss()
+    }
+    window.addEventListener('pointerdown', handlePointerDown, { passive: true })
+    return () => window.removeEventListener('pointerdown', handlePointerDown)
+  }, [onDismiss])
+
   return (
-    <div className="absolute top-1 right-1 z-20 max-w-[200px] bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm px-2.5 py-2 text-xs pointer-events-auto">
+    <div
+      ref={popupRef}
+      className="absolute top-2 right-2 z-20 max-w-[min(70vw,220px)] bg-card/95 backdrop-blur-sm border border-border/40 rounded-xl shadow-lg px-3 py-2.5 text-xs pointer-events-auto"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-muted-foreground text-[10px] mb-0.5 truncate">{label}</p>
-          <div className="space-y-0.5">
+          <p className="text-[10px] font-medium text-muted-foreground mb-1 truncate">{label}</p>
+          <div className="space-y-1">
             {values.map((v, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-[11px]">
+              <div key={i} className="flex items-center gap-2 text-[11px]">
                 {v.color && (
                   <div
                     className="w-2 h-2 rounded-full shrink-0"
@@ -202,7 +228,7 @@ export function ChartSelectionPopup({
                   />
                 )}
                 <span className="text-muted-foreground truncate">{v.label}</span>
-                <span className="font-medium text-foreground tabular-nums">{v.value}</span>
+                <span className="font-semibold text-foreground tabular-nums ml-auto pl-2">{v.value}</span>
               </div>
             ))}
           </div>
@@ -210,10 +236,10 @@ export function ChartSelectionPopup({
         <button
           type="button"
           onClick={onDismiss}
-          className="text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5 -mt-0.5 -mr-0.5"
+          className="text-muted-foreground/70 hover:text-foreground flex-shrink-0 p-1 -mt-1 -mr-1 rounded-md transition-colors"
           aria-label="Dismiss selected data"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M1 1l8 8M9 1l-8 8" />
           </svg>
         </button>

@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useId, useLayoutEffect } from 'react'
 import { Filter, Check } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
+import { openDashboardOverlay, useDashboardOverlayDismissal } from '@/lib/dashboard-overlay-events'
 
 interface ChartFilterOption<T extends string> {
   value: T
@@ -47,8 +48,37 @@ export default function ChartFilterButton<T extends string>({
 }: ChartFilterButtonProps<T>) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const id = useId()
+  const [popupStyle, setPopupStyle] = useState<{ maxHeight?: number; placement: 'bottom' | 'top' }>({ placement: 'bottom' })
   const groupsMode = Array.isArray(groups) && groups.length > 0
+
+  // Announce opening so other chart filters and popups close.
+  useEffect(() => {
+    if (isOpen) openDashboardOverlay(id)
+  }, [isOpen, id])
+
+  useDashboardOverlayDismissal(id, () => setIsOpen(false), { containerRef, popupRef }, { closeOnScroll: true, closeOnForeignOpen: true })
+
+  // Viewport-aware sizing/positioning: keep the menu fully reachable on mobile
+  // by flipping above the button when there is not enough room below.
+  useLayoutEffect(() => {
+    if (!isOpen || !containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const headerOffset = 64
+    const bottomNavOffset = 72
+    const availableBelow = window.innerHeight - rect.bottom - bottomNavOffset
+    const availableAbove = rect.top - headerOffset
+    const desiredMax = 384 // 24rem
+
+    if (availableBelow >= 200 || availableBelow >= availableAbove) {
+      setPopupStyle({ placement: 'bottom', maxHeight: Math.min(availableBelow - 16, desiredMax) })
+    } else {
+      setPopupStyle({ placement: 'top', maxHeight: Math.min(availableAbove - 16, desiredMax) })
+    }
+  }, [isOpen])
+
   const isActive = groupsMode
     ? groups!.some(g => g.value !== (g.activeValue ?? ('all' as string)))
     : value !== activeValue
@@ -142,13 +172,17 @@ export default function ChartFilterButton<T extends string>({
 
       {isOpen && (
         <div
+          ref={popupRef}
+          style={{ maxHeight: popupStyle.maxHeight }}
           className={`
-            absolute z-50 mt-2 right-0 w-auto min-w-[140px]
+            absolute z-50 right-0 w-auto min-w-[140px]
             bg-gradient-to-b from-background to-background/95 backdrop-blur-sm
             border border-border/30
             rounded-lg
             shadow-[0_2px_8px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]
             py-1
+            overflow-y-auto overscroll-contain
+            ${popupStyle.placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}
             animate-in fade-in slide-in-from-top-1 duration-200
           `}
           role="listbox"

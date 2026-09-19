@@ -60,7 +60,11 @@ describe('Online Booking settings UX contracts', () => {
   it('wires Online Booking into the global Settings action bar dirty state', () => {
     expect(settingsContent).toMatch(/onlineBookingRef = useRef<OnlineBookingSectionHandle>/)
     expect(settingsContent).toMatch(/hasUnsavedChanges=\{hasUnsavedChanges \|\| bookingDirty\}/)
-    expect(settingsContent).toMatch(/ref=\{onlineBookingRef\} onDirtyChange=\{handleBookingDirtyChange\}/)
+    expect(settingsContent).toMatch(/ref=\{onlineBookingRef\}/)
+    expect(settingsContent).toMatch(/onDirtyChange=\{handleBookingDirtyChange\}/)
+    expect(settingsContent).toMatch(/businessHoursStart=\{formBusiness\?\.business_hours_start/)
+    expect(settingsContent).toMatch(/businessHoursEnd=\{formBusiness\?\.business_hours_end/)
+    expect(settingsContent).toMatch(/businessHoursTimezone=\{formBusiness\?\.business_hours_timezone/)
   })
 
   it('global save invokes the Booking save path only when Booking is dirty', () => {
@@ -221,7 +225,7 @@ describe('booking settings time + duration + logo polish', () => {
 
   it('uses the shared 12-hour formatter for business-hours summary', () => {
     expect(section).toMatch(/import.*formatTime12Hour/)
-    expect(section).toMatch(/Use my business hours \(Mon–Fri \{formatTime12Hour\(businessHours\.start\)\}–\{formatTime12Hour\(businessHours\.end\)\}\)/)
+    expect(section).toMatch(/Use my business hours \(Mon–Fri \{formatTime12Hour\(previewBusinessHours\.start\)\}–\{formatTime12Hour\(previewBusinessHours\.end\)\}\)/)
   })
 
   it('does not render raw 24-hour business hours in the summary', () => {

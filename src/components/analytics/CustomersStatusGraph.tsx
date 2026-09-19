@@ -36,6 +36,11 @@ export default function CustomersStatusGraph() {
   const [selectedDatum, setSelectedDatum] = useState<CustomerStatusData | null>(null)
   const isTouchDevice = useTouchDevice()
 
+  // A pinned popup belongs to a specific filter view; changing filters hides it.
+  useEffect(() => {
+    setSelectedDatum(null)
+  }, [statusFilter])
+
   const toggleDatum = (index: number) => {
     setSelectedDatum((prev) =>
       prev && prev.status === displayData[index]?.status ? null : (displayData[index] ?? null)

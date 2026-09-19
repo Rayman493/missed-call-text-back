@@ -46,8 +46,18 @@ export interface OnlineBookingSectionHandle {
   discard: () => void
 }
 
-export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: boolean) => void }>(
-  function OnlineBookingSection({ onDirtyChange }, ref) {
+export default forwardRef<OnlineBookingSectionHandle, {
+  onDirtyChange?: (dirty: boolean) => void
+  businessHoursStart?: string | null
+  businessHoursEnd?: string | null
+  businessHoursTimezone?: string | null
+}>(
+  function OnlineBookingSection({
+    onDirtyChange,
+    businessHoursStart,
+    businessHoursEnd,
+    businessHoursTimezone,
+  }, ref) {
   const supabase = createBrowserClient()
 
   const [loading, setLoading] = useState(true)
@@ -70,6 +80,16 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
   const [exEnd, setExEnd] = useState('')
   const [exLabel, setExLabel] = useState('')
   const [exSaving, setExSaving] = useState(false)
+
+  // Live preview of the Settings draft business hours. When "Use my business
+  // hours" is enabled and the parent passes a draft start/end, the preview reads
+  // the draft so the Online Booking summary updates before Save is pressed.
+  const previewBusinessHours = useMemo(() => {
+    if (businessHoursStart && businessHoursEnd) {
+      return { start: businessHoursStart, end: businessHoursEnd, timezone: businessHoursTimezone }
+    }
+    return businessHours ? { ...businessHours, timezone: businessHoursTimezone ?? timezone } : null
+  }, [businessHours, businessHoursStart, businessHoursEnd, businessHoursTimezone, timezone])
 
   // Persisted baseline snapshot used for dirty-state. Keeps Save disabled until
   // a meaningful change has been made, and re-disables it after successful save.
@@ -203,7 +223,7 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
   // Effective usable hours in the current draft — used to warn when Booking is
   // enabled but the public page cannot produce any slots.
   const hasUsableHours = useBusinessHours
-    ? Boolean(businessHours?.start && businessHours?.end)
+    ? Boolean(previewBusinessHours?.start && previewBusinessHours?.end)
     : deriveHours().length > 0
 
   const handleSave = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
@@ -440,7 +460,7 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
               </div>
             </div>
 
-            {businessHours?.start && businessHours?.end && (
+            {previewBusinessHours?.start && previewBusinessHours?.end && (
               <label className="mb-3 flex items-start gap-2 text-sm text-foreground">
                 <input
                   type="checkbox"
@@ -449,11 +469,16 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
                   className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-border"
                 />
                 <span className="min-w-0">
-                  Use my business hours (Mon–Fri {formatTime12Hour(businessHours.start)}–{formatTime12Hour(businessHours.end)})
+                  Use my business hours (Mon–Fri {formatTime12Hour(previewBusinessHours.start)}–{formatTime12Hour(previewBusinessHours.end)})
+                  {previewBusinessHours.timezone && (
+                    <span className="block text-xs text-muted-foreground">
+                      {previewBusinessHours.timezone.replace(/_/g, ' ')}
+                    </span>
+                  )}
                 </span>
               </label>
             )}
-            {!businessHours?.start && (
+            {!previewBusinessHours?.start && (
               <p className="mb-3 text-xs text-muted-foreground">
                 Set the days and times customers can pick.
               </p>

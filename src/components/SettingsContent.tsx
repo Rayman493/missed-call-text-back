@@ -839,10 +839,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   // Dynamic scroll offset based on actual sticky navigation height
   const [scrollOffset, setScrollOffset] = useState(64)
   
-  // Breathing room gap between sticky nav and section divider (ensures target section becomes active)
-  const BREATHING_ROOM_GAP = 8
-  
-  // Measure actual sticky navigation height for accurate scroll offset
+  // Breathing room gap between sticky nav and section divider (ensures the
+  // divider is fully visible below sticky UI on both desktop and mobile).
+  const BREATHING_ROOM_GAP = 16
+
+  // Measure actual sticky navigation height for accurate scroll offset.
+  // This updates the state for any consumer that needs it, and the scroll
+  // helper also reads the ref directly so deep-link scrolls never use stale
+  // or default offset.
   useEffect(() => {
     const measureNavHeight = () => {
       // Measure the container div (has sticky positioning and padding) not the nav element
@@ -851,7 +855,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         setScrollOffset(navHeight + BREATHING_ROOM_GAP)
       }
     }
-    
+
     // Use requestAnimationFrame for initial measurement (runs after layout)
     const rafId = requestAnimationFrame(measureNavHeight)
     
@@ -2737,7 +2741,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     // rendered yet.
     const element = document.getElementById(`${sectionId}-divider`) ?? document.getElementById(sectionId)
     if (element) {
-      const offset = getScrollOffset()
+      // Prefer a live measurement of the sticky tab container so this works
+      // on first paint and after viewport/resize changes.
+      const measuredNavHeight = settingsTabsContainerRef.current?.offsetHeight ?? 0
+      const offset = (measuredNavHeight || scrollOffset) + BREATHING_ROOM_GAP
       const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
 
       // Respect user's reduced-motion preference
@@ -4145,7 +4152,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   <h2 className="text-lg font-semibold text-foreground mb-2">Online Booking</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Let customers request times from a public booking link.</p>
                 </div>
-                <OnlineBookingSection ref={onlineBookingRef} onDirtyChange={handleBookingDirtyChange} />
+                <OnlineBookingSection
+                  ref={onlineBookingRef}
+                  onDirtyChange={handleBookingDirtyChange}
+                  businessHoursStart={formBusiness?.business_hours_start ?? business?.business_hours_start}
+                  businessHoursEnd={formBusiness?.business_hours_end ?? business?.business_hours_end}
+                  businessHoursTimezone={formBusiness?.business_hours_timezone ?? business?.business_hours_timezone}
+                />
               </div>
 
               <div id="integrations-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
