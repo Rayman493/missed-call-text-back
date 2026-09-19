@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BookingRequestEvent, BookingRequestStatus, BookingSlot } from '@/lib/booking/types'
 import { CalendarDays, Check, ChevronDown, Clock, ExternalLink, MapPin, Phone, RefreshCw, X } from 'lucide-react'
 import { showToast } from '@/lib/toast'
 import { formatInTimeZone } from 'date-fns-tz'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBusiness } from '@/contexts/BusinessContext'
 
 interface BookingDetail {
   id: string
@@ -28,7 +29,7 @@ interface BookingDetail {
   events: BookingRequestEvent[]
 }
 
-type BusyAction = 'accept' | 'reject' | 'propose' | 'create_appointment' | 'create_job' | 'resend-proposal' | null
+type BusyAction = 'accept' | 'reject' | 'propose' | 'create-appointment' | 'create-job' | 'resend-proposal' | null
 
 const STATUS_LABEL: Record<BookingRequestStatus, string> = {
   pending: 'New request',
@@ -63,15 +64,21 @@ function eventActorLabel(actor: BookingRequestEvent['actor']): string {
 
 export default function BookingRequestDetailModal({
   requestId,
+  businessId,
   onClose,
   onRefresh,
 }: {
   requestId: string
+  businessId: string | null
   onClose: () => void
   onRefresh?: () => void
 }) {
   const router = useRouter()
   const supabase = useMemo(() => createBrowserClient(), [])
+  const { business } = useBusiness()
+  const effectiveBusinessId = businessId ?? business?.id ?? null
+  const realtimeRef = useRef<any>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [detail, setDetail] = useState<BookingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<BusyAction>(null)
@@ -105,6 +112,41 @@ export default function BookingRequestDetailModal({
   }, [requestId, authHeaders])
 
   useEffect(() => { load() }, [load])
+
+  // Realtime reconciliation for this specific request. When the customer
+  // accepts, rejects, or otherwise updates the row, the modal refreshes
+  // automatically without requiring the business to close/reopen it.
+  useEffect(() => {
+    if (!effectiveBusinessId || !requestId) return
+    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
+
+    const channel = supabase
+      .channel(`booking-request-detail:${effectiveBusinessId}:${requestId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'booking_requests',
+          filter: `id=eq.${requestId}`,
+        },
+        () => {
+          if (debounceRef.current) clearTimeout(debounceRef.current)
+          debounceRef.current = setTimeout(() => {
+            load()
+            onRefresh?.()
+          }, 300)
+        }
+      )
+      .subscribe()
+    realtimeRef.current = channel
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
+      realtimeRef.current = null
+    }
+  }, [effectiveBusinessId, requestId, load, onRefresh, supabase])
 
   const refresh = useCallback(() => {
     onRefresh?.()
@@ -145,8 +187,8 @@ export default function BookingRequestDetailModal({
           showToast('Customer notified by text', 'success')
         } else if (action === 'resend-proposal') {
           showToast('Text resent to customer', 'success')
-        } else if (action === 'create_appointment' || action === 'create_job') {
-          showToast(action === 'create_appointment' ? 'Appointment created' : 'Job created', 'success')
+        } else if (action === 'create-appointment' || action === 'create-job') {
+          showToast(action === 'create-appointment' ? 'Appointment created' : 'Job created', 'success')
         }
         setPicking(false)
         setSlots(null)
@@ -204,12 +246,12 @@ export default function BookingRequestDetailModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 py-6 sm:items-center sm:py-8" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-slate-900/95 dark:shadow-slate-900/60"
+        className="flex max-h-[min(90vh,800px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-slate-900/95 dark:shadow-slate-900/60"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-border/40 px-5 py-4">
+        <div className="flex flex-shrink-0 items-start justify-between gap-3 border-b border-border/40 px-5 py-4">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold text-foreground">
               {detail?.customer_name ?? 'Booking request'}
@@ -240,8 +282,9 @@ export default function BookingRequestDetailModal({
           </button>
         </div>
 
-        <div className="space-y-4 px-5 py-4">
-          {loading ? (
+        <div className="flex-1 overflow-y-auto">
+          <div className="space-y-4 px-5 py-4">
+            {loading ? (
             <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
             </div>
@@ -273,6 +316,11 @@ export default function BookingRequestDetailModal({
               </div>
 
               <div className="rounded-xl border border-border/40 bg-muted/30 p-3 text-sm">
+                {status === 'accepted' && (
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                    Accepted
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-foreground">
                   <CalendarDays className="h-4 w-4 text-primary-500" />
                   <span className="font-medium">
@@ -289,7 +337,7 @@ export default function BookingRequestDetailModal({
                   </span>
                 </div>
                 {requestedDiffers && (
-                  <p className="mt-1 pl-6 text-xs text-muted-foreground">
+                  <p className="mt-1.5 pl-6 text-xs text-muted-foreground">
                     Originally requested{' '}
                     {formatInTimeZone(detail.requested_start, detail.timezone, 'EEE, MMM d · h:mm a')}
                   </p>
@@ -298,6 +346,24 @@ export default function BookingRequestDetailModal({
                   <p className="mt-1 pl-6 text-xs font-medium text-violet-600 dark:text-violet-300">Waiting for customer</p>
                 )}
               </div>
+
+              {detail.lead_id && (
+                <div className="rounded-xl border border-border/40 bg-muted/30 p-3">
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      router.push(`/dashboard/customers/${detail.lead_id}`)
+                    }}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400"
+                  >
+                    {detail.customer_name}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Customer
+                  </button>
+                </div>
+              )}
 
               {actionError && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/30 dark:text-amber-200">
@@ -357,7 +423,7 @@ export default function BookingRequestDetailModal({
                   ) : slots.length === 0 ? (
                     <p className="py-3 text-sm text-muted-foreground">No times available in the booking window.</p>
                   ) : (
-                    <div className="max-h-64 space-y-3 overflow-y-auto">
+                    <div className="max-h-56 space-y-3 overflow-y-auto pr-1">
                       {slotsByDay.map(([day, daySlots]) => (
                         <div key={day}>
                           <p className="mb-1 text-xs font-medium text-muted-foreground">
@@ -369,10 +435,12 @@ export default function BookingRequestDetailModal({
                               return (
                                 <button
                                   key={s.start}
+                                  type="button"
+                                  aria-pressed={selected}
                                   onClick={() => setSelectedSlot(s)}
-                                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+                                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                                     selected
-                                      ? 'border-primary-600 bg-primary-600 text-white'
+                                      ? 'border-primary-600 bg-primary-600 text-white ring-2 ring-primary-600/20'
                                       : 'border-border text-foreground hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20'
                                   }`}
                                 >
@@ -383,6 +451,13 @@ export default function BookingRequestDetailModal({
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {selectedSlot && (
+                    <div className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900 dark:border-primary-900/40 dark:bg-primary-900/20 dark:text-primary-100">
+                      <span className="font-medium">Selected:</span>{' '}
+                      {formatInTimeZone(selectedSlot.start, slotTz, 'EEEE, MMM d · h:mm a')} –{' '}
+                      {formatInTimeZone(selectedSlot.end, slotTz, 'h:mm a')}
                     </div>
                   )}
                   <button
@@ -401,17 +476,17 @@ export default function BookingRequestDetailModal({
                   <div className="flex gap-2">
                     <button
                       disabled={busy !== null}
-                      onClick={() => runAction('create_appointment')}
+                      onClick={() => runAction('create-appointment')}
                       className="flex-1 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
                     >
-                      {busy === 'create_appointment' ? 'Creating…' : 'Create Appointment'}
+                      {busy === 'create-appointment' ? 'Creating…' : 'Create Appointment'}
                     </button>
                     <button
                       disabled={busy !== null}
-                      onClick={() => runAction('create_job')}
+                      onClick={() => runAction('create-job')}
                       className="flex-1 rounded-lg border border-primary-600 px-3.5 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 disabled:opacity-50 dark:hover:bg-primary-900/20"
                     >
-                      {busy === 'create_job' ? 'Creating…' : 'Create Job'}
+                      {busy === 'create-job' ? 'Creating…' : 'Create Job'}
                     </button>
                   </div>
                 </div>
@@ -471,6 +546,7 @@ export default function BookingRequestDetailModal({
               )}
             </>
           )}
+          </div>
         </div>
       </div>
     </div>

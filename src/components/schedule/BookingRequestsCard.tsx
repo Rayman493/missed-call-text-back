@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CalendarPlus, Copy, RefreshCw, Settings } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBusiness } from '@/contexts/BusinessContext'
 import { showToast } from '@/lib/toast'
 import { bookingPageUrl } from '@/lib/booking/url'
 import type { BookingRequestStatus } from '@/lib/booking/types'
@@ -57,6 +58,7 @@ const BOOKING_SETTINGS_LINK = '/dashboard/settings?section=online-booking'
  */
 export default function BookingRequestsCard() {
   const supabase = useMemo(() => createBrowserClient(), [])
+  const { business } = useBusiness()
   const [requests, setRequests] = useState<BookingRequestRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [openId, setOpenId] = useState<string | null>(null)
@@ -64,6 +66,8 @@ export default function BookingRequestsCard() {
   const [error, setError] = useState<string | null>(null)
   const [bookingEnabled, setBookingEnabled] = useState(false)
   const [bookingUrl, setBookingUrl] = useState<string | null>(null)
+  const realtimeRef = useRef<any>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -91,6 +95,32 @@ export default function BookingRequestsCard() {
   }, [supabase])
 
   useEffect(() => { load() }, [load])
+
+  // Realtime reconciliation: when any booking_request row for this business
+  // changes, refresh the list so status/time updates feel instant.
+  useEffect(() => {
+    if (!business?.id) return
+    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
+
+    const channel = supabase
+      .channel(`booking-requests-list:${business.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'booking_requests', filter: `business_id=eq.${business.id}` },
+        () => {
+          if (debounceRef.current) clearTimeout(debounceRef.current)
+          debounceRef.current = setTimeout(() => load(), 300)
+        }
+      )
+      .subscribe()
+    realtimeRef.current = channel
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
+      realtimeRef.current = null
+    }
+  }, [business?.id, load, supabase])
 
   const handleCopyLink = async () => {
     if (!bookingUrl || typeof window === 'undefined') return
@@ -215,6 +245,7 @@ export default function BookingRequestsCard() {
       {openId && (
         <BookingRequestDetailModal
           requestId={openId}
+          businessId={business?.id ?? null}
           onClose={() => setOpenId(null)}
           onRefresh={load}
         />

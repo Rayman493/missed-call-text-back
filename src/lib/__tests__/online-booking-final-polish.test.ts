@@ -217,6 +217,53 @@ describe('Settings back to top', () => {
   })
 })
 
+describe('BookingRequestDetailModal accepted-flow UX', () => {
+  const modal = read('src/components/schedule/BookingRequestDetailModal.tsx')
+
+  it('sends the Authorization Bearer header on detail, action, and slot requests', () => {
+    expect(modal).toMatch(/session\?\.access_token/)
+    expect(modal).toMatch(/headers\.Authorization = `Bearer \$\{session\.access_token\}`/)
+    expect(modal).toMatch(/const headers = await authHeaders\(\)/)
+    expect(modal).toMatch(/fetch\(`\/api\/booking\/requests\/\$\{requestId\}`/)
+    expect(modal).toMatch(/fetch\(`\/api\/booking\/requests\/\$\{requestId\}\/action`,/)
+    expect(modal).toMatch(/fetch\(`\/api\/booking\/requests\/\$\{requestId\}\/slots`/)
+  })
+
+  it('uses the canonical kebab action names for Create Appointment and Create Job', () => {
+    expect(modal).toMatch(/runAction\('create-appointment'\)/)
+    expect(modal).toMatch(/runAction\('create-job'\)/)
+    expect(modal).not.toMatch(/runAction\('create_appointment'\)/)
+    expect(modal).not.toMatch(/runAction\('create_job'\)/)
+  })
+
+  it('keeps the suggestion picker viewport-contained and internally scrollable', () => {
+    expect(modal).toMatch(/flex-1 overflow-y-auto/)
+    expect(modal).toMatch(/max-h-56 space-y-3 overflow-y-auto/)
+    expect(modal).toMatch(/max-h-\[min\(90vh,800px\)\].*flex-col/)
+  })
+
+  it('shows a strong selected-time summary before sending the proposal', () => {
+    expect(modal).toMatch(/Selected:/)
+    expect(modal).toMatch(/aria-pressed=\{selected\}/)
+    expect(modal).toMatch(/ring-2 ring-primary-600\/20/)
+  })
+
+  it('closes the suggestion picker after a successful proposal', () => {
+    expect(modal).toMatch(/setPicking\(false\)/)
+  })
+
+  it('shows Accepted state clearly and links to the resolved customer', () => {
+    expect(modal).toMatch(/Accepted/)
+    expect(modal).toMatch(/View Customer/)
+    expect(modal).toMatch(/detail\.lead_id/)
+  })
+
+  it('subscribes to realtime updates for the open request and the list', () => {
+    expect(modal).toMatch(/booking-request-detail:/)
+    expect(modal).toMatch(/filter: `id=eq\.\$\{requestId\}`/)
+  })
+})
+
 describe('Settings deep-link positioning', () => {
   const settings = read('src/components/SettingsContent.tsx')
 

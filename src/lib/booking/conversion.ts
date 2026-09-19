@@ -20,16 +20,12 @@
  */
 
 import { formatInTimeZone } from 'date-fns-tz'
-import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
-import { LeadService } from '@/lib/services/LeadService'
-import { ConversationService } from '@/lib/services/ConversationService'
-import { timelineEvents } from '@/lib/event-timeline'
-import { createFollowUpJobs } from '@/lib/follow-ups'
 import { getGoogleAccessToken } from '@/lib/google/token'
 import { toGoogleCalendarEventId } from '@/lib/google/calendar-event-id'
+import { timelineEvents } from '@/lib/event-timeline'
 import { bookingAdmin } from './settings'
-import { findExistingCustomerForBooking } from './customer-match'
 import { agreedWindow } from './actions'
+import { ensureLeadForBookingRequest } from './customer-resolution'
 import type { BookingRequest } from './types'
 
 type Supabase = ReturnType<typeof bookingAdmin>
@@ -66,140 +62,9 @@ export type EnsureLeadResult =
   | { ok: true; leadId: string; conversationId: string | null; isNew: boolean }
   | { ok: false; status: number; error: string }
 
-/**
- * Resolve the canonical customer for an accepted booking request.
- *
- * Retry-safe order:
- *   1. request.lead_id already linked → reuse (prior conversion attempt)
- *   2. Canonical phone match (business + normalized phone) → reuse
- *   3. Create via LeadService.createLead, source = online_booking, with the
- *      booking snapshot preserved in raw_metadata.extracted_info — the same
- *      shape manual intake writes.
- *
- * Never auto-merges on email alone and never creates a parallel customer
- * record — the lead is the canonical customer everywhere else in the app.
- */
-export async function ensureLeadForBookingRequest(request: BookingRequest): Promise<EnsureLeadResult> {
-  const supabase = bookingAdmin()
-
-  // 1. Prior conversion attempt already linked a lead — reuse it.
-  if (request.lead_id) {
-    const { data: existing } = await supabase
-      .from('leads')
-      .select('id')
-      .eq('id', request.lead_id)
-      .eq('business_id', request.business_id)
-      .maybeSingle()
-    if (existing) return { ok: true, leadId: existing.id, conversationId: null, isNew: false }
-    // Stale linkage — fall through and re-resolve below.
-  }
-
-  // 2. Canonical match: business + normalized phone (same rule as every
-  //    other intake path). Email is only a best-effort secondary hint.
-  const match = await findExistingCustomerForBooking(request.business_id, {
-    phone: request.normalized_phone ?? request.customer_phone,
-    email: request.customer_email,
-  })
-
-  let leadId: string | null = null
-  let isNew = false
-
-  if (match) {
-    leadId = match.leadId
-  } else {
-    // 3. Create through the canonical service — normalized phone, metadata
-    //    shape and dedupe identical to manual / AI intake.
-    const normalizedPhone = request.normalized_phone
-      ?? (request.customer_phone ? normalizePhoneNumberForStorage(request.customer_phone) : null)
-
-    const newLead = await LeadService.createLead({
-      business_id: request.business_id,
-      caller_phone: normalizedPhone || undefined,
-      contact_name: request.customer_name,
-      email: request.customer_email || undefined,
-      status: 'new',
-      source: 'online_booking',
-      raw_metadata: {
-        extracted_info: {
-          callerName: request.customer_name,
-          reasonForCalling: request.service || null,
-          addressOrLocation: request.customer_address || null,
-          email: request.customer_email || null,
-          importantDetails: request.notes || null,
-        },
-        booking_request_id: request.id,
-        intake_sources: { booking: 'online_booking' },
-      },
-    })
-
-    if (!newLead) {
-      console.error('[BOOKING] customer conversion failed: LeadService returned null')
-      return { ok: false, status: 500, error: 'Could not create the customer. Please try again.' }
-    }
-    leadId = newLead.id
-    isNew = true
-
-    // Populate the leads.source column for provenance charts/fallbacks —
-    // LeadService canonicalizes origin in raw_metadata.creation_source
-    // (already 'online_booking'); the column mirrors it for this intake.
-    await LeadService.updateLead({
-      lead_id: leadId,
-      updates: { source: 'online_booking' } as any,
-    })
-  }
-
-  // Canonical conversation — every customer surface expects one.
-  let conversationId: string | null = null
-  try {
-    const convo = await ConversationService.findOrCreateConversation({
-      lead_id: leadId,
-      business_id: request.business_id,
-      status: 'active',
-    })
-    conversationId = convo.conversationId
-  } catch (error) {
-    console.error('[BOOKING] conversation resolution failed (non-fatal):', error)
-  }
-
-  // Timeline + follow-up parity with the manual-create path (new customers only).
-  if (isNew) {
-    try {
-      const phone = request.normalized_phone ?? request.customer_phone ?? ''
-      if (phone) await timelineEvents.leadCreated(request.business_id, leadId, conversationId || '', phone)
-    } catch (error) {
-      console.error('[BOOKING] leadCreated timeline failed (non-fatal):', error)
-    }
-    try {
-      const { data: business } = await supabase
-        .from('businesses')
-        .select('name')
-        .eq('id', request.business_id)
-        .maybeSingle()
-      await createFollowUpJobs({
-        businessId: request.business_id,
-        leadId,
-        conversationId: conversationId || undefined,
-        businessName: business?.name ?? '',
-      })
-    } catch (error) {
-      console.error('[BOOKING] follow-up job creation failed (non-fatal):', error)
-    }
-  }
-
-  // Persist linkage — history keeps the conversion auditable.
-  const { error: linkError } = await supabase
-    .from('booking_requests')
-    .update({ lead_id: leadId, updated_at: new Date().toISOString() })
-    .eq('id', request.id)
-    .is('lead_id', null) // never clobber an existing link (retry-safe)
-  if (linkError) {
-    console.error('[BOOKING] lead linkage update failed:', linkError)
-    return { ok: false, status: 500, error: 'Could not link the customer to this booking. Please try again.' }
-  }
-  await appendConversionEvent(request, 'lead_linked', `lead:${leadId}${isNew ? ' (new)' : ' (existing)'}`)
-
-  return { ok: true, leadId, conversationId, isNew }
-}
+// Re-export the canonical resolver so existing importers keep working while
+// acceptance and conversion share one implementation.
+export { ensureLeadForBookingRequest } from './customer-resolution'
 
 export type ConvertResult =
   | { ok: true; alreadyCreated: boolean; kind: 'appointment' | 'job'; recordId: string; leadId: string }

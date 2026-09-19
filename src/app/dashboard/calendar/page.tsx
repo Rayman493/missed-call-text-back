@@ -2103,26 +2103,32 @@ export default function SchedulePage() {
                         <div className="flex items-center justify-between gap-4 px-3 py-2.5 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-lg">
                         {/* Equal-width summary columns */}
                         <div className="grid grid-cols-3 gap-4 flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().reminders}</span>
-                              <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
-                            </p>
+                          <div className="flex items-center justify-center">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().reminders}</span>
+                                <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().jobs}</span>
-                              <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
-                            </p>
+                          <div className="flex items-center justify-center">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().jobs}</span>
+                                <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().jobs === 1 ? 'job' : 'jobs'}</span>
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().appointments}</span>
-                              <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
-                            </p>
+                          <div className="flex items-center justify-center">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                <span className="font-semibold text-slate-900 dark:text-foreground">{getThisMonthCounts().appointments}</span>
+                                <span className="text-slate-500/70 dark:text-slate-500 ml-1">{getThisMonthCounts().appointments === 1 ? 'appointment' : 'appointments'}</span>
+                              </p>
+                            </div>
                           </div>
                         </div>
 
@@ -2211,7 +2217,7 @@ export default function SchedulePage() {
                           {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                         </p>
                         <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-md">
-                          <div className="flex items-center justify-start gap-1.5">
+                          <div className="flex items-center justify-center gap-1.5">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                             <span className="text-xs font-medium text-slate-900 dark:text-foreground">{getThisMonthCounts().reminders}</span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>

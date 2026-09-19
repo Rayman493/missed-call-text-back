@@ -398,7 +398,48 @@ describe('Schedule Polish — No Behavioral Changes', () => {
 })
 
 // ---------------------------------------------------------------------------
-// 9. BATCH 2 TIME TRACKED START/STOP POLISH
+// 9. CALENDAR SUMMARY METRIC ALIGNMENT
+// ---------------------------------------------------------------------------
+
+describe('Schedule Polish — Calendar Summary Metric Alignment', () => {
+  it('uses three equal-width columns for reminders/jobs/appointments', () => {
+    expect(pageContent).toMatch(/grid grid-cols-3 gap-[24]/)
+  })
+
+  it('centers every metric group in its cell', () => {
+    const summaryBlock = pageContent.substring(
+      pageContent.indexOf('Equal-width summary columns'),
+      pageContent.indexOf('Calendar Status & Actions')
+    )
+    expect(summaryBlock).toMatch(/grid grid-cols-3 gap-4 flex-1/)
+    const cellMatches = summaryBlock.match(/className="flex items-center justify-center"/g)
+    expect(cellMatches?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('keeps dot, count, and label as one compact visual group', () => {
+    const summaryBlock = pageContent.substring(
+      pageContent.indexOf('Equal-width summary columns'),
+      pageContent.indexOf('Calendar Status & Actions')
+    )
+    const groupMatches = summaryBlock.match(/flex items-center gap-1\.5/g)
+    expect(groupMatches?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('does not use metric-specific alignment hacks', () => {
+    const summaryBlock = pageContent.substring(
+      pageContent.indexOf('Equal-width summary columns'),
+      pageContent.indexOf('Calendar Status & Actions')
+    )
+    expect(summaryBlock).not.toMatch(/justify-start/)
+    expect(summaryBlock).not.toMatch(/justify-end/)
+    // The count→label gap is the only allowed micro-spacing; no large
+    // directional nudges that would push metrics off-center.
+    expect(summaryBlock).not.toMatch(/\b(ml|mr|pl|pr)-(2|3|4|5|6|8)\b/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 10. BATCH 2 TIME TRACKED START/STOP POLISH
 // ---------------------------------------------------------------------------
 
 describe('Schedule Polish — Batch 2 Time Tracked', () => {

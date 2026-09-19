@@ -19,6 +19,7 @@ import { bookingAdmin } from './settings'
 import { revalidateBookingSlot } from './availability'
 import { isValidContinuationToken } from './tokens'
 import type { BookingRequest, BookingRequestStatus } from './types'
+import type { EnsureLeadResult } from './customer-resolution'
 
 const HOLD_MS = 48 * 60 * 60_000
 
@@ -54,6 +55,13 @@ export function agreedWindow(request: Pick<BookingRequest, 'requested_start' | '
     start: request.current_proposed_start ?? request.requested_start,
     end: request.current_proposed_end ?? request.requested_end,
   }
+}
+
+async function resolveBookingCustomer(request: BookingRequest): Promise<EnsureLeadResult> {
+  // Dynamic import keeps the server-only customer-resolution module out of
+  // the module-load graph for lightweight tests that only import helpers.
+  const { ensureLeadForBookingRequest } = await import('./customer-resolution')
+  return ensureLeadForBookingRequest(request)
 }
 
 async function loadOwnedRequest(businessId: string, requestId: string): Promise<BookingRequest | null> {
@@ -110,6 +118,12 @@ export async function acceptBookingRequest(
 
   if (request.status === 'accepted') {
     const { start, end } = agreedWindow(request)
+    if (!request.lead_id) {
+      // A prior acceptance succeeded but customer linking failed or was lost;
+      // reconcile the canonical customer now before reporting success.
+      const lead = await resolveBookingCustomer(request)
+      if (!lead.ok) return { ok: false, status: lead.status, error: lead.error }
+    }
     return { ok: true, alreadyApplied: true, status: request.status, agreedStart: start, agreedEnd: end, request, sms: 'none' }
   }
   if (!ACCEPTABLE_STATUSES.includes(request.status)) {
@@ -166,6 +180,14 @@ export async function acceptBookingRequest(
     startAt: start,
     endAt: end,
   })
+
+  // Acceptance creates the canonical customer immediately. Failure here rolls
+  // the action back to the caller so the business knows the request was not
+  // finalized.
+  const lead = await resolveBookingCustomer({ ...request, status: 'accepted' })
+  if (!lead.ok) {
+    return { ok: false, status: lead.status, error: lead.error }
+  }
 
   return {
     ok: true,
@@ -346,7 +368,7 @@ export async function acceptProposedBookingTime(
   const supabase = bookingAdmin()
   const { data: request } = await supabase
     .from('booking_requests')
-    .select('id, business_id, status, customer_name, requested_start, requested_end, current_proposed_start, current_proposed_end')
+    .select('*')
     .eq('continuation_token', token)
     .maybeSingle()
   if (!request) return { ok: false, status: 404, error: 'Booking request not found' }
@@ -362,6 +384,10 @@ export async function acceptProposedBookingTime(
 
   if (request.status === 'accepted') {
     const { start, end } = agreedWindow(request)
+    if (!request.lead_id) {
+      const lead = await resolveBookingCustomer(request)
+      if (!lead.ok) return { ok: false, status: lead.status, error: lead.error }
+    }
     return { ok: true, alreadyApplied: true, status: request.status, agreedStart: start, agreedEnd: end, businessId: request.business_id, requestId: request.id, customerName: request.customer_name }
   }
   if (request.status !== 'business_proposed' || !request.current_proposed_start || !request.current_proposed_end) {
@@ -413,6 +439,11 @@ export async function acceptProposedBookingTime(
     start_at: start,
     end_at: end,
   })
+
+  const lead = await resolveBookingCustomer({ ...request, status: 'accepted' })
+  if (!lead.ok) {
+    return { ok: false, status: lead.status, error: lead.error }
+  }
 
   return { ok: true, alreadyApplied: false, status: 'accepted', agreedStart: start, agreedEnd: end, businessId: request.business_id, requestId: request.id, customerName: request.customer_name }
 }
