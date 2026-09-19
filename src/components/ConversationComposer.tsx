@@ -3,6 +3,15 @@ import { Paperclip, X, MessageSquare, Clock, Lightbulb, FileText, FileSpreadshee
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 import { focusService } from '@/lib/focus/focus-service'
 import type { FocusItem } from '@/lib/focus/focus-types'
+import {
+  SUPPORTED_ATTACHMENT_TYPES,
+  MAX_IMAGE_SIZE,
+  MAX_DOCUMENT_SIZE,
+  MAX_VIDEO_SIZE,
+  MAX_TOTAL_PAYLOAD_SIZE,
+  MAX_ATTACHMENTS,
+  FILE_ACCEPT,
+} from '@/lib/mms-constants'
 import AttachmentActionSheet from '@/components/conversation/AttachmentActionSheet'
 
 interface ConversationComposerProps {
@@ -59,6 +68,7 @@ export default function ConversationComposer({
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const sendButtonRef = useRef<HTMLButtonElement>(null)
+  const paperclipButtonRef = useRef<HTMLButtonElement>(null)
 
   const isNativeMobile = supportsBusinessNumber()
 
@@ -90,6 +100,14 @@ export default function ConversationComposer({
       onClearImages(() => setAttachments([]))
     }
   }, [onClearImages])
+
+  // Reset paperclip focus/active state when the attachment sheet closes so the
+  // button does not stay highlighted after cancel, outside dismiss, or back navigation.
+  React.useEffect(() => {
+    if (!isAttachmentSheetOpen && paperclipButtonRef.current) {
+      paperclipButtonRef.current.blur()
+    }
+  }, [isAttachmentSheetOpen])
 
   // Restore attachments after a failed send — ownership transfers back from
   // the optimistic bubble to the composer preview so the user can retry.
@@ -144,10 +162,7 @@ export default function ConversationComposer({
 
   const messagingHints = getMessagingHints()
 
-  const SUPPORTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'text/csv', 'video/mp4']
-  const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
-  const MAX_DOCUMENT_SIZE = 600 * 1024 // 600KB
-  const MAX_VIDEO_SIZE = 600 * 1024 // 600KB
+
 
   const resolveMimeByExtension = (filename: string, fallback: string): string => {
     const ext = filename.split('.').pop()?.toLowerCase()
@@ -177,20 +192,16 @@ export default function ConversationComposer({
     let oversizedFile = ''
     let totalPayloadError = ''
 
-    // Enforce max attachment count
-    const MAX_ATTACHMENTS = 10
     if (attachments.length + files.length > MAX_ATTACHMENTS) {
-      setError('You can attach up to 10 files at a time.')
+      setError(`You can attach up to ${MAX_ATTACHMENTS} files at a time.`)
       setTimeout(() => setError(null), 3000)
       return
     }
 
-    // Check total payload size
-    const MAX_TOTAL_PAYLOAD_SIZE = 5 * 1024 * 1024 // 5MB
     const currentTotalSize = attachments.reduce((sum, att) => sum + att.file.size, 0)
     const newFilesTotalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0)
     if (currentTotalSize + newFilesTotalSize > MAX_TOTAL_PAYLOAD_SIZE) {
-      setError('Attachments must be 5 MB or smaller in total.')
+      setError(`Attachments must be ${MAX_TOTAL_PAYLOAD_SIZE / 1024 / 1024} MB or smaller in total.`)
       setTimeout(() => setError(null), 3000)
       return
     }
@@ -202,7 +213,7 @@ export default function ConversationComposer({
       const effectiveType = resolveMimeByExtension(file.name, file.type)
 
       // Check if type is supported
-      if (!SUPPORTED_TYPES.includes(effectiveType)) {
+      if (!SUPPORTED_ATTACHMENT_TYPES.includes(effectiveType)) {
         unsupportedFile = file.name
         return
       }
@@ -235,7 +246,7 @@ export default function ConversationComposer({
       setError('This file type isn\'t supported yet. Attach a PDF, CSV, JPG, PNG, GIF, or MP4.')
       setTimeout(() => setError(null), 3000)
     } else if (oversizedFile) {
-      setError('PDF, CSV, and videos must be 600 KB or smaller. Images must be under 5 MB.')
+      setError(`PDF, CSV, and videos must be ${MAX_DOCUMENT_SIZE / 1024} KB or smaller. Images must be under ${MAX_IMAGE_SIZE / 1024 / 1024} MB.`)
       setTimeout(() => setError(null), 3000)
     }
 
@@ -277,20 +288,16 @@ export default function ConversationComposer({
     let unsupportedFile = ''
     let oversizedFile = ''
 
-    // Enforce max attachment count
-    const MAX_ATTACHMENTS = 10
     if (attachments.length + files.length > MAX_ATTACHMENTS) {
-      setError('You can attach up to 10 files at a time.')
+      setError(`You can attach up to ${MAX_ATTACHMENTS} files at a time.`)
       setTimeout(() => setError(null), 3000)
       return
     }
 
-    // Check total payload size
-    const MAX_TOTAL_PAYLOAD_SIZE = 5 * 1024 * 1024 // 5MB
     const currentTotalSize = attachments.reduce((sum, att) => sum + att.file.size, 0)
     const newFilesTotalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0)
     if (currentTotalSize + newFilesTotalSize > MAX_TOTAL_PAYLOAD_SIZE) {
-      setError('Attachments must be 5 MB or smaller in total.')
+      setError(`Attachments must be ${MAX_TOTAL_PAYLOAD_SIZE / 1024 / 1024} MB or smaller in total.`)
       setTimeout(() => setError(null), 3000)
       return
     }
@@ -302,7 +309,7 @@ export default function ConversationComposer({
       const effectiveType = resolveMimeByExtension(file.name, file.type)
 
       // Check if type is supported
-      if (!SUPPORTED_TYPES.includes(effectiveType)) {
+      if (!SUPPORTED_ATTACHMENT_TYPES.includes(effectiveType)) {
         unsupportedFile = file.name
         return
       }
@@ -335,7 +342,7 @@ export default function ConversationComposer({
       setError('This file type isn\'t supported yet. Attach a PDF, CSV, JPG, PNG, GIF, or MP4.')
       setTimeout(() => setError(null), 3000)
     } else if (oversizedFile) {
-      setError('PDF, CSV, and videos must be 600 KB or smaller. Images must be under 5 MB.')
+      setError(`PDF, CSV, and videos must be ${MAX_DOCUMENT_SIZE / 1024} KB or smaller. Images must be under ${MAX_IMAGE_SIZE / 1024 / 1024} MB.`)
       setTimeout(() => setError(null), 3000)
     }
 
@@ -484,11 +491,17 @@ export default function ConversationComposer({
           <div className="flex items-center gap-2 bg-muted/30 border border-border/20 rounded-lg p-2 hover:bg-muted/40 transition-all duration-200 focus-within:border-primary/40 focus-within:bg-muted/50 shadow-sm">
             {/* Attachment Button — opens premium action sheet */}
             <button
+              ref={paperclipButtonRef}
               type="button"
               onClick={() => setIsAttachmentSheetOpen(true)}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
+              className={`p-2 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background ${
+                isAttachmentSheetOpen
+                  ? 'text-foreground bg-muted/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+              }`}
               disabled={sending}
               aria-label="Attach file"
+              aria-pressed={isAttachmentSheetOpen}
             >
               <Paperclip className="w-5 h-5 shrink-0" />
             </button>

@@ -11,7 +11,7 @@ describe('ConversationComposer video attachment MIME fallback', () => {
   })
 
   it('uses the effective type for supported-type checks and size limits', () => {
-    expect(content).toMatch(/SUPPORTED_TYPES\.includes\(effectiveType\)/)
+    expect(content).toMatch(/SUPPORTED_ATTACHMENT_TYPES\.includes\(effectiveType\)/)
     expect(content).toMatch(/effectiveType === 'application\/pdf'/)
     expect(content).toMatch(/effectiveType === 'video\/mp4'/)
   })

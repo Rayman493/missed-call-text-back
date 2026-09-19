@@ -28,6 +28,7 @@ import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime } from '@/lib/utils'
+import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { PhoneIncoming, UserPlus, RefreshCw, Plus } from 'lucide-react'
@@ -95,6 +96,50 @@ import { appendNativeDiagnostic, isNativeDiagnosticEnabled } from '@/lib/native-
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return ''
   return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+const formatJobSubtitle = (job: any) => {
+  if (!job.scheduled_date) return 'No date'
+  return `${formatDate(job.scheduled_date)}${job.scheduled_time ? ` • ${formatTime12Hour(job.scheduled_time)}` : ''}`
+}
+
+const formatTaskSubtitle = (task: any) => {
+  if (!task.due_date) return 'No due date'
+  return `${formatDate(task.due_date)}${task.due_time ? ` • ${formatTime12Hour(task.due_time)}` : ''}`
+}
+
+function dateTimeFromLocal(dateStr: string, timeStr?: string | null): number | null {
+  if (!dateStr) return null
+  const iso = timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T00:00:00`
+  const ts = Date.parse(iso)
+  return Number.isNaN(ts) ? null : ts
+}
+
+function sortJobsForDisplay(jobs: any[]): any[] {
+  return [...jobs].sort((a, b) => {
+    const aT = dateTimeFromLocal(a.scheduled_date, a.scheduled_time) ?? new Date(a.created_at).getTime()
+    const bT = dateTimeFromLocal(b.scheduled_date, b.scheduled_time) ?? new Date(b.created_at).getTime()
+    if (bT !== aT) return bT - aT
+    return String(b.id).localeCompare(String(a.id))
+  })
+}
+
+function sortTasksForDisplay(tasks: any[]): any[] {
+  return [...tasks].sort((a, b) => {
+    const aT = dateTimeFromLocal(a.due_date, a.due_time) ?? new Date(a.created_at).getTime()
+    const bT = dateTimeFromLocal(b.due_date, b.due_time) ?? new Date(b.created_at).getTime()
+    if (bT !== aT) return bT - aT
+    return String(b.id).localeCompare(String(a.id))
+  })
+}
+
+function sortPaymentsForDisplay(payments: any[]): any[] {
+  return [...payments].sort((a, b) => {
+    const aT = new Date(a.created_at).getTime()
+    const bT = new Date(b.created_at).getTime()
+    if (bT !== aT) return bT - aT
+    return String(b.id).localeCompare(String(a.id))
+  })
 }
 
 // Helper to get current customer name from canonical context
@@ -1547,11 +1592,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     latestMessageIdRef.current = currentLatestId
   }, [latestMessage?.id, reconcileConversationBottom])
 
-  // Scroll to bottom after messages load with ResizeObserver for dynamic content
-  // Uses the canonical true-bottom helper (scrollTop = scrollHeight) and a single
-  // ResizeObserver for layout-aware reconciliation. No setTimeout hacks.
-  useEffect(() => {
+  // Scroll to bottom after messages load with ResizeObserver for dynamic content.
+  // useLayoutEffect runs after DOM mutations but before paint, preventing a flash of
+  // the top of the thread on initial open.
+  useLayoutEffect(() => {
     if (!loading && messagesArray.length > 0 && !initialScrollSettledRef.current) {
+      logConversationScroll('initial-scroll-start', {
+        loading,
+        messageCount: messagesArray.length,
+        settled: initialScrollSettledRef.current,
+      })
       // Set initial scroll not ready to hide message pane during scroll
       setInitialScrollReady(false)
 
@@ -2169,6 +2219,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [leadTasks, setLeadTasks] = useState<any[]>([])
   const [appointments, setAppointments] = useState<any[]>([])
   const [loadingAppointments, setLoadingAppointments] = useState(false)
+
+  // Deterministic display order for customer-related record cards.
+  const displayJobs = useMemo(() => sortJobsForDisplay(leadJobs), [leadJobs])
+  const displayTasks = useMemo(() => sortTasksForDisplay(leadTasks), [leadTasks])
+  const displayPaymentRequests = useMemo(() => sortPaymentsForDisplay(leadData?.paymentRequests || []), [leadData?.paymentRequests])
 
   // Request generation guards for child-list fetches (stale-request rejection).
   // A stale response (older generation) is rejected before reaching reconciliation.
@@ -4144,11 +4199,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             ) : (
               <div className="space-y-2">
-                {leadJobs.slice(0, 3).map((job: any) => (
+                {displayJobs.slice(0, 3).map((job: any) => (
                   <CustomerDetailPreviewCard
                     key={job.id}
                     title={job.title || 'Job'}
-                    subtitle={`${job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}${job.scheduled_time ? ` • ${job.scheduled_time}` : ''}`}
+                    subtitle={formatJobSubtitle(job)}
                     onClick={() => handleJobCardClick(job)}
                     ariaLabel="View job details"
                     badge={
@@ -4192,11 +4247,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             ) : (
               <div className="space-y-2">
-                {leadTasks.slice(0, 3).map((task: any) => (
+                {displayTasks.slice(0, 3).map((task: any) => (
                   <CustomerDetailPreviewCard
                     key={task.id}
                     title={task.title || 'Reminder'}
-                    subtitle={`${task.due_date ? formatDate(task.due_date) : 'No due date'}${task.due_time ? ` • ${task.due_time}` : ''}`}
+                    subtitle={formatTaskSubtitle(task)}
                     onClick={() => handleTaskCardClick(task)}
                     ariaLabel="View reminder details"
                     badge={
@@ -4248,7 +4303,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    {paymentRequests.map((pr: any) => (
+                    {displayPaymentRequests.map((pr: any) => (
                       <CustomerDetailPreviewCard
                         key={pr.id}
                         title={formatCurrency(pr.amount_cents / 100)}
@@ -5594,7 +5649,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <p className="text-sm text-muted-foreground">No jobs</p>
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
-                            {leadJobs.map((job: any) => (
+                            {displayJobs.map((job: any) => (
                               <div key={job.id} onClick={() => handleJobCardClick(job)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleJobCardClick(job) } }} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg border border-slate-200/50 dark:border-transparent transition-all duration-200 cursor-pointer">
                                 <div className="flex-shrink-0 w-6 h-6 rounded bg-slate-500/10 flex items-center justify-center">
                                   <svg className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -5607,8 +5662,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     {job.customer_name || leadData?.name || 'No customer'}
                                   </p>
                                   <p className="text-xs text-muted-foreground/80">
-                                    {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                                    {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                                    {formatJobSubtitle(job)}
                                   </p>
                                 </div>
                                 <div className="flex-shrink-0 flex flex-col items-end gap-1">
@@ -5647,7 +5701,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <p className="text-sm text-muted-foreground">No open reminders</p>
                         ) : (
                           <div className="max-h-[300px] overflow-y-auto space-y-2 -mx-1 px-1">
-                            {leadTasks.map((task: any) => {
+                            {displayTasks.map((task: any) => {
                               const todayStr = new Date().toISOString().split('T')[0]
                               const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
                               const taskToday = task.due_date === todayStr && !task.completed
@@ -5672,8 +5726,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                       </span>
                                     )}
                                     <p className="text-xs text-muted-foreground/80">
-                                      {task.due_date ? formatDate(task.due_date) : 'No due date'}
-                                      {task.due_time ? ` • ${task.due_time}` : ''}
+                                      {formatTaskSubtitle(task)}
                                     </p>
                                   </div>
                                 </div>
@@ -5907,7 +5960,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Message Area - Scrollable viewport with flex-1 */}
-            <div ref={mobileConversationContainerRef} data-scroll-lock-allow className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
+            <div ref={mobileConversationContainerRef} data-scroll-lock-allow className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}>
             {/* Mobile Message Thread */}
             <div className="px-3 py-2 flex flex-col justify-end min-h-0">
               {loading ? (
@@ -6194,7 +6247,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <p className="text-xs text-muted-foreground text-center py-2">No jobs</p>
               ) : (
                 <div className="space-y-1">
-                  {(collapsedSections.jobs ? leadJobs.slice(0, 3) : leadJobs).map((job: any) => (
+                  {(collapsedSections.jobs ? displayJobs.slice(0, 3) : displayJobs).map((job: any) => (
                     <div key={job.id} onClick={() => handleJobCardClick(job)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleJobCardClick(job) } }} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors cursor-pointer">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
@@ -6202,8 +6255,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {job.customer_name || leadData?.name || 'No customer'}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                          {formatJobSubtitle(job)}
                         </p>
                       </div>
                       <div className="flex-shrink-0 flex flex-col items-end gap-1 ml-2">
@@ -6267,7 +6319,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <p className="text-xs text-muted-foreground text-center py-2">No open reminders</p>
               ) : (
                 <div className="space-y-1">
-                  {(collapsedSections.reminders ? leadTasks.slice(0, 3) : leadTasks).map((task: any) => {
+                  {(collapsedSections.reminders ? displayTasks.slice(0, 3) : displayTasks).map((task: any) => {
                     const todayStr = new Date().toISOString().split('T')[0]
                     const taskOverdue = task.due_date && task.due_date < todayStr && !task.completed
                     const taskToday = task.due_date === todayStr && !task.completed
@@ -6287,8 +6339,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             </span>
                           )}
                           <p className="text-[10px] text-muted-foreground">
-                            {task.due_date ? formatDate(task.due_date) : 'No due date'}
-                            {task.due_time ? ` • ${task.due_time}` : ''}
+                            {formatTaskSubtitle(task)}
                           </p>
                         </div>
                       </div>
@@ -6351,7 +6402,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {(leadData?.paymentRequests || []).slice(0, 3).map((pr: any) => (
+                  {displayPaymentRequests.slice(0, 3).map((pr: any) => (
                     <CustomerDetailPreviewCard
                       key={pr.id}
                       title={formatCurrency(pr.amount_cents, true)}
@@ -7406,8 +7457,7 @@ If you have questions, reply to this message.`
                   {job.title || 'Appointment'}
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  {job.scheduled_date && formatDate(job.scheduled_date)}
-                  {job.scheduled_time && ` • ${job.scheduled_time}`}
+                  {formatJobSubtitle(job)}
                 </div>
                 {job.confirmation_sms_sent_at && (
                   <div className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -7420,7 +7470,7 @@ If you have questions, reply to this message.`
                   onClick={async () => {
                     const customerName = getCustomerName(lead, leadData)
                     const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-                    const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
+                    const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${formatTime12Hour(job.scheduled_time)}.`
 
                     try {
                       // Launch SMS using shared helper

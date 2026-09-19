@@ -66,7 +66,7 @@ describe('Batch 5 — AttachmentActionSheet', () => {
 
   it('file picker uses full accept types (PDF, CSV, image, video)', () => {
     const content = readContent('src/components/conversation/AttachmentActionSheet.tsx')
-    expect(content).toContain('image/jpeg,image/png,image/gif,application/pdf,text/csv,video/mp4')
+    expect(content).toMatch(/FILE_ACCEPT|image\/jpeg,image\/png,image\/gif,application\/pdf,text\/csv,video\/mp4/)
   })
 
   it('no autoFocus on any element', () => {

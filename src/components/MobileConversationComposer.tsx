@@ -8,6 +8,7 @@ import {
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
+import { SUPPORTED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/mms-constants'
 import AttachmentActionSheet from '@/components/conversation/AttachmentActionSheet'
 
 interface MobileConversationComposerProps {
@@ -50,6 +51,7 @@ export default function MobileConversationComposer({
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const rowContainerRef = useRef<HTMLDivElement>(null)
   const sendButtonRef = useRef<HTMLButtonElement>(null)
+  const paperclipButtonRef = useRef<HTMLButtonElement>(null)
 
   // Temporary diagnostics to prove actual rendered path and attributes on Android
   React.useEffect(() => {
@@ -89,7 +91,14 @@ export default function MobileConversationComposer({
     }
   }, [onClearImages])
 
-  const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+  // Reset paperclip focus/active state when the attachment sheet closes.
+  React.useEffect(() => {
+    if (!isAttachmentSheetOpen && paperclipButtonRef.current) {
+      paperclipButtonRef.current.blur()
+    }
+  }, [isAttachmentSheetOpen])
+
+
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -275,11 +284,17 @@ export default function MobileConversationComposer({
           >
             {/* Attachment Button — opens premium action sheet */}
             <button
+              ref={paperclipButtonRef}
               type="button"
               onClick={() => setIsAttachmentSheetOpen(true)}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
+              className={`p-2 transition-all duration-200 flex-shrink-0 rounded-md h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background ${
+                isAttachmentSheetOpen
+                  ? 'text-foreground bg-muted/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+              }`}
               disabled={sending}
               aria-label="Attach image"
+              aria-pressed={isAttachmentSheetOpen}
             >
               <Paperclip className="w-5 h-5 shrink-0" />
             </button>

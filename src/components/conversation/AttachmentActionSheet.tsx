@@ -5,6 +5,7 @@ import Modal from '@/components/ui/Modal'
 import { Camera, Image as ImageIcon, FileText } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { Camera as CapacitorCamera } from '@capacitor/camera'
+import { FILE_ACCEPT, attachmentSizeHelperText } from '@/lib/mms-constants'
 
 /**
  * AttachmentActionSheet — Premium paperclip action surface
@@ -85,7 +86,7 @@ export default function AttachmentActionSheet({
   onClose,
   onPickerLaunch,
   onPickerReturn,
-  fileAccept = 'image/jpeg,image/png,image/gif,application/pdf,text/csv,video/mp4,.mp4'
+  fileAccept = FILE_ACCEPT
 }: AttachmentActionSheetProps) {
   // cameraInputRef is only used as a web/desktop fallback for Take Photo
   const cameraInputRef = useRef<HTMLInputElement>(null)
@@ -232,8 +233,11 @@ export default function AttachmentActionSheet({
         bottomSheetOnMobile
       >
         <div className="py-2">
-          <p className="text-xs text-muted-foreground font-medium mb-3 px-1">
+          <p className="text-xs text-muted-foreground font-medium mb-1 px-1">
             Attach to message
+          </p>
+          <p className="text-[10px] text-muted-foreground/70 mb-3 px-1">
+            {attachmentSizeHelperText()}
           </p>
           <div className="space-y-1">
             <button
