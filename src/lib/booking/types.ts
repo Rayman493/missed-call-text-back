@@ -18,11 +18,17 @@ export const BOOKING_REQUEST_STATUSES = [
 
 export type BookingRequestStatus = (typeof BOOKING_REQUEST_STATUSES)[number]
 
-/** Statuses whose effective window is held against other public bookers. */
+/**
+ * Statuses whose effective window is held against other public bookers.
+ * 'accepted' holds the AGREED window (hold_expires_at = agreed end) until the
+ * business converts it into the canonical Job or Appointment — closing the
+ * accept→convert double-booking gap.
+ */
 export const ACTIVE_BOOKING_STATUSES: BookingRequestStatus[] = [
   'pending',
   'business_proposed',
   'customer_reselected',
+  'accepted',
 ]
 
 export const BOOKING_EVENT_TYPES = [
@@ -33,6 +39,11 @@ export const BOOKING_EVENT_TYPES = [
   'declined',
   'cancelled',
   'expired',
+  'lead_linked',
+  'appointment_created',
+  'job_created',
+  'sms_sent',
+  'sms_failed',
 ] as const
 
 export type BookingEventType = (typeof BOOKING_EVENT_TYPES)[number]
@@ -121,3 +132,6 @@ export interface AvailableSlot {
   start: string // ISO UTC
   end: string // ISO UTC
 }
+
+/** Public-facing alias used by picker components. */
+export type BookingSlot = AvailableSlot

@@ -242,7 +242,16 @@ export const RESELECTABLE_STATUSES: BookingRequest['status'][] = [
 const HOLD_MS = 48 * 60 * 60_000 // matches the 48h default in the migration
 
 export type ReselectResult =
-  | { ok: true; alreadyApplied: boolean; status: BookingRequest['status']; start: string; end: string }
+  | {
+      ok: true
+      alreadyApplied: boolean
+      status: BookingRequest['status']
+      start: string
+      end: string
+      businessId: string
+      requestId: string
+      customerName: string
+    }
   | { ok: false; status: number; error: string }
 
 /**
@@ -268,7 +277,7 @@ export async function reselectBookingRequestTime(
   const supabase = bookingAdmin()
   const { data: request } = await supabase
     .from('booking_requests')
-    .select('id, business_id, status, requested_start, requested_end, current_proposed_start, current_proposed_end')
+    .select('id, business_id, status, customer_name, requested_start, requested_end, current_proposed_start, current_proposed_end')
     .eq('continuation_token', token)
     .maybeSingle()
 
@@ -310,7 +319,7 @@ export async function reselectBookingRequestTime(
     liveEnd === end.toISOString() &&
     request.status === 'customer_reselected'
   ) {
-    return { ok: true, alreadyApplied: true, status: request.status, start: liveStart, end: liveEnd }
+    return { ok: true, alreadyApplied: true, status: request.status, start: liveStart, end: liveEnd, businessId: request.business_id, requestId: request.id, customerName: request.customer_name }
   }
 
   // Canonical revalidation — the request's own hold does not block itself.
@@ -376,5 +385,8 @@ export async function reselectBookingRequestTime(
     status: 'customer_reselected',
     start: start.toISOString(),
     end: end.toISOString(),
+    businessId: request.business_id,
+    requestId: request.id,
+    customerName: request.customer_name,
   }
 }

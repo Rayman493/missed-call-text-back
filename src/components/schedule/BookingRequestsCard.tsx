@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CalendarPlus } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import type { BookingRequestStatus } from '@/lib/booking/types'
+import BookingRequestDetailModal from './BookingRequestDetailModal'
 
 interface BookingRequestRow {
   id: string
@@ -16,6 +17,9 @@ interface BookingRequestRow {
   current_proposed_start: string | null
   current_proposed_end: string | null
   timezone: string
+  lead_id: string | null
+  appointment_id: string | null
+  job_id: string | null
   created_at: string
 }
 
@@ -29,7 +33,7 @@ const STATUS_LABEL: Record<BookingRequestStatus, string> = {
   expired: 'Expired',
 }
 
-const STATUS_PILL: Record<BookingRequestStatus, string> = {
+const STATUS_PILL: Record<BookingRequestStatus | '_converted', string> = {
   pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
   business_proposed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
   customer_reselected: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
@@ -37,17 +41,19 @@ const STATUS_PILL: Record<BookingRequestStatus, string> = {
   declined: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   cancelled: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
   expired: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  _converted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
 }
 
 /**
- * Schedule → Overview booking foundation.
- * Shows recent booking requests + pending count. Read-only in Phase 1 —
- * accept/decline/conversion lands in a later batch.
+ * Schedule → Overview booking requests surface.
+ * Shows recent booking requests + pending count; clicking a row opens the
+ * detail/manage modal (accept, suggest, reject, create appointment/job).
  */
 export default function BookingRequestsCard() {
   const supabase = useMemo(() => createBrowserClient(), [])
   const [requests, setRequests] = useState<BookingRequestRow[] | null>(null)
   const [counts, setCounts] = useState<Record<string, number>>({})
+  const [openId, setOpenId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -98,21 +104,38 @@ export default function BookingRequestsCard() {
       </div>
 
       <ul className="divide-y divide-border/30">
-        {requests.map(r => (
-          <li key={r.id} className="flex items-center justify-between gap-3 py-2.5">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
-                {r.customer_name}
-                {r.service && <span className="font-normal text-muted-foreground"> · {r.service}</span>}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">{timeFmt(r)}</p>
-            </div>
-            <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_PILL[r.status]}`}>
-              {STATUS_LABEL[r.status]}
-            </span>
-          </li>
-        ))}
+        {requests.map(r => {
+          const converted = !!r.appointment_id || !!r.job_id
+          return (
+            <li key={r.id}>
+              <button
+                type="button"
+                onClick={() => setOpenId(r.id)}
+                className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:text-primary-600"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {r.customer_name}
+                    {r.service && <span className="font-normal text-muted-foreground"> · {r.service}</span>}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{timeFmt(r)}</p>
+                </div>
+                <span className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_PILL[converted ? '_converted' : r.status]}`}>
+                  {converted ? (r.job_id ? 'Job' : 'Appointment') : STATUS_LABEL[r.status]}
+                </span>
+              </button>
+            </li>
+          )
+        })}
       </ul>
+
+      {openId && (
+        <BookingRequestDetailModal
+          requestId={openId}
+          onClose={() => setOpenId(null)}
+          onRefresh={load}
+        />
+      )}
     </div>
   )
 }

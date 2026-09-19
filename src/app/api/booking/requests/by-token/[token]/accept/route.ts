@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { checkIpRateLimit, getClientIp } from '@/lib/rate-limit'
-import { reselectBookingRequestTime } from '@/lib/booking/requests'
+import { acceptProposedBookingTime } from '@/lib/booking/actions'
 import { notifyBookingRequest } from '@/lib/booking/notify'
 
 export const dynamic = 'force-dynamic'
@@ -8,12 +8,13 @@ export const dynamic = 'force-dynamic'
 const BODY_MAX_BYTES = 4_000
 
 /**
- * POST /api/booking/requests/by-token/[token]/reselect
- * Same-request time reselection — updates the EXISTING request identified by
- * the opaque continuation token. Never creates a second booking request,
- * never touches customer identity fields, never exposes busy-source data.
+ * POST /api/booking/requests/by-token/[token]/accept
+ * Customer accepts the business-proposed time on the SAME request —
+ * validates token + slug binding, revalidates the proposed slot
+ * (fail-closed), then status → accepted on the same row with history.
+ * Never creates a customer, job, appointment, or a second request.
  *
- * Body: { slug, start, end }
+ * Body: { slug }
  */
 export async function POST(
   request: Request,
@@ -39,23 +40,20 @@ export async function POST(
   }
 
   const slug = typeof body.slug === 'string' ? body.slug : ''
-  const start = typeof body.start === 'string' ? body.start : ''
-  const end = typeof body.end === 'string' ? body.end : ''
-
-  const result = await reselectBookingRequestTime(token, slug, start, end)
+  const result = await acceptProposedBookingTime(token, slug)
   if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: result.status })
+    return NextResponse.json({ error: result.error, code: result.code }, { status: result.status })
   }
 
-  // Business-facing notification — the customer picked a different time.
+  // Business-facing notification — the customer confirmed the suggested time.
   if (!result.alreadyApplied) {
-    await notifyBookingRequest(result.businessId, result.requestId, 'customer_reselected', result.customerName)
+    await notifyBookingRequest(result.businessId, result.requestId, 'customer_accepted', result.customerName)
   }
 
-  // Safe view only — no internal ids beyond what the URL already proves.
   return NextResponse.json({
     status: result.status,
-    proposedStart: result.start,
-    proposedEnd: result.end,
+    agreedStart: result.agreedStart,
+    agreedEnd: result.agreedEnd,
+    alreadyApplied: result.alreadyApplied,
   })
 }

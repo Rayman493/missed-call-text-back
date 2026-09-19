@@ -71,7 +71,7 @@ function truncateMessage(message: string, maxLength: number): string {
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'missed_call' | 'ai_intake_completed' | 'payment_requested' | 'payment_created' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'missed_call' | 'ai_intake_completed' | 'payment_requested' | 'payment_created' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail' | 'booking_request'
   title: string
   message: string
   data?: any
@@ -242,6 +242,16 @@ export const NOTIFICATION_TEMPLATES = {
     }
   },
 
+  booking_request: (data: { leadName?: string | null; event?: string }) => {
+    const displayName = resolveCustomerDisplayName(data.leadName ?? null, null)
+    return {
+      title: displayName === 'Customer' ? 'Booking Request' : `${displayName}`,
+      message: 'Online booking update',
+      action_url: '/dashboard/calendar',
+      action_text: 'View Schedule'
+    }
+  },
+
   // Legacy notification types for backward compatibility
   followup_sent: (data: { leadName: string; leadId: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, null)
@@ -396,6 +406,11 @@ export class NotificationServiceServer {
     } else if (data && data.voicemailId && type === 'voicemail_received') {
       // Voicemail received: dedupe by voicemail/call event ID
       idempotencyKey = `vmr_${data.voicemailId}`
+      useAtomicIdempotency = true
+    } else if (data && data.bookingRequestId && type === 'booking_request') {
+      // Booking lifecycle: dedupe per request + causal event so a retried
+      // transition (double-tap, lost response) can never spam the feed.
+      idempotencyKey = `bookreq_${data.bookingRequestId}_${data.event || 'event'}`
       useAtomicIdempotency = true
     }
 

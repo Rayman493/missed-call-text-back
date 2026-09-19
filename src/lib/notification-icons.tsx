@@ -56,6 +56,8 @@ export function getNotificationIcon(type: string): ReactElement {
       return <Calendar className="w-4 h-4" />
     case 'personal_voicemail':
       return <PhoneMissed className="w-4 h-4" />
+    case 'booking_request':
+      return <Calendar className="w-4 h-4" />
     default:
       return <Bell className="w-4 h-4" />
   }
@@ -105,6 +107,8 @@ export function getNotificationColor(type: string): string {
       return 'bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400'
     case 'personal_voicemail':
       return 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
+    case 'booking_request':
+      return 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
     default:
       return 'bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400'
   }
@@ -153,6 +157,8 @@ export function getNotificationDotColor(type: string): string {
       return 'bg-slate-400'
     case 'personal_voicemail':
       return 'bg-purple-400'
+    case 'booking_request':
+      return 'bg-blue-400'
     default:
       return 'bg-slate-400'
   }

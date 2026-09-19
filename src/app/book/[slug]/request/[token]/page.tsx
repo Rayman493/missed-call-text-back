@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getPublicBookingRequest, RESELECTABLE_STATUSES } from '@/lib/booking/requests'
 import ReselectSection from './ReselectSection'
+import AcceptProposedSection from './AcceptProposedSection'
 import type { BookingRequestStatus } from '@/lib/booking/types'
 
 export const dynamic = 'force-dynamic'
@@ -96,6 +97,17 @@ export default async function BookingRequestPage({ params }: RequestPageProps) {
     timeZone: view.timezone, hour: 'numeric', minute: '2-digit',
   }).format(new Date(view.requestedEnd))}`
 
+  const shortProposedLabel = view.proposedStart && view.proposedEnd
+    ? new Intl.DateTimeFormat('en-US', {
+        timeZone: view.timezone,
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(new Date(view.proposedStart))
+    : null
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-lg px-4 py-10 sm:py-14">
@@ -133,6 +145,18 @@ export default async function BookingRequestPage({ params }: RequestPageProps) {
               <dd className="font-medium text-slate-900 text-right">{view.customerName}</dd>
             </div>
           </dl>
+
+          {/* Customer accepts the business-proposed time. */}
+          {view.businessSlug && view.status === 'business_proposed' && shortProposedLabel && (
+            <div className="mt-6">
+              <AcceptProposedSection
+                token={token}
+                slug={view.businessSlug}
+                businessName={view.businessName}
+                proposedLabel={shortProposedLabel}
+              />
+            </div>
+          )}
 
           {/* Same-request reselection — one negotiation stays one request.
               Only active statuses may re-pick a time on this identity. */}

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { checkIpRateLimit, getClientIp } from '@/lib/rate-limit'
 import { getPublicBookingBusiness } from '@/lib/booking/settings'
 import { createBookingRequest } from '@/lib/booking/requests'
+import { notifyBookingRequest } from '@/lib/booking/notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,6 +57,13 @@ export async function POST(
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status })
+  }
+
+  // Business-facing notification — a genuinely new request arrived
+  // (idempotent replays of the same clientRequestId never re-notify).
+  if (!result.alreadyExisted) {
+    const created = result.request
+    await notifyBookingRequest(business.businessId, created.id, 'new_request', created.customer_name)
   }
 
   // Return only what the continuation page needs — no internal ids.

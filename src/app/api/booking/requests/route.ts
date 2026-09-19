@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('booking_requests')
     .select(
-      'id, status, customer_name, customer_phone, customer_email, customer_address, service, notes, requested_start, requested_end, current_proposed_start, current_proposed_end, timezone, hold_expires_at, created_at',
+      'id, status, customer_name, customer_phone, customer_email, customer_address, service, notes, requested_start, requested_end, current_proposed_start, current_proposed_end, timezone, hold_expires_at, lead_id, appointment_id, job_id, created_at',
       { count: 'exact' }
     )
     .eq('business_id', auth.businessId)
