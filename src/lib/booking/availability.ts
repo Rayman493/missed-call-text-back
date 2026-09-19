@@ -204,6 +204,7 @@ export async function computeBookingAvailability(
   businessId: string,
   days?: number,
   excludeRequestId?: string,
+  durationMin?: number,
 ): Promise<ComputeAvailabilityResult> {
   let bundle
   try {
@@ -230,7 +231,7 @@ export async function computeBookingAvailability(
     windows,
     exceptions: exceptions.map(e => ({ start: new Date(e.start_at), end: new Date(e.end_at) })),
     busy: busyResult.busy,
-    durationMin: settings.default_duration_minutes,
+    durationMin: durationMin ?? settings.default_duration_minutes,
     intervalMin: settings.slot_interval_minutes,
     minNoticeMin: settings.min_notice_minutes,
     horizonDays: horizon,
@@ -252,6 +253,7 @@ export async function revalidateBookingSlot(
   startIso: string,
   endIso: string,
   excludeRequestId?: string,
+  durationMin?: number,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   let bundle
   try {
@@ -287,7 +289,7 @@ export async function revalidateBookingSlot(
     windows,
     exceptions: exceptions.map(e => ({ start: new Date(e.start_at), end: new Date(e.end_at) })),
     busy: busyResult.busy,
-    durationMin: settings.default_duration_minutes,
+    durationMin: durationMin ?? settings.default_duration_minutes,
     intervalMin: settings.slot_interval_minutes,
     minNoticeMin: settings.min_notice_minutes,
     horizonDays: settings.booking_window_days,

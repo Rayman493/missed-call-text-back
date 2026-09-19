@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { showToast } from '@/lib/toast'
 import { bookingPagePath, bookingPageUrl } from '@/lib/booking/url'
+import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import type { BookingException, BookingHoursRow, BookingSettings } from '@/lib/booking/types'
 
 interface SettingsPayload {
@@ -19,6 +20,16 @@ interface SettingsPayload {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Monday-first display
+
+const DURATION_OPTIONS = [30, 45, 60, 90, 120, 180, 240, 360, 480]
+
+function durationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} minutes`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (m === 0) return h === 1 ? '1 hour' : `${h} hours`
+  return `${h} hour${h > 1 ? 's' : ''} ${m} minutes`
+}
 
 interface DayDraft {
   open: boolean
@@ -380,13 +391,13 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-muted-foreground">Booking length</span>
-              <select value={duration} onChange={e => setDuration(Number(e.target.value))} className={`${inputCls} w-full`}>
-                {[30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
+              <select value={duration} onChange={e => setDuration(Number(e.target.value))} className={`${inputCls} w-full appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-[length:1rem] bg-[right_0.65rem_center] bg-no-repeat pr-9`}>
+                {DURATION_OPTIONS.map(m => <option key={m} value={m}>{durationLabel(m)}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-muted-foreground">Minimum notice</span>
-              <select value={minNotice} onChange={e => setMinNotice(Number(e.target.value))} className={`${inputCls} w-full`}>
+              <select value={minNotice} onChange={e => setMinNotice(Number(e.target.value))} className={`${inputCls} w-full appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-[length:1rem] bg-[right_0.65rem_center] bg-no-repeat pr-9`}>
                 <option value={0}>None</option>
                 <option value={60}>1 hour</option>
                 <option value={120}>2 hours</option>
@@ -397,7 +408,7 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-muted-foreground">How far ahead</span>
-              <select value={windowDays} onChange={e => setWindowDays(Number(e.target.value))} className={`${inputCls} w-full`}>
+              <select value={windowDays} onChange={e => setWindowDays(Number(e.target.value))} className={`${inputCls} w-full appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-[length:1rem] bg-[right_0.65rem_center] bg-no-repeat pr-9`}>
                 <option value={14}>2 weeks</option>
                 <option value={30}>1 month</option>
                 <option value={60}>2 months</option>
@@ -438,7 +449,7 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
                   className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-border"
                 />
                 <span className="min-w-0">
-                  Use my business hours (Mon–Fri {businessHours.start}–{businessHours.end})
+                  Use my business hours (Mon–Fri {formatTime12Hour(businessHours.start)}–{formatTime12Hour(businessHours.end)})
                 </span>
               </label>
             )}
@@ -523,14 +534,23 @@ export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: 
                 <input type="text" value={exLabel} onChange={e => setExLabel(e.target.value)}
                   maxLength={200} placeholder="e.g. Vacation" className={`${inputCls} w-full`} />
               </label>
-              <button
-                type="button"
-                onClick={handleAddException}
-                disabled={!exStart || exSaving}
-                className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-300"
-              >
-                {exSaving ? 'Adding…' : 'Block dates'}
-              </button>
+              {(() => {
+                const canBlock = Boolean(exStart && exEnd && exStart <= exEnd && !exSaving)
+                return (
+                  <button
+                    type="button"
+                    onClick={handleAddException}
+                    disabled={!canBlock}
+                    className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                      canBlock
+                        ? 'bg-slate-800 text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-300'
+                        : 'cursor-not-allowed bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {exSaving ? 'Adding…' : 'Block dates'}
+                  </button>
+                )
+              })()}
             </div>
           </div>
         </>

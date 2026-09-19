@@ -3,6 +3,7 @@ import { checkIpRateLimit, getClientIp } from '@/lib/rate-limit'
 import { getPublicBookingBusiness, bookingAdmin } from '@/lib/booking/settings'
 import { computeBookingAvailability } from '@/lib/booking/availability'
 import { isValidContinuationToken } from '@/lib/booking/tokens'
+import { bookingRequestDurationMinutes } from '@/lib/booking/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,21 +40,27 @@ export async function GET(
   const daysParam = Number(url.searchParams.get('days'))
   const days = Number.isFinite(daysParam) && daysParam > 0 ? Math.min(daysParam, 60) : undefined
 
-  // Optional own-hold exclusion for same-request reselection.
+  // Optional own-hold exclusion for same-request reselection. When a token is
+  // present, freeze the request's existing interval duration so reselection
+  // does not change the booking length if the business later changed settings.
   let excludeRequestId: string | undefined
+  let durationMin: number | undefined
   const token = url.searchParams.get('token')
   if (token && isValidContinuationToken(token)) {
     const { data: req } = await bookingAdmin()
       .from('booking_requests')
-      .select('id')
+      .select('id, requested_start, requested_end, current_proposed_start, current_proposed_end')
       .eq('continuation_token', token)
       .eq('business_id', business.businessId)
       .maybeSingle()
-    if (req) excludeRequestId = req.id
+    if (req) {
+      excludeRequestId = req.id
+      durationMin = bookingRequestDurationMinutes(req)
+    }
   }
 
   try {
-    const result = await computeBookingAvailability(business.businessId, days, excludeRequestId)
+    const result = await computeBookingAvailability(business.businessId, days, excludeRequestId, durationMin)
     if (!result.ok) {
       if (result.reason === 'booking_disabled') {
         return NextResponse.json({ error: 'Booking page not found' }, { status: 404 })

@@ -763,9 +763,14 @@ describe('same-request reselection', () => {
     expect(fn).toContain('can no longer be changed')
   })
 
-  it('revalidates the new slot with own-hold exclusion', () => {
+  it('revalidates the new slot with own-hold exclusion and frozen duration', () => {
     const fn = requestLib.slice(requestLib.indexOf('reselectBookingRequestTime'))
-    expect(fn).toContain('revalidateBookingSlot(request.business_id, startIso, endIso, request.id)')
+    expect(fn).toContain('revalidateBookingSlot(')
+    expect(fn).toContain('request.business_id')
+    expect(fn).toContain('startIso')
+    expect(fn).toContain('endIso')
+    expect(fn).toContain('request.id')
+    expect(fn).toContain('bookingRequestDurationMinutes(request)')
     // own hold must NOT block the customer's own reselection
     expect(availabilityLib).toContain("neq('id', excludeRequestId)")
   })

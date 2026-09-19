@@ -130,4 +130,57 @@ describe('isSlotAvailable revalidation', () => {
     })
     expect(result).toEqual({ ok: false, reason: 'too_soon' })
   })
+
+  it('rejects a 2-hour slot that would exceed closing time at 5:00 PM', () => {
+    const result = isSlotAvailable({
+      ...base,
+      durationMin: 120,
+      start: new Date('2026-09-21T20:00:00.000Z'), // 4:00 PM NY
+      end: new Date('2026-09-21T22:00:00.000Z'),   // 6:00 PM NY
+    })
+    expect(result).toEqual({ ok: false, reason: 'outside_hours' })
+  })
+
+  it('approves a 2-hour slot that fits entirely inside business hours', () => {
+    const result = isSlotAvailable({
+      ...base,
+      durationMin: 120,
+      start: new Date('2026-09-21T19:00:00.000Z'), // 3:00 PM NY
+      end: new Date('2026-09-21T21:00:00.000Z'),   // 5:00 PM NY
+    })
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('allows a candidate that only touches the end boundary of a hold (half-open)', () => {
+    const result = isSlotAvailable({
+      ...base,
+      durationMin: 60,
+      busy: [{ start: new Date('2026-09-21T17:00:00.000Z'), end: new Date('2026-09-21T19:00:00.000Z') }], // 1–3 PM NY
+      start: new Date('2026-09-21T19:00:00.000Z'), // 3:00 PM NY
+      end: new Date('2026-09-21T20:00:00.000Z'),   // 4:00 PM NY
+    })
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('blocks a candidate that overlaps the end boundary of a hold', () => {
+    const result = isSlotAvailable({
+      ...base,
+      durationMin: 60,
+      busy: [{ start: new Date('2026-09-21T17:00:00.000Z'), end: new Date('2026-09-21T19:00:00.000Z') }], // 1–3 PM NY
+      start: new Date('2026-09-21T18:30:00.000Z'), // 2:30 PM NY
+      end: new Date('2026-09-21T19:30:00.000Z'),   // 3:30 PM NY
+    })
+    expect(result).toEqual({ ok: false, reason: 'conflict' })
+  })
+
+  it('allows a candidate that only touches the start boundary of a hold', () => {
+    const result = isSlotAvailable({
+      ...base,
+      durationMin: 60,
+      busy: [{ start: new Date('2026-09-21T17:00:00.000Z'), end: new Date('2026-09-21T19:00:00.000Z') }], // 1–3 PM NY
+      start: new Date('2026-09-21T16:00:00.000Z'), // 12:00 PM NY
+      end: new Date('2026-09-21T17:00:00.000Z'),   // 1:00 PM NY
+    })
+    expect(result).toEqual({ ok: true })
+  })
 })

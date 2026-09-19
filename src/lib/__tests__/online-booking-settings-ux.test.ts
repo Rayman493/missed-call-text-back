@@ -212,3 +212,75 @@ describe('booking URL helper', () => {
     expect(bookingPageUrl('acme-co', 'https://replyflowhq.com/')).toBe('https://replyflowhq.com/book/acme-co')
   })
 })
+
+describe('booking settings time + duration + logo polish', () => {
+  const section = readFileSync('src/components/settings/OnlineBookingSection.tsx', 'utf8')
+  const settingsContent = readFileSync('src/components/SettingsContent.tsx', 'utf8')
+  const logo = readFileSync('src/components/billing/BusinessLogoSettings.tsx', 'utf8')
+  const publicBooking = readFileSync('src/app/book/[slug]/PublicBookingClient.tsx', 'utf8')
+
+  it('uses the shared 12-hour formatter for business-hours summary', () => {
+    expect(section).toMatch(/import.*formatTime12Hour/)
+    expect(section).toMatch(/Use my business hours \(Mon–Fri \{formatTime12Hour\(businessHours\.start\)\}–\{formatTime12Hour\(businessHours\.end\)\}\)/)
+  })
+
+  it('does not render raw 24-hour business hours in the summary', () => {
+    expect(section).not.toMatch(/Mon–Fri \{businessHours\.start\}–\{businessHours\.end\}/)
+  })
+
+  it('supports the requested longer duration options', () => {
+    expect(section).toMatch(/\[30, 45, 60, 90, 120, 180, 240, 360, 480\]/)
+  })
+
+  it('uses human-friendly duration labels', () => {
+    expect(section).toMatch(/function durationLabel/)
+    expect(section).toMatch(/\$\{minutes\} minutes/)
+    expect(section).toMatch(/1 hour/)
+    expect(section).toMatch(/\$\{h\} hour\$\{h > 1 \? 's' : ''\} \$\{m\} minutes/)
+    expect(section).toMatch(/\$\{h\} hours/)
+    expect(section).not.toMatch(/480 min\b/)
+  })
+
+  it('styles select chevrons with appearance-none and right padding', () => {
+    const selectCount = (section.match(/<select/g) ?? []).length
+    const appearanceNoneCount = (section.match(/appearance-none/g) ?? []).length
+    expect(selectCount).toBeGreaterThanOrEqual(3)
+    expect(appearanceNoneCount).toBeGreaterThanOrEqual(selectCount)
+    expect(section).toMatch(/bg-\[length:1rem\]/)
+    expect(section).toMatch(/bg-\[right_0\.65rem_center\]/)
+    expect(section).toMatch(/pr-9/)
+  })
+
+  it('disables Block dates when range is invalid and styles it as disabled', () => {
+    expect(section).toMatch(/const canBlock = Boolean\(exStart && exEnd && exStart <= exEnd && !exSaving\)/)
+    expect(section).toMatch(/disabled=\{!canBlock\}/)
+    expect(section).toMatch(/cursor-not-allowed bg-muted text-muted-foreground/)
+    expect(section).not.toMatch(/disabled=\{!exStart \|\| exSaving\}/)
+  })
+
+  it('updates logo helper copy to mention public booking page', () => {
+    expect(logo).toMatch(/Used on quotes, invoices, and your public booking page\./)
+  })
+
+  it('logo remove has a dedicated removing state and disables both buttons', () => {
+    expect(logo).toMatch(/const \[removing, setRemoving\] = useState/)
+    expect(logo).toMatch(/const isBusy = uploading \|\| removing/)
+    expect(logo).toMatch(/disabled=\{isBusy\}/)
+    expect(logo).toMatch(/\{removing \? 'Removing…' : 'Remove'\}/)
+    expect(logo).toMatch(/\{uploading \? 'Uploading…' : logoUrl \? 'Replace' : 'Upload Logo'\}/)
+  })
+
+  it('settings page prefers the explicit form logo state so a removed logo preview clears immediately', () => {
+    expect(settingsContent).toMatch(/formBusiness \? \(formBusiness\.logo_url \?\? null\) : \(business\.logo_url \?\? null\)/)
+  })
+
+  it('public booking inputs keep a white surface while focused and handle autofill', () => {
+    expect(publicBooking).toMatch(/focus:bg-white/)
+    expect(publicBooking).toMatch(/autofill:shadow-\[inset_0_0_0_1000px_white\]/)
+    expect(publicBooking).toMatch(/autofill:focus:shadow-\[inset_0_0_0_1000px_white\]/)
+  })
+
+  it('public booking time formatter pins 12-hour output explicitly', () => {
+    expect(publicBooking).toMatch(/hour12: true,/)
+  })
+})

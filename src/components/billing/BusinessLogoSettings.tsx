@@ -36,8 +36,10 @@ interface BusinessLogoSettingsProps {
 
 export default function BusinessLogoSettings({ businessId, logoUrl, onLogoChange }: BusinessLogoSettingsProps) {
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isBusy = uploading || removing
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -96,8 +98,9 @@ export default function BusinessLogoSettings({ businessId, logoUrl, onLogoChange
   }
 
   const handleRemove = async () => {
+    if (isBusy || !logoUrl) return
     setError('')
-    setUploading(true)
+    setRemoving(true)
     try {
       const { createBrowserClient } = await import('@/lib/supabase/browser')
       const supabase = createBrowserClient()
@@ -116,7 +119,7 @@ export default function BusinessLogoSettings({ businessId, logoUrl, onLogoChange
       console.error('[BUSINESS LOGO] Remove error:', err)
       setError(friendlyStorageError(err))
     } finally {
-      setUploading(false)
+      setRemoving(false)
     }
   }
 
@@ -124,7 +127,7 @@ export default function BusinessLogoSettings({ businessId, logoUrl, onLogoChange
     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-2">Business Logo</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">Used on quotes and invoices.</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">Used on quotes, invoices, and your public booking page.</p>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
@@ -151,21 +154,23 @@ export default function BusinessLogoSettings({ businessId, logoUrl, onLogoChange
               className="hidden"
             />
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={isBusy}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {logoUrl ? 'Replace' : 'Upload Logo'}
+              {uploading ? 'Uploading…' : logoUrl ? 'Replace' : 'Upload Logo'}
             </button>
             {logoUrl && (
               <button
+                type="button"
                 onClick={handleRemove}
-                disabled={uploading}
+                disabled={isBusy}
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors disabled:opacity-50"
               >
-                <Trash2 className="w-4 h-4" />
-                Remove
+                {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {removing ? 'Removing…' : 'Remove'}
               </button>
             )}
           </div>

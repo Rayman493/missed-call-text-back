@@ -185,7 +185,7 @@ export default function PublicBookingClient({
   const timeFmt = useMemo(
     () =>
       new Intl.DateTimeFormat('en-US', {
-        timeZone: timezone, hour: 'numeric', minute: '2-digit',
+        timeZone: timezone, hour: 'numeric', minute: '2-digit', hour12: true,
       }),
     [timezone]
   )
@@ -240,7 +240,7 @@ export default function PublicBookingClient({
   }
 
   const inputClass =
-    'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 autofill:shadow-[inset_0_0_0_1000px_white] autofill:[-webkit-text-fill-color:theme(colors.slate.900)]'
+    'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 shadow-sm transition-colors focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 autofill:shadow-[inset_0_0_0_1000px_white] autofill:focus:shadow-[inset_0_0_0_1000px_white] autofill:[-webkit-text-fill-color:theme(colors.slate.900)]'
   const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5'
   const cardClass = 'rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05)]'
 

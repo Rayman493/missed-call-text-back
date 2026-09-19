@@ -9,8 +9,11 @@
 import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import { bookingAdmin } from './settings'
 import { revalidateBookingSlot } from './availability'
+import { bookingRequestDurationMinutes } from './actions'
 import { generateContinuationToken, isValidContinuationToken } from './tokens'
 import type { BookingRequest } from './types'
+
+export { bookingRequestDurationMinutes } from './actions'
 
 export { generateContinuationToken, isValidContinuationToken }
 
@@ -213,7 +216,7 @@ export async function getPublicBookingRequest(token: string): Promise<{
     .maybeSingle()
   const { data: settings } = await supabase
     .from('booking_settings')
-    .select('public_slug, default_duration_minutes')
+    .select('public_slug')
     .eq('business_id', request.business_id)
     .maybeSingle()
 
@@ -221,7 +224,7 @@ export async function getPublicBookingRequest(token: string): Promise<{
     businessName: business?.name ?? 'the business',
     businessSlug: settings?.public_slug ?? null,
     timezone: request.timezone,
-    durationMinutes: settings?.default_duration_minutes ?? null,
+    durationMinutes: bookingRequestDurationMinutes(request),
     status: request.status,
     requestedStart: request.requested_start,
     requestedEnd: request.requested_end,
@@ -323,7 +326,14 @@ export async function reselectBookingRequestTime(
   }
 
   // Canonical revalidation — the request's own hold does not block itself.
-  const slot = await revalidateBookingSlot(request.business_id, startIso, endIso, request.id)
+  // Existing-request duration is frozen so it cannot be resized by a settings change.
+  const slot = await revalidateBookingSlot(
+    request.business_id,
+    startIso,
+    endIso,
+    request.id,
+    bookingRequestDurationMinutes(request),
+  )
   if (!slot.ok) {
     if (slot.reason === 'availability_unavailable') {
       return {

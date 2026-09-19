@@ -57,6 +57,16 @@ export function agreedWindow(request: Pick<BookingRequest, 'requested_start' | '
   }
 }
 
+/** Stable duration of an existing booking request in minutes. */
+export function bookingRequestDurationMinutes(
+  request: Pick<BookingRequest, 'requested_start' | 'requested_end' | 'current_proposed_start' | 'current_proposed_end'>,
+): number {
+  const { start, end } = agreedWindow(request)
+  if (!start || !end) return 0
+  const ms = new Date(end).getTime() - new Date(start).getTime()
+  return Math.max(0, Math.round(ms / 60_000))
+}
+
 async function resolveBookingCustomer(request: BookingRequest): Promise<EnsureLeadResult> {
   // Dynamic import keeps the server-only customer-resolution module out of
   // the module-load graph for lightweight tests that only import helpers.
@@ -297,7 +307,7 @@ export async function proposeBookingRequestTime(
     return { ok: true, alreadyApplied: true, status: request.status, agreedStart: liveStart, agreedEnd: liveEnd, request, sms: 'none' }
   }
 
-  const slot = await revalidateBookingSlot(businessId, startIso, endIso, request.id)
+  const slot = await revalidateBookingSlot(businessId, startIso, endIso, request.id, bookingRequestDurationMinutes(request))
   if (!slot.ok) {
     if (slot.reason === 'availability_unavailable') {
       return { ok: false, status: 503, error: 'Availability is temporarily unavailable. Please try again shortly.', code: 'availability_unavailable' }
@@ -402,7 +412,7 @@ export async function acceptProposedBookingTime(
 
   const start = request.current_proposed_start
   const end = request.current_proposed_end
-  const slot = await revalidateBookingSlot(request.business_id, start, end, request.id)
+  const slot = await revalidateBookingSlot(request.business_id, start, end, request.id, bookingRequestDurationMinutes(request))
   if (!slot.ok) {
     if (slot.reason === 'availability_unavailable') {
       return { ok: false, status: 503, error: 'Availability is temporarily unavailable. Please try again shortly.', code: 'availability_unavailable' }

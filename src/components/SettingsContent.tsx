@@ -27,6 +27,7 @@ import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
 import { normalizePaypalUsername } from '@/lib/payment-links'
+import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import Navigation from '@/components/Navigation'
 import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
@@ -1166,19 +1167,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       .replace(/Final follow-up from undefined/g, 'Final follow-up from our team')
       .replace(/Final follow-up from null/g, 'Final follow-up from our team')
     return normalized
-  }
-
-  // Helper to format 24-hour time (HH:MM) to 12-hour format with AM/PM
-  const formatTime12Hour = (time24: string | null | undefined): string => {
-    if (!time24) return ''
-    const [hours, minutes] = time24.split(':')
-    if (!hours || !minutes) return time24
-
-    const hour = parseInt(hours, 10)
-    const period = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour % 12 || 12 // Convert 0 to 12
-
-    return `${hour12}:${minutes} ${period}`
   }
 
   // Helper to get follow-up settings with defaults
@@ -3348,7 +3336,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 {business && (
                   <BusinessLogoSettings
                     businessId={business.id}
-                    logoUrl={formBusiness?.logo_url || business.logo_url || null}
+                    logoUrl={formBusiness ? (formBusiness.logo_url ?? null) : (business.logo_url ?? null)}
                     onLogoChange={(url) => {
                       updateBusiness({ logo_url: url })
                     }}
@@ -3433,7 +3421,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </p>
                           {formBusiness.business_hours_enabled && (
                             <div className="text-xs text-muted-foreground space-y-0.5">
-                              <p className="font-medium text-foreground">Monday–Friday · {formatTime12Hour(formBusiness.business_hours_start)}–{formatTime12Hour(formBusiness.business_hours_end)}</p>
+                              <p className="font-medium text-foreground">Monday–Friday · {formatTime12Hour(formBusiness.business_hours_start || null)}–{formatTime12Hour(formBusiness.business_hours_end || null)}</p>
                               <p>{formBusiness.business_hours_timezone === 'America/New_York' ? 'Eastern Time' : formBusiness.business_hours_timezone === 'America/Chicago' ? 'Central Time' : formBusiness.business_hours_timezone === 'America/Denver' ? 'Mountain Time' : formBusiness.business_hours_timezone === 'America/Los_Angeles' ? 'Pacific Time' : formBusiness.business_hours_timezone}</p>
                             </div>
                           )}

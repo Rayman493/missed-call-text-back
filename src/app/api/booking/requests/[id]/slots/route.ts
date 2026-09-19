@@ -3,6 +3,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { getAuthedBusiness } from '@/lib/booking/api-auth'
 import { bookingAdmin } from '@/lib/booking/settings'
 import { computeBookingAvailability } from '@/lib/booking/availability'
+import { bookingRequestDurationMinutes } from '@/lib/booking/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,13 +24,13 @@ export async function GET(
   const { id } = await params
   const { data: req } = await bookingAdmin()
     .from('booking_requests')
-    .select('id, requested_start, current_proposed_start, timezone')
+    .select('id, requested_start, requested_end, current_proposed_start, current_proposed_end, timezone')
     .eq('id', id)
     .eq('business_id', auth.businessId)
     .maybeSingle()
   if (!req) return NextResponse.json({ error: 'Booking request not found' }, { status: 404 })
 
-  const result = await computeBookingAvailability(auth.businessId, undefined, req.id)
+  const result = await computeBookingAvailability(auth.businessId, undefined, req.id, bookingRequestDurationMinutes(req))
   if (!result.ok) {
     if (result.reason === 'availability_unavailable') {
       return NextResponse.json({ error: 'availability_temporarily_unavailable' }, { status: 503 })
