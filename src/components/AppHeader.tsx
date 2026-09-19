@@ -58,10 +58,10 @@ export default function AppHeader({
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 pt-4 sm:pt-4.5 pb-1 sm:pb-1.5 border-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}>
           <div className="flex items-center justify-between h-11">
             {/* Left side - Logo and navigation */}
-            <div className="flex items-center gap-2 md:gap-4 lg:gap-8">
+            <div className="flex min-w-0 items-center gap-2 md:gap-4 lg:gap-8">
               {/* Logo */}
               <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-1.5 md:gap-2 rounded-full px-1.5 py-1 hover:bg-muted/10 active:bg-muted/15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none flex-shrink-0">
-                <BrandIcon size={56} />
+                <BrandIcon size={40} />
                 <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight leading-none hidden sm:inline">
                   <span className="text-foreground">ReplyFlow</span>
                   <span className="bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">HQ</span>
@@ -69,13 +69,13 @@ export default function AppHeader({
               </Link>
 
               {/* Desktop navigation - only visible on desktop (lg breakpoint) */}
-              <div className="hidden lg:flex items-center">
+              <div className="hidden lg:flex min-w-0 items-center">
                 {showNavigation && <Navigation />}
               </div>
             </div>
 
             {/* Right side - Utility actions grouped together */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
               {/* Notifications - visible on all screen sizes */}
               <NavbarNotifications />
 

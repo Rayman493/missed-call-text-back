@@ -33,6 +33,8 @@ export default function PublicBookingClient({
   const [slots, setSlots] = useState<Slot[] | null>(null)
   const [slotsError, setSlotsError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Slot | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [viewMonth, setViewMonth] = useState<{ year: number; month: number } | null>(null)
 
   const [service, setService] = useState('')
   const [name, setName] = useState('')
@@ -71,24 +73,113 @@ export default function PublicBookingClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
-  // Group slots by day in the business timezone.
-  const dayGroups = useMemo(() => {
-    if (!slots) return []
-    const dayFmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone, weekday: 'short', month: 'short', day: 'numeric',
-    })
-    const keyFmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
-    })
-    const groups = new Map<string, { label: string; slots: Slot[] }>()
+  // Group slots by local date in the business timezone → drives the calendar.
+  // en-CA formats as YYYY-MM-DD which is a sortable map key.
+  const dateKeyFmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+      }),
+    [timezone]
+  )
+
+  const slotsByDate = useMemo(() => {
+    const map = new Map<string, Slot[]>()
+    if (!slots) return map
     for (const slot of slots) {
-      const date = new Date(slot.start)
-      const key = keyFmt.format(date)
-      if (!groups.has(key)) groups.set(key, { label: dayFmt.format(date), slots: [] })
-      groups.get(key)!.slots.push(slot)
+      const key = dateKeyFmt.format(new Date(slot.start))
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(slot)
     }
-    return [...groups.values()]
-  }, [slots, timezone])
+    return map
+  }, [slots, dateKeyFmt])
+
+  const dateLabelFmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone, weekday: 'long', month: 'long', day: 'numeric',
+      }),
+    [timezone]
+  )
+
+  // Display label for the currently-selected day, taken from that day's first
+  // slot so it is guaranteed to be in the business timezone.
+  const selectedDateLabel = useMemo(() => {
+    if (!selectedDate) return null
+    const daySlots = slotsByDate.get(selectedDate)
+    if (!daySlots?.length) return null
+    return dateLabelFmt.format(new Date(daySlots[0].start))
+  }, [selectedDate, slotsByDate, dateLabelFmt])
+
+  // Business-local "today" — month navigation can't go before this month.
+  const currentMonth = useMemo(() => {
+    const [y, m] = dateKeyFmt.format(new Date()).split('-').map(Number)
+    return { year: y, month: m }
+  }, [dateKeyFmt])
+
+  // Furthest month reachable within the booking horizon — derived from the
+  // last returned slot so no internals are exposed to the customer.
+  const lastMonth = useMemo(() => {
+    const keys = [...slotsByDate.keys()].sort()
+    const last = keys[keys.length - 1]
+    if (!last) return currentMonth
+    const [y, m] = last.split('-').map(Number)
+    return { year: y, month: m }
+  }, [slotsByDate, currentMonth])
+
+  // Initialize the calendar on the month of the first available day.
+  useEffect(() => {
+    if (viewMonth || slotsByDate.size === 0) return
+    const firstKey = [...slotsByDate.keys()].sort()[0]
+    const [y, m] = firstKey.split('-').map(Number)
+    setViewMonth({ year: y, month: m })
+  }, [slotsByDate, viewMonth])
+
+  const monthLabel = useMemo(() => {
+    if (!viewMonth) return ''
+    return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' })
+      .format(new Date(viewMonth.year, viewMonth.month - 1, 1))
+  }, [viewMonth])
+
+  const canGoPrev = viewMonth !== null &&
+    (viewMonth.year > currentMonth.year ||
+      (viewMonth.year === currentMonth.year && viewMonth.month > currentMonth.month))
+  const canGoNext = viewMonth !== null &&
+    (viewMonth.year < lastMonth.year ||
+      (viewMonth.year === lastMonth.year && viewMonth.month < lastMonth.month))
+
+  const shiftMonth = (delta: number) => {
+    setViewMonth(prev => {
+      if (!prev) return prev
+      const d = new Date(prev.year, prev.month - 1 + delta, 1)
+      return { year: d.getFullYear(), month: d.getMonth() + 1 }
+    })
+  }
+
+  // Calendar grid cells for the viewed month. Cells are business-local wall
+  // dates, so the key is a direct yyyy-mm-dd — no timezone conversion needed.
+  const calendarCells = useMemo(() => {
+    if (!viewMonth) return []
+    const first = new Date(viewMonth.year, viewMonth.month - 1, 1)
+    const daysInMonth = new Date(viewMonth.year, viewMonth.month, 0).getDate()
+    const cells: ({ key: string; day: number } | null)[] = []
+    for (let i = 0; i < first.getDay(); i++) cells.push(null)
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = `${viewMonth.year}-${String(viewMonth.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      cells.push({ key, day: d })
+    }
+    return cells
+  }, [viewMonth])
+
+  const handleSelectDate = (key: string) => {
+    setSelectedDate(key)
+    // Changing the day invalidates a slot picked on another day.
+    if (selected && dateKeyFmt.format(new Date(selected.start)) !== key) {
+      setSelected(null)
+    }
+  }
+
+  const selectedDaySlots = selectedDate ? slotsByDate.get(selectedDate) ?? [] : []
 
   const timeFmt = useMemo(
     () =>
@@ -148,8 +239,9 @@ export default function PublicBookingClient({
   }
 
   const inputClass =
-    'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100'
+    'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 placeholder-slate-400 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 autofill:shadow-[inset_0_0_0_1000px_white] autofill:[-webkit-text-fill-color:theme(colors.slate.900)]'
   const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5'
+  const cardClass = 'rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05)]'
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -170,7 +262,7 @@ export default function PublicBookingClient({
 
         <div className="space-y-6">
           {/* What do you need */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className={cardClass}>
             <label htmlFor="service" className={labelClass}>
               What do you need?
             </label>
@@ -185,9 +277,9 @@ export default function PublicBookingClient({
             />
           </section>
 
-          {/* Time selection */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-1 text-sm font-medium text-slate-700">Pick a time</h2>
+          {/* Time selection — calendar-first */}
+          <section className={cardClass}>
+            <h2 className="mb-1 text-sm font-medium text-slate-700">Pick a day and time</h2>
             <p className="mb-4 text-xs text-slate-500">
               {durationMinutes}-minute visits · times shown in {timezone.replace(/_/g, ' ')}
             </p>
@@ -202,14 +294,14 @@ export default function PublicBookingClient({
                 <button
                   type="button"
                   onClick={loadSlots}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
                   Try again
                 </button>
               </div>
             )}
 
-            {slots !== null && !slotsError && slots.length === 0 && (
+            {slots !== null && !slotsError && slotsByDate.size === 0 && (
               <div className="py-8 text-center">
                 <p className="text-sm font-medium text-slate-700">No times available right now</p>
                 <p className="mt-1 text-sm text-slate-500">
@@ -218,34 +310,105 @@ export default function PublicBookingClient({
               </div>
             )}
 
-            {dayGroups.map(group => (
-              <div key={group.label} className="mb-4 last:mb-0">
-                <p className="mb-2 text-sm font-semibold text-slate-800">{group.label}</p>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {group.slots.map(slot => {
-                    const isSelected = selected?.start === slot.start
-                    return (
+            {slotsByDate.size > 0 && viewMonth && (
+              <>
+                {/* Month calendar */}
+                <div className="rounded-xl border border-slate-200/80 p-3 sm:p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-800">{monthLabel}</p>
+                    <div className="flex items-center gap-1">
                       <button
-                        key={slot.start}
                         type="button"
-                        onClick={() => setSelected(slot)}
-                        className={`rounded-lg border px-2 py-2.5 text-sm font-medium transition-colors ${
-                          isSelected
-                            ? 'border-blue-600 bg-blue-600 text-white'
-                            : 'border-slate-300 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700'
-                        }`}
+                        onClick={() => shiftMonth(-1)}
+                        disabled={!canGoPrev}
+                        aria-label="Previous month"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
                       >
-                        {timeFmt.format(new Date(slot.start))}
+                        ‹
                       </button>
-                    )
-                  })}
+                      <button
+                        type="button"
+                        onClick={() => shiftMonth(1)}
+                        disabled={!canGoNext}
+                        aria-label="Next month"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                      <div key={d} className="py-1 text-center text-[11px] font-medium text-slate-400">
+                        {d}
+                      </div>
+                    ))}
+                    {calendarCells.map((cell, i) => {
+                      if (!cell) return <div key={`blank-${i}`} />
+                      const hasSlots = slotsByDate.has(cell.key)
+                      const isSelectedDay = selectedDate === cell.key
+                      return (
+                        <button
+                          key={cell.key}
+                          type="button"
+                          disabled={!hasSlots}
+                          onClick={() => handleSelectDate(cell.key)}
+                          aria-label={isSelectedDay ? `${cell.key}, selected` : cell.key}
+                          aria-pressed={isSelectedDay}
+                          className={`flex h-9 items-center justify-center rounded-lg text-sm transition-colors ${
+                            isSelectedDay
+                              ? 'bg-blue-600 font-semibold text-white'
+                              : hasSlots
+                                ? 'font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                                : 'cursor-not-allowed text-slate-300'
+                          }`}
+                        >
+                          {cell.day}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+
+                {/* Times for the selected day */}
+                {selectedDate && selectedDaySlots.length > 0 && selectedDateLabel && (
+                  <div className="mt-4">
+                    <p className="mb-2 text-sm font-semibold text-slate-800">{selectedDateLabel}</p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {selectedDaySlots.map(slot => {
+                        const isSelected = selected?.start === slot.start
+                        return (
+                          <button
+                            key={slot.start}
+                            type="button"
+                            onClick={() => setSelected(slot)}
+                            aria-pressed={isSelected}
+                            className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                              isSelected
+                                ? 'border-blue-600 bg-blue-600 text-white'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-blue-400 hover:text-blue-700'
+                            }`}
+                          >
+                            {timeFmt.format(new Date(slot.start))}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {!selectedDate && (
+                  <p className="mt-3 text-center text-xs text-slate-500">
+                    Select a highlighted day to see times.
+                  </p>
+                )}
+              </>
+            )}
           </section>
 
           {/* Contact details */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <section className={cardClass}>
             <h2 className="mb-4 text-sm font-medium text-slate-700">Your details</h2>
             <div className="space-y-4">
               <div>
@@ -295,7 +458,7 @@ export default function PublicBookingClient({
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full rounded-xl bg-blue-600 py-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="w-full rounded-xl bg-blue-600 py-4 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
           >
             {submit.phase === 'submitting'
               ? 'Sending request…'

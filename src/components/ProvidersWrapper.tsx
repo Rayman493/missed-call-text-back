@@ -102,6 +102,9 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   const isPublicRoute = Boolean(pathname) && (
     PUBLIC_ROUTES.has(normalizedPathname) || normalizedPathname.startsWith('/book/')
   )
+  // Customer-facing booking intake pages use no app contexts — render bare so
+  // no auth restore, BusinessContext, or Stripe/dashboard state initializes.
+  const isBarePublicRoute = Boolean(pathname) && normalizedPathname.startsWith('/book/')
 
   // Cleanup public-route-dark class when navigating away from public routes
   useEffect(() => {
@@ -157,6 +160,12 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
 
     loadProviders()
   }, [])
+
+  // Booking intake routes need no app providers at all — render children
+  // directly so no auth/session/business state initializes for customers.
+  if (isBarePublicRoute) {
+    return <>{children}</>
+  }
 
   // For public routes, render dark bootstrap while essential providers load, then wrap with providers
   // Skip NotificationProvider and voicemail providers on public routes (not needed)

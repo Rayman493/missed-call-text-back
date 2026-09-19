@@ -204,11 +204,12 @@ export function useSettingsFormState({
     })
   }, [checkForChanges])
 
-  // Save changes
-  const saveChanges = useCallback(async (overrideBusiness?: Business) => {
+  // Save changes. Returns a result so callers can orchestrate multi-domain
+  // saves (e.g. Booking settings) without guessing at async state updates.
+  const saveChanges = useCallback(async (overrideBusiness?: Business): Promise<{ ok: boolean; error?: string }> => {
     // Use overrideBusiness if provided (for immediate save after update), otherwise use state
     const businessToSave = overrideBusiness || state.business
-    if (!businessToSave) return
+    if (!businessToSave) return { ok: true }
 
     setState(prev => ({ ...prev, isSaving: true, saveError: null }))
 
@@ -227,13 +228,16 @@ export function useSettingsFormState({
 
       // Notify parent of successful update
       onBusinessUpdated(savedBusiness)
+      return { ok: true }
 
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save settings'
       setState(prev => ({
         ...prev,
         isSaving: false,
-        saveError: error instanceof Error ? error.message : 'Failed to save settings'
+        saveError: message
       }))
+      return { ok: false, error: message }
     }
   }, [state.business, onSaveBusiness, onBusinessUpdated])
 

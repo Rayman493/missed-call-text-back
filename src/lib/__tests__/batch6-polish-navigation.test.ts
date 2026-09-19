@@ -404,7 +404,8 @@ describe('Batch 6 — Out of Office clear', () => {
   it('failed persistence surfaces saveError (does not falsely claim success)', () => {
     // saveChanges sets saveError on catch, and only updates business/originalBusiness
     // on success (inside the try block after onSaveBusiness resolves).
-    expect(hookSrc).toContain("saveError: error instanceof Error ? error.message : 'Failed to save settings'")
+    expect(hookSrc).toContain("const message = error instanceof Error ? error.message : 'Failed to save settings'")
+    expect(hookSrc).toContain('saveError: message')
     // On success, hasUnsavedChanges is set to false; on error, isSaving is set to false
     // but business state is NOT updated with the failed values.
     const successIdx = hookSrc.indexOf('hasUnsavedChanges: false')

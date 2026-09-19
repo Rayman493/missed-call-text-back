@@ -1527,14 +1527,14 @@ Important notes
   {
     id: 'schedule-overview',
     question: 'What are the Schedule tabs?',
-    summary: 'Overview of the Schedule page tabs: Agenda, Calendar, and Map.',
+    summary: 'Overview of the Schedule page tabs: Overview, Calendar, and Map.',
     answer: `When you would use this
 Understand the three tabs in the Schedule page and what each shows.
 
 Schedule tabs
 The Schedule page has three tabs:
 
-1) Agenda (default)
+1) Overview (default)
 - Shows tasks and jobs
 - Tasks are to-do items you create
 - Jobs are scheduled appointments with customers
@@ -1556,14 +1556,14 @@ The Schedule page has three tabs:
 - Click markers to view job details
 
 Important notes
-- Agenda is the canonical location for Tasks
-- Jobs appear in both Agenda and Calendar tabs
+- Overview is the canonical location for Tasks
+- Jobs appear in both Overview and Calendar tabs
 - Jobs with valid addresses appear on the Map tab
 - All tabs show the same underlying data
 - Your tab selection is saved when you navigate
 
 What to check if data is missing
-- Agenda: Check that tasks and jobs are created
+- Overview: Check that tasks and jobs are created
 - Calendar: Check that Google Calendar is connected
 - Map: Check that jobs have valid service addresses`,
     category: 'Schedule & Jobs',
@@ -1576,13 +1576,13 @@ What to check if data is missing
   {
     id: 'create-task',
     question: 'How do I create a task?',
-    summary: 'Creating and managing tasks in the Agenda tab.',
+    summary: 'Creating and managing tasks in the Overview tab.',
     answer: `When you would use this
 Create a to-do item or follow-up task for yourself or your team.
 
 Step-by-step instructions
 1) Go to the Schedule page (/dashboard/calendar).
-2) Click the Agenda tab (default).
+2) Click the Overview tab (default).
 3) Click the "New Task" button.
 4) Enter the task title.
 5) Add optional notes.
@@ -1611,7 +1611,7 @@ Editing and deleting tasks
 - Click the delete icon to remove the task.
 
 Where tasks appear
-- Tasks appear in the Agenda tab of the Schedule page.
+- Tasks appear in the Overview tab of the Schedule page.
 - Tasks linked to a job appear in that job's details.
 - Completed tasks show a checkmark.
 
@@ -1636,7 +1636,7 @@ Schedule an appointment or service visit with a customer.
 Step-by-step instructions
 From the Schedule page:
 1) Go to the Schedule page (/dashboard/calendar).
-2) Click the Agenda or Calendar tab.
+2) Click the Overview or Calendar tab.
 3) Click "New Job" or "New Appointment."
 4) Select a customer or create a new one.
 5) Enter the job title.
@@ -1667,7 +1667,7 @@ Jobs can have these statuses:
 - Canceled: Appointment was canceled
 
 Where jobs appear
-- Jobs appear in the Agenda tab of the Schedule page.
+- Jobs appear in the Overview tab of the Schedule page.
 - Jobs appear as events on the Calendar tab.
 - Jobs with valid addresses appear as markers on the Map tab.
 - Jobs appear in the customer's details page.
@@ -2979,7 +2979,7 @@ Modify job information such as time, address, or notes after creating a job.
 Step-by-step instructions
 From the Schedule page:
 1) Go to the Schedule page (/dashboard/calendar).
-2) Click the Agenda or Calendar tab.
+2) Click the Overview or Calendar tab.
 3) Click on the job you want to edit.
 4) Click the edit icon or "Edit Job."
 5. Modify the job details.
@@ -3142,7 +3142,7 @@ Modify task information after creating a task.
 
 Step-by-step instructions
 1) Go to the Schedule page (/dashboard/calendar).
-2) Click the Agenda tab.
+2) Click the Overview tab.
 3) Find the task you want to edit.
 4) Click the edit icon on the task.
 5) Modify the task details.
@@ -3419,16 +3419,16 @@ Important notes
   },
   {
     id: 'agenda-behavior',
-    question: 'How does the Agenda tab work?',
-    summary: 'Agenda tab behavior for viewing and managing tasks and jobs.',
+    question: 'How does the Overview tab work?',
+    summary: 'Overview tab behavior for viewing and managing tasks and jobs.',
     answer: `When you would use this
-Understand how the Agenda tab displays tasks and jobs.
+Understand how the Overview tab displays tasks and jobs.
 
-Accessing Agenda
+Accessing Overview
 1) Go to the Schedule page (/dashboard/calendar).
-2) Click the Agenda tab (default tab).
+2) Click the Overview tab (default tab).
 
-What Agenda shows
+What Overview shows
 - Tasks due on selected date
 - Jobs scheduled on selected date
 - Filtered by date selection
@@ -3439,7 +3439,7 @@ Date selection
 - Use date picker to select a different date
 - Previous/Next day buttons
 - "Today" button to return to current date
-- Agenda updates when date changes
+- Overview updates when date changes
 
 Task display
 - Tasks show title and due time
@@ -3458,13 +3458,13 @@ Creating tasks
 1) Click "New Task" button.
 2) Enter task details.
 3) Save task.
-4) Task appears in Agenda immediately.
+4) Task appears in Overview immediately.
 
 Creating jobs
 1) Click "New Job" button.
 2) Enter job details.
 3) Save job.
-4) Job appears in Agenda immediately.
+4) Job appears in Overview immediately.
 
 Empty states
 - No tasks on date: "No tasks" message
@@ -3472,7 +3472,7 @@ Empty states
 - Add task/job buttons always available
 
 Refresh behavior
-- Agenda refreshes on date change
+- Overview refreshes on date change
 - Manual page refresh updates data
 - New items appear immediately after creation
 - Task completion updates immediately
@@ -3489,7 +3489,7 @@ Mobile vs desktop
 - Touch-friendly on mobile
 
 Important notes
-- Agenda is the canonical home for Tasks
+- Overview is the canonical home for Tasks
 - No separate Tasks tab exists
 - Tasks are internal, jobs are customer-facing
 - Filter options help manage task lists`,

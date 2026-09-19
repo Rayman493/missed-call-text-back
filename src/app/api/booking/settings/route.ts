@@ -161,7 +161,7 @@ export async function PATCH(request: Request) {
   if (patch.enabled === true) {
     const { data: current } = await supabase
       .from('booking_settings')
-      .select('public_slug')
+      .select('public_slug, use_business_hours')
       .eq('business_id', auth.businessId)
       .maybeSingle()
     if (!patch.public_slug && !current?.public_slug) {
@@ -171,6 +171,32 @@ export async function PATCH(request: Request) {
         .eq('id', auth.businessId)
         .maybeSingle()
       patch.public_slug = await allocatePublicSlug(business?.name ?? 'book')
+    }
+
+    // Enabling (or staying enabled) requires at least one usable weekly
+    // window — otherwise the public page shows zero slots forever.
+    const effectiveUseBusinessHours = patch.use_business_hours ?? current?.use_business_hours ?? true
+    let hasWeeklyHours = (hoursRows?.length ?? 0) > 0
+    if (!hasWeeklyHours && hoursRows === null) {
+      const { count } = await supabase
+        .from('booking_hours')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', auth.businessId)
+      hasWeeklyHours = (count ?? 0) > 0
+    }
+    if (!hasWeeklyHours) {
+      let businessHoursUsable = false
+      if (effectiveUseBusinessHours) {
+        const { data: business } = await supabase
+          .from('businesses')
+          .select('business_hours_start, business_hours_end')
+          .eq('id', auth.businessId)
+          .maybeSingle()
+        businessHoursUsable = Boolean(business?.business_hours_start && business?.business_hours_end)
+      }
+      if (!businessHoursUsable) {
+        return badRequest('Add booking hours before customers can request a time.')
+      }
     }
   }
 

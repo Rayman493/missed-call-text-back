@@ -14,7 +14,8 @@ import PasswordInput from '@/components/PasswordInput'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import AppBackButton from '@/components/AppBackButton'
 import BusinessLogoSettings from '@/components/billing/BusinessLogoSettings'
-import OnlineBookingSection from '@/components/settings/OnlineBookingSection'
+import OnlineBookingSection, { type OnlineBookingSectionHandle } from '@/components/settings/OnlineBookingSection'
+import BackToTopButton from '@/components/settings/BackToTopButton'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
@@ -93,27 +94,65 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const [successMessage, setSuccessMessage] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  // Scroll to section when specified
+  // Scroll to section when specified via ?section=. Uses the same canonical
+  // scroll path as hash navigation (measured sticky-nav offset targeting the
+  // section divider) so deep-linked sections land just below the sticky nav
+  // instead of drifting with async layout.
   useEffect(() => {
-    if (section) {
+    if (!section) return
+    const sectionIds = settingsSections.map((s: { id: string }) => s.id)
+    if (!sectionIds.includes(section)) {
       const element = document.getElementById(section)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' })
         element.focus({ preventScroll: true })
       }
+      return
     }
-  }, [section])
 
-  // Also support /dashboard/settings#online-booking for direct links.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (section) return
-    const hash = window.location.hash.replace(/^#/, '')
-    if (!hash) return
-    const element = document.getElementById(hash)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      element.focus({ preventScroll: true })
+    // Set active section immediately for tab highlighting
+    setActiveSection(section)
+    // Take ownership of section deep-link scrolling so the contacts-specific
+    // handler below does not also fire for ?section=contacts.
+    sectionScrollHandledRef.current = true
+    pendingSectionRef.current = section
+
+    const tryScroll = () => {
+      if (pendingSectionRef.current !== section) return
+      const element = document.getElementById(`${section}-divider`)
+      if (element) {
+        scrollToSectionRef.current(section)
+        pendingSectionRef.current = null
+        // Replace ?section= with a hash so the URL keeps pointing at the
+        // section without re-triggering the prop scroll on remount.
+        const url = new URL(window.location.href)
+        url.searchParams.delete('section')
+        url.hash = section
+        window.history.replaceState({}, '', url.toString())
+        // Focus after scroll so focus() doesn't trigger an extra scrollIntoView
+        setTimeout(() => {
+          document.getElementById(section)?.focus({ preventScroll: true })
+        }, 50)
+        if (sectionObserverRef.current) {
+          sectionObserverRef.current.disconnect()
+          sectionObserverRef.current = null
+        }
+      }
+    }
+
+    tryScroll()
+
+    if (pendingSectionRef.current === section) {
+      sectionObserverRef.current = new MutationObserver(tryScroll)
+      sectionObserverRef.current.observe(document.body, { childList: true, subtree: true })
+      const timeout = setTimeout(() => {
+        if (sectionObserverRef.current) {
+          sectionObserverRef.current.disconnect()
+          sectionObserverRef.current = null
+        }
+        pendingSectionRef.current = null
+      }, 5000)
+      return () => clearTimeout(timeout)
     }
   }, [section])
 
@@ -287,6 +326,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           if (element) {
             scrollToSectionRef.current(hash)
             pendingSectionRef.current = null
+            // Focus the section card after scroll so focus() doesn't trigger
+            // an extra scrollIntoView.
+            setTimeout(() => {
+              document.getElementById(hash)?.focus({ preventScroll: true })
+            }, 50)
             if (sectionObserverRef.current) {
               sectionObserverRef.current.disconnect()
               sectionObserverRef.current = null
@@ -976,6 +1020,69 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     if (saveSuccess) setSaveSuccess(false)
     updateBusinessRaw(updates)
   }, [saveSuccess, updateBusinessRaw])
+
+  // Online Booking participates in the global Settings save model: the section
+  // reports dirty state upward and exposes save/discard through an imperative
+  // handle instead of rendering its own Save button.
+  const onlineBookingRef = useRef<OnlineBookingSectionHandle>(null)
+  const [bookingDirty, setBookingDirty] = useState(false)
+  const [bookingSaving, setBookingSaving] = useState(false)
+  const [bookingSaveError, setBookingSaveError] = useState<string | null>(null)
+
+  const handleBookingDirtyChange = useCallback((dirty: boolean) => {
+    setBookingDirty(dirty)
+    if (dirty) {
+      setSaveSuccess(false)
+      setBookingSaveError(null)
+    }
+  }, [])
+
+  const globalSaveInFlightRef = useRef(false)
+  const handleGlobalSave = useCallback(async () => {
+    if (globalSaveInFlightRef.current) return
+    globalSaveInFlightRef.current = true
+    try {
+      const booking = onlineBookingRef.current
+      const wantsBookingSave = booking?.isDirty ?? bookingDirty
+      const wantsBusinessSave = hasUnsavedChanges
+
+      if (wantsBookingSave) setBookingSaving(true)
+      setBookingSaveError(null)
+
+      const [businessResult, bookingResult] = await Promise.allSettled([
+        wantsBusinessSave ? saveChanges() : Promise.resolve({ ok: true }),
+        wantsBookingSave && booking ? booking.save() : Promise.resolve({ ok: true }),
+      ])
+
+      setBookingSaving(false)
+
+      const businessOk = !wantsBusinessSave ||
+        (businessResult.status === 'fulfilled' && (businessResult.value as { ok: boolean }).ok !== false)
+      let bookingOk = !wantsBookingSave
+      const bookingErrors: string[] = []
+      if (wantsBookingSave) {
+        if (bookingResult.status === 'rejected') {
+          bookingErrors.push('Could not save booking settings')
+        } else {
+          const value = bookingResult.value as { ok: boolean; error?: string }
+          if (!value.ok) bookingErrors.push(value.error ?? 'Could not save booking settings')
+        }
+        bookingOk = bookingErrors.length === 0
+      }
+      // Business failures are already surfaced through the hook's saveError.
+      setBookingSaveError(bookingErrors.join(' ') || null)
+      if (businessOk && bookingOk) setSaveSuccess(true)
+    } finally {
+      globalSaveInFlightRef.current = false
+    }
+  }, [bookingDirty, hasUnsavedChanges, saveChanges])
+
+  const handleGlobalDiscard = useCallback(() => {
+    onlineBookingRef.current?.discard()
+    setBookingDirty(false)
+    setBookingSaveError(null)
+    discardChanges()
+  }, [discardChanges])
 
   // Toast functions
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -3995,12 +4102,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Online Booking Section */}
-              <div id="online-booking" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
+              <div id="online-booking" tabIndex={-1} className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-6">
                   <h2 className="text-lg font-semibold text-foreground mb-2">Online Booking</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Let customers request times from a public booking link.</p>
                 </div>
-                <OnlineBookingSection />
+                <OnlineBookingSection ref={onlineBookingRef} onDirtyChange={handleBookingDirtyChange} />
               </div>
 
               <div id="integrations-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
@@ -5140,14 +5247,19 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
           {/* Settings Action Bar */}
           <SettingsActionBar
-            hasUnsavedChanges={hasUnsavedChanges}
-            onSave={saveChanges}
-            onDiscard={discardChanges}
-            isSaving={isSaving}
-            saveError={saveError}
-            clearError={clearSaveError}
+            hasUnsavedChanges={hasUnsavedChanges || bookingDirty}
+            onSave={handleGlobalSave}
+            onDiscard={handleGlobalDiscard}
+            isSaving={isSaving || bookingSaving}
+            saveError={[saveError, bookingSaveError].filter(Boolean).join(' ') || null}
+            clearError={() => { clearSaveError(); setBookingSaveError(null) }}
             saveSuccess={saveSuccess}
             clearSuccess={() => setSaveSuccess(false)}
+          />
+
+          {/* Back to top — lifted above the sticky save bar when it shows */}
+          <BackToTopButton
+            lifted={hasUnsavedChanges || bookingDirty || isSaving || bookingSaving || saveSuccess}
           />
 
           {/* Delete Account Modal */}

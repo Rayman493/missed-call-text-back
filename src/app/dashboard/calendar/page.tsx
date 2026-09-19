@@ -1794,7 +1794,7 @@ export default function SchedulePage() {
                         }`}
                       >
                         <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'agenda' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Agenda
+                        Overview
                       </button>
                       <button
                         onClick={() => setScheduleTab('calendar')}
@@ -1867,7 +1867,7 @@ export default function SchedulePage() {
                           }`}
                         >
                           <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'agenda' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span className="text-[10px] leading-none truncate w-full text-center">Agenda</span>
+                          <span className="text-[10px] leading-none truncate w-full text-center">Overview</span>
                         </button>
                         <button
                           onClick={() => setScheduleTab('calendar')}

@@ -402,7 +402,7 @@ export default function TodayCommandCenter({
       {/* Header with lightweight summary line */}
       <div>
         <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground tracking-tight">
-          Agenda
+          Overview
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           {todayTasks.length + overdueTasks.length} Reminders • {todayJobs.length} Jobs • {todayAppointments.length} Appointments

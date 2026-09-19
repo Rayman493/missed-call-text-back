@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -29,14 +29,19 @@ interface DayDraft {
 const defaultWeek = (): Record<number, DayDraft> =>
   Object.fromEntries(DAY_ORDER.map(d => [d, { open: d >= 1 && d <= 5, start: '08:00', end: '17:00' }]))
 
-export default function OnlineBookingSection() {
+export interface OnlineBookingSectionHandle {
+  isDirty: boolean
+  save: () => Promise<{ ok: boolean; error?: string }>
+  discard: () => void
+}
+
+export default forwardRef<OnlineBookingSectionHandle, { onDirtyChange?: (dirty: boolean) => void }>(
+  function OnlineBookingSection({ onDirtyChange }, ref) {
   const supabase = createBrowserClient()
 
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [savedTick, setSavedTick] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const [enabled, setEnabled] = useState(false)
@@ -114,7 +119,14 @@ export default function OnlineBookingSection() {
       setDuration(data.settings.default_duration_minutes ?? 60)
       setMinNotice(data.settings.min_notice_minutes ?? 240)
       setWindowDays(data.settings.booking_window_days ?? 30)
-      setUseBusinessHours(data.settings.use_business_hours !== false)
+      const hasBusinessHours = Boolean(data.businessHours?.start && data.businessHours?.end)
+      // When no business hours are configured, the use-business-hours flag can
+      // never produce availability — fall back to the custom week editor so the
+      // business can define bookable hours instead of silently having none.
+      const effectiveUseBusinessHours = hasBusinessHours
+        ? data.settings.use_business_hours !== false
+        : false
+      setUseBusinessHours(effectiveUseBusinessHours)
       setBusinessHours(data.businessHours)
       setExceptions(data.exceptions)
 
@@ -142,11 +154,12 @@ export default function OnlineBookingSection() {
           hours: data.hours.map(row => ({ day_of_week: row.day_of_week, start_time: String(row.start_time).slice(0, 5), end_time: String(row.end_time).slice(0, 5) })),
         }))
       } else {
-        // When the business previously chose manual hours but has none saved,
-        // the UI still shows the default Mon–Fri draft. Baseline must match
-        // that visible draft so Save stays disabled until a real change.
+        // When the business previously chose manual hours but has none saved
+        // (or business hours are unavailable), the UI still shows the default
+        // Mon–Fri draft. Baseline must match that visible draft so Save stays
+        // disabled until a real change.
         const fallbackDraft = defaultWeek()
-        const fallbackHours = data.settings.use_business_hours === false
+        const fallbackHours = !effectiveUseBusinessHours
           ? DAY_ORDER
               .filter(d => fallbackDraft[d].open)
               .map(d => ({ day_of_week: d, start_time: fallbackDraft[d].start, end_time: fallbackDraft[d].end }))
@@ -157,7 +170,7 @@ export default function OnlineBookingSection() {
           duration: data.settings.default_duration_minutes ?? 60,
           minNotice: data.settings.min_notice_minutes ?? 240,
           windowDays: data.settings.booking_window_days ?? 30,
-          useBusinessHours: data.settings.use_business_hours !== false,
+          useBusinessHours: effectiveUseBusinessHours,
           hours: fallbackHours,
         }))
       }
@@ -176,11 +189,16 @@ export default function OnlineBookingSection() {
   )
   const dirty = baseline !== null && currentSnapshot !== baseline
 
-  const handleSave = async () => {
-    if (!dirty) return
+  // Effective usable hours in the current draft — used to warn when Booking is
+  // enabled but the public page cannot produce any slots.
+  const hasUsableHours = useBusinessHours
+    ? Boolean(businessHours?.start && businessHours?.end)
+    : deriveHours().length > 0
+
+  const handleSave = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!dirty) return { ok: true }
+    if (saving) return { ok: false, error: 'Save already in progress' }
     setSaving(true)
-    setSaveError(null)
-    setSavedTick(false)
     try {
       const hours = deriveHours()
       const res = await authFetch('/api/booking/settings', {
@@ -199,20 +217,33 @@ export default function OnlineBookingSection() {
       })
       const data = await res.json().catch(() => null)
       if (!res.ok) {
-        setSaveError(data?.error ?? 'Could not save settings')
-        return
+        const message = data?.error ?? 'Could not save settings'
+        return { ok: false, error: message }
       }
       const savedSlug = data.settings?.public_slug ?? slug
       setSlug(savedSlug)
-      setSavedTick(true)
       setBaseline(currentSnapshot)
-      setTimeout(() => setSavedTick(false), 3000)
+      return { ok: true }
     } catch {
-      setSaveError('Could not save settings')
+      return { ok: false, error: 'Could not save settings' }
     } finally {
       setSaving(false)
     }
-  }
+  }, [dirty, saving, authFetch, deriveHours, currentSnapshot, enabled, timezone, duration, minNotice, windowDays, useBusinessHours, slug])
+
+  const handleDiscard = useCallback(() => {
+    load()
+  }, [load])
+
+  useImperativeHandle(ref, () => ({
+    isDirty: dirty,
+    save: handleSave,
+    discard: handleDiscard,
+  }), [dirty, handleSave, handleDiscard])
+
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
 
   const handleCopyLink = async () => {
     if (!slug || !bookingLink) return
@@ -284,7 +315,7 @@ export default function OnlineBookingSection() {
     'rounded-lg border border-border/50 bg-background px-3 py-2 text-sm text-foreground focus:border-blue-500 focus:outline-none'
 
   return (
-    <div id="online-booking" className="space-y-6" tabIndex={-1}>
+    <div className="space-y-6">
       {/* Enable toggle */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -374,6 +405,18 @@ export default function OnlineBookingSection() {
               </select>
             </label>
           </div>
+
+          {/* No usable hours warning */}
+          {!hasUsableHours && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/30">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                Add booking hours before customers can request a time.
+              </p>
+              <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-400/80">
+                Customers currently see no availability on your booking page.
+              </p>
+            </div>
+          )}
 
           {/* Weekly hours */}
           <div className="border border-border/30 rounded-lg p-4">
@@ -490,20 +533,7 @@ export default function OnlineBookingSection() {
           </div>
         </>
       )}
-
-      {/* Save row */}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!dirty || saving}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Save booking settings'}
-        </button>
-        {savedTick && <span className="text-xs font-medium text-green-600">Booking settings saved</span>}
-        {saveError && <span className="text-xs font-medium text-red-600">{saveError}</span>}
-      </div>
     </div>
   )
 }
+)

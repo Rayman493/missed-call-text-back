@@ -147,7 +147,7 @@ describe('Schedule Tab Order Polish', () => {
     })
 
     it('all six mobile tab labels exist', () => {
-      expect(mobileTabBlock).toContain('>Agenda</span>')
+      expect(mobileTabBlock).toContain('>Overview</span>')
       expect(mobileTabBlock).toContain('>Calendar</span>')
       expect(mobileTabBlock).toContain('>Map</span>')
       expect(mobileTabBlock).toContain('>Reminders</span>')

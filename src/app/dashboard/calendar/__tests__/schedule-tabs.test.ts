@@ -12,7 +12,7 @@ describe('Schedule Tab Architecture — Tab Strip', () => {
     expect(pageContent).toContain("'agenda' | 'reminders' | 'jobs' | 'appointments' | 'calendar' | 'map'")
   })
 
-  it('Agenda is the default tab', () => {
+  it('Overview is the default tab', () => {
     expect(pageContent).toContain("return 'agenda'")
   })
 
@@ -58,19 +58,19 @@ describe('Schedule Tab Architecture — Tab Strip', () => {
   })
 })
 
-describe('Schedule Tab Architecture — Agenda', () => {
-  it('Agenda renders FocusSection and TodayCommandCenter', () => {
+describe('Schedule Tab Architecture — Overview', () => {
+  it('Overview renders FocusSection and TodayCommandCenter', () => {
     expect(pageContent).toContain("scheduleTab === 'agenda'")
     expect(pageContent).toContain('FocusSection')
     expect(pageContent).toContain('TodayCommandCenter')
   })
 
-  it('Agenda remains the overview/command-center (keeps Today section)', () => {
+  it('Overview remains the overview/command-center (keeps Today section)', () => {
     // TodayCommandCenter has Today section
     expect(tccContent).toContain('Today')
   })
 
-  it('Agenda does not render full long-form category management lists directly', () => {
+  it('Overview does not render full long-form category management lists directly', () => {
     // The agenda section should NOT contain JobsTab, MeetingsTab, or RemindersList directly
     const agendaSection = pageContent.split("scheduleTab === 'agenda'")[1]?.split("scheduleTab === '")[0] || ''
     expect(agendaSection).not.toContain('<JobsTab')

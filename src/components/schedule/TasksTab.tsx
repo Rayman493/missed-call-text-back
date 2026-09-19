@@ -387,7 +387,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
               onClick={onBack}
               className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground transition-colors"
             >
-              ← Back to Agenda
+              ← Back to Overview
             </button>
           )}
           <button
