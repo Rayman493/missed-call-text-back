@@ -54,7 +54,7 @@ export default function Navigation() {
                 timestamp: Date.now()
               })
             }}
-            className={`px-2.5 md:px-3.5 py-1.5 text-sm font-medium rounded-md motion-safe:transition-all motion-safe:duration-300 motion-reduce:transition-none text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background whitespace-nowrap ${
+            className={`inline-flex items-center h-8 px-2.5 md:px-3.5 text-sm font-medium leading-none rounded-md motion-safe:transition-all motion-safe:duration-300 motion-reduce:transition-none text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background whitespace-nowrap ${
               isActive
                 ? 'text-foreground dark:text-white bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/10 dark:border-white/10 font-medium hover:bg-blue-500/15 dark:hover:bg-blue-500/20'
                 : 'text-slate-600 dark:text-slate-300 hover:text-foreground dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5'

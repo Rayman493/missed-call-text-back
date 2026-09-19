@@ -1,9 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { showToast } from '@/lib/toast'
+import { bookingPagePath, bookingPageUrl } from '@/lib/booking/url'
 import type { BookingException, BookingHoursRow, BookingSettings } from '@/lib/booking/types'
 
 interface SettingsPayload {
@@ -53,6 +55,37 @@ export default function OnlineBookingSection() {
   const [exLabel, setExLabel] = useState('')
   const [exSaving, setExSaving] = useState(false)
 
+  // Persisted baseline snapshot used for dirty-state. Keeps Save disabled until
+  // a meaningful change has been made, and re-disables it after successful save.
+  const [baseline, setBaseline] = useState<string | null>(null)
+
+  const deriveHours = useCallback(() => {
+    if (useBusinessHours) return []
+    return DAY_ORDER
+      .filter(d => week[d].open)
+      .map(d => ({ day_of_week: d, start_time: week[d].start, end_time: week[d].end }))
+  }, [useBusinessHours, week])
+
+  const makeSnapshot = useCallback((
+    opts: {
+      enabled: boolean
+      timezone: string
+      duration: number
+      minNotice: number
+      windowDays: number
+      useBusinessHours: boolean
+      hours: { day_of_week: number; start_time: string; end_time: string }[]
+    }
+  ) => JSON.stringify({
+    enabled: opts.enabled,
+    timezone: opts.timezone,
+    duration: opts.duration,
+    minNotice: opts.minNotice,
+    windowDays: opts.windowDays,
+    useBusinessHours: opts.useBusinessHours,
+    hours: opts.hours.map(h => `${h.day_of_week}:${h.start_time}-${h.end_time}`),
+  }), [])
+
   const authFetch = useCallback(async (input: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession()
     return fetch(input, {
@@ -97,26 +130,59 @@ export default function OnlineBookingSection() {
         }
         setWeek(draft)
         setUseBusinessHours(false)
+        // Derive baseline from loaded hours since state update is not yet flushed.
+        setBaseline(makeSnapshot({
+          enabled: Boolean(data.settings.enabled),
+          timezone: data.settings.timezone ?? 'America/New_York',
+          duration: data.settings.default_duration_minutes ?? 60,
+          minNotice: data.settings.min_notice_minutes ?? 240,
+          windowDays: data.settings.booking_window_days ?? 30,
+          // Custom hours exist → the UI is rendered in manual-hours mode.
+          useBusinessHours: false,
+          hours: data.hours.map(row => ({ day_of_week: row.day_of_week, start_time: String(row.start_time).slice(0, 5), end_time: String(row.end_time).slice(0, 5) })),
+        }))
+      } else {
+        // When the business previously chose manual hours but has none saved,
+        // the UI still shows the default Mon–Fri draft. Baseline must match
+        // that visible draft so Save stays disabled until a real change.
+        const fallbackDraft = defaultWeek()
+        const fallbackHours = data.settings.use_business_hours === false
+          ? DAY_ORDER
+              .filter(d => fallbackDraft[d].open)
+              .map(d => ({ day_of_week: d, start_time: fallbackDraft[d].start, end_time: fallbackDraft[d].end }))
+          : []
+        setBaseline(makeSnapshot({
+          enabled: Boolean(data.settings.enabled),
+          timezone: data.settings.timezone ?? 'America/New_York',
+          duration: data.settings.default_duration_minutes ?? 60,
+          minNotice: data.settings.min_notice_minutes ?? 240,
+          windowDays: data.settings.booking_window_days ?? 30,
+          useBusinessHours: data.settings.use_business_hours !== false,
+          hours: fallbackHours,
+        }))
       }
     } catch {
       setLoadError('Could not load booking settings')
     } finally {
       setLoading(false)
     }
-  }, [authFetch])
+  }, [authFetch, makeSnapshot])
 
   useEffect(() => { load() }, [load])
 
+  const currentSnapshot = useMemo(
+    () => makeSnapshot({ enabled, timezone, duration, minNotice, windowDays, useBusinessHours, hours: deriveHours() }),
+    [enabled, timezone, duration, minNotice, windowDays, useBusinessHours, deriveHours, makeSnapshot]
+  )
+  const dirty = baseline !== null && currentSnapshot !== baseline
+
   const handleSave = async () => {
+    if (!dirty) return
     setSaving(true)
     setSaveError(null)
     setSavedTick(false)
     try {
-      const hours = useBusinessHours
-        ? []
-        : DAY_ORDER
-            .filter(d => week[d].open)
-            .map(d => ({ day_of_week: d, start_time: week[d].start, end_time: week[d].end }))
+      const hours = deriveHours()
       const res = await authFetch('/api/booking/settings', {
         method: 'PATCH',
         body: JSON.stringify({
@@ -136,8 +202,10 @@ export default function OnlineBookingSection() {
         setSaveError(data?.error ?? 'Could not save settings')
         return
       }
-      setSlug(data.settings?.public_slug ?? slug)
+      const savedSlug = data.settings?.public_slug ?? slug
+      setSlug(savedSlug)
       setSavedTick(true)
+      setBaseline(currentSnapshot)
       setTimeout(() => setSavedTick(false), 3000)
     } catch {
       setSaveError('Could not save settings')
@@ -147,14 +215,14 @@ export default function OnlineBookingSection() {
   }
 
   const handleCopyLink = async () => {
-    if (!slug) return
-    const url = `${window.location.origin}/book/${slug}`
+    if (!slug || !bookingLink) return
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(bookingLink)
+      showToast('Booking link copied', 'success')
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // clipboard unavailable — select-based copy could go here if needed
+      showToast('Could not copy link', 'error')
     }
   }
 
@@ -202,7 +270,8 @@ export default function OnlineBookingSection() {
     )
   }
 
-  const fullUrl = slug ? `/book/${slug}` : null
+  const fullUrl = slug ? bookingPagePath(slug) : null
+  const bookingLink = typeof window !== 'undefined' && slug ? bookingPageUrl(slug, window.location.origin) : null
   const fmtException = (e: BookingException) => {
     const f = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone, weekday: 'short', month: 'short', day: 'numeric',
@@ -215,7 +284,7 @@ export default function OnlineBookingSection() {
     'rounded-lg border border-border/50 bg-background px-3 py-2 text-sm text-foreground focus:border-blue-500 focus:outline-none'
 
   return (
-    <div className="space-y-6">
+    <div id="online-booking" className="space-y-6" tabIndex={-1}>
       {/* Enable toggle */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -245,32 +314,32 @@ export default function OnlineBookingSection() {
       {enabled && (
         <>
           {/* Public link */}
-          <div className="border border-border/30 rounded-lg p-4">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Your booking link</p>
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-900/15">
+            <p className="text-sm font-semibold text-foreground">Your booking link</p>
             {fullUrl ? (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <code className="flex-1 truncate rounded-lg bg-muted/50 px-3 py-2 text-sm text-foreground">
-                  {fullUrl}
-                </code>
-                <div className="flex gap-2">
+              <>
+                <p className="mt-1 truncate text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {bookingLink}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={handleCopyLink}
-                    className="rounded-lg border border-border/50 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/50"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-medium text-foreground shadow-sm hover:bg-slate-50 disabled:opacity-50 dark:bg-slate-900 dark:hover:bg-slate-800"
                   >
-                    {copied ? 'Copied' : 'Copy link'}
+                    {copied ? 'Copied' : 'Copy Link'}
                   </button>
                   <Link
                     href={fullUrl}
                     target="_blank"
-                    className="rounded-lg border border-border/50 px-3 py-2 text-xs font-medium text-foreground hover:bg-muted/50"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white/60 px-3 py-2 text-xs font-medium text-foreground hover:bg-white dark:border-blue-900/50 dark:bg-slate-900/60 dark:hover:bg-slate-800"
                   >
                     Preview
                   </Link>
                 </div>
-              </div>
+              </>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 A link will be created when you save with Online Booking enabled.
               </p>
             )}
@@ -427,12 +496,12 @@ export default function OnlineBookingSection() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={!dirty || saving}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Save booking settings'}
         </button>
-        {savedTick && <span className="text-xs font-medium text-green-600">Saved</span>}
+        {savedTick && <span className="text-xs font-medium text-green-600">Booking settings saved</span>}
         {saveError && <span className="text-xs font-medium text-red-600">{saveError}</span>}
       </div>
     </div>

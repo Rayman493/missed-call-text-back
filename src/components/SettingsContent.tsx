@@ -99,7 +99,21 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       const element = document.getElementById(section)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        element.focus({ preventScroll: true })
       }
+    }
+  }, [section])
+
+  // Also support /dashboard/settings#online-booking for direct links.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (section) return
+    const hash = window.location.hash.replace(/^#/, '')
+    if (!hash) return
+    const element = document.getElementById(hash)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      element.focus({ preventScroll: true })
     }
   }, [section])
 

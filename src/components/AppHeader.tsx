@@ -62,7 +62,7 @@ export default function AppHeader({
               {/* Logo */}
               <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-1.5 md:gap-2 rounded-full px-1.5 py-1 hover:bg-muted/10 active:bg-muted/15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none flex-shrink-0">
                 <BrandIcon size={56} />
-                <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight hidden sm:inline">
+                <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight leading-none hidden sm:inline">
                   <span className="text-foreground">ReplyFlow</span>
                   <span className="bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">HQ</span>
                 </span>

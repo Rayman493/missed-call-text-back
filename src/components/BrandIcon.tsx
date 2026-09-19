@@ -10,7 +10,7 @@ export default function BrandIcon({ size = 32, className = '' }: BrandIconProps)
       alt="ReplyFlow"
       width={size}
       height={size}
-      className={className}
+      className={`block ${className}`}
     />
   )
 }

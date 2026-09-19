@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getAuthedBusiness } from '@/lib/booking/api-auth'
-import { bookingAdmin } from '@/lib/booking/settings'
+import { bookingAdmin, getBookingSettingsBundle } from '@/lib/booking/settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,5 +47,23 @@ export async function GET(request: Request) {
     counts[row.status] = (counts[row.status] ?? 0) + 1
   }
 
-  return NextResponse.json({ requests: requests ?? [], counts, total: count ?? 0 })
+  // Lightweight booking settings summary so the card can surface the public
+  // link / setup CTA without a second round-trip.
+  let bookingEnabled = false
+  let bookingUrl: string | null = null
+  try {
+    const { settings } = await getBookingSettingsBundle(auth.businessId)
+    bookingEnabled = settings?.enabled ?? false
+    bookingUrl = settings?.public_slug ? `/book/${settings.public_slug}` : null
+  } catch {
+    // Non-fatal — the request list is still usable.
+  }
+
+  return NextResponse.json({
+    requests: requests ?? [],
+    counts,
+    total: count ?? 0,
+    bookingEnabled,
+    bookingUrl,
+  })
 }
