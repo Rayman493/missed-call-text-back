@@ -43,6 +43,7 @@ export default function PublicBookingClient({
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
   const [submit, setSubmit] = useState<SubmitState>({ phase: 'idle' })
+  const [logoError, setLogoError] = useState(false)
 
   // One clientRequestId per mounted form → server-side idempotent submit.
   const clientRequestId = useRef<string>('')
@@ -248,11 +249,16 @@ export default function PublicBookingClient({
       <div className="mx-auto max-w-lg px-4 py-8 sm:py-12">
         {/* Business identity */}
         <div className="mb-8 text-center">
-          {logoUrl ? (
+          {logoUrl && !logoError ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={businessName} className="mx-auto mb-3 h-14 w-14 rounded-xl object-cover" />
+            <img
+              src={logoUrl}
+              alt={businessName}
+              onError={() => setLogoError(true)}
+              className="mx-auto mb-3 h-16 w-auto max-w-[200px] object-contain"
+            />
           ) : (
-            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white">
+            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-xl bg-blue-600 text-2xl font-bold text-white">
               {businessName.charAt(0).toUpperCase()}
             </div>
           )}

@@ -113,6 +113,13 @@ describe('public booking page polish', () => {
     expect(detailsIdx).toBeGreaterThan(pickIdx)
     expect(submitIdx).toBeGreaterThan(detailsIdx)
   })
+
+  it('displays the business logo with object-contain and a broken-image fallback', () => {
+    expect(client).toMatch(/logoUrl && !logoError/)
+    expect(client).toMatch(/object-contain/)
+    expect(client).toMatch(/onError=\{\(\) => setLogoError\(true\)\}/)
+    expect(client).toMatch(/{businessName}/)
+  })
 })
 
 describe('public route isolation', () => {
@@ -133,7 +140,7 @@ describe('desktop header one-line alignment', () => {
   const header = read('src/components/AppHeader.tsx')
 
   it('keeps the brand icon inside the shared header row height', () => {
-    expect(header).toMatch(/h-11/)
+    expect(header).toMatch(/h-10/)
     expect(header).toMatch(/BrandIcon size=\{40\}/)
     expect(header).not.toMatch(/BrandIcon size=\{56\}/)
   })
@@ -142,6 +149,11 @@ describe('desktop header one-line alignment', () => {
     expect(header).toMatch(/flex min-w-0 items-center/)
     expect(header).toMatch(/flex flex-shrink-0 items-center/)
     expect(header).not.toMatch(/flex-wrap/)
+  })
+
+  it('uses a single shared desktop row height for all controls', () => {
+    expect(header).toMatch(/h-10/)
+    expect(header).toMatch(/items-center/)
   })
 })
 
@@ -198,5 +210,28 @@ describe('Settings back to top', () => {
     expect(backToTop).toMatch(/safe-area-inset-bottom/)
     expect(settings).toMatch(/BackToTopButton/)
     expect(settings).toMatch(/lifted=\{hasUnsavedChanges \|\| bookingDirty/)
+  })
+
+  it('uses intentional desktop right alignment shared with ReplyFlow floating controls', () => {
+    expect(backToTop).toMatch(/right-4 sm:right-8 lg:right-\[calc\(50%-700px\)\]/)
+  })
+})
+
+describe('Settings deep-link positioning', () => {
+  const settings = read('src/components/SettingsContent.tsx')
+
+  it('targets the section card so the heading is visible, falling back to divider', () => {
+    expect(settings).toMatch(/document\.getElementById\(section\) \?\? document\.getElementById\(`\$\{section\}-divider`\)/)
+  })
+
+  it('keeps one canonical scroll function used by query-param and hash paths', () => {
+    expect(settings).toMatch(/scrollToSectionRef\.current\(section\)/)
+    expect(settings).toMatch(/scrollToSectionRef\.current\(hash\)/)
+  })
+
+  it('uses MutationObserver only while a section is pending and cleans up', () => {
+    expect(settings).toMatch(/new MutationObserver\(tryScroll\)/)
+    expect(settings).toMatch(/\.disconnect\(\)/)
+    expect(settings).toMatch(/setTimeout[\s\S]*?, 5000\)/)
   })
 })

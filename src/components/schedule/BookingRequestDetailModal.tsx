@@ -6,6 +6,7 @@ import type { BookingRequestEvent, BookingRequestStatus, BookingSlot } from '@/l
 import { CalendarDays, Check, ChevronDown, Clock, ExternalLink, MapPin, Phone, RefreshCw, X } from 'lucide-react'
 import { showToast } from '@/lib/toast'
 import { formatInTimeZone } from 'date-fns-tz'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface BookingDetail {
   id: string
@@ -70,6 +71,7 @@ export default function BookingRequestDetailModal({
   onRefresh?: () => void
 }) {
   const router = useRouter()
+  const supabase = useMemo(() => createBrowserClient(), [])
   const [detail, setDetail] = useState<BookingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<BusyAction>(null)
@@ -81,15 +83,26 @@ export default function BookingRequestDetailModal({
   const [showAllHistory, setShowAllHistory] = useState(false)
   const [smsError, setSmsError] = useState(false)
 
+  const authHeaders = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`
+    return headers
+  }, [supabase])
+
   const load = useCallback(async () => {
-    const res = await fetch(`/api/booking/requests/${requestId}`, { cache: 'no-store' })
+    const headers = await authHeaders()
+    const res = await fetch(`/api/booking/requests/${requestId}`, {
+      headers,
+      cache: 'no-store',
+    })
     if (!res.ok) {
       setLoading(false)
       return
     }
     setDetail(await res.json())
     setLoading(false)
-  }, [requestId])
+  }, [requestId, authHeaders])
 
   useEffect(() => { load() }, [load])
 
@@ -104,9 +117,10 @@ export default function BookingRequestDetailModal({
       setActionError(null)
       setSmsError(false)
       try {
+        const headers = await authHeaders()
         const res = await fetch(`/api/booking/requests/${requestId}/action`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ action, ...body }),
         })
         const json = await res.json().catch(() => ({}))
@@ -150,7 +164,8 @@ export default function BookingRequestDetailModal({
     setSlots(null)
     setSelectedSlot(null)
     setActionError(null)
-    const res = await fetch(`/api/booking/requests/${requestId}/slots`)
+    const headers = await authHeaders()
+    const res = await fetch(`/api/booking/requests/${requestId}/slots`, { headers })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
       setActionError(

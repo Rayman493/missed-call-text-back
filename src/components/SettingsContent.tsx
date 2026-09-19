@@ -119,7 +119,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
     const tryScroll = () => {
       if (pendingSectionRef.current !== section) return
-      const element = document.getElementById(`${section}-divider`)
+      const element = document.getElementById(section) ?? document.getElementById(`${section}-divider`)
       if (element) {
         scrollToSectionRef.current(section)
         pendingSectionRef.current = null
@@ -321,8 +321,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
         const tryScroll = () => {
           if (pendingSectionRef.current !== hash) return
-          const dividerId = `${hash}-divider`
-          const element = document.getElementById(dividerId)
+          const element = document.getElementById(hash) ?? document.getElementById(`${hash}-divider`)
           if (element) {
             scrollToSectionRef.current(hash)
             pendingSectionRef.current = null
@@ -2730,9 +2729,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   // Shared scroll-to-section helper
   const scrollToSection = useCallback((sectionId: string) => {
-    // Target the divider element instead of the section content
-    const dividerId = `${sectionId}-divider`
-    const element = document.getElementById(dividerId)
+    // Target the section content so its heading lands just below the sticky
+    // tab bar; fall back to the divider if the section is not rendered yet.
+    const element = document.getElementById(sectionId) ?? document.getElementById(`${sectionId}-divider`)
     if (element) {
       const offset = getScrollOffset()
       const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
