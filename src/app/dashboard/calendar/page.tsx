@@ -29,6 +29,7 @@ import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import TodayCommandCenter from '@/components/schedule/TodayCommandCenter'
+import BookingRequestsCard from '@/components/schedule/BookingRequestsCard'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import ScheduleMap from '@/components/schedule/ScheduleMap'
 import Modal from '@/components/ui/Modal'
@@ -1932,6 +1933,7 @@ export default function SchedulePage() {
                     <>
                       {/* Focus - Unified Intelligence for Schedule */}
                       <FocusSection business={business} view="schedule" title="Schedule Focus" compact />
+                      <BookingRequestsCard />
                       <TodayCommandCenter
                         jobs={jobs}
                         calendarEvents={events}

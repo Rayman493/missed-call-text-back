@@ -19,6 +19,7 @@ export interface SourceNormalizationResult {
 const SOURCE_COLORS: Record<string, string> = {
   replyflow_intake: '#8B5CF6',
   manual: '#F59E0B',
+  booking: '#3B82F6',
   excluded: '#94A3B8',
   unclassified: '#94A3B8'
 }
@@ -26,6 +27,7 @@ const SOURCE_COLORS: Record<string, string> = {
 const SOURCE_LABELS: Record<string, string> = {
   replyflow_intake: 'ReplyFlow Intake',
   manual: 'Manually Added',
+  booking: 'Booking',
   excluded: 'Excluded',
   unclassified: 'Unclassified'
 }
@@ -44,6 +46,11 @@ function normalizeExplicitSource(source: string): string | null {
   // Manually Added: merchant/user-created leads
   if (source === 'manual' || source === 'manual_payment_request' || source === 'manual_entry' || source === 'manual_backfill') {
     return 'manual'
+  }
+
+  // Online Booking: public booking-request intake
+  if (source === 'online_booking') {
+    return 'booking'
   }
 
   // Test/demo leads - excluded
@@ -83,6 +90,9 @@ export function normalizeSourceCounts(sourceCounts: Record<string, number>): Sou
     } else if (source === 'manual' || source === 'manual_payment_request' || source === 'manual_entry' || source === 'manual_backfill') {
       // Manually Added: leads created by user via manual entry or payment request
       normalizedSource = 'manual'
+    } else if (source === 'online_booking') {
+      // Booking: customers who entered through the public online booking flow
+      normalizedSource = 'booking'
     } else {
       // Unclassified: source value not proven in audit (including 'web')
       normalizedSource = 'unclassified'

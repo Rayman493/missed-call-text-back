@@ -14,6 +14,7 @@ import PasswordInput from '@/components/PasswordInput'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import AppBackButton from '@/components/AppBackButton'
 import BusinessLogoSettings from '@/components/billing/BusinessLogoSettings'
+import OnlineBookingSection from '@/components/settings/OnlineBookingSection'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
@@ -3973,6 +3974,21 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
               </div>
 
               {/* Group: Integrations */}
+              <div id="online-booking-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'online-booking')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              {/* Online Booking Section */}
+              <div id="online-booking" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[64px]">
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Online Booking</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Let customers request times from a public booking link.</p>
+                </div>
+                <OnlineBookingSection />
+              </div>
+
               <div id="integrations-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
                 <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'integrations')?.label}</h3>

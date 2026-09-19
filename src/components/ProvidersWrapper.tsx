@@ -99,7 +99,9 @@ export default function ProvidersWrapper({ children }: ProvidersWrapperProps) {
   // Use exact matching to avoid classifying all routes as public
   // Do NOT gate on isClient - public routes must be detected on initial render to prevent AppLoadingScreen flash
   const normalizedPathname = normalizePathname(pathname)
-  const isPublicRoute = Boolean(pathname) && PUBLIC_ROUTES.has(normalizedPathname)
+  const isPublicRoute = Boolean(pathname) && (
+    PUBLIC_ROUTES.has(normalizedPathname) || normalizedPathname.startsWith('/book/')
+  )
 
   // Cleanup public-route-dark class when navigating away from public routes
   useEffect(() => {

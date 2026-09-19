@@ -1,23 +1,23 @@
 /**
  * Customer Source Resolution
- * 
+ *
  * Provides a canonical way to determine how a customer entered ReplyFlow.
  * Uses the full precedence chain: raw_metadata.creation_source → raw_metadata.source → leads.source → historical metadata
  */
 
-export type CustomerSource = 'replyflow' | 'manual' | 'unknown'
+export type CustomerSource = 'replyflow' | 'manual' | 'booking' | 'unknown'
 export type ChannelQualifier = 'AI Voice' | 'SMS' | 'Voicemail' | null
 
 export interface CustomerSourceInfo {
   type: CustomerSource
   label: string
   description: string
-  icon: 'PhoneIncoming' | 'UserPlus'
+  icon: 'PhoneIncoming' | 'UserPlus' | 'CalendarPlus'
 }
 
 export interface ProvenanceInfo {
   label: string | null  // Full provenance label (e.g., "ReplyFlow Intake · AI Voice")
-  category: 'replyflow' | 'manual' | null
+  category: 'replyflow' | 'manual' | 'booking' | null
   channel: ChannelQualifier
 }
 
@@ -36,6 +36,11 @@ function normalizeExplicitSource(source: string): string | null {
   // Manually Added: merchant/user-created leads
   if (source === 'manual' || source === 'manual_payment_request' || source === 'manual_entry' || source === 'manual_backfill') {
     return 'manual'
+  }
+
+  // Online Booking: public booking-request intake
+  if (source === 'online_booking') {
+    return 'booking'
   }
 
   // Test/demo leads - excluded
@@ -180,12 +185,17 @@ export function getProvenanceLabel(lead: any): string | null {
     return 'Manually Added'
   }
 
+  // Online Booking
+  if (normalized === 'booking') {
+    return 'Booking'
+  }
+
   return null
 }
 
 /**
  * Resolves customer source from the database source field (legacy, for backward compatibility).
- * 
+ *
  * Mapping:
  * - 'ai_voice', 'sms', 'web' → replyflow (automated intake)
  * - 'manual' → manual (manually added)
@@ -195,17 +205,22 @@ export function getProvenanceLabel(lead: any): string | null {
  */
 export function getCustomerSource(source: string | null | undefined): CustomerSource {
   if (!source) return 'unknown'
-  
+
   // Automated intake sources
   if (['ai_voice', 'sms', 'web'].includes(source)) {
     return 'replyflow'
   }
-  
+
   // Manual source (canonical and legacy)
   if (source === 'manual' || source === 'manual_entry') {
     return 'manual'
   }
-  
+
+  // Online Booking source
+  if (source === 'online_booking') {
+    return 'booking'
+  }
+
   // Unknown source (future-proof)
   return 'unknown'
 }
@@ -218,11 +233,11 @@ export function getCustomerSource(source: string | null | undefined): CustomerSo
  */
 export function getCustomerSourceInfo(source: string | null | undefined): CustomerSourceInfo | null {
   const type = getCustomerSource(source)
-  
+
   if (type === 'unknown') {
     return null
   }
-  
+
   if (type === 'replyflow') {
     return {
       type: 'replyflow',
@@ -231,7 +246,7 @@ export function getCustomerSourceInfo(source: string | null | undefined): Custom
       icon: 'PhoneIncoming'
     }
   }
-  
+
   if (type === 'manual') {
     return {
       type: 'manual',
@@ -240,7 +255,16 @@ export function getCustomerSourceInfo(source: string | null | undefined): Custom
       icon: 'UserPlus'
     }
   }
-  
+
+  if (type === 'booking') {
+    return {
+      type: 'booking',
+      label: 'Booking',
+      description: 'Requested through online booking',
+      icon: 'CalendarPlus'
+    }
+  }
+
   return null
 }
 
@@ -292,6 +316,15 @@ export function getCustomerSourceInfoCanonical(lead: any): CustomerSourceInfo | 
       label: 'Manual',
       description: provenanceLabel,
       icon: 'UserPlus'
+    }
+  }
+
+  if (provenanceLabel === 'Booking') {
+    return {
+      type: 'booking',
+      label: 'Booking',
+      description: provenanceLabel,
+      icon: 'CalendarPlus'
     }
   }
 

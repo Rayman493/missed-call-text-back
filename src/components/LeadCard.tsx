@@ -15,7 +15,7 @@ import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 import { memoryService } from '@/lib/business-memory/memory-service'
 import { getCustomerSourceInfoCanonical } from '@/lib/customer-source'
-import { Repeat, TrendingUp, Clock, DollarSign, PhoneIncoming, UserPlus } from 'lucide-react'
+import { Repeat, TrendingUp, Clock, DollarSign, PhoneIncoming, UserPlus, CalendarPlus } from 'lucide-react'
 
 // Helper to get structured AI data for lead card
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
@@ -162,13 +162,14 @@ export default function LeadCard({
                   className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border whitespace-nowrap flex-shrink-0"
                   title={customerSourceInfo.description}
                   style={{
-                    backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-                    color: customerSourceInfo.type === 'replyflow' ? 'rgb(139, 92, 246)' : 'rgb(100, 116, 139)',
-                    borderColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(100, 116, 139, 0.2)'
+                    backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : customerSourceInfo.type === 'booking' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                    color: customerSourceInfo.type === 'replyflow' ? 'rgb(139, 92, 246)' : customerSourceInfo.type === 'booking' ? 'rgb(59, 130, 246)' : 'rgb(100, 116, 139)',
+                    borderColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.2)' : customerSourceInfo.type === 'booking' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(100, 116, 139, 0.2)'
                   }}
                 >
                   {customerSourceInfo.icon === 'PhoneIncoming' && <PhoneIncoming className="w-2.5 h-2.5" />}
                   {customerSourceInfo.icon === 'UserPlus' && <UserPlus className="w-2.5 h-2.5" />}
+                  {customerSourceInfo.icon === 'CalendarPlus' && <CalendarPlus className="w-2.5 h-2.5" />}
                   <span>{customerSourceInfo.label}</span>
                 </span>
               )}
