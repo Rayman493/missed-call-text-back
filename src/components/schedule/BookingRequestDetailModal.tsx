@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BookingRequestEvent, BookingRequestStatus, BookingSlot } from '@/lib/booking/types'
-import { CalendarDays, Check, ChevronDown, Clock, ExternalLink, MapPin, Phone, RefreshCw } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, Clock, ExternalLink, MapPin, Phone, RefreshCw, User } from 'lucide-react'
+import { formatPhoneNumber } from '@/lib/utils'
 import { showToast } from '@/lib/toast'
 import { formatInTimeZone } from 'date-fns-tz'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 import Modal from '@/components/ui/Modal'
 
 interface BookingDetail {
@@ -75,6 +77,11 @@ export default function BookingRequestDetailModal({
   onRefresh?: () => void
 }) {
   const router = useRouter()
+  const navigateFromModal = useCallback((href: string) => {
+    suppressNextHistoryBackCleanup()
+    router.push(href)
+    onClose()
+  }, [router, onClose])
   const supabase = useMemo(() => createBrowserClient(), [])
   const { business } = useBusiness()
   const effectiveBusinessId = businessId ?? business?.id ?? null
@@ -294,10 +301,13 @@ export default function BookingRequestDetailModal({
   }, [slots])
 
   const status: BookingRequestStatus | null = detail?.status ?? null
-  const converted = !!(detail?.appointment_id || detail?.job_id)
+  const hasAppointment = !!detail?.appointment_id
+  const hasJob = !!detail?.job_id
+  const converted = hasAppointment || hasJob
   const actionable = status === 'pending' || status === 'customer_reselected' || status === 'business_proposed'
   const canAccept = status === 'pending' || status === 'customer_reselected'
   const agreedStart = detail?.current_proposed_start ?? detail?.requested_start
+  const agreedEnd = detail?.current_proposed_end ?? detail?.requested_end
   const requestedDiffers =
     !!detail?.current_proposed_start && detail.current_proposed_start !== detail.requested_start
 
@@ -309,7 +319,7 @@ export default function BookingRequestDetailModal({
   return (
     <Modal isOpen onClose={onClose} title={detail?.customer_name ?? 'Booking request'}>
       <div className="space-y-4">
-        {status && !converted && (
+        {status && (
           <span
             className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
               status === 'accepted'
@@ -324,298 +334,305 @@ export default function BookingRequestDetailModal({
             {STATUS_LABEL[status]}
           </span>
         )}
-            {loading ? (
-            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
-            </div>
-          ) : !detail ? (
-            <div className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">Could not load this booking request.</p>
-              <button
-                type="button"
-                onClick={load}
-                className="mt-3 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-              >
-                <RefreshCw className="h-3.5 w-3.5" /> Try again
-              </button>
-            </div>
-          ) : (
-            <>
-              <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</p>
-                <div className="space-y-1.5 text-sm text-foreground/90">
-                  <a href={`tel:${detail.customer_phone}`} className="flex items-center gap-2 hover:text-primary-600">
-                    <Phone className="h-3.5 w-3.5 text-muted-foreground" /> {detail.customer_phone}
-                  </a>
-                  {detail.customer_email && <p className="pl-5 text-muted-foreground">{detail.customer_email}</p>}
+        {loading ? (
+          <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        ) : !detail ? (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">Could not load this booking request.</p>
+            <button
+              type="button"
+              onClick={load}
+              className="mt-3 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Try again
+            </button>
+          </div>
+        ) : (
+          <>
+            <section>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</p>
+              <div className="rounded-xl border border-border/40 bg-card p-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Phone</p>
+                      <a href={`tel:${detail.customer_phone}`} className="font-medium text-foreground hover:text-primary-600">
+                        {formatPhoneNumber(detail.customer_phone)}
+                      </a>
+                    </div>
+                  </div>
+                  {detail.customer_email && (
+                    <div className="flex items-start gap-2">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground">@</span>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Email</p>
+                        <p className="font-medium text-foreground">{detail.customer_email}</p>
+                      </div>
+                    </div>
+                  )}
                   {detail.customer_address && (
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> {detail.customer_address}
-                    </p>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Address</p>
+                        <p className="font-medium text-foreground">{detail.customer_address}</p>
+                      </div>
+                    </div>
                   )}
                 </div>
+                {detail.lead_id && (
+                  <button
+                    type="button"
+                    onClick={() => navigateFromModal(`/dashboard/leads/${detail.lead_id}`)}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted sm:w-auto"
+                  >
+                    <User className="h-4 w-4" /> View Customer
+                  </button>
+                )}
               </div>
+            </section>
 
-              {(detail.service || detail.notes) && (
-                <div>
-                  <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Request</p>
-                  {detail.service && <p className="text-sm font-medium text-foreground">{detail.service}</p>}
+            {(detail.service || detail.notes) && (
+              <section>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Request</p>
+                <div className="rounded-xl border border-border/40 bg-card p-3 text-sm">
+                  {detail.service && (
+                    <div className="mb-2">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Service</p>
+                      <p className="font-medium text-foreground">{detail.service}</p>
+                    </div>
+                  )}
                   {detail.notes && (
-                    <p className="mt-1.5 rounded-lg bg-muted/60 p-2.5 text-[13px] text-muted-foreground">{detail.notes}</p>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Notes</p>
+                      <p className="rounded-lg bg-muted/50 p-2 text-[13px] text-muted-foreground">{detail.notes}</p>
+                    </div>
                   )}
                 </div>
-              )}
+              </section>
+            )}
 
-              <div className="rounded-xl border border-border/40 bg-muted/30 p-3 text-sm">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-foreground">
-                  <CalendarDays className="h-4 w-4 text-primary-500" />
-                  <span className="font-medium">
-                    {formatInTimeZone(agreedStart!, detail.timezone, 'EEEE, MMM d')}
-                  </span>
-                  <span>
-                    {formatInTimeZone(agreedStart!, detail.timezone, 'h:mm a')}
-                    {' – '}
-                    {formatInTimeZone(
-                      detail.current_proposed_end ?? detail.requested_end,
-                      detail.timezone,
-                      'h:mm a'
+            <section>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Time</p>
+              <div className="rounded-xl border border-border/40 bg-card p-3 text-sm">
+                <div className="flex items-start gap-2 text-foreground">
+                  <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
+                  <div>
+                    <p className="font-medium">
+                      {formatInTimeZone(agreedStart!, detail.timezone, 'EEEE, MMM d')}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {formatInTimeZone(agreedStart!, detail.timezone, 'h:mm a')} – {formatInTimeZone(agreedEnd!, detail.timezone, 'h:mm a')}
+                    </p>
+                    {requestedDiffers && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Originally requested{' '}
+                        {formatInTimeZone(detail.requested_start, detail.timezone, 'EEE, MMM d · h:mm a')}
+                      </p>
                     )}
-                  </span>
+                    {status === 'business_proposed' && (
+                      <p className="mt-1 text-xs font-medium text-violet-600 dark:text-violet-300">Waiting for customer</p>
+                    )}
+                  </div>
                 </div>
-                {requestedDiffers && (
-                  <p className="mt-1.5 pl-6 text-xs text-muted-foreground">
-                    Originally requested{' '}
-                    {formatInTimeZone(detail.requested_start, detail.timezone, 'EEE, MMM d · h:mm a')}
-                  </p>
-                )}
-                {status === 'business_proposed' && (
-                  <p className="mt-1 pl-6 text-xs font-medium text-violet-600 dark:text-violet-300">Waiting for customer</p>
+              </div>
+            </section>
+
+            {actionError && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/30 dark:text-amber-200">
+                <p>{actionError}</p>
+                {smsError && (
+                  <button
+                    onClick={() => runAction('resend-proposal')}
+                    disabled={busy !== null}
+                    className="mt-2 text-xs font-medium underline hover:text-amber-900 disabled:opacity-50 dark:hover:text-amber-100"
+                  >
+                    {busy === 'resend-proposal' ? 'Resending…' : 'Resend text'}
+                  </button>
                 )}
               </div>
+            )}
 
-              {actionError && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/30 dark:text-amber-200">
-                  <p>{actionError}</p>
-                  {smsError && (
-                    <button
-                      onClick={() => runAction('resend-proposal')}
-                      disabled={busy !== null}
-                      className="mt-2 text-xs font-medium underline hover:text-amber-900 disabled:opacity-50 dark:hover:text-amber-100"
-                    >
-                      {busy === 'resend-proposal' ? 'Resending…' : 'Resend text'}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {actionable && !picking && (
-                <div>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</p>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                    {canAccept && (
-                      <button
-                        disabled={busy !== null}
-                        onClick={() => runAction('accept')}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-                      >
-                        <Check className="h-4 w-4" /> {busy === 'accept' ? 'Accepting…' : 'Accept'}
-                      </button>
-                    )}
+            {actionable && !picking && (
+              <section>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  {canAccept && (
                     <button
                       disabled={busy !== null}
-                      onClick={openPicker}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                      onClick={() => runAction('accept')}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
                     >
-                      <Clock className="h-4 w-4" /> Suggest New Time
+                      <Check className="h-4 w-4" /> {busy === 'accept' ? 'Accepting…' : 'Accept'}
                     </button>
-                    {detail.lead_id && (
-                      <button
-                        type="button"
-                        disabled={busy !== null}
-                        onClick={() => {
-                          router.push(`/dashboard/leads/${detail.lead_id}`)
-                          onClose()
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
-                      >
-                        <ExternalLink className="h-4 w-4" /> View Customer
-                      </button>
-                    )}
-                    <button
-                      disabled={busy !== null}
-                      onClick={() => runAction('reject')}
-                      className="rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:text-red-300 dark:hover:bg-red-900/30"
-                    >
-                      {busy === 'reject' ? 'Declining…' : 'Reject'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {picking && (
-                <div className="space-y-3 rounded-xl border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-foreground">Suggest a new time</p>
-                    <button onClick={() => setPicking(false)} className="text-xs text-muted-foreground hover:text-foreground">
-                      Cancel
-                    </button>
-                  </div>
-                  {slots === null ? (
-                    <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-                      <RefreshCw className="h-4 w-4 animate-spin" /> Loading times…
-                    </div>
-                  ) : slots.length === 0 ? (
-                    <p className="py-3 text-sm text-muted-foreground">No times available in the booking window.</p>
-                  ) : (
-                    <div className="max-h-56 space-y-3 overflow-y-auto pr-1">
-                      {slotsByDay.map(([day, daySlots]) => (
-                        <div key={day}>
-                          <p className="mb-1 text-xs font-medium text-muted-foreground">
-                            {formatInTimeZone(daySlots[0].start, slotTz, 'EEEE, MMM d')}
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {daySlots.map((s) => {
-                              const selected = selectedSlot?.start === s.start
-                              return (
-                                <button
-                                  key={s.start}
-                                  type="button"
-                                  aria-pressed={selected}
-                                  onClick={() => setSelectedSlot(s)}
-                                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                                    selected
-                                      ? 'border-primary-600 bg-primary-600 text-white ring-2 ring-primary-600/20'
-                                      : 'border-border text-foreground hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-                                  }`}
-                                >
-                                  {formatInTimeZone(s.start, slotTz, 'h:mm a')}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {selectedSlot && (
-                    <div className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900 dark:border-primary-900/40 dark:bg-primary-900/20 dark:text-primary-100">
-                      <span className="font-medium">Selected:</span>{' '}
-                      {formatInTimeZone(selectedSlot.start, slotTz, 'EEEE, MMM d · h:mm a')} –{' '}
-                      {formatInTimeZone(selectedSlot.end, slotTz, 'h:mm a')}
-                    </div>
                   )}
                   <button
-                    disabled={!selectedSlot || busy !== null}
-                    onClick={() => runAction('propose', { start: selectedSlot!.start, end: selectedSlot!.end })}
-                    className="w-full rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                    disabled={busy !== null}
+                    onClick={openPicker}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
                   >
-                    {busy === 'propose' ? 'Sending…' : 'Send suggested time'}
+                    <Clock className="h-4 w-4" /> Suggest New Time
+                  </button>
+                  <button
+                    disabled={busy !== null}
+                    onClick={() => runAction('reject')}
+                    className="rounded-lg border border-red-200 px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:text-red-300 dark:hover:bg-red-900/30"
+                  >
+                    {busy === 'reject' ? 'Declining…' : 'Reject'}
                   </button>
                 </div>
-              )}
+              </section>
+            )}
 
-              {status === 'accepted' && !converted && (
-                <div>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Actions</p>
-                  <p className="mb-2 text-xs text-muted-foreground">Create this booking as:</p>
-                  <div className="grid grid-cols-2 gap-2">
+            {picking && (
+              <div className="space-y-3 rounded-xl border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-foreground">Suggest a new time</p>
+                  <button onClick={() => setPicking(false)} className="text-xs text-muted-foreground hover:text-foreground">
+                    Cancel
+                  </button>
+                </div>
+                {slots === null ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                    <RefreshCw className="h-4 w-4 animate-spin" /> Loading times…
+                  </div>
+                ) : slots.length === 0 ? (
+                  <p className="py-3 text-sm text-muted-foreground">No times available in the booking window.</p>
+                ) : (
+                  <div className="max-h-56 space-y-3 overflow-y-auto pr-1">
+                    {slotsByDay.map(([day, daySlots]) => (
+                      <div key={day}>
+                        <p className="mb-1 text-xs font-medium text-muted-foreground">
+                          {formatInTimeZone(daySlots[0].start, slotTz, 'EEEE, MMM d')}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {daySlots.map((s) => {
+                            const selected = selectedSlot?.start === s.start
+                            return (
+                              <button
+                                key={s.start}
+                                type="button"
+                                aria-pressed={selected}
+                                onClick={() => setSelectedSlot(s)}
+                                className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                  selected
+                                    ? 'border-primary-600 bg-primary-600 text-white ring-2 ring-primary-600/20'
+                                    : 'border-border text-foreground hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+                                }`}
+                              >
+                                {formatInTimeZone(s.start, slotTz, 'h:mm a')}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedSlot && (
+                  <div className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900 dark:border-primary-900/40 dark:bg-primary-900/20 dark:text-primary-100">
+                    <span className="font-medium">Selected:</span>{' '}
+                    {formatInTimeZone(selectedSlot.start, slotTz, 'EEEE, MMM d · h:mm a')} –{' '}
+                    {formatInTimeZone(selectedSlot.end, slotTz, 'h:mm a')}
+                  </div>
+                )}
+                <button
+                  disabled={!selectedSlot || busy !== null}
+                  onClick={() => runAction('propose', { start: selectedSlot!.start, end: selectedSlot!.end })}
+                  className="w-full rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {busy === 'propose' ? 'Sending…' : 'Send suggested time'}
+                </button>
+              </div>
+            )}
+
+            {status === 'accepted' && (!hasAppointment || !hasJob) && (
+              <section>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Create this booking as</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {!hasAppointment && (
                     <button
                       disabled={busy !== null}
                       onClick={() => runAction('create-appointment')}
-                      className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary-600 bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
                     >
                       {busy === 'create-appointment' ? 'Creating…' : 'Create Appointment'}
                     </button>
+                  )}
+                  {!hasJob && (
                     <button
                       disabled={busy !== null}
                       onClick={() => runAction('create-job')}
-                      className="rounded-lg border border-primary-600 px-3.5 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 disabled:opacity-50 dark:hover:bg-primary-900/20"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary-600 px-3.5 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 disabled:opacity-50 dark:hover:bg-primary-900/20"
                     >
                       {busy === 'create-job' ? 'Creating…' : 'Create Job'}
                     </button>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {converted && (
+              <section>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Created records</p>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    {hasAppointment && (
+                      <button
+                        type="button"
+                        onClick={() => navigateFromModal('/dashboard/calendar?tab=appointments')}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
+                      >
+                        <ExternalLink className="h-4 w-4" /> View Appointment
+                      </button>
+                    )}
+                    {hasJob && (
+                      <button
+                        type="button"
+                        onClick={() => navigateFromModal('/dashboard/calendar?tab=jobs')}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
+                      >
+                        <ExternalLink className="h-4 w-4" /> View Job
+                      </button>
+                    )}
                   </div>
-                  {detail.lead_id && (
+                </div>
+              </section>
+            )}
+
+            {detail.events.length > 0 && (
+              <section className="border-t border-border/40 pt-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">History</p>
+                  {detail.events.length > 3 && (
                     <button
-                      type="button"
-                      disabled={busy !== null}
-                      onClick={() => {
-                        router.push(`/dashboard/leads/${detail.lead_id}`)
-                        onClose()
-                      }}
-                      className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                      onClick={() => setShowAllHistory((x) => !x)}
+                      className="inline-flex items-center gap-0.5 text-xs text-primary-600 hover:underline dark:text-primary-400"
                     >
-                      <ExternalLink className="h-4 w-4" /> View Customer
+                      {showAllHistory ? 'Show fewer' : 'Show all'}
+                      <ChevronDown className={`h-3 w-3 transition-transform ${showAllHistory ? 'rotate-180' : ''}`} />
                     </button>
                   )}
                 </div>
-              )}
-
-              {converted && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
-                  <p className="mb-2 text-sm font-medium text-emerald-800 dark:text-emerald-200">
-                    Created as {detail.appointment_id ? 'Appointment' : 'Job'}
-                  </p>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                    <button
-                      onClick={() => {
-                        router.push(
-                          detail.appointment_id
-                            ? '/dashboard/calendar?tab=appointments'
-                            : '/dashboard/calendar?tab=jobs'
-                        )
-                        onClose()
-                      }}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      {detail.appointment_id ? 'View Appointment' : 'View Job'}
-                    </button>
-                    {detail.lead_id && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          router.push(`/dashboard/leads/${detail.lead_id}`)
-                          onClose()
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
-                      >
-                        <ExternalLink className="h-4 w-4" /> View Customer
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {detail.events.length > 0 && (
-                <div className="border-t border-border/40 pt-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">History</p>
-                    {detail.events.length > 3 && (
-                      <button
-                        onClick={() => setShowAllHistory((x) => !x)}
-                        className="inline-flex items-center gap-0.5 text-xs text-primary-600 hover:underline dark:text-primary-400"
-                      >
-                        {showAllHistory ? 'Show fewer' : 'Show all'}
-                        <ChevronDown className={`h-3 w-3 transition-transform ${showAllHistory ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                  </div>
-                  <ul className="space-y-1.5">
-                    {displayedEvents.map((e) => (
-                      <li key={e.id} className="flex items-baseline justify-between gap-3 text-[13px]">
-                        <span className="text-foreground/90">
-                          {EVENT_LABEL[e.event_type] ?? e.event_type}{eventActorLabel(e.actor)}
-                        </span>
-                        <span className="shrink-0 text-xs text-muted-foreground">
-                          {formatInTimeZone(e.created_at, detail.timezone, 'MMM d, h:mm a')}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          )}
+                <ul className="space-y-1.5">
+                  {displayedEvents.map((e) => (
+                    <li key={e.id} className="flex items-baseline justify-between gap-3 text-[13px]">
+                      <span className="text-foreground/90">
+                        {EVENT_LABEL[e.event_type] ?? e.event_type}{eventActorLabel(e.actor)}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatInTimeZone(e.created_at, detail.timezone, 'MMM d, h:mm a')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </>
+        )}
       </div>
     </Modal>
   )

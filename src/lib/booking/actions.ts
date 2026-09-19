@@ -11,7 +11,7 @@
  *   business_proposed              → waiting on customer; business may
  *                                    re-propose or reject
  *   accepted                       → terminal negotiation; converts via
- *                                    Create Appointment XOR Create Job
+ *                                    Create Appointment and/or Create Job
  *   declined / cancelled / expired → terminal, read-only
  */
 

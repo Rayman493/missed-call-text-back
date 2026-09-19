@@ -4,14 +4,14 @@
  * Converts an ACCEPTED booking request into canonical ReplyFlow records:
  *   1. Customer — canonical LeadService path, source = online_booking. The
  *      lead then behaves identically to a manual / missed-call customer.
- *   2. Exactly ONE operational record — Appointment (Google Calendar event
- *      on the business primary calendar) XOR Job (canonical jobs row with
- *      the same Google-sync behavior as the jobs route).
+ *   2. Up to two operational records — Appointment (Google Calendar event on
+ *      the business primary calendar) and/or Job (canonical jobs row with the
+ *      same Google-sync behavior as the jobs route). Each is created at most
+ *      once per booking request.
  *
  * INVARIANTS
- *   - booking_requests can never link BOTH appointment_id and job_id
- *     (enforced in application code AND the Phase 2 CHECK constraint).
- *   - Retrying any step is safe: lead_id/appointment_id/job_id are
+ *   - A booking request may have at most one appointment_id and at most one
+ *     job_id. Retrying any step is safe: lead_id/appointment_id/job_id are
  *     reconciled before creating anything, so a lost response can never
  *     duplicate a customer or an operational record.
  *   - The booking's agreed window is held in availability until conversion;
@@ -90,9 +90,6 @@ export async function createAppointmentForBookingRequest(
   // Idempotent reconcile — a prior attempt that already linked wins.
   if (request.appointment_id) {
     return { ok: true, alreadyCreated: true, kind: 'appointment', recordId: request.appointment_id, leadId: request.lead_id ?? '' }
-  }
-  if (request.job_id) {
-    return { ok: false, status: 409, error: 'This booking already created a job.', code: 'already_converted' }
   }
 
   // Customer conversion first — retry-safe; preserves lead_id on later retries.
@@ -189,28 +186,24 @@ export async function createAppointmentForBookingRequest(
     }
   }
 
-  // Link + XOR guard: only write when BOTH linkage fields are still null —
-  // a concurrent create-job loses here instead of corrupting the invariant.
+  // Link guard: only write when appointment_id is still null so a concurrent
+  // appointment attempt loses the race without affecting an existing job.
   const supabase = bookingAdmin()
   const { data: linked, error: linkError } = await supabase
     .from('booking_requests')
     .update({ appointment_id: createdEventId, lead_id: leadId, updated_at: new Date().toISOString() })
     .eq('id', request.id)
     .is('appointment_id', null)
-    .is('job_id', null)
     .select('id, appointment_id, job_id')
 
   if (linkError) {
     console.error('[BOOKING] appointment linkage failed:', linkError)
   }
   if (!linked || linked.length === 0) {
-    // Another conversion won the race — reconcile to the existing record.
+    // Another appointment attempt won the race — reconcile to the existing record.
     const fresh = await loadOwnedRequest(businessId, requestId)
     if (fresh?.appointment_id) {
       return { ok: true, alreadyCreated: true, kind: 'appointment', recordId: fresh.appointment_id, leadId: fresh.lead_id ?? leadId }
-    }
-    if (fresh?.job_id) {
-      return { ok: false, status: 409, error: 'This booking already created a job.', code: 'already_converted', leadId }
     }
     return { ok: false, status: 500, error: 'Could not link the appointment to this booking. Please try again.', leadId }
   }
@@ -256,9 +249,6 @@ export async function createJobForBookingRequest(
   if (request.job_id) {
     return { ok: true, alreadyCreated: true, kind: 'job', recordId: request.job_id, leadId: request.lead_id ?? '' }
   }
-  if (request.appointment_id) {
-    return { ok: false, status: 409, error: 'This booking already created an appointment.', code: 'already_converted' }
-  }
 
   const lead = await ensureLeadForBookingRequest(request)
   if (!lead.ok) return { ok: false, status: lead.status, error: lead.error }
@@ -300,12 +290,12 @@ export async function createJobForBookingRequest(
     return { ok: false, status: 500, error: 'Could not create the job. Please try again.', leadId }
   }
 
-  // Link + XOR guard — same atomic reconcile as the appointment path.
+  // Link guard: only write when job_id is still null so a concurrent job
+  // attempt loses the race without affecting an existing appointment.
   const { data: linked, error: linkError } = await supabase
     .from('booking_requests')
     .update({ job_id: job.id, lead_id: leadId, updated_at: new Date().toISOString() })
     .eq('id', request.id)
-    .is('appointment_id', null)
     .is('job_id', null)
     .select('id')
 
@@ -314,9 +304,6 @@ export async function createJobForBookingRequest(
     const fresh = await loadOwnedRequest(businessId, requestId)
     if (fresh?.job_id) {
       return { ok: true, alreadyCreated: true, kind: 'job', recordId: fresh.job_id, leadId: fresh.lead_id ?? leadId }
-    }
-    if (fresh?.appointment_id) {
-      return { ok: false, status: 409, error: 'This booking already created an appointment.', code: 'already_converted', leadId }
     }
     return { ok: false, status: 500, error: 'Could not link the job to this booking. Please try again.', leadId }
   }

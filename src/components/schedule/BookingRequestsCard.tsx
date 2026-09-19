@@ -48,6 +48,13 @@ const STATUS_PILL: Record<BookingRequestStatus | '_converted', string> = {
   _converted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
 }
 
+function convertedLabel(r: BookingRequestRow): string {
+  const parts: string[] = []
+  if (r.appointment_id) parts.push('Appointment')
+  if (r.job_id) parts.push('Job')
+  return parts.join(' + ') || STATUS_LABEL[r.status]
+}
+
 const BOOKING_SETTINGS_LINK = '/dashboard/settings?section=online-booking'
 
 /**
@@ -198,20 +205,38 @@ export default function BookingRequestsCard() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <RefreshCw className="h-4 w-4 animate-spin" /> Loading booking requests…
-        </div>
-      </div>
-    )
-  }
+  const pendingCount = counts.pending ?? 0
+  const hasRequests = requests.length > 0
 
-  if (error) {
-    return (
-      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
-        <div className="flex items-start justify-between gap-3">
+  const skeletonRows = (
+    <ul className="mt-3 mb-3 space-y-2">
+      {[...Array(3)].map((_, i) => (
+        <li key={i} className="rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5">
+          <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+          <div className="mt-1.5 h-3 w-1/2 animate-pulse rounded bg-muted" />
+        </li>
+      ))}
+    </ul>
+  )
+
+  return (
+    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
+      <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+        <div className="flex items-center gap-2">
+          <CalendarPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <h3 className="text-sm font-semibold text-foreground">Booking Requests</h3>
+        </div>
+        {!loading && pendingCount > 0 && (
+          <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+            {pendingCount} pending
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        skeletonRows
+      ) : error ? (
+        <div className="my-3 flex items-start justify-between gap-3">
           <p className="text-sm text-muted-foreground">{error}</p>
           <button
             type="button"
@@ -221,28 +246,7 @@ export default function BookingRequestsCard() {
             <RefreshCw className="h-3.5 w-3.5" /> Retry
           </button>
         </div>
-      </div>
-    )
-  }
-
-  const pendingCount = counts.pending ?? 0
-  const hasRequests = requests.length > 0
-
-  return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
-      <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
-        <div className="flex items-center gap-2">
-          <CalendarPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h3 className="text-sm font-semibold text-foreground">Booking Requests</h3>
-        </div>
-        {pendingCount > 0 && (
-          <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-            {pendingCount} pending
-          </span>
-        )}
-      </div>
-
-      {hasRequests ? (
+      ) : hasRequests ? (
         <ul className="mt-3 mb-3 space-y-2">
           {requests.map(r => {
             const converted = !!r.appointment_id || !!r.job_id
@@ -270,7 +274,7 @@ export default function BookingRequestsCard() {
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-1.5">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_PILL[converted ? '_converted' : r.status]}`}>
-                      {converted ? (r.job_id ? 'Job' : 'Appointment') : STATUS_LABEL[r.status]}
+                      {converted ? convertedLabel(r) : STATUS_LABEL[r.status]}
                     </span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground/70 transition-colors group-hover:text-primary-500" />
                   </div>
@@ -301,12 +305,14 @@ export default function BookingRequestsCard() {
             </Link>
           </>
         ) : (
-          <Link
-            href={BOOKING_SETTINGS_LINK}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-          >
-            Set up booking link
-          </Link>
+          !loading && (
+            <Link
+              href={BOOKING_SETTINGS_LINK}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+            >
+              Set up booking link
+            </Link>
+          )
         )}
       </div>
 

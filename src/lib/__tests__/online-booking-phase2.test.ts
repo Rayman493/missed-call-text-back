@@ -27,10 +27,13 @@ describe('Phase 2 migration', () => {
     'supabase/migrations/20260921000000_online_booking_phase2.sql',
     'utf8'
   )
+  const dualMigration = readFileSync(
+    'supabase/migrations/20260927000000_booking_dual_conversion.sql',
+    'utf8'
+  )
 
-  it('enforces the Appointment-XOR-Job invariant', () => {
-    expect(migration).toMatch(/booking_requests_one_operational_record/)
-    expect(migration).toMatch(/appointment_id is not null and job_id is not null/)
+  it('removes the Appointment-XOR-Job CHECK to allow one of each', () => {
+    expect(dualMigration).toMatch(/drop constraint if exists booking_requests_one_operational_record/)
   })
 
   it('widens booking_request_events for conversion + SMS events', () => {
@@ -241,7 +244,8 @@ describe('Booking SMS', () => {
       'src/components/schedule/BookingRequestDetailModal.tsx',
       'utf8'
     )
-    expect(card).toMatch(/Loading booking requests…/)
+    expect(card).toMatch(/Booking Requests/)
+    expect(card).toMatch(/animate-pulse/)
     expect(card).toMatch(/No booking requests yet\./)
     expect(card).toMatch(/Could not load booking requests/)
     expect(modal).toMatch(/Could not load this booking request\./)

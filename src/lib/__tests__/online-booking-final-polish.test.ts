@@ -264,7 +264,7 @@ describe('BookingRequestDetailModal accepted-flow UX', () => {
   })
 
   it('routes View Customer to the canonical lead detail route', () => {
-    expect(modal).toMatch(/router\.push\(`\/dashboard\/leads\/\$\{detail\.lead_id\}`\)/)
+    expect(modal).toMatch(/navigateFromModal\(`\/dashboard\/leads\/\$\{detail\.lead_id\}`\)/)
     expect(modal).not.toMatch(/\/dashboard\/customers\//)
   })
 
@@ -277,8 +277,9 @@ describe('BookingRequestDetailModal accepted-flow UX', () => {
   })
 
   it('hides both create actions once the booking is converted', () => {
-    expect(modal).toMatch(/status === 'accepted' && !converted/)
-    expect(modal).toMatch(/detail\.appointment_id \? 'Appointment' : 'Job'/)
+    expect(modal).toMatch(/status === 'accepted' && \(!hasAppointment \|\| !hasJob\)/)
+    expect(modal).toMatch(/Create Appointment/)
+    expect(modal).toMatch(/Create Job/)
   })
 
   it('subscribes to realtime updates for the open request and the list', () => {
@@ -288,6 +289,34 @@ describe('BookingRequestDetailModal accepted-flow UX', () => {
     expect(modal).not.toMatch(/filter: `id=eq\.\$\{requestId\}`/)
     expect(modal).toMatch(/row\?\.id !== requestId \|\| row\?\.business_id !== effectiveBusinessId/)
     expect(modal).toMatch(/realtime\.setAuth/)
+  })
+
+  it('places View Customer in the Customer section and uses navigation-aware close', () => {
+    expect(modal).toMatch(/<User className=/)
+    expect(modal).toMatch(/View Customer/)
+    expect(modal).toMatch(/navigateFromModal\(`/)
+    expect(modal).toMatch(/suppressNextHistoryBackCleanup\(\)/)
+  })
+
+  it('renders Customer, Request, and Time fields with explicit labels', () => {
+    expect(modal).toMatch(/>Customer</)
+    expect(modal).toMatch(/>Phone</)
+    expect(modal).toMatch(/>Request</)
+    expect(modal).toMatch(/>Service</)
+    expect(modal).toMatch(/>Time</)
+    expect(modal).toMatch(/formatPhoneNumber\(detail\.customer_phone\)/)
+  })
+
+  it('keeps create actions visible when only one record exists and hides them when both do', () => {
+    expect(modal).toMatch(/!hasAppointment \|\| !hasJob/)
+    expect(modal).toMatch(/!hasAppointment &&/)
+    expect(modal).toMatch(/!hasJob &&/)
+  })
+
+  it('shows both View Appointment and View Job when both records exist', () => {
+    expect(modal).toMatch(/>Created records</)
+    expect(modal).toMatch(/navigateFromModal\('\/dashboard\/calendar\?tab=appointments'\)/)
+    expect(modal).toMatch(/navigateFromModal\('\/dashboard\/calendar\?tab=jobs'\)/)
   })
 })
 
@@ -312,5 +341,31 @@ describe('Settings deep-link positioning', () => {
     expect(settings).toMatch(/new MutationObserver\(tryScroll\)/)
     expect(settings).toMatch(/\.disconnect\(\)/)
     expect(settings).toMatch(/setTimeout[\s\S]*?, 5000\)/)
+  })
+})
+
+describe('BookingRequestsCard loading shell', () => {
+  const card = read('src/components/schedule/BookingRequestsCard.tsx')
+
+  it('always renders the header and footer without early returns', () => {
+    expect(card).not.toMatch(/if \(loading\) \{\s*return/)
+    expect(card).toMatch(/>Booking Requests</)
+    expect(card).toMatch(/Booking settings/)
+    expect(card).toMatch(/Copy booking link/)
+  })
+
+  it('shows skeleton rows while the initial fetch is in progress', () => {
+    expect(card).toMatch(/skeletonRows/)
+    expect(card).toMatch(/animate-pulse/)
+    expect(card).toMatch(/loading \? \(/)
+  })
+
+  it('keeps the error state inside the same mounted shell', () => {
+    expect(card).toMatch(/error \? \(/)
+    expect(card).toMatch(/Could not load booking requests/)
+  })
+
+  it('renders the empty state in the same shell after loading succeeds', () => {
+    expect(card).toMatch(/No booking requests yet\./)
   })
 })
