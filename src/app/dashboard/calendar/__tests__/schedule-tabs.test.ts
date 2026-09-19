@@ -153,8 +153,8 @@ describe('Schedule Tab Architecture — Appointments Tab', () => {
     expect(pageContent).toContain('function MeetingsTab(')
   })
 
-  it('MeetingsTab reuses existing events data and handleNewAppointment', () => {
-    expect(pageContent).toContain('events={events}')
+  it('MeetingsTab reuses the union of fetched month events and handleNewAppointment', () => {
+    expect(pageContent).toContain('events={allFetchedEvents}')
     expect(pageContent).toContain('onNewMeeting={handleNewAppointment}')
   })
 

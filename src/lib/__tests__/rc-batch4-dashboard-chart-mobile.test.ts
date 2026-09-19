@@ -346,11 +346,13 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(globals).toMatch(/\.recharts-surface[\s\S]*?touch-action:\s*pan-y/)
     })
 
-    it('both graphs use PremiumSelect for range selection', () => {
+    it('both graphs use the shared Filter control for range selection', () => {
       const revenue = read('src/components/analytics/RevenueGraph.tsx')
       const activity = read('src/components/analytics/BusinessActivityGraph.tsx')
-      expect(revenue).toContain('PremiumSelect')
-      expect(activity).toContain('PremiumSelect')
+      expect(revenue).toContain('ChartFilterButton')
+      expect(activity).toContain('ChartFilterButton')
+      expect(revenue).toContain('ANALYTICS_TIMEFRAME_OPTIONS')
+      expect(activity).toContain('ANALYTICS_TIMEFRAME_OPTIONS')
     })
 
     it('both graphs use useTouchDevice for platform detection', () => {

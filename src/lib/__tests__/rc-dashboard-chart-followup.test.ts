@@ -190,9 +190,9 @@ describe('RC Dashboard Chart Follow-up — Loading (16-26)', () => {
 
   // 19. range selector does not move
   it('19. range selector is always in the same position (no conditional rendering shifts it)', () => {
-    // PremiumSelect should always be rendered (not conditionally hidden during loading)
-    expect(revenueGraph).toContain('PremiumSelect')
-    expect(activityGraph).toContain('PremiumSelect')
+    // The shared Filter control should always be rendered (not conditionally hidden during loading)
+    expect(revenueGraph).toContain('ChartFilterButton')
+    expect(activityGraph).toContain('ChartFilterButton')
   })
 
   // 20. chart plotting area does not move

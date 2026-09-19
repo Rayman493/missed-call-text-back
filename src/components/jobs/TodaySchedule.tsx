@@ -225,7 +225,7 @@ export default function TodaySchedule({
                 return (
                   <div
                     key={job.id}
-                    className={`group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors`}
+                    className={`group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800/70 transition-colors`}
                     onPointerDown={cardGuard.onPointerDown}
                     onPointerMove={cardGuard.onPointerMove}
                     onPointerUp={cardGuard.onPointerUp}
@@ -275,8 +275,8 @@ export default function TodaySchedule({
                           disabled={isUpdating}
                           className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all active:scale-95 disabled:opacity-50 ${
                             cfg.nextStatus === 'in_progress'
-                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50'
-                              : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 [@media(hover:hover)]:hover:bg-amber-200 dark:[@media(hover:hover)]:hover:bg-amber-900/50'
+                              : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 [@media(hover:hover)]:hover:bg-green-200 dark:[@media(hover:hover)]:hover:bg-green-900/50'
                           }`}
                           title={cfg.nextLabel ?? ''}
                         >
@@ -303,7 +303,7 @@ export default function TodaySchedule({
                 return (
                   <div
                     key={event.id}
-                    className="group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 border-l-purple-400 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
+                    className="group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 border-l-purple-400 bg-slate-50 dark:bg-slate-800/40 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800/70 transition-colors"
                     onPointerDown={cardGuard.onPointerDown}
                     onPointerMove={cardGuard.onPointerMove}
                     onPointerUp={cardGuard.onPointerUp}
@@ -347,7 +347,7 @@ export default function TodaySchedule({
                     {cancelledJobs.map(job => (
                       <div
                         key={job.id}
-                        className="group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 border-l-slate-300 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-60"
+                        className="group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 border-l-slate-300 bg-slate-50 dark:bg-slate-800/30 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors opacity-60"
                         onPointerDown={cardGuard.onPointerDown}
                         onPointerMove={cardGuard.onPointerMove}
                         onPointerUp={cardGuard.onPointerUp}

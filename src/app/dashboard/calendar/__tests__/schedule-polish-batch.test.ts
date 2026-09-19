@@ -105,8 +105,8 @@ describe('Schedule Polish — AI Summary Disclosure', () => {
 
 describe('Schedule Polish — Cross-Surface Consistency', () => {
   it('Jobs card padding normalized to p-4 with border', () => {
-    expect(pageContent).not.toContain('rounded-xl p-4 sm:p-5 transition-all hover:shadow-sm')
-    expect(pageContent).toContain('rounded-xl border p-4 transition-all hover:shadow-sm')
+    expect(pageContent).not.toContain('rounded-xl p-4 sm:p-5 transition-all')
+    expect(pageContent).toContain('rounded-xl border p-4 transition-all [@media(hover:hover)]:hover:shadow-sm')
   })
 
   it('Appointments badges use rounded-full (matching Jobs)', () => {
@@ -416,7 +416,7 @@ describe('Schedule Polish — Batch 2 Time Tracked', () => {
   it('Start Timer action is a primary button in the bottom action region', () => {
     const startBlock = pageContent.slice(
       pageContent.indexOf('placeholder="Select a job"'),
-      pageContent.indexOf('placeholder="Select a job"') + 1600
+      pageContent.indexOf('placeholder="Select a job"') + 2200
     )
     expect(startBlock).toContain('Start Timer')
     expect(startBlock).toContain('bg-blue-600')

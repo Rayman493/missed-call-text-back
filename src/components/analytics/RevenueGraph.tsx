@@ -6,7 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { DollarSign } from 'lucide-react'
 import Card from '@/components/ui/Card'
-import PremiumSelect from '@/components/ui/PremiumSelect'
+import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
 import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
@@ -173,11 +173,14 @@ export default function RevenueGraph() {
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
         <ChartHeaderControls title="Payments Received">
-          <PremiumSelect
-            value={timeRange}
-            onChange={setTimeRange}
-            options={ANALYTICS_TIMEFRAME_OPTIONS}
-            buttonClassName="h-10 sm:h-11 py-0"
+          <ChartFilterButton
+            groups={[{
+              label: 'Time range',
+              value: timeRange,
+              onChange: (v) => setTimeRange(v as AnalyticsTimeframe),
+              options: ANALYTICS_TIMEFRAME_OPTIONS,
+              activeValue: '30d',
+            }]}
           />
         </ChartHeaderControls>
 

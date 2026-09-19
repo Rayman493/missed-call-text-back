@@ -70,9 +70,9 @@ describe('Batch 13 — Today Row Structure', () => {
     expect(tccContent).toContain('toggleTaskComplete')
   })
 
-  it('Today job rows have View action (Agenda is view-only; Edit removed)', () => {
-    expect(tccContent).toContain('onJobClick?.(item.data)')
-    // Agenda is view-only per Batch 5 — Edit pencil removed from timeline rows
+  it('Today agenda rows are view-only (no inline job actions; Edit removed)', () => {
+    // Agenda is view-only — job/task details live on the dedicated Jobs/Reminders surfaces
+    expect(tccContent).not.toContain('onJobClick?.(item.data)')
     expect(tccContent).toContain('Agenda is view-only')
   })
 })
@@ -112,12 +112,12 @@ describe('Batch 13 — Reminders Tab Improvements', () => {
     expect(pageContent).toContain('DELETE')
   })
 
-  it('Reminders tab has consistent header with title + helper + Add action', () => {
+  it('Reminders tab has consistent header with title + helper + New action', () => {
     // Use the RemindersList component section, not the tab strip
     const remindersSection = pageContent.split("{scheduleTab === 'reminders' && (")[1]?.split("{scheduleTab === 'jobs' && (")[0] || ''
     expect(remindersSection).toContain('Reminders')
     expect(remindersSection).toContain('Manage reminders and follow-ups.')
-    expect(remindersSection).toContain('Add Reminder')
+    expect(remindersSection).toContain('New Reminder')
   })
 
   it('Reminders empty state is actionable', () => {
@@ -241,9 +241,12 @@ describe('Batch 13 — Mobile Safety', () => {
     expect(mobileSection).toContain("setScheduleTab('map')")
   })
 
-  it('mobile Add buttons have short labels (Add/New)', () => {
-    expect(pageContent).toContain('<span className="sm:hidden">Add</span>')
-    expect(pageContent).toContain('<span className="sm:hidden">New</span>')
+  it('mobile schedule-tab primary actions share the unified "+ New" label', () => {
+    // Reminders / Jobs / Appointments all use the same compact "New" label —
+    // the old "Add" label was unified under the Batch 7F header consistency fix.
+    expect(pageContent).not.toContain('<span className="sm:hidden">Add</span>')
+    const newButtons = pageContent.match(/<span className="sm:hidden">New<\/span>/g) || []
+    expect(newButtons.length).toBeGreaterThanOrEqual(3)
   })
 
   it('Jobs tab row actions use a tap-friendly inline flex row with w-8 h-8 targets', () => {

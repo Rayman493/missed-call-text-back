@@ -4,10 +4,33 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Filter, Check } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
 
-interface ChartFilterButtonProps<T extends string> {
+interface ChartFilterOption<T extends string> {
+  value: T
+  label: string
+}
+
+/**
+ * One graph-specific filter dimension inside the shared popup (e.g. a time
+ * range or a series/status picker). Every dashboard graph exposes the same
+ * visible Filter button — this is what varies inside it.
+ */
+export interface ChartFilterGroup<T extends string = string> {
+  label?: string
   value: T
   onChange: (value: T) => void
-  options: { value: T; label: string }[]
+  options: ChartFilterOption<T>[]
+  // The value considered "default" — the active dot only shows when the
+  // selection differs from it. Defaults to 'all'.
+  activeValue?: T
+}
+
+interface ChartFilterButtonProps<T extends string> {
+  value?: T
+  onChange?: (value: T) => void
+  options?: ChartFilterOption<T>[]
+  // Grouped mode: one Filter button whose popup contains multiple
+  // graph-specific sections (e.g. Time range + Series).
+  groups?: ChartFilterGroup[]
   activeValue?: T
   className?: string
   disabled?: boolean
@@ -17,6 +40,7 @@ export default function ChartFilterButton<T extends string>({
   value,
   onChange,
   options,
+  groups,
   activeValue = 'all' as T,
   className = '',
   disabled = false
@@ -24,7 +48,10 @@ export default function ChartFilterButton<T extends string>({
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const isActive = value !== activeValue
+  const groupsMode = Array.isArray(groups) && groups.length > 0
+  const isActive = groupsMode
+    ? groups!.some(g => g.value !== (g.activeValue ?? ('all' as string)))
+    : value !== activeValue
 
   useEffect(() => {
     const handlePointerDownOutside = (event: PointerEvent) => {
@@ -51,7 +78,40 @@ export default function ChartFilterButton<T extends string>({
     }
   }, [isOpen])
 
-  const selectedOption = options.find(opt => opt.value === value)
+  const selectedOption = (options || []).find(opt => opt.value === value)
+
+  const renderOptionRow = (
+    option: ChartFilterOption<string>,
+    isSelected: boolean,
+    onSelect: (value: string) => void
+  ) => (
+    <button
+      key={option.value}
+      id={`chart-filter-option-${option.value}`}
+      type="button"
+      onClick={() => {
+        onSelect(option.value)
+        setIsOpen(false)
+      }}
+      className={`
+        w-full flex items-center justify-between gap-2
+        px-3 py-2.5 text-xs
+        text-left whitespace-nowrap
+        transition-all duration-150
+        ${isSelected
+          ? 'bg-muted/60 text-foreground font-medium'
+          : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+        }
+      `}
+      role="option"
+      aria-selected={isSelected}
+    >
+      <span className="truncate">{option.label}</span>
+      {isSelected && (
+        <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+      )}
+    </button>
+  )
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -94,37 +154,24 @@ export default function ChartFilterButton<T extends string>({
           role="listbox"
           aria-activedescendant={`chart-filter-option-${value}`}
         >
-          {options.map((option) => {
-            const isSelected = option.value === value
-            return (
-              <button
-                key={option.value}
-                id={`chart-filter-option-${option.value}`}
-                type="button"
-                onClick={() => {
-                  onChange(option.value)
-                  setIsOpen(false)
-                }}
-                className={`
-                  w-full flex items-center justify-between gap-2
-                  px-3 py-2.5 text-xs
-                  text-left whitespace-nowrap
-                  transition-all duration-150
-                  ${isSelected
-                    ? 'bg-muted/60 text-foreground font-medium'
-                    : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
-                  }
-                `}
-                role="option"
-                aria-selected={isSelected}
-              >
-                <span className="truncate">{option.label}</span>
-                {isSelected && (
-                  <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+          {groupsMode ? (
+            groups!.map((group, groupIndex) => (
+              <div key={group.label || `group-${groupIndex}`} role="group" aria-label={group.label}>
+                {group.label && (
+                  <p className={`px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 ${groupIndex === 0 ? 'pt-1.5' : 'pt-2 border-t border-border/20 mt-1'}`}>
+                    {group.label}
+                  </p>
                 )}
-              </button>
+                {group.options.map(option =>
+                  renderOptionRow(option, option.value === group.value, v => group.onChange(v))
+                )}
+              </div>
+            ))
+          ) : (
+            (options || []).map((option) =>
+              renderOptionRow(option, option.value === value, v => onChange?.(v as T))
             )
-          })}
+          )}
         </div>
       )}
     </div>

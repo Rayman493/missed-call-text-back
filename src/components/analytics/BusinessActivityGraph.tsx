@@ -7,7 +7,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
-import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
@@ -272,19 +271,21 @@ export default function BusinessActivityGraph() {
       <div className="p-4 sm:p-5">
         <ChartHeaderControls title="Customer Engagement">
           <ChartFilterButton
-            value={seriesFilter}
-            onChange={(value) => {
-              setSeriesFilter(value)
-            }}
-            options={SERIES_FILTER_OPTIONS}
-          />
-          <PremiumSelect
-            value={timeRange}
-            onChange={(value) => {
-              setTimeRange(value)
-            }}
-            options={ANALYTICS_TIMEFRAME_OPTIONS}
-            buttonClassName="h-10 sm:h-11 py-0"
+            groups={[
+              {
+                label: 'Time range',
+                value: timeRange,
+                onChange: (v) => setTimeRange(v as AnalyticsTimeframe),
+                options: ANALYTICS_TIMEFRAME_OPTIONS,
+                activeValue: '30d',
+              },
+              {
+                label: 'Series',
+                value: seriesFilter,
+                onChange: setSeriesFilter,
+                options: SERIES_FILTER_OPTIONS,
+              },
+            ]}
           />
         </ChartHeaderControls>
 

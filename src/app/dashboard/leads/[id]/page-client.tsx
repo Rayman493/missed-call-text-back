@@ -438,6 +438,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Preserves File[] from the most recent send for attachment restoration on failure.
   // Ownership lifecycle: composer preview → optimistic bubble (on send) → composer (on failure).
   const lastSentMediaFilesRef = useRef<File[] | null>(null)
+  // Retains File[] per failed message (keyed by clientMessageId) so the failed
+  // bubble's own "Try again" can resend the same logical message + media
+  // idempotently. Entries are consumed when the same files are re-sent via the
+  // composer, preventing a stale second retry path for the same attachments.
+  const failedMediaFilesRef = useRef<Map<string, File[]>>(new Map())
   // Files to restore into ConversationComposer after a failed send.
   // A generation counter triggers the composer to consume and clear this.
   const [restoredAttachments, setRestoredAttachments] = useState<File[] | null>(null)
@@ -3439,6 +3444,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const submittedText = message.trim()
     const submittedMediaFiles = mediaFiles
 
+    // If this send reuses files retained from a previous failure (restored to
+    // the composer), consume that retention entry — the old failed bubble's
+    // retry affordance is no longer needed for the same logical attachments.
+    if (submittedMediaFiles) {
+      for (const [failedId, retainedFiles] of failedMediaFilesRef.current) {
+        if (retainedFiles === submittedMediaFiles ||
+            (retainedFiles.length === submittedMediaFiles.length &&
+             retainedFiles.every((f, i) => f === submittedMediaFiles[i]))) {
+          failedMediaFilesRef.current.delete(failedId)
+        }
+      }
+    }
+
     // Create stable client message ID for correlation
     const clientMessageId = crypto.randomUUID()
 
@@ -3620,34 +3638,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (!response.ok) {
         // Clear outgoing media anchor — failed send should not force-scroll on late image load
         outgoingMediaAnchorRef.current = false
-        // Update optimistic message to failed state (SMS only)
-        if (!isMMS) {
-          setLeadData((prev: any) => {
-            if (!prev) return prev
+        // Update optimistic message to failed state (both SMS and MMS).
+        // For MMS the local preview media stays on the failed bubble so the
+        // attachment remains visible and the bubble's retry can resend it.
+        const optimisticMessageForFail = (leadData?.messages || []).find((m: any) => m.id === clientMessageId)
+        const failedPreviewMedia = optimisticMessageForFail?.media?.filter((m: any) => m.isLocalPreview) || []
 
-            const currentMessages = prev.messages || []
-            const failedMessage = {
-              id: clientMessageId,
-              clientMessageId,
-              direction: 'outbound',
-              body: submittedText,
-              status: 'failed',
-              error_message: result.error || 'We couldn\'t send this message',
-              created_at: new Date().toISOString(),
-              isOptimistic: true
-            }
+        setLeadData((prev: any) => {
+          if (!prev) return prev
 
-            const mergedMessages = mergeMessageWithMonotonicity(currentMessages, failedMessage, 'optimistic-failed')
+          const currentMessages = prev.messages || []
+          const failedMessage = {
+            id: clientMessageId,
+            clientMessageId,
+            direction: 'outbound',
+            body: submittedText,
+            status: 'failed',
+            error_message: result.error || 'We couldn\'t send this message',
+            created_at: new Date().toISOString(),
+            isOptimistic: true,
+            media: failedPreviewMedia.length > 0 ? failedPreviewMedia : undefined,
+            media_count: failedPreviewMedia.length
+          }
 
-            return {
-              ...prev,
-              messages: mergedMessages
-            }
-          })
+          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, failedMessage, 'optimistic-failed')
 
-          // Restore the submitted text to the composer only if it's still empty
-          // This allows the user to retry without retyping, but doesn't overwrite new input
-          setMessage(current => current.trim() === '' ? submittedText : current)
+          return {
+            ...prev,
+            messages: mergedMessages
+          }
+        })
+
+        // Restore the submitted text to the composer only if it's still empty
+        // This allows the user to retry without retyping, but doesn't overwrite new input
+        setMessage(current => current.trim() === '' ? submittedText : current)
+
+        // Retain the File objects against this message's clientMessageId so the
+        // failed bubble's "Try again" can resend the same logical message
+        // idempotently (same clientMessageId → server dedup, no duplicate MMS).
+        if (isMMS && submittedMediaFiles) {
+          failedMediaFilesRef.current.set(clientMessageId, submittedMediaFiles)
         }
 
         // Restore attachments to the composer so the user can retry without re-selecting.
@@ -3839,6 +3869,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Restore the submitted text to the composer only if it's still empty
       setMessage(current => current.trim() === '' ? submittedText : current)
+
+      // Retain the File objects for the failed bubble's idempotent retry path
+      if (isMMS && submittedMediaFiles) {
+        failedMediaFilesRef.current.set(clientMessageId, submittedMediaFiles)
+      }
 
       // Restore attachments to the composer so the user can retry without re-selecting.
       // Ownership transfers back: optimistic bubble → composer preview.
@@ -4781,13 +4816,40 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // True when a failed message can still be retried: plain messages always can;
+  // media messages only while their File objects are still retained from the
+  // failed attempt (otherwise the attachments cannot be recovered client-side).
+  const canRetryMessage = (msg: any): boolean => {
+    if (!msg?.media?.length) return true
+    const key = msg.clientMessageId || msg.client_message_id || msg.id
+    return failedMediaFilesRef.current.has(key)
+  }
+
   const handleRetry = async (messageBody: string, messageId?: string, clientTempId?: string) => {
     if (sending) return
+
+    // Resolve the failed message — retained media files (if any) determine
+    // whether this is a text retry or a media retry.
+    const failedMsg = (leadData?.messages || []).find((m: any) =>
+      m.id === messageId ||
+      (clientTempId && (m.clientMessageId === clientTempId || m.client_message_id === clientTempId)))
+    const hasMedia = Boolean(failedMsg?.media?.length)
+    const retainedFiles = hasMedia
+      ? failedMediaFilesRef.current.get(failedMsg.clientMessageId || failedMsg.client_message_id || messageId || clientTempId || '')
+      : undefined
+
+    // Media message without retained files cannot be re-sent with its
+    // attachments — the composer-restore path is the only recovery, and the
+    // retry affordance is hidden via canRetryMessage.
+    if (hasMedia && !retainedFiles) return
 
     setSending(true)
     setError('')
 
-    // Generate a new clientMessageId for this retry attempt if not provided
+    // Reuse the failed message's own clientMessageId so the retry is the same
+    // logical message — the server's client_message_id dedup returns the
+    // already-persisted row instead of double-sending after an ambiguous
+    // timeout, and the local merge reconciles in place (no duplicate bubble).
     const retryClientMessageId = clientTempId || crypto.randomUUID()
 
     // If retrying an optimistic message, update its status in the messages array
@@ -4814,23 +4876,56 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
 
+    // Media retry: pull the retained files back out of the composer so the same
+    // attachments can't be sent twice (bubble retry + composer send).
+    if (retainedFiles) {
+      setMobileImages([])
+      if (clearComposerImagesRef.current) {
+        clearComposerImagesRef.current()
+      }
+      setRestoredAttachments(null)
+    }
+
     try {
       const supabase = createBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
-      }
 
-      const response = await fetch('/api/send-sms', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ 
-          leadId: params.id, 
-          message: messageBody,
-          clientMessageId: retryClientMessageId
+      let response: Response
+      if (retainedFiles) {
+        const formData = new FormData()
+        formData.append('leadId', params.id)
+        formData.append('message', messageBody)
+        formData.append('clientMessageId', retryClientMessageId)
+        retainedFiles.forEach((file, index) => {
+          formData.append(`media_${index}`, file)
         })
-      })
+
+        const headers: HeadersInit = {}
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+
+        response = await fetch('/api/send-sms', {
+          method: 'POST',
+          headers,
+          body: formData
+        })
+      } else {
+        const headers: HeadersInit = { 'Content-Type': 'application/json' }
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+
+        response = await fetch('/api/send-sms', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            leadId: params.id,
+            message: messageBody,
+            clientMessageId: retryClientMessageId
+          })
+        })
+      }
 
       const result = await response.json()
 
@@ -4885,6 +4980,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ...result.message,
             clientMessageId: result.message.client_message_id || retryClientMessageId
           }
+          // Keep the local preview media until the persisted media records
+          // arrive via the message-media fetch effect — prevents the bubble
+          // from dropping its thumbnail between reconciliation and media fetch.
+          if (hasMedia && !(result.message.media && result.message.media.length > 0)) {
+            persistedMessageWithClientId.media = failedMsg.media
+          }
           const mergedMessages = mergeMessageWithMonotonicity(currentMessages, persistedMessageWithClientId)
 
           console.log('[Retry] Messages after local update:', mergedMessages.length)
@@ -4894,6 +4995,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             messages: mergedMessages
           }
         })
+
+        // The retry consumed the retained files
+        if (hasMedia) {
+          failedMediaFilesRef.current.delete(
+            failedMsg.clientMessageId || failedMsg.client_message_id || messageId || clientTempId || ''
+          )
+        }
       }
     } catch (err) {
       // Update message back to failed on network error
@@ -5457,6 +5565,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     conversationTimeline={conversationTimeline}
                     sending={sending}
                     handleRetry={handleRetry}
+                    canRetryMessage={canRetryMessage}
                     getErrorMessage={getErrorMessage}
                     onImageLoad={handleCoalescedImageLoad}
                     highlightedItemId={highlightedTimelineItemId}
@@ -5931,6 +6040,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   conversationTimeline={conversationTimeline}
                   sending={sending}
                   handleRetry={handleRetry}
+                  canRetryMessage={canRetryMessage}
                   getErrorMessage={getErrorMessage}
                   onImageLoad={handleCoalescedImageLoad}
                   highlightedItemId={highlightedTimelineItemId}
@@ -7728,6 +7838,7 @@ If you have questions, reply to this message.`
                   conversationTimeline={conversationTimeline}
                   sending={sending}
                   handleRetry={handleRetry}
+                  canRetryMessage={canRetryMessage}
                   getErrorMessage={getErrorMessage}
                   onImageLoad={handleCoalescedImageLoad}
                   highlightedItemId={highlightedTimelineItemId}
@@ -7759,6 +7870,7 @@ If you have questions, reply to this message.`
                     conversationTimeline={conversationTimeline}
                     sending={sending}
                     handleRetry={handleRetry}
+                    canRetryMessage={canRetryMessage}
                     getErrorMessage={getErrorMessage}
                     onImageLoad={handleCoalescedImageLoad}
                     highlightedItemId={highlightedTimelineItemId}

@@ -1,9 +1,8 @@
 import { Metadata } from 'next'
-import Link from 'next/link'
-import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import DocumentationLayout from '@/components/DocumentationLayout'
+import AppBackButton from '@/components/AppBackButton'
 
 export const metadata: Metadata = {
   title: 'Delete Your ReplyFlow Account | ReplyFlowHQ',
@@ -13,27 +12,12 @@ export const metadata: Metadata = {
 export default function AccountDeletionPage() {
   return (
     <PageBackground>
-      <SSRSafeNavbar forceDark={true} />
-
       {/* Hero Section - Simple without navigation tabs */}
       <div className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          {/* Back to Home Link */}
+          {/* In-app back control: returns to previous page, falls back to Settings */}
           <div className="mb-3">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
-            >
-              <svg
-                className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Home
-            </Link>
+            <AppBackButton fallbackHref="/dashboard/settings" label="Back" />
           </div>
         </div>
 

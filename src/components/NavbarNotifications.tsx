@@ -329,6 +329,12 @@ export default function NavbarNotifications() {
       return null
     }
 
+    // Don't show the standalone subject line when the message body already
+    // begins with it (e.g. customer_reply messages stored as "Name: preview")
+    if (notification.message && notification.message.startsWith(`${subject}:`)) {
+      return null
+    }
+
     return subject
   }
 

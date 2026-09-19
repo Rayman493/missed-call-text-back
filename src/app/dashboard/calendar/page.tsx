@@ -127,12 +127,12 @@ function RemindersList({
           <div
             key={task.id}
             onClick={() => setViewingTask(task)}
-            className={`rounded-xl border p-4 transition-all hover:shadow-sm cursor-pointer ${
+            className={`rounded-xl border p-4 transition-all [@media(hover:hover)]:hover:shadow-sm cursor-pointer ${
               task.completed
                 ? 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200/40 dark:border-slate-700/20'
                 : accent === 'red'
                   ? 'bg-red-50/30 dark:bg-red-900/10 border-red-200/50 dark:border-red-800/30'
-                  : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
+                  : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 [@media(hover:hover)]:hover:border-blue-300 dark:[@media(hover:hover)]:hover:border-blue-700'
             }`}
           >
             <div className="flex items-center justify-between gap-3">
@@ -183,7 +183,7 @@ function RemindersList({
                     e.stopPropagation()
                     onEditTask(task)
                   }}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 transition-colors rounded [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 flex-shrink-0"
                   aria-label="Edit reminder"
                 >
                   <Pencil className="w-4 h-4" />
@@ -193,7 +193,7 @@ function RemindersList({
                     e.stopPropagation()
                     onDeleteTask(task.id)
                   }}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-red-600 dark:[@media(hover:hover)]:hover:text-red-400 transition-colors rounded [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 flex-shrink-0"
                   aria-label="Delete reminder"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -275,33 +275,25 @@ function RemindersList({
               <p className="text-xs text-muted-foreground font-medium mb-1">Title</p>
               <p className="text-sm font-medium text-foreground">{viewingTask.title}</p>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground font-medium mb-1">Status</p>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                  viewingTask.completed
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                    : viewingTask.due_date && viewingTask.due_date < todayStr
-                      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                }`}>
-                  {viewingTask.completed ? 'Completed' : viewingTask.due_date && viewingTask.due_date < todayStr ? 'Overdue' : 'Active'}
-                </span>
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground font-medium mb-1">Scheduled</p>
-                <p className="text-sm text-foreground flex items-center gap-1">
-                  <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                  {formatTaskDue(viewingTask)}
-                </p>
-              </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-1">Status</p>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                viewingTask.completed
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  : viewingTask.due_date && viewingTask.due_date < todayStr
+                    ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+              }`}>
+                {viewingTask.completed ? 'Completed' : viewingTask.due_date && viewingTask.due_date < todayStr ? 'Overdue' : 'Active'}
+              </span>
             </div>
-            {viewingTask.notes && (
-              <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">Notes</p>
-                <p className="text-sm text-foreground whitespace-pre-line">{viewingTask.notes}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-1">Scheduled</p>
+              <p className="text-sm text-foreground flex items-center gap-1">
+                <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                {formatTaskDue(viewingTask)}
+              </p>
+            </div>
             {viewingTask.lead_id && (
               <div>
                 <p className="text-xs text-muted-foreground font-medium mb-1">Customer</p>
@@ -314,6 +306,12 @@ function RemindersList({
               <div>
                 <p className="text-xs text-muted-foreground font-medium mb-1">Job</p>
                 <p className="text-sm text-foreground">{viewingTask.jobs.title}</p>
+              </div>
+            )}
+            {viewingTask.notes && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Notes</p>
+                <p className="text-sm text-foreground whitespace-pre-line">{viewingTask.notes}</p>
               </div>
             )}
           </div>
@@ -332,6 +330,9 @@ function MeetingsTab({
   onNewMeeting,
   completedMap,
   onDeleteAppointment,
+  isLoading = false,
+  loadError = null,
+  onRetry,
 }: {
   events: CalendarEvent[]
   jobs: any[]
@@ -340,6 +341,9 @@ function MeetingsTab({
   onNewMeeting: () => void
   completedMap: Map<string, { completed_at: string }>
   onDeleteAppointment?: (event: CalendarEvent) => void
+  isLoading?: boolean
+  loadError?: string | null
+  onRetry?: () => void
 }) {
   // Determine eligibility.
   // An event appears in the Appointments tab if it is appointment-like:
@@ -363,11 +367,18 @@ function MeetingsTab({
 
   const eligible = events.filter(isEligible)
 
-  // Sort upcoming by start time
+  // Sort upcoming by start time. Past eligible events are kept in a separate
+  // "Earlier" group below — dropping them silently produced a false
+  // "No appointments scheduled" state while the calendar still showed them.
   const toDate = (ev: CalendarEvent) => new Date(ev.start.dateTime || ev.start.date || '').getTime()
+  const startOfToday = new Date().setHours(0,0,0,0)
   const upcoming = eligible
-    .filter(ev => toDate(ev) >= new Date().setHours(0,0,0,0))
+    .filter(ev => toDate(ev) >= startOfToday)
     .sort((a,b) => toDate(a) - toDate(b))
+  const earlier = eligible
+    .filter(ev => toDate(ev) < startOfToday && !completedMap?.has(ev.id))
+    .sort((a,b) => toDate(b) - toDate(a))
+    .slice(0, 20)
 
   const todayKey = getTodayLocalDateKey()
   const isToday = (ev: CalendarEvent) => (ev.start.dateTime || ev.start.date || '').startsWith(todayKey)
@@ -410,7 +421,7 @@ function MeetingsTab({
           return (
             <div
               key={ev.id}
-              className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 hover:shadow-sm transition-all cursor-pointer p-4"
+              className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 [@media(hover:hover)]:hover:shadow-sm transition-all cursor-pointer p-4"
               onClick={() => onOpenEvent(ev)}
               role="button"
               tabIndex={0}
@@ -481,7 +492,7 @@ function MeetingsTab({
                     <button
                       onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
-                      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                      className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                       aria-label="Edit appointment"
                     >
                       <Pencil className="w-4 h-4" />
@@ -491,7 +502,7 @@ function MeetingsTab({
                     <button
                       onClick={(e) => { e.stopPropagation(); onDeleteAppointment(ev) }}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteAppointment(ev) } }}
-                      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                      className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-red-600 dark:[@media(hover:hover)]:hover:text-red-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                       aria-label="Delete appointment"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -513,6 +524,8 @@ function MeetingsTab({
     .sort((a,b) => new Date(completedMap.get(b.id)!.completed_at).getTime() - new Date(completedMap.get(a.id)!.completed_at).getTime())
     .slice(0, 10)
 
+  const hasAnyAppointments = todays.length > 0 || later.length > 0 || recentlyCompleted.length > 0 || earlier.length > 0
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-4">
@@ -531,7 +544,35 @@ function MeetingsTab({
           <span className="sm:hidden">New</span>
         </button>
       </div>
-      {todays.length === 0 && later.length === 0 && recentlyCompleted.length === 0 ? (
+      {isLoading && !hasAnyAppointments ? (
+        <div className="space-y-2" aria-label="Loading appointments">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 p-4 animate-pulse">
+              <div className="h-4 w-40 rounded bg-slate-200 dark:bg-slate-700 mb-2" />
+              <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+            </div>
+          ))}
+        </div>
+      ) : loadError && !hasAnyAppointments ? (
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-8 text-center">
+          <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+            <AlertTriangle className="w-5 h-5 text-slate-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">Couldn't load appointments</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
+            {loadError}
+          </p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try again
+            </button>
+          )}
+        </div>
+      ) : !hasAnyAppointments ? (
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-8 text-center">
           <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
             <CalendarIcon className="w-5 h-5 text-slate-400" />
@@ -553,6 +594,7 @@ function MeetingsTab({
           {todays.length > 0 && renderGroup('Today', todays.length, todays)}
           {later.length > 0 && renderGroup('Upcoming', later.length, later)}
           {recentlyCompleted.length > 0 && renderGroup('Recently Completed', recentlyCompleted.length, recentlyCompleted)}
+          {earlier.length > 0 && renderGroup('Earlier', earlier.length, earlier)}
         </>
       )}
     </div>
@@ -1647,6 +1689,34 @@ export default function SchedulePage() {
     currentMonth.getMonth()
   )
 
+  // The Appointments tab is an "upcoming" list, not a month-scoped view —
+  // feed it the union of every month fetched so far (deduped by id) so an
+  // appointment the calendar can prove exists (in another viewed month, or
+  // past-dated within the fetched window) is never hidden behind a false
+  // empty state. `events` already holds the latest fetch for the current
+  // month; eventsCache holds the same canonical source for visited months.
+  const allFetchedEvents = (() => {
+    const map = new Map<string, CalendarEvent>()
+    for (const list of eventsCache.values()) {
+      for (const ev of list) map.set(ev.id, ev)
+    }
+    for (const ev of events) map.set(ev.id, ev)
+    return [...map.values()]
+  })()
+
+  // Events whose linked job is marked completed — feeds the Appointments
+  // tab's "Recently Completed" group (jobs have no dedicated completed_at;
+  // updated_at is the closest completion timestamp).
+  const appointmentCompletedMap = (() => {
+    const map = new Map<string, { completed_at: string }>()
+    for (const j of jobs) {
+      if (j.google_calendar_event_id && j.status === 'completed') {
+        map.set(j.google_calendar_event_id, { completed_at: j.updated_at || j.created_at })
+      }
+    }
+    return map
+  })()
+
   if (!business) {
     return (
       <DashboardShell
@@ -1915,8 +1985,8 @@ export default function SchedulePage() {
                           className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98] flex-shrink-0"
                         >
                           <Plus className="w-4 h-4" />
-                          <span className="hidden sm:inline">Add Reminder</span>
-                          <span className="sm:hidden">Add</span>
+                          <span className="hidden sm:inline">New Reminder</span>
+                          <span className="sm:hidden">New</span>
                         </button>
                       </div>
                       <RemindersList
@@ -1953,8 +2023,11 @@ export default function SchedulePage() {
                   {/* Appointments Tab */}
                   {scheduleTab === 'appointments' && (
                     <MeetingsTab
-                      events={events}
+                      events={allFetchedEvents}
                       jobs={jobs}
+                      isLoading={isLoadingEvents}
+                      loadError={monthLoadError}
+                      onRetry={() => fetchEvents()}
                       onOpenEvent={(event) => {
                         setSelectedEvent(event)
                         setEventDetailsMode('details')
@@ -1962,7 +2035,7 @@ export default function SchedulePage() {
                       }}
                       onViewCustomer={handleMapViewCustomer}
                       onNewMeeting={handleNewAppointment}
-                      completedMap={new Map()}
+                      completedMap={appointmentCompletedMap}
                       onDeleteAppointment={(event) => setAppointmentToDelete(event)}
                     />
                   )}
@@ -2068,7 +2141,7 @@ export default function SchedulePage() {
                             <button
                               ref={desktopCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="inline-flex items-center justify-center p-1.5 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
@@ -2136,7 +2209,7 @@ export default function SchedulePage() {
                           {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                         </p>
                         <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-900/40 border border-slate-200/40 dark:border-slate-700/25 rounded-md">
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex items-center justify-start gap-1.5">
                             <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                             <span className="text-xs font-medium text-slate-900 dark:text-foreground">{getThisMonthCounts().reminders}</span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">{getThisMonthCounts().reminders === 1 ? 'reminder' : 'reminders'}</span>
@@ -2177,7 +2250,7 @@ export default function SchedulePage() {
                             <button
                               ref={mobileCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                              className="inline-flex items-center justify-center p-1.5 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-md transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
@@ -2327,7 +2400,7 @@ export default function SchedulePage() {
                                       return (
                                         <div
                                           key={event.id}
-                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors"
                                         >
                                           <button
                                             onClick={() => handleCalendarItemClick({ id: event.id, type: 'appointment' })}
@@ -2369,7 +2442,7 @@ export default function SchedulePage() {
                                                   handleCalendarItemClick({ id: event.id, type: 'appointment' })
                                                 }}
                                                 aria-label={`Edit appointment: ${event.summary}`}
-                                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                                className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                                                 title="Edit appointment"
                                               >
                                                 <Pencil className="w-4 h-4" />
@@ -2380,7 +2453,7 @@ export default function SchedulePage() {
                                                   setAppointmentToDelete(event)
                                                 }}
                                                 aria-label={`Delete appointment: ${event.summary}`}
-                                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                                className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-red-600 dark:[@media(hover:hover)]:hover:text-red-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                                                 title="Delete appointment"
                                               >
                                                 <Trash2 className="w-4 h-4" />
@@ -2392,7 +2465,7 @@ export default function SchedulePage() {
                                               target="_blank"
                                               rel="noopener noreferrer"
                                               aria-label={`Open in Google Calendar: ${event.summary}`}
-                                              className="flex-shrink-0 p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                              className="flex-shrink-0 p-2 rounded-md [@media(hover:hover)]:hover:bg-slate-200 dark:[@media(hover:hover)]:hover:bg-slate-700 text-slate-400 [@media(hover:hover)]:hover:text-slate-600 dark:[@media(hover:hover)]:hover:text-slate-300 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
                                               title="Open in Google Calendar"
                                               onClick={(e) => {
                                                 e.stopPropagation()
@@ -2413,7 +2486,7 @@ export default function SchedulePage() {
                                       return (
                                         <div
                                           key={task.id}
-                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors"
                                         >
                                           <button
                                             onClick={() => handleCalendarItemClick({ id: task.id, type: 'task' })}
@@ -2438,7 +2511,7 @@ export default function SchedulePage() {
                                                 handleCalendarItemClick({ id: task.id, type: 'task' })
                                               }}
                                               aria-label={`Edit reminder: ${task.title}`}
-                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                                               title="Edit reminder"
                                             >
                                               <Pencil className="w-4 h-4" />
@@ -2449,7 +2522,7 @@ export default function SchedulePage() {
                                                 handleDeleteTask(task.id)
                                               }}
                                               aria-label={`Delete reminder: ${task.title}`}
-                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-red-600 dark:[@media(hover:hover)]:hover:text-red-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                                               title="Delete reminder"
                                             >
                                               <Trash2 className="w-4 h-4" />
@@ -2466,7 +2539,7 @@ export default function SchedulePage() {
                                       return (
                                         <div
                                           key={job.id}
-                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors"
                                         >
                                           <button
                                             onClick={() => {
@@ -2508,7 +2581,7 @@ export default function SchedulePage() {
                                                 setIsJobComposerOpen(true)
                                               }}
                                               aria-label={`Edit job: ${job.title}`}
-                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                                               title="Edit job"
                                             >
                                               <Pencil className="w-4 h-4" />
@@ -2519,7 +2592,7 @@ export default function SchedulePage() {
                                                 setJobToDelete(job as Job)
                                               }}
                                               aria-label={`Delete job: ${job.title}`}
-                                              className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                                              className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-red-600 dark:[@media(hover:hover)]:hover:text-red-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                                               title="Delete job"
                                             >
                                               <Trash2 className="w-4 h-4" />
@@ -3051,9 +3124,9 @@ function JobsTab({
         tabIndex={0}
         onClick={() => onJobClick(job)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onJobClick(job) } }}
-        className={`rounded-xl border p-4 transition-all hover:shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+        className={`rounded-xl border p-4 transition-all [@media(hover:hover)]:hover:shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
           isActive
-            ? 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
+            ? 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 [@media(hover:hover)]:hover:border-blue-300 dark:[@media(hover:hover)]:hover:border-blue-700'
             : isCompleted
               ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30'
               : 'bg-slate-50 dark:bg-slate-800/20 border-slate-200/50 dark:border-slate-700/20'
@@ -3111,7 +3184,7 @@ function JobsTab({
               <button
                 onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditJob(job) } }}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                 aria-label="Edit job"
               >
                 <Pencil className="w-4 h-4" />
@@ -3121,7 +3194,7 @@ function JobsTab({
               <button
                 onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onDeleteJob(job) } }}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-red-600 dark:[@media(hover:hover)]:hover:text-red-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                 aria-label="Delete job"
               >
                 <Trash2 className="w-4 h-4" />

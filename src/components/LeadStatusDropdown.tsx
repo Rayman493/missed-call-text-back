@@ -36,7 +36,7 @@ export default function LeadStatusDropdown({
   const [isUpdating, setIsUpdating] = useState(false)
 
   const sizeClasses = {
-    sm: 'px-2 py-0.5 text-xs max-w-[120px]',
+    sm: 'px-2 py-0.5 text-xs max-w-[148px]',
     md: 'px-2.5 py-1.5 text-xs max-w-[150px]',
     lg: 'px-3 py-1 text-sm max-w-[180px]'
   }

@@ -234,15 +234,8 @@ export default function LeadCard({
           )}
         </div>
 
-        {/* Metadata */}
-        <div className="flex items-center justify-between mb-1 sm:mb-2">
-          <span className="text-[10px] sm:text-[11px] text-slate-600 dark:text-muted-foreground">
-            {formatRelativeTime(lead.last_activity_at || lead.created_at)}
-          </span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/40 justify-between">
+        {/* Action Buttons + recency footer */}
+        <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/40">
           {/* Desktop: Open customer button */}
           <button
             type="button"
@@ -300,6 +293,9 @@ export default function LeadCard({
               </DropdownMenuPortal>
             </DropdownMenu>
           )}
+          <span className="ml-auto text-[10px] sm:text-[11px] text-slate-600 dark:text-muted-foreground whitespace-nowrap">
+            {formatRelativeTime(lead.last_activity_at || lead.created_at)}
+          </span>
         </div>
       </div>
     </div>

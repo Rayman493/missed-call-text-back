@@ -496,7 +496,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                     ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-900/20'
                     : isFuture(task.due_date)
                       ? 'bg-blue-50/30 dark:bg-blue-950/10 border-blue-200/30 dark:border-blue-900/20'
-                      : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
+                      : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 [@media(hover:hover)]:hover:border-blue-300 dark:[@media(hover:hover)]:hover:border-blue-700'
               }`}
               onPointerDown={cardGuard.onPointerDown}
               onPointerMove={cardGuard.onPointerMove}
@@ -520,12 +520,12 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                     task.completed
                       ? 'border-green-500 bg-green-500'
                       : isOverdue(task.due_date)
-                        ? 'border-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/30'
+                        ? 'border-amber-400 [@media(hover:hover)]:hover:bg-amber-200 dark:[@media(hover:hover)]:hover:bg-amber-900/30'
                         : isFuture(task.due_date)
-                          ? 'border-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/30'
-                          : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
+                          ? 'border-blue-400 [@media(hover:hover)]:hover:bg-blue-200 dark:[@media(hover:hover)]:hover:bg-blue-900/30'
+                          : 'border-slate-300 dark:border-slate-600 [@media(hover:hover)]:hover:border-blue-500 dark:[@media(hover:hover)]:hover:border-blue-400'
                   } ${togglingTaskIds.has(task.id) ? 'opacity-50 cursor-not-allowed' : ''} ${
-                    togglingTaskIds.has(task.id) ? 'scale-95' : 'hover:scale-105'
+                    togglingTaskIds.has(task.id) ? 'scale-95' : '[@media(hover:hover)]:hover:scale-105'
                   }`}
                 >
                   {task.completed && (
@@ -580,7 +580,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                       if (cardGuard.consumeDragSuppression()) return
                       useParentModal ? onEditTask!(task) : setEditingTask(task)
                     }}
-                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-slate-600 dark:[@media(hover:hover)]:hover:text-slate-300 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                     aria-label="Edit task"
                   >
                     <Edit2 className="w-4 h-4" />

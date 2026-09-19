@@ -6,7 +6,6 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart3 } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
-import PremiumSelect from '@/components/ui/PremiumSelect'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
@@ -197,19 +196,21 @@ export default function LeadConversionGraph() {
       <div className="p-4 sm:p-5">
         <ChartHeaderControls title="Lead Conversion">
           <ChartFilterButton
-            value={stageFilter}
-            onChange={(value) => {
-              setStageFilter(value)
-            }}
-            options={STAGE_FILTER_OPTIONS}
-          />
-          <PremiumSelect
-            value={timeRange}
-            onChange={(value) => {
-              setTimeRange(value as AnalyticsTimeframe)
-            }}
-            options={ANALYTICS_TIMEFRAME_OPTIONS}
-            buttonClassName="h-10 sm:h-11 py-0"
+            groups={[
+              {
+                label: 'Time range',
+                value: timeRange,
+                onChange: (v) => setTimeRange(v as AnalyticsTimeframe),
+                options: ANALYTICS_TIMEFRAME_OPTIONS,
+                activeValue: '30d',
+              },
+              {
+                label: 'Stage',
+                value: stageFilter,
+                onChange: setStageFilter,
+                options: STAGE_FILTER_OPTIONS,
+              },
+            ]}
           />
         </ChartHeaderControls>
 

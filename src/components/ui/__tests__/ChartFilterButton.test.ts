@@ -26,7 +26,16 @@ describe('ChartFilterButton shared component', () => {
   })
 
   it('calls onChange and closes on option selection', () => {
-    expect(content).toContain('onChange(option.value)')
+    expect(content).toContain('onSelect(option.value)')
+    expect(content).toContain('group.onChange(v)')
+    expect(content).toContain('onChange?.(v as T)')
     expect(content).toContain('setIsOpen(false)')
+  })
+
+  it('supports multiple filter groups in one popup', () => {
+    expect(content).toContain('groups?: ChartFilterGroup[]')
+    expect(content).toContain('groups!.map((group')
+    expect(content).toContain('role="group"')
+    expect(content).toContain('g.value !== (g.activeValue')
   })
 })

@@ -140,7 +140,7 @@ describe('Jobs Card — Clickable, View/Edit Removed', () => {
 describe('Completed Reminder — Premium State', () => {
   // Extract the reminder renderGroup function (wider window to capture edit/delete buttons)
   const renderGroupStart = pageContent.indexOf('const renderGroup = (title')
-  const renderGroupBlock = renderGroupStart >= 0 ? pageContent.substring(renderGroupStart, renderGroupStart + 3500) : ''
+  const renderGroupBlock = renderGroupStart >= 0 ? pageContent.substring(renderGroupStart, renderGroupStart + 5000) : ''
 
   it('completed reminder does not use blanket opacity', () => {
     // The old code had opacity-70 on completed rows
@@ -209,11 +209,11 @@ describe('Completed Reminder — Premium State', () => {
   })
 
   it('edit button gains blue emphasis on hover', () => {
-    expect(renderGroupBlock).toContain('hover:text-blue-600 dark:hover:text-blue-400')
+    expect(renderGroupBlock).toContain('[@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400')
   })
 
   it('delete button gains red emphasis on hover', () => {
-    expect(renderGroupBlock).toContain('hover:text-red-600 dark:hover:text-red-400')
+    expect(renderGroupBlock).toContain('[@media(hover:hover)]:hover:text-red-600 dark:[@media(hover:hover)]:hover:text-red-400')
   })
 
   it('edit/delete callbacks preserved', () => {
@@ -233,7 +233,7 @@ describe('Completed Reminder — Premium State', () => {
 describe('Appointments — Hierarchy Preserved', () => {
   // Extract the appointment rendering block (start from the list.map to capture full card including Join button)
   const apptListStart = pageContent.indexOf('list.map(ev => {')
-  const apptBlock = apptListStart >= 0 ? pageContent.substring(apptListStart, apptListStart + 4500) : ''
+  const apptBlock = apptListStart >= 0 ? pageContent.substring(apptListStart, apptListStart + 7000) : ''
 
   it('appointment row is clickable (role button)', () => {
     expect(apptBlock).toContain('role="button"')

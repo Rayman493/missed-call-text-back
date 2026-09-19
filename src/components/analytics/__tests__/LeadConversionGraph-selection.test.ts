@@ -8,8 +8,9 @@ describe('LeadConversionGraph', () => {
     expect(content).toContain('const [stageFilter, setStageFilter]')
     expect(content).toContain('STAGE_FILTER_OPTIONS')
     expect(content).toContain('ChartFilterButton')
-    expect(content).toMatch(/value=\{stageFilter\}[\s\S]*?options=\{STAGE_FILTER_OPTIONS\}/)
-    expect(content).toMatch(/value=\{timeRange\}[\s\S]*?options=\{ANALYTICS_TIMEFRAME_OPTIONS\}/)
+    expect(content).toContain('groups={[')
+    expect(content).toMatch(/value: stageFilter[\s\S]*?options: STAGE_FILTER_OPTIONS/)
+    expect(content).toMatch(/value: timeRange[\s\S]*?options: ANALYTICS_TIMEFRAME_OPTIONS/)
   })
 
   it('does not track a selected stage index', () => {
@@ -28,7 +29,7 @@ describe('LeadConversionGraph', () => {
   })
 
   it('still filters stages through the explicit filter control', () => {
-    expect(content).toContain('setStageFilter(value)')
+    expect(content).toContain('onChange: setStageFilter')
     expect(content).toContain('if (stageFilter === \'all\') return data')
   })
 })

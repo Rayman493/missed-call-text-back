@@ -179,7 +179,7 @@ describe('Modal Composition — Surface Hierarchy', () => {
 
 describe('Modal Composition — Appointment Row Actions', () => {
   // Extract the appointment row render block (the actual appointment card, not the empty state)
-  const rowStart = pageContent.indexOf('rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 hover:shadow-sm transition-all cursor-pointer')
+  const rowStart = pageContent.indexOf('rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 [@media(hover:hover)]:hover:shadow-sm transition-all cursor-pointer')
   const appointmentRowBlock = rowStart >= 0 ? pageContent.substring(rowStart, rowStart + 5000) : ''
 
   it('appointment row is clickable (role=button, tabIndex=0)', () => {

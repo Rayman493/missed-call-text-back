@@ -13,8 +13,9 @@ describe('BusinessActivityGraph', () => {
 
   it('uses a compact funnel filter trigger', () => {
     expect(content).toContain('ChartFilterButton')
-    expect(content).toMatch(/value=\{seriesFilter\}[\s\S]*?options=\{SERIES_FILTER_OPTIONS\}/)
-    expect(content).toMatch(/value=\{timeRange\}[\s\S]*?options=\{ANALYTICS_TIMEFRAME_OPTIONS\}/)
+    expect(content).toContain('groups={[')
+    expect(content).toMatch(/value: seriesFilter[\s\S]*?options: SERIES_FILTER_OPTIONS/)
+    expect(content).toMatch(/value: timeRange[\s\S]*?options: ANALYTICS_TIMEFRAME_OPTIONS/)
   })
 
   it('renders an informational legend, not clickable metric buttons', () => {

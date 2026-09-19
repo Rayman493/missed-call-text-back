@@ -82,16 +82,20 @@ interface DesktopConversationMessageListProps {
   conversationTimeline: any[]
   sending: boolean
   handleRetry: (body: string, id: string, clientTempId?: string) => void
+  // False for media messages whose attachments can no longer be recovered
+  // client-side — hides the retry affordance instead of showing a dead action.
+  canRetryMessage?: (msg: any) => boolean
   getErrorMessage: (errorCode: string) => string
   onImageLoad?: () => void // Callback when image loads
   highlightedItemId?: string | null // ID of timeline item to highlight
 }
 
-export default function DesktopConversationMessageList({ 
-  messagesArray, 
+export default function DesktopConversationMessageList({
+  messagesArray,
   conversationTimeline,
-  sending, 
-  handleRetry, 
+  sending,
+  handleRetry,
+  canRetryMessage,
   getErrorMessage,
   onImageLoad,
   highlightedItemId
@@ -451,17 +455,19 @@ export default function DesktopConversationMessageList({
                   <span className="text-muted-foreground/70">
                     Couldn't send.
                   </span>
-                  <button
-                    onClick={() => {
-                      if (!sending) {
-                        handleRetry(msg.body, msg.id, msg.clientTempId)
-                      }
-                    }}
-                    disabled={sending}
-                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-normal"
-                  >
-                    {sending ? 'Sending again...' : 'Try again'}
-                  </button>
+                  {(canRetryMessage ? canRetryMessage(msg) : true) && (
+                    <button
+                      onClick={() => {
+                        if (!sending) {
+                          handleRetry(msg.body, msg.id, msg.clientTempId || msg.clientMessageId || msg.client_message_id)
+                        }
+                      }}
+                      disabled={sending}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-normal"
+                    >
+                      {sending ? 'Sending again...' : 'Try again'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

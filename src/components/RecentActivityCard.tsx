@@ -34,6 +34,10 @@ interface ActivityEvent {
 export default function RecentActivityCard({ business }: RecentActivityCardProps) {
   const [activities, setActivities] = useState<ActivityEvent[]>([])
   const [loading, setLoading] = useState(true)
+  // True only when a query failed AND produced nothing to show — a failed
+  // fetch must render an actionable error, not the "no activity" empty state.
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const formatPhoneNumber = (phone: string): string => {
     if (!phone) return ''
@@ -63,9 +67,10 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         
         // Get recent leads, messages, jobs, tasks, and payments
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        
+        let hadQueryError = false
+
         // Fetch recent leads with relations
-        const { data: leads } = await supabase
+        const { data: leads, error: leadsError } = await supabase
           .from('leads')
           .select(`
             *,
@@ -78,6 +83,10 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(10)
+        if (leadsError) {
+          console.error('[RecentActivityCard] leads query failed:', leadsError)
+          hadQueryError = true
+        }
 
         // Fetch terminal payments linked to jobs (Tap to Pay)
         const { data: terminalPayments } = await supabase
@@ -99,18 +108,24 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .order('created_at', { ascending: false })
           .limit(5)
 
-        // Fetch recent messages with lead information
-        const businessPhone = business.twilio_phone_number || ''
-        const { data: messages } = await supabase
+        // Fetch recent messages with lead information. Scope by the canonical
+        // business_id — matching on twilio_phone_number text silently dropped
+        // all conversation activity whenever the stored number was unset or
+        // formatted differently than message phones.
+        const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select(`
             *,
             leads(id, caller_phone, name)
           `)
-          .or(`from_phone.eq.${businessPhone},to_phone.eq.${businessPhone}`)
+          .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(5)
+        if (messagesError) {
+          console.error('[RecentActivityCard] messages query failed:', messagesError)
+          hadQueryError = true
+        }
 
         // Add voicemails through leads
         const { data: voicemailLeads } = await supabase
@@ -128,36 +143,51 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         // created within the 7-day window, which excludes recent activity on
         // older leads. These direct queries capture that activity and are
         // merged below. Dedup against lead-derived events is by id.
-        const { data: recentJobs } = await supabase
+        const { data: recentJobs, error: recentJobsError } = await supabase
           .from('jobs')
           .select(`
             id, title, status, created_at, updated_at, scheduled_date,
             leads(id, caller_phone, name, business_id)
           `)
+          .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(10)
+        if (recentJobsError) {
+          console.error('[RecentActivityCard] jobs query failed:', recentJobsError)
+          hadQueryError = true
+        }
 
-        const { data: recentTasks } = await supabase
+        const { data: recentTasks, error: recentTasksError } = await supabase
           .from('tasks')
           .select(`
             id, title, status, created_at, updated_at,
             leads(id, caller_phone, name, business_id)
           `)
+          .eq('business_id', business.id)
           .eq('status', 'completed')
           .gte('updated_at', sevenDaysAgo)
           .order('updated_at', { ascending: false })
           .limit(10)
+        if (recentTasksError) {
+          console.error('[RecentActivityCard] tasks query failed:', recentTasksError)
+          hadQueryError = true
+        }
 
-        const { data: recentPaymentRequests } = await supabase
+        const { data: recentPaymentRequests, error: recentPaymentRequestsError } = await supabase
           .from('payment_requests')
           .select(`
             id, amount_cents, status, created_at, updated_at, paid_at, payment_method_type, lead_id,
             leads(id, caller_phone, name, business_id)
           `)
+          .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(10)
+        if (recentPaymentRequestsError) {
+          console.error('[RecentActivityCard] payment_requests query failed:', recentPaymentRequestsError)
+          hadQueryError = true
+        }
 
         // Convert to activity events
         const events: ActivityEvent[] = []
@@ -428,9 +458,12 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         recentJobs?.forEach((job: any) => {
           if (existingEventIds.has(`job-created-${job.id}`)) return
           const lead = job.leads
-          if (!lead || lead.business_id !== business.id) return
-          const customerName = lead.name || 'Unknown'
-          const displayName = getDisplayName(customerName, lead.caller_phone)
+          // Query is already business-scoped; only drop records whose linked
+          // lead proves a different business. Unlinked (standalone) jobs and
+          // reminders still count as real business activity.
+          if (lead && lead.business_id !== business.id) return
+          const customerName = lead?.name || 'Unknown'
+          const displayName = getDisplayName(customerName, lead?.caller_phone)
           const jobDate = job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
           events.push({
             id: `job-created-${job.id}`,
@@ -441,7 +474,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             icon: <Briefcase className="w-4 h-4" />,
             iconBgColor: 'bg-teal-500/20',
             iconTextColor: 'text-teal-400',
-            customerId: lead.id,
+            customerId: lead?.id,
             customerName: displayName,
             jobId: job.id,
             jobTitle: job.title,
@@ -458,7 +491,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               icon: <CheckCircle className="w-4 h-4" />,
               iconBgColor: 'bg-emerald-500/20',
               iconTextColor: 'text-emerald-400',
-              customerId: lead.id,
+              customerId: lead?.id,
               customerName: displayName,
               jobId: job.id,
               jobTitle: job.title,
@@ -470,9 +503,9 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         recentTasks?.forEach((task: any) => {
           if (existingEventIds.has(`task-completed-${task.id}`)) return
           const lead = task.leads
-          if (!lead || lead.business_id !== business.id) return
-          const customerName = lead.name || 'Unknown'
-          const displayName = getDisplayName(customerName, lead.caller_phone)
+          if (lead && lead.business_id !== business.id) return
+          const customerName = lead?.name || 'Unknown'
+          const displayName = getDisplayName(customerName, lead?.caller_phone)
           events.push({
             id: `task-completed-${task.id}`,
             type: 'task_completed',
@@ -482,7 +515,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             icon: <CheckCircle className="w-4 h-4" />,
             iconBgColor: 'bg-emerald-500/20',
             iconTextColor: 'text-emerald-400',
-            customerId: lead.id,
+            customerId: lead?.id,
             customerName: displayName,
           })
         })
@@ -490,9 +523,9 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         // Merge directly-queried recent payment requests
         recentPaymentRequests?.forEach((pr: any) => {
           const lead = pr.leads
-          if (!lead || lead.business_id !== business.id) return
-          const customerName = lead.name || 'Unknown'
-          const displayName = getDisplayName(customerName, lead.caller_phone)
+          if (lead && lead.business_id !== business.id) return
+          const customerName = lead?.name || 'Unknown'
+          const displayName = getDisplayName(customerName, lead?.caller_phone)
           const amount = formatCurrency(pr.amount_cents, true)
           if (pr.status === 'pending' && !existingEventIds.has(`payment-requested-${pr.id}`)) {
             events.push({
@@ -504,7 +537,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               icon: <CreditCard className="w-4 h-4" />,
               iconBgColor: 'bg-amber-500/20',
               iconTextColor: 'text-amber-400',
-              customerId: lead.id,
+              customerId: lead?.id,
               customerName: displayName,
             })
           } else if (pr.status === 'paid' && pr.paid_at && new Date(pr.paid_at) >= new Date(sevenDaysAgo) && !existingEventIds.has(`payment-paid-${pr.id}`)) {
@@ -517,7 +550,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               icon: <DollarSign className="w-4 h-4" />,
               iconBgColor: 'bg-emerald-500/20',
               iconTextColor: 'text-emerald-400',
-              customerId: lead.id,
+              customerId: lead?.id,
               customerName: displayName,
             })
           }
@@ -529,15 +562,19 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .slice(0, 12)
 
         setActivities(sortedEvents)
+        // A failed query with nothing else to show is an error surface, not
+        // a truthful "no activity" state. Partial data still renders normally.
+        setLoadFailed(hadQueryError && sortedEvents.length === 0)
       } catch (error) {
         console.error('Error fetching recent activity:', error)
+        setLoadFailed(true)
       } finally {
         setLoading(false)
       }
     }
 
     fetchRecentActivity()
-  }, [business])
+  }, [business, reloadKey])
 
   if (loading) {
     return (
@@ -568,9 +605,26 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
       </div>
 
       {activities.length === 0 ? (
-        <div className="text-center py-6">
-          <p className="text-xs text-muted-foreground/80">Business activity will appear here as you work with customers.</p>
-        </div>
+        loadFailed ? (
+          <div className="text-center py-6">
+            <p className="text-xs text-muted-foreground/80 mb-2">Couldn't load recent activity.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadFailed(false)
+                setLoading(true)
+                setReloadKey(k => k + 1)
+              }}
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-xs text-muted-foreground/80">Business activity will appear here as you work with customers.</p>
+          </div>
+        )
       ) : (
         <div className="space-y-0">
           {activities.slice(0, 6).map((activity, index) => {

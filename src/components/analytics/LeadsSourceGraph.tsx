@@ -6,7 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, Label } from 'recharts'
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
-import PremiumSelect from '@/components/ui/PremiumSelect'
+import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
 import { ChartPieTouchSurface } from './ChartPieTouchSurface'
@@ -178,11 +178,14 @@ export default function LeadsSourceGraph() {
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
         <ChartHeaderControls title="Leads by Source">
-          <PremiumSelect
-            value={timeRange}
-            onChange={setTimeRange}
-            options={ANALYTICS_TIMEFRAME_OPTIONS}
-            buttonClassName="h-10 sm:h-11 py-0"
+          <ChartFilterButton
+            groups={[{
+              label: 'Time range',
+              value: timeRange,
+              onChange: (v) => setTimeRange(v as AnalyticsTimeframe),
+              options: ANALYTICS_TIMEFRAME_OPTIONS,
+              activeValue: '90d',
+            }]}
           />
         </ChartHeaderControls>
 

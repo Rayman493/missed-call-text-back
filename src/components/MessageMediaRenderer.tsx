@@ -581,13 +581,18 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                   >
                     Tap to open
                   </a>
-                ) : isResolving ? (
+                ) : isTerminalFailed ? (
+                  <button
+                    type="button"
+                    onClick={() => handleManualRetry(mediaItem)}
+                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0"
+                    aria-label="Retry loading attachment"
+                  >
+                    Couldn’t load · Retry
+                  </button>
+                ) : (
                   <span className="text-sm text-slate-400 dark:text-slate-500 flex-shrink-0">
                     Loading…
-                  </span>
-                ) : (
-                  <span className="text-sm text-slate-500 dark:text-slate-400 flex-shrink-0">
-                    Unavailable
                   </span>
                 )}
               </div>
@@ -597,16 +602,29 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           if (isVideo(mediaItem.mime_type)) {
             return (
               <div key={mediaItem.id} className="relative group overflow-hidden rounded-xl shadow-lg border border-slate-700/50">
-                {effectiveUrl ? (
+                {effectiveUrl && !isTerminalFailed ? (
                   <video
+                    key={`${mediaItem.id}-${loadNonces[mediaItem.id] || 0}`}
                     src={effectiveUrl}
                     controls
                     className="max-w-full md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
                     preload="metadata"
+                    onError={() => handleImageError(mediaItem.id)}
                   />
+                ) : isTerminalFailed ? (
+                  <button
+                    type="button"
+                    onClick={() => handleManualRetry(mediaItem)}
+                    className="aspect-video w-full bg-slate-100 dark:bg-slate-800 rounded-xl flex flex-col items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700/80 transition-colors"
+                    aria-label="Retry loading video"
+                  >
+                    <ImageOff className="w-5 h-5 opacity-70" />
+                    <span className="text-xs">Couldn't load video</span>
+                    <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">Tap to retry</span>
+                  </button>
                 ) : (
-                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Video failed to load</p>
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center animate-pulse">
+                    <div className="w-4 h-4 border-2 border-slate-300 dark:border-slate-600 border-t-slate-400 dark:border-t-slate-400 rounded-full animate-spin" />
                   </div>
                 )}
               </div>
@@ -628,10 +646,17 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                 >
                   View attachment ({mediaItem.mime_type})
                 </a>
-              ) : isResolving ? (
-                <span className="text-sm text-slate-400 dark:text-slate-500">Loading…</span>
+              ) : isTerminalFailed ? (
+                <button
+                  type="button"
+                  onClick={() => handleManualRetry(mediaItem)}
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  aria-label="Retry loading attachment"
+                >
+                  Couldn’t load · Retry
+                </button>
               ) : (
-                <span className="text-sm text-slate-500 dark:text-slate-400">Attachment unavailable</span>
+                <span className="text-sm text-slate-400 dark:text-slate-500">Loading…</span>
               )}
             </div>
           )
@@ -665,6 +690,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
             alt="Expanded media"
             className="max-h-full max-w-full object-contain select-none"
             onClick={(e) => e.stopPropagation()}
+            onError={handleCloseExpanded}
           />
         </div>,
         document.body
