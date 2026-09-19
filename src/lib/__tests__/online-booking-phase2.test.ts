@@ -215,6 +215,39 @@ describe('Booking SMS', () => {
     expect(message).not.toContain('Job')
   })
 
+  it('action route supports resend-proposal without duplicating state', () => {
+    const route = readFileSync(
+      'src/app/api/booking/requests/[id]/action/route.ts',
+      'utf8'
+    )
+    expect(route).toMatch(/case 'resend-proposal'/)
+    expect(route).toMatch(/'There is no suggested time to resend\.'/)
+    const sms = readFileSync('src/lib/booking/sms.ts', 'utf8')
+    expect(sms).toMatch(/sms_failed/)
+  })
+
+  it('conversion returns calendar_not_connected when Google Calendar is not connected', () => {
+    const conversion = readFileSync('src/lib/booking/conversion.ts', 'utf8')
+    expect(conversion).toMatch(/calendar_not_connected/)
+    expect(conversion).toMatch(/Connect it in Settings, or create a Job instead/)
+  })
+
+  it('business surfaces clear loading, empty, error, and recovery states', () => {
+    const card = readFileSync(
+      'src/components/schedule/BookingRequestsCard.tsx',
+      'utf8'
+    )
+    const modal = readFileSync(
+      'src/components/schedule/BookingRequestDetailModal.tsx',
+      'utf8'
+    )
+    expect(card).toMatch(/Loading booking requests…/)
+    expect(card).toMatch(/No booking requests yet\./)
+    expect(card).toMatch(/Could not load booking requests/)
+    expect(modal).toMatch(/Could not load this booking request\./)
+    expect(modal).toMatch(/Resend text/)
+  })
+
   it('decline message points to a fresh booking page, not the terminal token', async () => {
     ;(bookingAdmin as any).mockReturnValue(
       fakeClient({ businesses: { single: baseBusiness } })

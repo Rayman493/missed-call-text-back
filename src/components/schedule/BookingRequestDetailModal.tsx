@@ -124,9 +124,13 @@ export default function BookingRequestDetailModal({
               ? 'Request declined — the customer text could not be sent.'
               : 'Saved — the customer text could not be sent.'
           )
-          if (!isReject) setSmsError(true)
+          // Only the proposal can be resent through the existing safe path —
+          // confirmation/decline messages are not re-queued here.
+          if (action === 'propose') setSmsError(true)
         } else if (action === 'accept' || action === 'propose') {
           showToast('Customer notified by text', 'success')
+        } else if (action === 'resend-proposal') {
+          showToast('Text resent to customer', 'success')
         } else if (action === 'create_appointment' || action === 'create_job') {
           showToast(action === 'create_appointment' ? 'Appointment created' : 'Job created', 'success')
         }
@@ -173,7 +177,8 @@ export default function BookingRequestDetailModal({
 
   const status: BookingRequestStatus | null = detail?.status ?? null
   const converted = !!(detail?.appointment_id || detail?.job_id)
-  const active = status === 'pending' || status === 'customer_reselected' || status === 'business_proposed'
+  const actionable = status === 'pending' || status === 'customer_reselected' || status === 'business_proposed'
+  const canAccept = status === 'pending' || status === 'customer_reselected'
   const agreedStart = detail?.current_proposed_start ?? detail?.requested_start
   const requestedDiffers =
     !!detail?.current_proposed_start && detail.current_proposed_start !== detail.requested_start
@@ -226,7 +231,16 @@ export default function BookingRequestDetailModal({
               <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
             </div>
           ) : !detail ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Could not load this booking request.</p>
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">Could not load this booking request.</p>
+              <button
+                type="button"
+                onClick={load}
+                className="mt-3 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Try again
+              </button>
+            </div>
           ) : (
             <>
               <div className="space-y-1.5 text-sm text-foreground/90">
@@ -244,13 +258,19 @@ export default function BookingRequestDetailModal({
               </div>
 
               <div className="rounded-xl border border-border/40 bg-muted/30 p-3 text-sm">
-                <div className="flex items-center gap-2 text-foreground">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-foreground">
                   <CalendarDays className="h-4 w-4 text-primary-500" />
                   <span className="font-medium">
                     {formatInTimeZone(agreedStart!, detail.timezone, 'EEEE, MMM d')}
                   </span>
                   <span>
                     {formatInTimeZone(agreedStart!, detail.timezone, 'h:mm a')}
+                    {' – '}
+                    {formatInTimeZone(
+                      detail.current_proposed_end ?? detail.requested_end,
+                      detail.timezone,
+                      'h:mm a'
+                    )}
                   </span>
                 </div>
                 {requestedDiffers && (
@@ -279,15 +299,17 @@ export default function BookingRequestDetailModal({
                 </div>
               )}
 
-              {active && !picking && (
+              {actionable && !picking && (
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    disabled={busy !== null}
-                    onClick={() => runAction('accept')}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-                  >
-                    <Check className="h-4 w-4" /> {busy === 'accept' ? 'Accepting…' : 'Accept'}
-                  </button>
+                  {canAccept && (
+                    <button
+                      disabled={busy !== null}
+                      onClick={() => runAction('accept')}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                    >
+                      <Check className="h-4 w-4" /> {busy === 'accept' ? 'Accepting…' : 'Accept'}
+                    </button>
+                  )}
                   <button
                     disabled={busy !== null}
                     onClick={openPicker}
@@ -381,22 +403,27 @@ export default function BookingRequestDetailModal({
               )}
 
               {converted && (
-                <button
-                  onClick={() => {
-                    onClose()
-                    router.push(
-                      detail.appointment_id
-                        ? '/dashboard/calendar?tab=appointments'
-                        : detail.lead_id
-                          ? `/dashboard/customers/${detail.lead_id}`
-                          : '/dashboard/calendar?tab=jobs'
-                    )
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground hover:bg-muted"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  {detail.appointment_id ? 'View Appointment' : 'View Job'}
-                </button>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+                  <p className="mb-2 text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                    Created as {detail.appointment_id ? 'Appointment' : 'Job'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      onClose()
+                      router.push(
+                        detail.appointment_id
+                          ? '/dashboard/calendar?tab=appointments'
+                          : detail.lead_id
+                            ? `/dashboard/customers/${detail.lead_id}`
+                            : '/dashboard/calendar?tab=jobs'
+                      )
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {detail.appointment_id ? 'View Appointment' : 'View Job'}
+                  </button>
+                </div>
               )}
 
               {detail.events.length > 0 && (

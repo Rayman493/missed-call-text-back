@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarPlus } from 'lucide-react'
+import { CalendarPlus, RefreshCw } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import type { BookingRequestStatus } from '@/lib/booking/types'
 import BookingRequestDetailModal from './BookingRequestDetailModal'
@@ -54,27 +54,72 @@ export default function BookingRequestsCard() {
   const [requests, setRequests] = useState<BookingRequestRow[] | null>(null)
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [openId, setOpenId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/booking/requests?limit=5', {
         headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
         cache: 'no-store',
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        setError('Could not load booking requests')
+        return
+      }
       const data = await res.json()
       setRequests(data.requests ?? [])
       setCounts(data.counts ?? {})
     } catch {
-      // Non-fatal — the card simply stays hidden if the API is unreachable.
+      setError('Could not load booking requests')
+    } finally {
+      setLoading(false)
     }
   }, [supabase])
 
   useEffect(() => { load() }, [load])
 
-  // Nothing to show yet — keep Overview clean until booking activity exists.
-  if (!requests || requests.length === 0) return null
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" /> Loading booking requests…
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <button
+            type="button"
+            onClick={load}
+            className="inline-flex items-center gap-1 rounded-lg border border-border/50 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!requests || requests.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-4 mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <CalendarPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <h3 className="text-sm font-semibold text-foreground">Booking Requests</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">No booking requests yet.</p>
+      </div>
+    )
+  }
 
   const pendingCount = counts.pending ?? 0
   const timeFmt = (row: BookingRequestRow) => {
@@ -111,7 +156,7 @@ export default function BookingRequestsCard() {
               <button
                 type="button"
                 onClick={() => setOpenId(r.id)}
-                className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition-colors hover:text-primary-600"
+                className="flex w-full items-center justify-between gap-3 rounded-lg py-2.5 px-2 -mx-2 text-left transition-colors hover:bg-muted/60 hover:text-primary-600"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-foreground">

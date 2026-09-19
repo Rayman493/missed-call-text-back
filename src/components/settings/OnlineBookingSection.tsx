@@ -279,7 +279,7 @@ export default function OnlineBookingSection() {
           {/* Duration / notice / window */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-muted-foreground">Appointment length</span>
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">Booking length</span>
               <select value={duration} onChange={e => setDuration(Number(e.target.value))} className={`${inputCls} w-full`}>
                 {[30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
               </select>
