@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export async function POST(
   request: NextRequest,
@@ -35,12 +36,12 @@ export async function POST(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Verify user owns this business
-    if (business.user_id !== user.id) {
-      console.error('[Job Confirmation] User does not own business:', { 
-        userId: user.id, 
-        businessId: business.id, 
-        businessUserId: business.user_id 
+    // Verify user has membership in this business (owner or member)
+    const role = await getUserRoleForBusiness(supabaseAdmin, user.id, business.id)
+    if (!role) {
+      console.error('[Job Confirmation] User has no membership in business:', {
+        userId: user.id,
+        businessId: business.id
       })
       return NextResponse.json({ error: 'You do not have access to this job' }, { status: 403 })
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { buildSummaryContext, generateFallbackSummary, validateSummary, type SummaryContext } from '@/lib/ai-summary-context'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 const MODEL = process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini'
 
@@ -37,19 +38,14 @@ export async function POST(
     }
     console.log('[AI Summary] Authenticated user ID:', user.id)
 
-    // Get user's business ID
+    // Get user's business ID via membership
     console.log('[AI Summary] Looking up business for user:', user.id)
-    const { data: businessData, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(1)
-      .single()
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const businessData = access?.business ?? null
 
-    console.log('[AI Summary] Business lookup result:', { businessData, businessError })
-    if (businessError || !businessData) {
-      console.error('[AI Summary] Business not found - CONDITION: businessError || !businessData')
-      console.error('[AI Summary] businessError:', businessError)
+    console.log('[AI Summary] Business lookup result:', { businessData })
+    if (!businessData) {
+      console.error('[AI Summary] Business not found for user')
       console.error('[AI Summary] businessData:', businessData)
       return NextResponse.json({ error: 'business_not_found' }, { status: 403 })
     }

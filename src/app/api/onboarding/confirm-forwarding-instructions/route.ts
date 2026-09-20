@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,12 +35,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business ID required' }, { status: 400 })
     }
 
-    // Verify business ownership and fetch current row
+    // Team Access V1: forwarding lifecycle is owner-only.
+    const role = await getUserRoleForBusiness(supabaseAdmin, user.id, businessId)
+    if (role !== 'owner') {
+      console.error('[Confirm Forwarding Instructions] Not owner:', { businessId, userId: user.id, role })
+      return NextResponse.json({ error: 'Only the business owner can manage call forwarding' }, { status: 403 })
+    }
+
+    // Fetch current row
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('id, user_id, forwarding_verified')
       .eq('id', businessId)
-      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {

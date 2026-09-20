@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 // SECURITY: This is a development-only utility for resetting demo data
 // Never expose this endpoint to production customers
@@ -70,20 +71,23 @@ export async function POST(req: NextRequest) {
       console.log('[DEV] Reset demo data allowed for admin user:', user.id)
     }
 
-    // Get business for this user
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-    
-    if (businessError || !business) {
+    // Team Access V1: destructive data reset is owner-only, resolved via membership
+    const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id')
+    if (!access) {
       console.error('[DEV] Reset demo data blocked - no business found for user')
       return NextResponse.json(
         { error: 'No business found for current user' },
         { status: 404 }
       )
     }
+    if (access.role !== 'owner') {
+      console.error('[DEV] Reset demo data blocked - member is not owner')
+      return NextResponse.json(
+        { error: 'Only the business owner can reset demo data' },
+        { status: 403 }
+      )
+    }
+    const business = access.business
 
     const businessId = business.id
     console.log(`[DEV] Resetting demo data for business: ${businessId}`)

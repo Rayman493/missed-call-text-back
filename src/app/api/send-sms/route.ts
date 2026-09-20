@@ -6,6 +6,7 @@ import { sanitizeMessageContent } from '@/lib/security';
 import { checkManualSmsRateLimit } from '@/lib/rate-limit';
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
+import { getUserRoleForBusiness } from '@/lib/team-access';
 import { generateMmsMediaToken } from '@/lib/mms-media-token';
 import { assertValidOutboundMmsMediaUrls } from '@/lib/mms-url-validator';
 import { createMmsMediaAccessUrl } from '@/lib/mms-media-url-helper';
@@ -160,9 +161,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Verify user owns this business
-    if (business.user_id !== user.id) {
-      console.error('[Security] User does not own business:', { userId: user.id, businessId: business.id, businessUserId: business.user_id })
+    // Verify user has membership in this business (owner or member)
+    const role = await getUserRoleForBusiness(supabaseAdmin, user.id, business.id)
+    if (!role) {
+      console.error('[Security] User has no membership in business:', { userId: user.id, businessId: business.id })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

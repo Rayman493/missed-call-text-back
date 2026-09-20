@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 /**
  * Refresh subscription status from Stripe
@@ -60,21 +61,23 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    // Fetch business data with user ownership validation
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('*')
-      .eq('id', business_id)
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
+    // Team Access V1: subscription lifecycle refresh is owner-only.
+    const access = await resolveBusinessForUser(supabaseAdmin, user.id)
+    if (!access || access.business.id !== business_id) {
       console.log('[Billing Subscription Refresh] Business not found or access denied:', business_id)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
       )
     }
+    if (access.role !== 'owner') {
+      console.log('[Billing Subscription Refresh] Member attempted refresh — owner required')
+      return NextResponse.json(
+        { error: 'Only the business owner can manage billing' },
+        { status: 403 }
+      )
+    }
+    const business = access.business
 
     // If no subscription, nothing to refresh
     if (!business.stripe_subscription_id) {

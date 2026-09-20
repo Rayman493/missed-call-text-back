@@ -5,6 +5,7 @@ import { GoogleMeetClientImpl } from '@/lib/google/meet-client'
 import { getEventTimes } from '@/lib/google/calendar'
 import { summarizeMeetingTranscript } from '@/lib/openai-summary'
 import { claimMeetingProcessingLease, releaseMeetingProcessingLease } from '@/lib/meet-lease'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -13,13 +14,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: business, error: bizErr } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
 
-    if (bizErr || !business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
     // Verify meeting belongs to business and check cooldown
     const { data: rec } = await supabase

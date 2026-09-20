@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { provisionTwilioNumberWithCompliance } from '@/lib/twilio-provisioning-service';
 import { createClient } from '@supabase/supabase-js';
+import { getUserRoleForBusiness } from '@/lib/team-access';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,15 +60,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user owns this business
-    if (business.user_id !== user.id) {
-      console.error('[PROVISIONING API] User does not own business:', {
+    // Team Access V1: Twilio number provisioning is owner-only.
+    const role = await getUserRoleForBusiness(supabase, user.id, business_id);
+    if (role !== 'owner') {
+      console.error('[PROVISIONING API] User is not the business owner:', {
         userId: user.id,
-        businessUserId: business.user_id,
+        role,
         businessId: business_id
       });
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: 'Only the business owner can provision a phone number' },
         { status: 403 }
       );
     }

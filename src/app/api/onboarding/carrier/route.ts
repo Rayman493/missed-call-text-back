@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export async function POST(request: Request) {
   try {
@@ -15,12 +16,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Verify user owns this business
+    // Team Access V1: carrier/provisioning onboarding steps are owner-only.
+    const role = await getUserRoleForBusiness(supabase, userId, businessId)
+    if (role !== 'owner') {
+      return NextResponse.json({ error: 'Only the business owner can complete phone setup' }, { status: 403 })
+    }
+
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('*')
       .eq('id', businessId)
-      .eq('user_id', userId)
       .single()
 
     if (businessError || !business) {

@@ -66,7 +66,7 @@ export async function DELETE(request: NextRequest) {
     console.log('[NOTIFICATION CLEAR ALL] User:', user.id, 'Business:', businessId)
 
     // Verify user owns the business using canonical pattern (businesses.user_id)
-    const lookupResult = await db.getBusinessByUserId(user.id)
+    const lookupResult = await db.getBusinessForUser(user.id)
 
     if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       console.error('[NOTIFICATION CLEAR ALL] Unauthorized: User does not have a business', {

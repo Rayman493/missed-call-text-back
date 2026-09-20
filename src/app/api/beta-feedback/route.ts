@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,17 +54,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    // Get user's business via membership (owner or member)
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
 
     console.log('[Beta Feedback] Business lookup result:', {
-      businessId: business?.id,
-      businessError: businessError?.code,
-      businessErrorMessage: businessError?.message
+      businessId: business?.id
     })
 
     // Prepare insert payload with safe handling of nullable fields

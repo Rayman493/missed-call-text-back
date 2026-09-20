@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,19 +17,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
+    // Team Access V1: Google Calendar disconnect is owner-only.
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    if (!access) {
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
       )
     }
+    if (access.role !== 'owner') {
+      return NextResponse.json(
+        { error: 'Only the business owner can manage calendar integrations' },
+        { status: 403 }
+      )
+    }
+    const business = access.business
 
     // Delete the calendar integration
     const { error: deleteError } = await supabase

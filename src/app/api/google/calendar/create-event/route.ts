@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 import { toGoogleCalendarEventId } from '@/lib/google/calendar-event-id'
 
@@ -105,17 +106,9 @@ export async function POST(request: NextRequest) {
 
     console.log('[Calendar Create] token lookup start')
 
-    // Get the user's business using the same pattern as working routes
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, name, business_hours_timezone')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError) {
-      console.error('[Calendar Create] Business lookup error:', businessError)
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-    }
+    // Get the user's business via membership (owner or member)
+    const access = await resolveBusinessForUser(supabase, user.id, 'id, name, business_hours_timezone')
+    const business = access?.business ?? null
 
     if (!business) {
       console.log('[Calendar Create] No business found for user:', user.id)

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -78,26 +79,15 @@ export async function PATCH(
 
     // Verify business ownership
     console.log('[API LEADS STATUS PATCH] Verifying business ownership for user:', user.id, 'business:', existingLead.business_id)
-    let business, businessError
+    let business
     try {
-      const result = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('id', existingLead.business_id)
-        .eq('user_id', user.id)
-        .single()
-      business = result.data
-      businessError = result.error
+      const role = await getUserRoleForBusiness(supabase, user.id, existingLead.business_id)
+      business = role ? { id: existingLead.business_id } : null
     } catch (e) {
       console.log('[API LEADS STATUS PATCH] Exception during business ownership check:', e)
       return NextResponse.json({ error: 'Database error during ownership check', details: String(e) }, { status: 500 })
     }
-    
-    if (businessError) {
-      console.log('[API LEADS STATUS PATCH] Business ownership check error:', businessError)
-      return NextResponse.json({ error: 'Unauthorized', details: businessError.message }, { status: 403 })
-    }
-    
+
     if (!business) {
       console.log('[API LEADS STATUS PATCH] Business ownership failed - user does not own this lead')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })

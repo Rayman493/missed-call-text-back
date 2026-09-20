@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -8,13 +9,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data: business, error: bizErr } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
 
-    if (bizErr || !business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
     const { data: rec, error: recErr } = await supabase
       .from('meeting_records')

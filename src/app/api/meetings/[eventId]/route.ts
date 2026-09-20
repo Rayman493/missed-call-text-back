@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getMeetCapability } from '@/lib/google/capability'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -11,13 +12,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Resolve business for this user
-    const { data: business, error: bizErr } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-    if (bizErr || !business) {
+    // Resolve business for this user via membership
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
@@ -51,12 +49,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const lead_id: string | undefined = body?.lead_id
     const job_id: string | undefined = body?.job_id
 
-    const { data: business, error: bizErr } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-    if (bizErr || !business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
+    if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
     // Upsert meeting record
     const payload: any = {

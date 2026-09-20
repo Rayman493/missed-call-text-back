@@ -51,7 +51,7 @@ export async function PATCH(
     console.log('[NOTIFICATION MARK READ] User:', user.id, 'Notification:', notificationId)
 
     // Verify user owns the business using canonical pattern (businesses.user_id)
-    const lookupResult = await db.getBusinessByUserId(user.id)
+    const lookupResult = await db.getBusinessForUser(user.id)
 
     if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       console.error('[NOTIFICATION MARK READ] Unauthorized: User does not have a business', {

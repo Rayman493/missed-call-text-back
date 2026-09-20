@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     })
 
     // Get or create business for user
-    const lookupResult = await db.getBusinessByUserId(user.id)
+    const lookupResult = await db.getBusinessForUser(user.id)
     if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       console.error('[demo-send-text] No business found for user:', user.id, 'reason:', lookupResult.reason)
       return NextResponse.json(

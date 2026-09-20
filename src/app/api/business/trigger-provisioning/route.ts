@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { provisionTwilioNumber, isProvisioningSuccess, getProvisioningFailureReason } from '@/lib/twilio'
 import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -243,15 +244,14 @@ export async function POST(request: Request) {
     }
 
     // BETA PROVISIONING: Validate ownership (skip for webhook authentication)
-    if (userId && business.user_id !== userId) {
-      console.log('[PROVISIONING AUTH] Business does not belong to user')
-      console.log('[PROVISIONING AUTH] business.user_id:', business.user_id)
-      console.log('[PROVISIONING AUTH] auth user.id:', userId)
-      return NextResponse.json({ error: 'Business does not belong to user' }, { status: 403 })
-    }
-    
+    // Team Access V1: Twilio provisioning is owner-only for user requests.
     if (userId) {
-      console.log('[PROVISIONING AUTH] ✓ Ownership validated for user:', userId)
+      const role = await getUserRoleForBusiness(supabaseAdmin, userId, business.id)
+      if (role !== 'owner') {
+        console.log('[PROVISIONING AUTH] User is not the business owner:', { userId, role })
+        return NextResponse.json({ error: 'Only the business owner can provision a phone number' }, { status: 403 })
+      }
+      console.log('[PROVISIONING AUTH] ✓ Owner validated for user:', userId)
     } else {
       console.log('[PROVISIONING AUTH] Webhook authentication - ownership check bypassed')
     }

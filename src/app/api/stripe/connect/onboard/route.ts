@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 import { getAppBaseUrl } from '@/lib/urls'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,36 +53,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'business_id is required' }, { status: 400 })
     }
 
-    // Verify user owns the business - using user_id column (not owner_id)
-    console.log('[STRIPE CONNECT] Executing business lookup query')
-    console.log('[STRIPE CONNECT] SQL: SELECT id, user_id, stripe_connect_account_id, stripe_connect_status FROM businesses WHERE id = ? AND user_id = ?', business_id, user.id)
-    console.log('[STRIPE CONNECT] Checking column: user_id')
-
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, user_id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled, stripe_details_submitted')
-      .eq('id', business_id)
-      .eq('user_id', user.id)
-      .single()
-
-    console.log('[STRIPE CONNECT] Business lookup result:', {
-      data: business,
-      error: businessError,
-      errorCode: businessError?.code,
-      errorMessage: businessError?.message
-    })
-
-    if (businessError || !business) {
-      console.error('[STRIPE CONNECT] Business not found or unauthorized')
-      console.error('[STRIPE CONNECT] Exact reason for 404:', {
-        businessError: businessError?.message,
-        businessErrorCode: businessError?.code,
-        businessExists: !!business,
+    // Team Access V1: Stripe Connect is owner-only — members and outsiders fail.
+    const access = await resolveBusinessForUser(supabase, user.id)
+    if (!access || access.business.id !== business_id) {
+      console.error('[STRIPE CONNECT] Business not found or unauthorized', {
         userId: user.id,
         businessId: business_id
       })
       return NextResponse.json({ error: 'Business not found or unauthorized' }, { status: 404 })
     }
+    if (access.role !== 'owner') {
+      console.error('[STRIPE CONNECT] Member attempted owner-only Connect onboarding:', user.id)
+      return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
+    }
+
+    const business = access.business
 
     console.log('[STRIPE CONNECT] Business row returned from Supabase:', {
       id: business.id,

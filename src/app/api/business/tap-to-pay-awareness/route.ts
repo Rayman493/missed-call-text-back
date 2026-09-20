@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     console.log('[api/business/tap-to-pay-awareness] User authenticated:', user.id)
 
     // Get existing business to verify ownership
-    const lookupResult = await db.getBusinessByUserId(user.id)
+    const lookupResult = await db.getBusinessForUser(user.id)
 
     if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       console.error('[api/business/tap-to-pay-awareness] No business found for user:', user.id, 'reason:', lookupResult.reason)

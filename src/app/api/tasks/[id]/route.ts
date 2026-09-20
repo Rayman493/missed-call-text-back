@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { calculateReminderNotifyAt } from '@/lib/reminder-notification-utils'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function PATCH(
   request: NextRequest,
@@ -15,13 +16,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, business_hours_timezone')
-      .eq('user_id', user.id)
-      .single()
+    const access = await resolveBusinessForUser(supabase, user.id, 'id, business_hours_timezone')
+    const business = access?.business ?? null
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
@@ -189,13 +187,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, business_hours_timezone')
-      .eq('user_id', user.id)
-      .single()
+    const access = await resolveBusinessForUser(supabase, user.id, 'id, business_hours_timezone')
+    const business = access?.business ?? null
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 

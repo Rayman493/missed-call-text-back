@@ -35,18 +35,29 @@ export default function HomepageAuthRedirect() {
 
         if (mounted) setIsSignedIn(true)
 
-        // Fetch the user's business row
-        const { data: business, error: businessError } = await supabase
-          .from('businesses')
-          .select('id, subscription_status')
+        // Fetch the user's business row (Team Access V1: membership-resolved
+        // so members reach the owner's shared business)
+        const { data: membership, error: membershipError } = await supabase
+          .from('business_memberships')
+          .select('business_id')
           .eq('user_id', session.user.id)
           .limit(1)
           .maybeSingle()
 
-        if (businessError) {
-          console.error('[HomepageAuthRedirect] Error fetching business:', businessError)
+        if (membershipError) {
+          console.error('[HomepageAuthRedirect] Error fetching membership:', membershipError)
           if (mounted) setIsSignedIn(false)
           return
+        }
+
+        let business: any = null
+        if (membership) {
+          const res = await supabase
+            .from('businesses')
+            .select('id, subscription_status')
+            .eq('id', membership.business_id)
+            .single()
+          business = res.data
         }
 
         if (!business) {

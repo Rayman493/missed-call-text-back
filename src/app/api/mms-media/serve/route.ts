@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { verifyMmsMediaToken } from '@/lib/mms-media-token'
 import { detectMimeType } from '@/lib/mime-detection'
 import { isValidStoragePath } from '@/lib/mms-path-validation'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 
@@ -72,14 +73,9 @@ export async function GET(request: NextRequest) {
           )
         }
 
-        const { data: business } = await supabaseAdmin
-          .from('businesses')
-          .select('id')
-          .eq('id', businessId)
-          .eq('user_id', user.id)
-          .single()
+        const businessRole = await getUserRoleForBusiness(supabaseAdmin, user.id, businessId)
 
-        if (business) {
+        if (businessRole) {
           if (DEBUG) console.log('[MMS Media Serve] Session authentication successful')
           tokenPayload = { path: filePath }
         } else {

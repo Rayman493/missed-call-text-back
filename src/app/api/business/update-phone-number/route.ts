@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 const COOLDOWN_DAYS = 7
 
@@ -122,15 +123,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify user owns this business
-    if (business.user_id !== user.id) {
-      console.error('[update-phone-number] User does not own business:', {
+    // Team Access V1: business phone changes are owner-only.
+    const role = await getUserRoleForBusiness(supabaseAdmin, user.id, businessId)
+    if (role !== 'owner') {
+      console.error('[update-phone-number] User is not the business owner:', {
         userId: user.id,
         businessId: business.id,
-        businessUserId: business.user_id
+        role
       })
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Only the business owner can change the business phone number' },
         { status: 403 }
       )
     }
@@ -238,8 +240,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verify user owns this business
-    if (business.user_id !== user.id) {
+    // Team Access V1: owner or member may read cooldown status.
+    const role = await getUserRoleForBusiness(supabaseAdmin, user.id, businessId)
+    if (!role) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }

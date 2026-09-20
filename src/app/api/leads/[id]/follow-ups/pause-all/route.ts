@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function POST(
   request: NextRequest,
@@ -17,15 +18,12 @@ export async function POST(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    // Get user's business via membership
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
 
-    if (businessError || !business) {
-      console.error('[PAUSE ALL FOLLOW-UPS ERROR] Business not found:', businessError)
+    if (!business) {
+      console.error('[PAUSE ALL FOLLOW-UPS ERROR] Business not found')
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 

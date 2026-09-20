@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Resolve authorized business
     console.log('[TerminalLocation] business.lookup.start')
-    const businessResult = await db.getBusinessByUserId(userId)
+    const businessResult = await db.getBusinessForUser(userId)
 
     if (!businessResult.found || !businessResult.business) {
       console.error('[TerminalLocation] error.stage=business_lookup')

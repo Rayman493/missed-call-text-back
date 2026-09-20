@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { sendSms } from '@/lib/twilio'
 import { sanitizeMessageContent } from '@/lib/security'
@@ -188,7 +189,8 @@ export async function POST(request: NextRequest) {
       .eq('id', paymentRequest.business_id)
       .single()
 
-    if (!business || business.user_id !== user.id) {
+    const businessRole = business ? await getUserRoleForBusiness(supabaseAdmin, user.id, business.id) : null
+    if (!business || !businessRole) {
       console.error('[RECEIPT API] Unauthorized business access')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }

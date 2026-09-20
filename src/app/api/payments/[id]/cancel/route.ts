@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 import { timelineEvents } from '@/lib/event-timeline'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,8 +69,9 @@ export async function POST(
       .eq('id', paymentRequest.business_id)
       .single()
 
-    if (businessError || !business || business.user_id !== user.id) {
-      console.error('[PAYMENT CANCEL] Unauthorized: user does not own this payment request')
+    const businessRole = business ? await getUserRoleForBusiness(supabase, user.id, business.id) : null
+    if (businessError || !business || !businessRole) {
+      console.error('[PAYMENT CANCEL] Unauthorized: user has no membership in this business')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

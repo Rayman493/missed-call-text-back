@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { validateBusinessAddress } from '@/lib/validation/business-address'
 import { syncTerminalLocation } from '@/lib/terminal/location-sync'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,12 +44,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Business ID required' }, { status: 400 })
     }
 
-    // Verify user owns this business
+    // Team Access V1: address changes sync the Stripe Terminal location — owner-only
+    const role = await getUserRoleForBusiness(supabaseServiceRole, user.id, business_id)
+    if (!role) {
+      return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
+    }
+    if (role !== 'owner') {
+      return NextResponse.json({ error: 'Only the business owner can change the business address' }, { status: 403 })
+    }
+
     const { data: business, error: businessError } = await supabaseServiceRole
       .from('businesses')
       .select('id, user_id, stripe_connect_account_id, stripe_terminal_location_id, business_address_line1, business_address_line2, business_address_city, business_address_state, business_address_postal_code, business_address_country')
       .eq('id', business_id)
-      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {

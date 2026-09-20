@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { resolveBusinessForUser } from '@/lib/team-access';
 
 // GET /api/personal-voicemails/[id]/audio - Secure audio proxy for personal voicemail playback
 export async function GET(
@@ -44,14 +45,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's business via membership
+    const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id');
+    const business = access?.business ?? null;
 
-    if (businessError || !business) {
+    if (!business) {
       console.log('[PERSONAL VOICEMAIL AUDIO] Business not found for user');
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }

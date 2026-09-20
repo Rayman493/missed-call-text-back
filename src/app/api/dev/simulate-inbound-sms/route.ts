@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { db } from '@/lib/supabase/admin'
 import { processInboundSms } from '@/lib/sms-processing'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 // Check if dev tools are enabled
 function isDevToolsEnabled(): boolean {
@@ -77,12 +78,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verify the conversation belongs to the user's business
-    const { data: userBusiness } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
+    // Verify the conversation belongs to the user's business via membership
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const userBusiness = access?.business ?? null
 
     if (!userBusiness || userBusiness.id !== conversation.business_id) {
       console.error('[Dev Simulation] Conversation does not belong to user\'s business')

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { isValidPreferenceKey, isValidPreferenceValue, NOTIFICATION_PREFERENCE_DEFAULTS } from '@/lib/notification-preferences'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +46,12 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'preferences object is required' }, { status: 400 })
     }
 
-    // Verify user owns this business
+    // Team Access V1: owner or member may update business notification prefs
+    const role = await getUserRoleForBusiness(supabase, user.id, businessId)
+    if (!role) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id, user_id, notification_preferences')
@@ -54,10 +60,6 @@ export async function PATCH(request: NextRequest) {
 
     if (businessError || !business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-    }
-
-    if (business.user_id !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // Validate each preference key and value

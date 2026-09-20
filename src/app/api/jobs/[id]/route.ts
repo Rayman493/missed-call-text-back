@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 async function getBusinessId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string) {
-  const { data, error } = await supabase
-    .from('businesses')
-    .select('id')
-    .eq('user_id', userId)
-    .single()
-  return error ? null : data?.id
+  const access = await resolveBusinessForUser(supabase, userId, 'id')
+  return access?.business?.id ?? null
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

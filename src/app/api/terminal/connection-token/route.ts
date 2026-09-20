@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Resolve authorized business
     console.log('[TTP API] Resolving business for user:', userId)
-    const businessResult = await db.getBusinessByUserId(userId)
+    const businessResult = await db.getBusinessForUser(userId)
 
     if (!businessResult.found || !businessResult.business) {
       console.error('[TTP API] Business access verified - no business found for user:', userId)

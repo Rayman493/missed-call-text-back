@@ -3,6 +3,7 @@ import getStripe from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 /**
  * GET /api/terminal/attempt-status?terminalAttemptId=...
@@ -59,7 +60,8 @@ export async function GET(request: NextRequest) {
       .eq('id', paymentRequest.business_id)
       .single()
 
-    if (!business || business.user_id !== user.id) {
+    const businessRole = business ? await getUserRoleForBusiness(supabaseAdmin, user.id, paymentRequest.business_id) : null
+    if (!business || !businessRole) {
       console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=unauthorized_user')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }

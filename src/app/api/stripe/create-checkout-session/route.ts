@@ -6,6 +6,7 @@ import getStripe from '@/lib/stripe'
 import { getAppBaseUrl, logUrlResolution } from '@/lib/urls'
 import { db } from '@/lib/supabase/admin'
 import { checkTrialEligibility } from '@/lib/trial-eligibility'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,40 +70,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authentication required before starting checkout. Please sign in first.' }, { status: 401 })
     }
 
-    // Resolve business: use provided business_id if available, otherwise fallback to getOrCreateBusiness
+    // Team Access V1: subscription checkout is an owner-only lifecycle action.
+    // Resolve membership FIRST so a Member can never reach getOrCreateBusiness
+    // (which would create a second business for them).
+    const teamAccess = await resolveBusinessForUser(supabase, user.id)
+
+    // Resolve business: use provided business_id if available, otherwise resolve
+    // via membership (or getOrCreateBusiness for a brand-new owner mid-signup).
     let business: any = null
     if (businessIdFromClient) {
       console.log('[stripe-checkout] Using business_id from client:', businessIdFromClient)
-      // Verify the business exists and belongs to the user (security check to prevent IDOR)
-      const { data: businessData, error: businessError } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('id', businessIdFromClient)
-        .eq('user_id', user.id)
-        .single()
-
-      if (businessError) {
-        console.error('[stripe-checkout] Failed to resolve business by ID:', businessError)
-        // SECURITY: Do NOT fallback when business_id was explicitly supplied
-        // This prevents bypassing the ownership check
-        return NextResponse.json({
-          error: 'Invalid business ID. Please refresh and try again.',
-          reason: 'invalid_business_id'
-        }, { status: 400 })
-      } else if (!businessData) {
-        console.error('[stripe-checkout] Business ID provided but not found or does not belong to user')
+      // Verify the user actually has access to this business (prevents IDOR)
+      if (!teamAccess || teamAccess.business.id !== businessIdFromClient) {
+        console.error('[stripe-checkout] Business ID provided but not found or unauthorized')
         // SECURITY: Do NOT fallback when business_id was explicitly supplied
         // This prevents IDOR attacks
         return NextResponse.json({
           error: 'Business not found. Please refresh and try again.',
           reason: 'business_not_found_or_unauthorized'
         }, { status: 404 })
-      } else {
-        business = businessData
-        console.log('[stripe-checkout] Business resolved successfully from provided ID:', business.id)
       }
+      if (teamAccess.role !== 'owner') {
+        console.error('[stripe-checkout] Member attempted checkout — owner required')
+        return NextResponse.json({
+          error: 'Only the business owner can manage billing. Please contact your business owner.',
+          reason: 'owner_required'
+        }, { status: 403 })
+      }
+      business = teamAccess.business
+      console.log('[stripe-checkout] Business resolved successfully from provided ID:', business.id)
+    } else if (teamAccess) {
+      if (teamAccess.role !== 'owner') {
+        console.error('[stripe-checkout] Member attempted checkout — owner required')
+        return NextResponse.json({
+          error: 'Only the business owner can manage billing. Please contact your business owner.',
+          reason: 'owner_required'
+        }, { status: 403 })
+      }
+      business = teamAccess.business
+      console.log('[stripe-checkout] Business resolved via membership:', business.id)
     } else {
-      console.log('[stripe-checkout] No business_id provided, using getOrCreateBusiness')
+      console.log('[stripe-checkout] No membership and no business_id — brand-new owner path')
       // Fallback to original behavior for existing users who don't pass business_id
       business = await db.getOrCreateBusiness(user.id)
     }

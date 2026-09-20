@@ -3,6 +3,7 @@ import getStripe from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { validateStateTransition, isAuthoritativePaidCorrection } from '@/lib/terminal/state-transition-guards'
+import { resolveBusinessForUser, getUserRoleForBusiness } from '@/lib/team-access'
 
 /**
  * POST /api/terminal/reconcile-payment
@@ -59,19 +60,9 @@ export async function POST(request: NextRequest) {
     if (isTerminalAttemptIdOnly) {
       console.log('[TERMINAL_RECONCILIATION] stage=terminal_attempt_id_only_recovery duration_ms=' + (Date.now() - requestStart))
 
-      // Get user's businesses to find the one with Stripe Connect
-      const { data: userBusinesses, error: businessesError } = await supabaseAdmin
-        .from('businesses')
-        .select('id, stripe_connect_account_id')
-        .eq('user_id', user.id)
-
-      if (businessesError || !userBusinesses || userBusinesses.length === 0) {
-        console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=no_business_for_user')
-        return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
-      }
-
-      // Find the business with a connected Stripe account
-      const userBusiness = userBusinesses.find(b => b.stripe_connect_account_id)
+      // Resolve the user's business via membership, require Stripe Connect
+      const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id, stripe_connect_account_id')
+      const userBusiness = access?.business?.stripe_connect_account_id ? access.business : null
       if (!userBusiness) {
         console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=no_connected_account_for_user')
         return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
@@ -131,19 +122,9 @@ export async function POST(request: NextRequest) {
       console.log('[TERMINAL_RECONCILIATION] stage=recovery_attempt_by_terminal_attempt_id duration_ms=' + (Date.now() - requestStart))
 
       // SAFETY: Must first get the user's business to prevent cross-business recovery
-      // Get user's businesses to find the one with Stripe Connect
-      const { data: userBusinesses, error: businessesError } = await supabaseAdmin
-        .from('businesses')
-        .select('id, stripe_connect_account_id')
-        .eq('user_id', user.id)
-
-      if (businessesError || !userBusinesses || userBusinesses.length === 0) {
-        console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=no_business_for_user')
-        return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
-      }
-
-      // Find the business with a connected Stripe account
-      const userBusiness = userBusinesses.find(b => b.stripe_connect_account_id)
+      // Resolve the user's business via membership, require Stripe Connect
+      const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id, stripe_connect_account_id')
+      const userBusiness = access?.business?.stripe_connect_account_id ? access.business : null
       if (!userBusiness) {
         console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=no_connected_account_for_user')
         return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
@@ -265,7 +246,8 @@ export async function POST(request: NextRequest) {
       .eq('id', paymentRequest.business_id)
       .single()
 
-    if (!business || business.user_id !== user.id) {
+    const businessRole = business ? await getUserRoleForBusiness(supabaseAdmin, user.id, paymentRequest.business_id) : null
+    if (!business || !businessRole) {
       console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=unauthorized_user')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }

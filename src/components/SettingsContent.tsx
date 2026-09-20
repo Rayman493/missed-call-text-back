@@ -15,6 +15,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import AppBackButton from '@/components/AppBackButton'
 import BusinessLogoSettings from '@/components/billing/BusinessLogoSettings'
 import OnlineBookingSection, { type OnlineBookingSectionHandle } from '@/components/settings/OnlineBookingSection'
+import TeamAccessSection from '@/components/settings/TeamAccessSection'
 import BackToTopButton from '@/components/settings/BackToTopButton'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
@@ -85,7 +86,7 @@ const isIOS = () => {
 
 export default function SettingsContent({ section }: { section?: string } = {}) {
   const router = useRouter()
-  const { business, setBusiness, refreshBusiness, invalidateBusinessCache } = useBusiness()
+  const { business, setBusiness, refreshBusiness, invalidateBusinessCache, role } = useBusiness()
   const { user, signOut } = useAuth()
   const { sendingSource, isLoading: sendingSourceLoading, updateSendingSource } = useSendingSource()
   const tapToPayAwareness = useTapToPayAwareness(business)
@@ -3006,7 +3007,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           value={formBusiness.business_phone_number || ''}
                           onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(555) 123-4567"
-                          disabled={phoneCooldown?.inCooldown}
+                          disabled={phoneCooldown?.inCooldown || role === 'member'}
                           className="flex-1 px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
@@ -3038,7 +3039,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       {!phoneCooldown?.inCooldown && (
                         <div className="space-y-2">
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {business?.forwarding_verified
+                            {role === 'member'
+                              ? 'The business number is managed by the business owner.'
+                              : business?.forwarding_verified
                               ? 'Call forwarding is active and working.'
                               : 'Changing your phone number will require re-activating call forwarding.'}
                           </p>
@@ -4209,6 +4212,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </p>
                           )}
                         </div>
+                        {role === 'member' ? (
+                          <p className="text-xs text-muted-foreground sm:text-right">
+                            Managed by the business owner
+                          </p>
+                        ) : (
                         <button
                             onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
                             disabled={isConnectingCalendar || isDisconnectingCalendar}
@@ -4237,6 +4245,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               <span>Connect</span>
                             )}
                           </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -4692,7 +4701,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       </div>
                     </div>
                     <div className="mt-auto">
-                      {isConnectingStripe || stripeStatus === 'verifying' ? (
+                      {role === 'member' ? (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Managed by the business owner
+                        </p>
+                      ) : isConnectingStripe || stripeStatus === 'verifying' ? (
                         <div className="w-full px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-slate-400"></div>
                           {stripeStatus === 'verifying' ? 'Verifying...' : 'Connecting...'}
@@ -4946,6 +4959,15 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
                             </>
               )}
+
+              {/* Group: Team Access */}
+              <div id="team-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'team')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              <TeamAccessSection />
 
               {/* Group: Account */}
               <div id="account-divider" className="flex items-center gap-3 mb-8 scroll-mt-[64px]">
@@ -5207,7 +5229,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     </p>
                   </div>
                   <div className="flex-shrink-0">
-                    {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
+                    {role === 'member' ? (
+                      <p className="text-xs text-muted-foreground">
+                        Managed by the business owner
+                      </p>
+                    ) : (business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
                       <p className="text-xs text-muted-foreground">
                         Billing not required
                       </p>
@@ -5238,7 +5264,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     When you're finished in Stripe, tap X to return to ReplyFlow.
                   </p>
                 )}
-                {needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
+                {role !== 'member' && needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
                   <button
                     onClick={() => handleBillingActionClick('upgrade')}
                     disabled={isStartingCheckout}
@@ -5272,9 +5298,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-foreground mb-1">Delete Account</h3>
+                    <h3 className="text-sm font-medium text-foreground mb-1">{role === 'member' ? 'Delete My Account' : 'Delete Account'}</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Permanently delete your account and associated data.
+                      {role === 'member'
+                        ? 'Permanently delete your ReplyFlow login and remove your access. The business and its data are unaffected.'
+                        : 'Permanently delete your account and associated data.'}
                     </p>
                   </div>
                   <div className="flex-shrink-0">
@@ -5368,7 +5396,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      This permanently deletes your account and business data. This action cannot be undone.
+                      {role === 'member'
+                        ? 'This permanently deletes your ReplyFlow sign-in and removes your access to the business. This action cannot be undone.'
+                        : 'This permanently deletes your account and business data. This action cannot be undone.'}
                     </p>
                   </div>
                 </div>
@@ -5378,6 +5408,36 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3">
                     What happens
                   </h3>
+                  {role === 'member' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                          <Trash2 className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                            Your access
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Your sign-in will be deleted and you'll immediately lose access to the business.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
+                          <FileText className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                            The business
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            The business, its customers, conversations, and settings are unaffected — they belong to the owner.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 w-5 h-5 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center mt-0.5">
@@ -5421,9 +5481,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       </div>
                     </div>
                   </div>
+                  )}
                 </div>
 
-                {/* Compact warning callout */}
+                {/* Compact warning callout — owner-only: business teardown guidance */}
+                {role !== 'member' && (
                 <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-3 mt-4">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
@@ -5432,6 +5494,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     </p>
                   </div>
                 </div>
+                )}
 
                 {/* Confirmation input */}
                 <div className="mt-4">

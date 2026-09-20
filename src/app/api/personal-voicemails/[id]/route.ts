@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { resolveBusinessForUser } from '@/lib/team-access';
 
 // PATCH /api/personal-voicemails/[id] - Update personal voicemail (mark listened, etc.)
 export async function PATCH(
@@ -34,14 +35,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's business via membership
+    const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id');
+    const business = access?.business ?? null;
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
@@ -115,14 +113,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's business via membership
+    const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id');
+    const business = access?.business ?? null;
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 

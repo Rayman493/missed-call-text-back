@@ -1,6 +1,7 @@
 /**
  * Online Booking — shared authenticated-route helper.
- * Bearer token → user → owned business. Mirrors the send-sms route pattern.
+ * Bearer token → user → membership-resolved business. Mirrors the send-sms
+ * route pattern. Team Access V1: members resolve the same shared business.
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -29,12 +30,5 @@ export async function getAuthedBusiness(request: Request): Promise<AuthedBusines
     return { ok: false, status: authResult.statusCode, error: authResult.error }
   }
 
-  const { data: business } = await supabase
-    .from('businesses')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle()
-  if (!business) return { ok: false, status: 404, error: 'Business not found' }
-
-  return { ok: true, businessId: business.id, userId: user.id }
+  return { ok: true, businessId: authResult.business.id!, userId: user.id }
 }

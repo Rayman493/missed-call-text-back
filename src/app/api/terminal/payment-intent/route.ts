@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     console.log('[TerminalPaymentIntent] User authenticated:', userId)
 
     // Resolve authorized business
-    const businessResult = await db.getBusinessByUserId(userId)
+    const businessResult = await db.getBusinessForUser(userId)
 
     if (!businessResult.found || !businessResult.business) {
       console.error('[TerminalPaymentIntent] No business found for user:', userId)

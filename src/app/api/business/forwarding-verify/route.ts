@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,6 +42,11 @@ export async function POST(request: NextRequest) {
     const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
+
+    // Team Access V1: forwarding lifecycle is owner-only.
+    if (authResult.role !== 'owner') {
+      return NextResponse.json({ error: 'Owner access required', code: 'OWNER_REQUIRED' }, { status: 403 });
     }
 
     const business = authResult.business;
@@ -112,16 +118,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get the user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('forwarding_verified')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
+    // Get the user's business via membership (owner or member may read status)
+    const access = await resolveBusinessForUser(supabase, user.id, 'forwarding_verified')
+    if (!access) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
+    const business = access.business
 
     return NextResponse.json({ 
       forwarding_verified: business.forwarding_verified || false 

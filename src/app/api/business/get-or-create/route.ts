@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase/admin'
+import { resolveBusinessForUser, getMembershipForUser } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,7 +68,18 @@ export async function POST(request: Request) {
     console.log('[get-or-create] request body keys:', Object.keys(businessData))
     console.log('[get-or-create] businessData:', JSON.stringify(businessData, null, 2))
 
-    // Use centralized getOrCreateBusiness function
+    // Team Access V1: a Member already belongs to a business — resolve it
+    // read-only and NEVER create a second business for them.
+    const membership = await getMembershipForUser(supabase, user.id)
+    if (membership && membership.role !== 'owner') {
+      console.log('[get-or-create] member detected — resolving shared business, no create')
+      const access = await resolveBusinessForUser(supabase, user.id)
+      if (access) {
+        return NextResponse.json({ ok: true, business: access.business })
+      }
+    }
+
+    // Use centralized getOrCreateBusiness function (owner or brand-new user)
     console.log('[get-or-create] calling db.getOrCreateBusiness...')
     const business = await db.getOrCreateBusiness(user.id, businessData)
 

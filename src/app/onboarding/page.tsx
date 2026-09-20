@@ -110,13 +110,26 @@ export default function OnboardingPage() {
         })
       })
 
-      // Check if user already has a business
-      const { data: existingBusiness, error: existingError } = await supabase
-        .from('businesses')
-        .select('id, name, onboarding_status, subscription_status, twilio_phone_number, forwarding_verified, phone_setup_completed_at')
+      // Check if user already has a business (Team Access V1: members resolve
+      // the owner's business via membership — they must not onboard)
+      const { data: existingMembership } = await supabase
+        .from('business_memberships')
+        .select('business_id')
         .eq('user_id', user.id)
         .limit(1)
-        .single()
+        .maybeSingle()
+
+      let existingBusiness: any = null
+      let existingError: any = null
+      if (existingMembership) {
+        const res = await supabase
+          .from('businesses')
+          .select('id, name, onboarding_status, subscription_status, twilio_phone_number, forwarding_verified, phone_setup_completed_at')
+          .eq('id', existingMembership.business_id)
+          .single()
+        existingBusiness = res.data
+        existingError = res.error
+      }
 
       if (existingBusiness && !existingError) {
         // CRITICAL: Users with existing business rows should NEVER be on /onboarding (Welcome to ReplyFlow)

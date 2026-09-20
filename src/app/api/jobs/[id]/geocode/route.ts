@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { geocodeAddress, isValidCoordinate, isGeocodingStale } from '@/lib/geocoding'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 /**
  * POST /api/jobs/[id]/geocode
@@ -41,15 +42,10 @@ export async function POST(
       )
     }
 
-    // Verify business ownership
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('id', job.business_id)
-      .eq('user_id', user.id)
-      .single()
+    // Verify business access via membership
+    const role = await getUserRoleForBusiness(supabase, user.id, job.business_id)
 
-    if (!business) {
+    if (!role) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }

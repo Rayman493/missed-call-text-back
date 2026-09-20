@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
+import { getUserRoleForBusiness, resolveBusinessForUser } from '@/lib/team-access'
 
 // Token invalidation for permanent provider failures is delegated to
 // fcm-sender.ts and apns-sender.ts when FCM/APNs report an invalid token.
@@ -82,33 +83,25 @@ export async function POST(request: NextRequest) {
 
     console.log('[PUSH DEVICE REGISTRATION] Looking up business for user:', user.id, 'requested business:', requestedBusinessId)
 
-    // Use the active business provided by the native client when available.
-    // Otherwise fall back to the first business owned by the user.
+    // Team Access V1: resolve via membership. Use the active business provided
+    // by the native client when the user has membership in it; otherwise fall
+    // back to the user's membership business (owner or member).
     let business: { id: string } | null = null
     let businessError: any = null
 
     if (requestedBusinessId) {
-      const { data: requestedBusiness, error } = await supabaseAdmin
-        .from('businesses')
-        .select('id, user_id')
-        .eq('id', requestedBusinessId)
-        .single()
-      business = requestedBusiness
-      businessError = error
-      if (business && (business as any).user_id !== user.id) {
-        console.error('[PUSH DEVICE REGISTRATION] Requested business does not belong to user')
+      const role = await getUserRoleForBusiness(supabaseAdmin, user.id, requestedBusinessId)
+      if (!role) {
+        console.error('[PUSH DEVICE REGISTRATION] User has no membership in requested business')
         return NextResponse.json({ error: 'Business not found' }, { status: 404 })
       }
+      business = { id: requestedBusinessId }
     }
 
     if (!business) {
-      const { data: userBusiness, error } = await supabaseAdmin
-        .from('businesses')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-      business = userBusiness
-      businessError = error
+      const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id')
+      business = access?.business ?? null
+      businessError = business ? null : { code: 'PGRST116' }
     }
 
     if (businessError || !business) {

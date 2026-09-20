@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,18 +38,18 @@ export async function POST(request: Request) {
 
     console.log('[STRIPE CONNECT REFRESH] stage=validation_success business_id=', business_id)
 
-    // Get business with Stripe Connect account ID
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, user_id, stripe_connect_account_id')
-      .eq('id', business_id)
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      console.error('[STRIPE CONNECT REFRESH] stage=business_lookup_failed', { error: businessError?.message })
+    // Team Access V1: Stripe Connect management is owner-only.
+    const access = await resolveBusinessForUser(supabase, user.id)
+    if (!access || access.business.id !== business_id) {
+      console.error('[STRIPE CONNECT REFRESH] stage=business_lookup_failed')
       return NextResponse.json({ error: 'Business not found or unauthorized' }, { status: 404 })
     }
+    if (access.role !== 'owner') {
+      console.error('[STRIPE CONNECT REFRESH] stage=member_denied user_id=', user.id)
+      return NextResponse.json({ error: 'Owner access required' }, { status: 403 })
+    }
+
+    const business = access.business
 
     console.log('[STRIPE CONNECT REFRESH] stage=business_lookup_success account_id_present=', !!business.stripe_connect_account_id)
 

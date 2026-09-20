@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 // Retry function for Google Calendar API calls with exponential backoff
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
@@ -64,14 +65,11 @@ export async function PATCH(
 
     console.log('[GOOGLE CALENDAR PATCH] Authenticated user:', user.id)
 
-    // Get business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
+    // Get business via membership
+    const access = await resolveBusinessForUser(supabase, user.id)
+    const business = access?.business ?? null
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
@@ -299,14 +297,11 @@ export async function DELETE(
 
     console.log('[GOOGLE CALENDAR DELETE] Authenticated user:', user.id)
 
-    // Get business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
+    // Get business via membership
+    const access = await resolveBusinessForUser(supabase, user.id)
+    const business = access?.business ?? null
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 

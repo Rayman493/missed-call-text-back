@@ -12,6 +12,7 @@ const SAFE_REDIRECT_PATHS = [
   '/auth/signin',
   '/dashboard/settings', // Added for account deletion reauth
   '/complete-setup', // Added for incomplete account deletion reauth
+  '/invite', // Team Access invite acceptance return path
 ]
 
 function isValidRedirectPath(path: string): boolean {
@@ -97,17 +98,31 @@ export async function GET(request: Request) {
           reason: 'Session established, checking business'
         })
         
-        // Check if user has a business
+        // Check if user has a business (Team Access V1: membership-resolved
+        // so members land in the owner's shared business, not onboarding)
         let business = null
         let businessError: any = null
         try {
-          const { data, error } = await supabase
-            .from('businesses')
-            .select('id, twilio_phone_number, onboarding_status')
+          const { data: membership, error: memError } = await supabase
+            .from('business_memberships')
+            .select('business_id')
             .eq('user_id', user.id)
-            .single()
-          business = data
-          businessError = error
+            .limit(1)
+            .maybeSingle()
+
+          if (memError) {
+            businessError = memError
+          } else if (!membership) {
+            businessError = { code: 'PGRST116', message: 'no membership' }
+          } else {
+            const { data, error } = await supabase
+              .from('businesses')
+              .select('id, twilio_phone_number, onboarding_status')
+              .eq('id', membership.business_id)
+              .single()
+            business = data
+            businessError = error
+          }
         } catch (err) {
           businessError = err
         }

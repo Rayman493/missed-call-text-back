@@ -19,6 +19,7 @@ const baseSections: SettingsSection[] = [
   { id: 'integrations', label: 'Integrations', icon: () => null },
   { id: 'payments', label: 'Payments', icon: () => null },
   { id: 'contacts', label: 'Contacts', icon: () => null },
+  { id: 'team', label: 'Team Access', icon: () => null },
   { id: 'account', label: 'Account', icon: () => null },
 ]
 

@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     }
 
     // Get business for user
-    const lookupResult = await db.getBusinessByUserId(user.id)
+    const lookupResult = await db.getBusinessForUser(user.id)
     if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       return NextResponse.json(
         { error: 'Business not found', reason: lookupResult.reason },

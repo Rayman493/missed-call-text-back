@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import getStripe from '@/lib/stripe'
 import { getDashboardUrl, logUrlResolution } from '@/lib/urls'
 import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,33 +61,29 @@ export async function POST(request: Request) {
 
     console.log('[stripe-portal] User authenticated successfully:', user.id)
 
-    // Fetch business by user_id
-    console.log('[stripe-portal] Starting business query for user_id:', user.id)
-    
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // Team Access V1: billing portal is owner-only. Resolve via membership.
+    console.log('[stripe-portal] Resolving business membership for user_id:', user.id)
 
-    console.log('[stripe-portal] Business query complete:', {
-      businessError,
-      businessFound: !!business,
-      businessId: business?.id
-    })
+    const teamAccess = await resolveBusinessForUser(supabase, user.id)
 
-    if (businessError) {
-      console.error('[stripe-portal] Business query error:', businessError)
-      return NextResponse.json({ error: 'Failed to fetch business' }, { status: 500 })
-    }
-
-    if (!business) {
+    if (!teamAccess) {
       console.error('[stripe-portal] Business not found for user:', user.id)
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Business not found',
         code: 'BUSINESS_NOT_FOUND'
       }, { status: 404 })
     }
+
+    if (teamAccess.role !== 'owner') {
+      console.error('[stripe-portal] Member attempted billing portal — owner required:', user.id)
+      return NextResponse.json({
+        error: 'Only the business owner can manage billing. Please contact your business owner.',
+        code: 'OWNER_REQUIRED'
+      }, { status: 403 })
+    }
+
+    const business = teamAccess.business
+    console.log('[stripe-portal] Business resolved via membership:', business.id)
 
     console.log('[stripe-portal] Business found:', business.id)
     console.log('[stripe-portal] stripe_customer_id value:', business.stripe_customer_id)

@@ -46,6 +46,7 @@ const SAFE_REDIRECT_PATHS = [
   '/auth/signin',
   '/dashboard/settings',
   '/complete-setup',
+  '/invite', // Team Access invite acceptance return path
 ]
 
 function isValidRedirectPath(path: string): boolean {

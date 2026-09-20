@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
+import { resolveBusinessForUser } from '@/lib/team-access';
 
 const MANUAL_FIELD_ALIASES: Record<string, string[]> = {
   callerName: ['name', 'callerName', 'customerName', 'caller_name', 'customer_name'],
@@ -470,14 +471,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's business via membership
+    const access = await resolveBusinessForUser(supabase, user.id, 'id');
+    const business = access?.business ?? null;
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 

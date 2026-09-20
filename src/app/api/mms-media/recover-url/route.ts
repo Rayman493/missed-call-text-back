@@ -3,6 +3,7 @@ import { getValidMediaAccessUrl } from '@/lib/mms-media-url-helper'
 import { extractStoragePathFromUrl } from '@/lib/mms-media-url-helper'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,15 +60,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verify the user owns this business (same contract as /api/mms-media/serve)
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('id', businessId)
-      .eq('user_id', user.id)
-      .single()
+    // Verify the user has membership in this business (same contract as /api/mms-media/serve)
+    const businessRole = await getUserRoleForBusiness(supabaseAdmin, user.id, businessId)
 
-    if (businessError || !business) {
+    if (!businessRole) {
       console.error('[MMS URL Recovery] User not authorized for this business', {
         businessId,
         userId: user.id

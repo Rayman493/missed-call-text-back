@@ -43,6 +43,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
+    // Team Access V1: business phone updates are owner-only.
+    if (authResult.role !== 'owner') {
+      return NextResponse.json({ error: 'Only the business owner can change the business phone number', code: 'OWNER_REQUIRED' }, { status: 403 });
+    }
+
     const body = await request.json().catch(() => ({}))
     const { business_phone_number } = body
 
@@ -53,8 +58,8 @@ export async function POST(request: Request) {
 
     console.log('[api/business/update-phone] Updating business phone for user:', user.id, 'to:', business_phone_number)
 
-    // Get existing business to ensure we don't create duplicates
-    const lookupResult = await db.getBusinessByUserId(user.id)
+    // Get existing business via membership to ensure we don't create duplicates
+    const lookupResult = await db.getBusinessForUser(user.id)
     
     if (!lookupResult.found || lookupResult.reason !== 'found' || !lookupResult.business) {
       console.error('[api/business/update-phone] No business found for user:', user.id, 'reason:', lookupResult.reason)

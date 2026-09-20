@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createFollowUpJobs } from '@/lib/follow-ups'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 import crypto from 'crypto'
 
 /**
@@ -87,13 +88,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Business not found' }, { status: 404 })
       }
 
-      if (business.user_id !== user?.id) {
-        console.error('[FOLLOWUP API ERROR] Business ownership check failed:', { 
-          businessId, 
-          businessUserId: business.user_id, 
-          requestUserId: user?.id 
+      const role = user ? await getUserRoleForBusiness(supabaseAdmin, user.id, business.id) : null
+      if (!role) {
+        console.error('[FOLLOWUP API ERROR] Business membership check failed:', {
+          businessId,
+          requestUserId: user?.id
         })
-        return NextResponse.json({ error: 'Forbidden: You do not own this business' }, { status: 403 })
+        return NextResponse.json({ error: 'Forbidden: You do not have access to this business' }, { status: 403 })
       }
     }
 

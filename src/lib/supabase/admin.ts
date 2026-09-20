@@ -978,6 +978,54 @@ export const db = {
     return { found: true, business: data, reason: 'found' }
   },
 
+  /**
+   * Team Access V1: resolve a user's business through business_memberships.
+   * Returns the same contract as getBusinessByUserId so callers can migrate
+   * with a one-line change. Members resolve the owner's shared business.
+   * Prefer this for member-allowed routes; keep getBusinessByUserId only for
+   * owner-of-record lookups (deletion lifecycle, diagnostics).
+   */
+  async getBusinessForUser(userId: string): Promise<{ found: boolean, business: Business | null, reason: 'found' | 'not_found' | 'db_error', error?: any }> {
+    if (!userId || userId === '' || userId === 'undefined' || userId === 'null') {
+      console.error('[getBusinessForUser] Invalid userId provided:', userId)
+      return { found: false, business: null, reason: 'db_error', error: 'Invalid userId' }
+    }
+
+    const { data: membership, error: membershipError } = await supabaseAdmin
+      .from('business_memberships')
+      .select('business_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle()
+
+    if (membershipError) {
+      console.error('[getBusinessForUser] Membership lookup error:', membershipError)
+      return { found: false, business: null, reason: 'db_error', error: membershipError }
+    }
+
+    if (!membership) {
+      console.log('[getBusinessForUser] No membership found for user:', userId)
+      return { found: false, business: null, reason: 'not_found' }
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('businesses')
+      .select('*')
+      .eq('id', membership.business_id)
+      .single()
+
+    if (error) {
+      console.error('[getBusinessForUser] Database error fetching business:', error)
+      return { found: false, business: null, reason: 'db_error', error }
+    }
+
+    if (!data) {
+      return { found: false, business: null, reason: 'not_found' }
+    }
+
+    return { found: true, business: data, reason: 'found' }
+  },
+
   // Lead operations
   async getLeadByPhone(businessId: string, callerPhone: string): Promise<Lead | null> {
     const normalizedPhone = normalizePhoneNumberForStorage(callerPhone)

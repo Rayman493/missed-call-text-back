@@ -7,6 +7,7 @@ import { getEventTimes } from '@/lib/google/calendar'
 import { summarizeMeetingTranscript } from '@/lib/openai-summary'
 import { createClient } from '@supabase/supabase-js'
 import { claimMeetingProcessingLease, releaseMeetingProcessingLease } from '@/lib/meet-lease'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -22,12 +23,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const scheduled_start: string | undefined = body?.scheduled_start
     const scheduled_end: string | undefined = body?.scheduled_end
 
-    const { data: business, error: bizErr } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-    if (bizErr || !business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
+    if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
 
     // Idempotent completion: if already completed, return existing
     const { data: existing, error: fetchErr } = await supabase

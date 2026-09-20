@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { getValidMediaAccessUrl } from '@/lib/mms-media-url-helper'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,15 +20,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
+    // Get user's business via membership
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    const business = access?.business ?? null
 
-    if (businessError || !business) {
-      console.error('[MESSAGE MEDIA API ERROR] Business not found:', businessError)
+    if (!business) {
+      console.error('[MESSAGE MEDIA API ERROR] Business not found')
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 

@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,8 +96,9 @@ export async function POST(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    if (business.user_id !== user.id) {
-      console.error('[PAYMENT RECONCILE] User not authorized for business:', user.id, business.id)
+    const businessRole = await getUserRoleForBusiness(supabase, user.id, business.id)
+    if (!businessRole) {
+      console.error('[PAYMENT RECONCILE] User has no membership in business:', user.id, business.id)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

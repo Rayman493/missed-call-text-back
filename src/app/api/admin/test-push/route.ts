@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { sendTestPush } from '@/lib/push-delivery'
 import { isAdmin } from '@/lib/admin'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 /**
  * Test Push Notification Endpoint
@@ -56,17 +57,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Get the user's business_id
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      console.error('[TEST PUSH] Business lookup failed:', businessError)
+    // Get the user's business_id via membership
+    const access = await resolveBusinessForUser(supabaseAdmin, user.id, 'id')
+    if (!access) {
+      console.error('[TEST PUSH] Business lookup failed')
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
+    const business = access.business
 
     // Send test push through unified delivery (Android via FCM, iOS via APNs if configured)
     const result = await sendTestPush(

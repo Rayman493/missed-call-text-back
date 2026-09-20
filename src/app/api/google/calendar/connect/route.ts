@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { resolveBusinessForUser } from '@/lib/team-access'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
@@ -47,28 +48,23 @@ export async function GET(request: NextRequest) {
 
     console.log('[Google Calendar Connect] Authenticated user:', user.id)
 
-    // Get the user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError) {
-      console.error('[Google Calendar Connect] Business lookup error:', businessError)
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
-      )
-    }
-
-    if (!business) {
+    // Team Access V1: Google Calendar connect is owner-only.
+    const access = await resolveBusinessForUser(supabase, user.id, 'id')
+    if (!access) {
       console.log('[Google Calendar Connect] No business found for user:', user.id)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
       )
     }
+    if (access.role !== 'owner') {
+      console.log('[Google Calendar Connect] Member attempted connect — owner required:', user.id)
+      return NextResponse.json(
+        { error: 'Only the business owner can manage calendar integrations' },
+        { status: 403 }
+      )
+    }
+    const business = access.business
 
     console.log('[Google Calendar Connect] Business found:', business.id)
 

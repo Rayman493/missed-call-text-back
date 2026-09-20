@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { normalizePhoneNumber, phoneNumbersMatch } from '@/lib/phone-utils';
+import { resolveBusinessForUser } from '@/lib/team-access';
 
 interface ContactPreview {
   name: string | null;
@@ -31,14 +32,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    // Get user's business via membership
+    const access = await resolveBusinessForUser(supabase, user.id, 'id');
+    const business = access?.business ?? null;
 
-    if (businessError || !business) {
+    if (!business) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 

@@ -13,6 +13,8 @@ const log = (...args: any[]) => { if (DEBUG) console.log(...args) }
 
 interface BusinessContextType {
   business: Business | null
+  /** Team Access V1: 'owner' | 'member' | null — from business_memberships */
+  role: 'owner' | 'member' | null
   loading: boolean
   error: string | null
   fetchComplete: boolean
@@ -101,6 +103,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [fetchComplete, setFetchComplete] = useState(!!cachedBusinessPayload?.business)
   const [businessMissingConfirmed, setBusinessMissingConfirmed] = useState(false)
+  const [role, setRole] = useState<'owner' | 'member' | null>(null)
   const [businessHydrated, setBusinessHydrated] = useState(!!cachedBusinessPayload?.business)
   const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number>(cachedBusinessPayload?.verifiedAt ?? 0)
   const userIdRef = useRef<string | null>(null)
@@ -207,12 +210,37 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       }
       userIdRef.current = user.id
 
-      const { data, error: fetchError } = await supabase
-        .from('businesses')
-        .select('*')
+      // Team Access V1: resolve business via business_memberships so members
+      // land in the owner's shared business. A missing membership row is the
+      // membership-era equivalent of "no business" (PGRST116 semantics).
+      const { data: membership, error: membershipError } = await supabase
+        .from('business_memberships')
+        .select('business_id, role')
         .eq('user_id', user.id)
         .limit(1)
-        .single()
+        .maybeSingle()
+
+      let data: any = null
+      let fetchError: any = null
+      let resolvedRole: 'owner' | 'member' | null = null
+      if (!membership) {
+        if (membershipError) {
+          // Real error (RLS/network) — treat as unknown state, not "no business"
+          fetchError = membershipError
+        } else {
+          // Confirmed: no membership → no accessible business
+          fetchError = { code: 'PGRST116', message: 'no membership' }
+        }
+      } else {
+        resolvedRole = membership.role === 'owner' ? 'owner' : 'member'
+        const res = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', membership.business_id)
+          .single()
+        data = res.data
+        fetchError = res.error
+      }
 
       const businessData = data as Business | null
 
@@ -222,6 +250,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           log('[BusinessContext] No business found (PGRST116), not auto-creating. User must explicitly create business.')
           log('[BusinessContext] Orphan auth recovery triggered for user:', user.id)
           setBusiness(null)
+          setRole(null)
           setBusinessMissingConfirmed(true) // Confirmed no business
           clearBusinessCache(user.id)
           setBusinessVerified(false)
@@ -249,6 +278,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
           stripe_details_submitted: businessData?.stripe_details_submitted,
         })
         setBusiness(businessData)
+        setRole(resolvedRole)
         setBusinessMissingConfirmed(false)
         setBusinessVerified(true)
         if (businessData) writeBusinessCache(businessData, user.id)
@@ -275,6 +305,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
         if (event === 'SIGNED_OUT') {
           setBusiness(null)
+          setRole(null)
           setBusinessMissingConfirmed(false)
           setBusinessVerified(false)
           const previousUserId = userIdRef.current
@@ -320,6 +351,42 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchBusiness, authHydrated])
 
+  // Team Access V1: realtime revocation detection.
+  // When a member's business_memberships row is deleted, immediately clear
+  // business state so guards route them out instead of failing per-screen.
+  useEffect(() => {
+    if (!supabase || !authUser?.id) return
+
+    const channel = supabase
+      .channel(`membership-watch-${authUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'business_memberships',
+          filter: `user_id=eq.${authUser.id}`,
+        },
+        () => {
+          log('[BusinessContext] Membership revoked (realtime), clearing business state')
+          setBusiness(null)
+          setRole(null)
+          setBusinessMissingConfirmed(true)
+          setBusinessVerified(false)
+          clearBusinessCache(authUser.id)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      try {
+        supabase.removeChannel(channel)
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }, [supabase, authUser?.id])
+
   // Handle window focus and visibility change for revalidation
   useEffect(() => {
     const handleFocus = () => {
@@ -364,6 +431,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const contextValue = useMemo(() => {
     return {
       business,
+      role,
       loading,
       error,
       fetchComplete,
@@ -379,7 +447,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       },
       invalidateBusinessCache
     }
-  }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, businessHydrated, fetchBusiness, invalidateBusinessCache])
+  }, [business, role, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, businessHydrated, fetchBusiness, invalidateBusinessCache])
 
   // Reconcile push registration with the active business.
   useEffect(() => {
