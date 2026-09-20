@@ -12,6 +12,7 @@ import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
 import { openExternalLink } from '@/lib/external-link'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import Modal from '@/components/ui/Modal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 
 const supabase = createBrowserClient()
@@ -127,6 +128,7 @@ interface EventDetailsModalProps {
     location: string | null
     htmlLink: string | null
     isHoliday?: boolean
+    recurringEventId?: string
     source?: 'primary' | 'holiday'
     meetingUrl?: string | null
     extendedProperties?: any
@@ -149,6 +151,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [isSaving, setIsSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [editScope, setEditScope] = useState<'occurrence' | 'series'>('occurrence')
   const [error, setError] = useState<string | null>(null)
   const [isSmsOpen, setIsSmsOpen] = useState(false)
   const mutationInFlightRef = useRef(false)
@@ -463,7 +466,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
     setError(null)
   }
 
-  const handleDeleteConfirm = async () => {
+  const isRecurringEvent = !!event?.recurringEventId || /_\d{8}T\d{6}Z$/.test(event?.id || '')
+
+  const handleDeleteConfirm = async (scope: 'occurrence' | 'future' | 'series' = 'occurrence') => {
     if (mutationInFlightRef.current) return
     mutationInFlightRef.current = true
     setIsDeleting(true)
@@ -478,7 +483,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         return
       }
 
-      const response = await fetch(`/api/google/calendar/events/${event.id}`, {
+      const params = new URLSearchParams({ scope })
+      if (event.start.dateTime || event.start.date) {
+        params.set('occurrence_date', (event.start.dateTime || event.start.date || '').slice(0, 10))
+      }
+      const response = await fetch(`/api/google/calendar/events/${event.id}?${params}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -688,7 +697,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
           description: editedDescription || null,
           location: editedLocation || null,
           start,
-          end
+          end,
+          scope: isRecurringEvent ? editScope : 'occurrence',
         })
       })
 
@@ -1260,7 +1270,19 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </button>
             </div>
           ) : isEditing ? (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              {isRecurringEvent && (
+                <select
+                  value={editScope}
+                  onChange={(e) => setEditScope(e.target.value as typeof editScope)}
+                  className="w-full h-10 px-3 text-sm bg-muted border border-border/50 rounded-lg text-foreground"
+                  aria-label="Apply changes to"
+                >
+                  <option value="occurrence">This occurrence only</option>
+                  <option value="series">Entire series</option>
+                </select>
+              )}
+              <div className="flex gap-2">
               <button
                 onClick={handleCancelEdit}
                 disabled={isSaving}
@@ -1285,6 +1307,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   </>
                 )}
               </button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -1394,17 +1417,50 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       />
 
       {/* Delete Confirmation Modal */}
-      <ConfirmModal
-        isOpen={showConfirm}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        title="Delete Appointment"
-        description="Are you sure you want to delete this appointment? This will also remove it from Google Calendar."
-        confirmText="Delete"
-        cancelText="Cancel"
-        isDestructive={true}
-        isLoading={isDeleting}
-      />
+      {isRecurringEvent ? (
+        <Modal isOpen={showConfirm} onClose={handleDeleteCancel} title="Delete Recurring Appointment">
+          <div className="p-5">
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+              This appointment repeats. Choose what to delete.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleDeleteConfirm('occurrence')}
+                disabled={isDeleting}
+                className="w-full px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors disabled:opacity-50"
+              >
+                This occurrence only
+              </button>
+              <button
+                onClick={() => handleDeleteConfirm('future')}
+                disabled={isDeleting}
+                className="w-full px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors disabled:opacity-50"
+              >
+                This and future occurrences
+              </button>
+              <button
+                onClick={() => handleDeleteConfirm('series')}
+                disabled={isDeleting}
+                className="w-full px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Entire series'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      ) : (
+        <ConfirmModal
+          isOpen={showConfirm}
+          onClose={handleDeleteCancel}
+          onConfirm={() => handleDeleteConfirm('occurrence')}
+          title="Delete Appointment"
+          description="Are you sure you want to delete this appointment? This will also remove it from Google Calendar."
+          confirmText="Delete"
+          cancelText="Cancel"
+          isDestructive={true}
+          isLoading={isDeleting}
+        />
+      )}
     </div>
   )
 

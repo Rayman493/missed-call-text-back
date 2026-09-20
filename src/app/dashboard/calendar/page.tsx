@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock, Play, Square, X } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, Repeat2, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink, Pencil, Bell, Trash2, Video, Clock, Play, Square, X } from 'lucide-react'
 import SelectPicker from '@/components/ui/SelectPicker'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
@@ -2504,8 +2504,11 @@ export default function SchedulePage() {
                                               <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                                              <p className="text-sm font-medium text-slate-900 dark:text-foreground flex items-center gap-1">
                                                 {task.title}
+                                                {((task as any).recurrence || (task as any).series_id || task.id.startsWith('virtual:')) && (
+                                                  <Repeat2 className="w-3 h-3 text-slate-400 flex-shrink-0" aria-label="Repeats" />
+                                                )}
                                               </p>
                                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                                 {time} • {task.completed ? 'Completed' : 'Pending'}
@@ -2560,8 +2563,11 @@ export default function SchedulePage() {
                                               <Briefcase className="w-4 h-4 text-green-600 dark:text-green-400" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                                              <p className="text-sm font-medium text-slate-900 dark:text-foreground flex items-center gap-1">
                                                 {job.title}
+                                                {((job as any).recurrence || (job as any).series_id || job.id.startsWith('virtual:')) && (
+                                                  <Repeat2 className="w-3 h-3 text-slate-400 flex-shrink-0" aria-label="Repeats" />
+                                                )}
                                               </p>
                                               {job.customer_name && (
                                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

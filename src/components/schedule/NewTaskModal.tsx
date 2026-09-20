@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
+import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import Modal from '@/components/ui/Modal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
@@ -24,6 +25,8 @@ interface Task {
   business_id?: string
   reminder_offset_minutes?: number | null
   reminder_notify_at?: string | null
+  series_id?: string | null
+  recurrence?: { frequency?: string } | null
 }
 
 interface NewTaskModalProps {
@@ -58,7 +61,13 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [isSaving, setIsSaving] = useState(false)
   const [isTogglingComplete, setIsTogglingComplete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [repeat, setRepeat] = useState<RepeatValue>(NO_REPEAT)
+  const [editScope, setEditScope] = useState<'occurrence' | 'future' | 'series'>('occurrence')
   const supabase = createBrowserClient()
+
+  const isRecurring = !!taskToEdit && (
+    !!taskToEdit.recurrence || !!taskToEdit.series_id || taskToEdit.id.startsWith('virtual:')
+  )
 
   // Handle Android back button and browser back to close modal
   // Note: useModalBackButton is owned by the shared <Modal> component below.
@@ -91,6 +100,8 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         setSelectedJobId(null)
         setSelectedCustomer(preselectedLeadCustomer || null)
       }
+      setRepeat(NO_REPEAT)
+      setEditScope('occurrence')
     }
   }, [isOpen, taskToEdit, preselectedLeadId, preselectedLeadCustomer])
 
@@ -137,6 +148,8 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           lead_id: selectedLeadId || null,
           job_id: selectedJobId || null,
           reminder_offset_minutes: reminderOffsetMinutes,
+          ...(!taskToEdit ? { recurrence: repeatPayload(repeat) } : {}),
+          ...(taskToEdit && isRecurring ? { scope: editScope, occurrence_date: taskToEdit.due_date } : {}),
         }),
       })
 
@@ -202,10 +215,16 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = async (arg?: 'occurrence' | 'future' | 'series' | React.MouseEvent) => {
+    const scope: 'occurrence' | 'future' | 'series' = typeof arg === 'string' ? arg : 'occurrence'
     if (!taskToEdit) return
 
-    if (!confirm('Are you sure you want to delete this reminder? This action cannot be undone.')) {
+    const scopeLabel = scope === 'series'
+      ? 'the entire recurring series'
+      : scope === 'future'
+        ? 'this and all future occurrences'
+        : 'this reminder'
+    if (!confirm(`Delete ${scopeLabel}? This action cannot be undone.`)) {
       return
     }
 
@@ -219,7 +238,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         return
       }
 
-      const response = await fetch(`/api/tasks/${taskToEdit.id}`, {
+      const params = new URLSearchParams({ scope })
+      if (taskToEdit.due_date) params.set('occurrence_date', taskToEdit.due_date)
+      const response = await fetch(`/api/tasks/${taskToEdit.id}?${params}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -250,6 +271,8 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     setReminderOffsetMinutes(null)
     setSelectedLeadId(null)
     setSelectedJobId(null)
+    setRepeat(NO_REPEAT)
+    setEditScope('occurrence')
     onClose()
   }
 
@@ -408,6 +431,24 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               label="Remind me (optional)"
               emptyMessage="No reminder"
             />
+
+            {!taskToEdit && (
+              <RepeatControls value={repeat} onChange={setRepeat} />
+            )}
+
+            {isRecurring && (
+              <SelectPicker
+                value={editScope}
+                onChange={(v) => setEditScope((v || 'occurrence') as typeof editScope)}
+                options={[
+                  { value: 'occurrence', label: 'This occurrence only' },
+                  { value: 'future', label: 'This and future occurrences' },
+                  { value: 'series', label: 'Entire series' },
+                ]}
+                label="Apply changes to"
+                placeholder="This occurrence only"
+              />
+            )}
           </div>
 
           {/* Section: Details */}
@@ -446,17 +487,36 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark Complete')}
               </button>
 
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="px-3 py-2 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                aria-label="Delete task"
-                title="Delete task"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span className="text-xs font-medium">{isDeleting ? 'Deleting...' : 'Delete'}</span>
-              </button>
+              {isRecurring ? (
+                <div className="flex items-center gap-1.5">
+                  {(['occurrence', 'future', 'series'] as const).map((scope) => (
+                    <button
+                      key={scope}
+                      type="button"
+                      onClick={() => handleDelete(scope)}
+                      disabled={isDeleting}
+                      className="px-2.5 py-2 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={scope === 'occurrence' ? 'Delete this occurrence' : scope === 'future' ? 'Delete this and future occurrences' : 'Delete entire series'}
+                    >
+                      <span className="text-[11px] font-medium">
+                        {isDeleting ? '...' : scope === 'occurrence' ? 'Delete' : scope === 'future' ? 'Future' : 'Series'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-3 py-2 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  aria-label="Delete task"
+                  title="Delete task"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="text-xs font-medium">{isDeleting ? 'Deleting...' : 'Delete'}</span>
+                </button>
+              )}
             </div>
           )}
         </form>

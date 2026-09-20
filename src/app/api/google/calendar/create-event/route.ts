@@ -6,6 +6,7 @@ import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-g
 import { resolveBusinessForUser } from '@/lib/team-access'
 
 import { toGoogleCalendarEventId } from '@/lib/google/calendar-event-id'
+import { toGoogleRRules } from '@/lib/recurrence/rule'
 
 // Retry function for Google Calendar API calls with exponential backoff
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
       custom_meeting_url,
       lead_id,
       request_id,
+      recurrence,
     } = body
 
     // Validate required fields
@@ -304,6 +306,24 @@ export async function POST(request: NextRequest) {
       end,
       ...(location ? { location } : {}),
       extendedProperties,
+    }
+
+    // Optional recurrence — a Google-native RRULE set on the master event.
+    // Google expands instances server-side (singleEvents=true on fetch), so no
+    // extra events or sync loops are created. Monthly clamp semantics match
+    // ReplyFlow's internal recurrence (see toGoogleRRules).
+    if (recurrence && recurrence.frequency && recurrence.frequency !== 'none') {
+      const rules = toGoogleRRules({
+        frequency: recurrence.frequency,
+        anchorDate: date,
+        anchorDay: Number(String(date).split('-')[2]),
+        endType: recurrence.end_type || 'never',
+        endDate: recurrence.end_type === 'on_date' ? recurrence.end_date : null,
+        maxOccurrences: recurrence.end_type === 'after_occurrences'
+          ? Math.min(Math.max(parseInt(recurrence.max_occurrences, 10) || 0, 2), 500)
+          : null,
+      })
+      eventBody.recurrence = rules
     }
 
     console.log('[Calendar Create] Creating event with data:', { title, date, endDate: finalEndDate, allDay, requestId, googleEventId, isClientProvided })

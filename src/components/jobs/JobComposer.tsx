@@ -5,6 +5,8 @@ import { X, Briefcase, Plus } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
+import SelectPicker from '@/components/ui/SelectPicker'
+import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import JobTimer from '@/components/jobs/JobTimer'
@@ -55,6 +57,8 @@ export interface Job {
   calendar_last_synced_at: string | null
   created_at: string
   updated_at: string
+  series_id?: string | null
+  recurrence?: { frequency?: string } | null
   time_summary?: {
     completed_ms: number
     has_active_timer: boolean
@@ -103,7 +107,13 @@ export default function JobComposer({
   const [status, setStatus] = useState<JobStatus>('scheduled')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const [repeat, setRepeat] = useState<RepeatValue>(NO_REPEAT)
+  const [editScope, setEditScope] = useState<'occurrence' | 'future' | 'series'>('occurrence')
   const saveInFlightRef = useRef(false)
+
+  const isRecurring = !!editJob && (
+    !!editJob.recurrence || !!editJob.series_id || editJob.id.startsWith('virtual:')
+  )
 
   // Customer selector state
   const [leadId, setLeadId] = useState<string | null>(null)
@@ -198,6 +208,8 @@ export default function JobComposer({
       setLeadId(prefill?.lead_id || null)
       setLeadDisplay(prefill?.customer_name || prefill?.service_address || null)
     }
+    setRepeat(NO_REPEAT)
+    setEditScope('occurrence')
   }, [isOpen, editJob, prefill, defaultDate])
 
   // Default end time to start + 1 hour, but only while the end field is unset
@@ -255,6 +267,8 @@ export default function JobComposer({
         source: leadId ? 'replyflow' : 'manual',
         lead_id: leadId || editJob?.lead_id || null,
         conversation_id: prefill?.conversation_id || editJob?.conversation_id || null,
+        ...(!editJob ? { recurrence: repeatPayload(repeat) } : {}),
+        ...(editJob && isRecurring ? { scope: editScope, occurrence_date: editJob.scheduled_date } : {}),
       }
 
       const url = editJob ? `/api/jobs/${editJob.id}` : '/api/jobs'
@@ -435,6 +449,25 @@ export default function JobComposer({
             <p className="text-[10px] text-muted-foreground/70">
               Optional. Add a date and time to place this job on your schedule. End time defaults to start + 1 hour.
             </p>
+
+            {/* Recurrence — create mode only; edit mode uses scope picker */}
+            {!editJob && scheduledDate && (
+              <RepeatControls value={repeat} onChange={setRepeat} />
+            )}
+
+            {isRecurring && (
+              <SelectPicker
+                value={editScope}
+                onChange={(v) => setEditScope((v || 'occurrence') as typeof editScope)}
+                options={[
+                  { value: 'occurrence', label: 'This occurrence only' },
+                  { value: 'future', label: 'This and future occurrences' },
+                  { value: 'series', label: 'Entire series' },
+                ]}
+                label="Apply changes to"
+                placeholder="This occurrence only"
+              />
+            )}
 
             {/* Status */}
             <div>

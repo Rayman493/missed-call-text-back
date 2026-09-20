@@ -96,6 +96,7 @@ export default function JobDetailsModal({
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteScope, setDeleteScope] = useState<'occurrence' | 'future' | 'series'>('occurrence')
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null)
   const [isLoadingPayment, setIsLoadingPayment] = useState(false)
   const [paymentLoadedForLeadId, setPaymentLoadedForLeadId] = useState<string | null>(null)
@@ -297,12 +298,18 @@ export default function JobDetailsModal({
     }
   }
 
+  const isRecurringJob = !!job && (
+    !!(job as any).recurrence || !!(job as any).series_id || job.id.startsWith('virtual:')
+  )
+
   const handleDelete = async () => {
     if (deleteInFlightRef.current) return
     deleteInFlightRef.current = true
     setIsDeleting(true)
     try {
-      const response = await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' })
+      const params = new URLSearchParams({ scope: isRecurringJob ? deleteScope : 'occurrence' })
+      if ((job as any).scheduled_date) params.set('occurrence_date', (job as any).scheduled_date)
+      const response = await fetch(`/api/jobs/${job.id}?${params}`, { method: 'DELETE' })
       if (!response.ok) throw new Error('Failed to delete job')
       onDelete(job)
       onClose()
@@ -554,8 +561,21 @@ export default function JobDetailsModal({
           {/* Footer */}
           <div className="flex items-center justify-between px-5 py-4 border-t border-border/50 bg-muted/30 flex-shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
             {showDeleteConfirm ? (
-              <div className="flex items-center gap-2 w-full">
-                <span className="text-xs text-muted-foreground flex-1">Delete this job?</span>
+              <div className="flex items-center gap-2 w-full flex-wrap">
+                <span className="text-xs text-muted-foreground flex-1">
+                  {isRecurringJob ? 'Delete recurring job:' : 'Delete this job?'}
+                </span>
+                {isRecurringJob && (
+                  <select
+                    value={deleteScope}
+                    onChange={(e) => setDeleteScope(e.target.value as typeof deleteScope)}
+                    className="px-2 py-1.5 text-xs bg-muted border border-border/50 rounded-lg text-foreground"
+                  >
+                    <option value="occurrence">This occurrence</option>
+                    <option value="future">This & future</option>
+                    <option value="series">Entire series</option>
+                  </select>
+                )}
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"

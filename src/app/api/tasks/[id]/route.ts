@@ -2,13 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { calculateReminderNotifyAt } from '@/lib/reminder-notification-utils'
 import { resolveBusinessForUser } from '@/lib/team-access'
+import {
+  parseVirtualId,
+  getSeriesById,
+  getSeriesForTemplate,
+  materializeOccurrence,
+  skipOccurrence,
+  splitSeriesAt,
+  endSeriesBefore,
+  deleteSeries,
+  createSeries,
+} from '@/lib/recurrence/service'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: rawId } = await params
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -23,10 +34,28 @@ export async function PATCH(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    // Recurrence: a virtual occurrence id materializes into a real row first,
+    // then the normal update path applies to that row.
+    let id = rawId
+    const virtual = parseVirtualId(rawId)
+    if (virtual) {
+      const series = await getSeriesById(supabase, business.id, virtual.seriesId)
+      if (!series) {
+        return NextResponse.json({ error: 'This recurring reminder no longer exists' }, { status: 404 })
+      }
+      const { row, error: matError } = await materializeOccurrence(
+        supabase, business.id, series, virtual.occurrenceDate, 'tasks', 'due_date',
+      )
+      if (matError || !row) {
+        return NextResponse.json({ error: 'Failed to update this occurrence' }, { status: 500 })
+      }
+      id = row.id
+    }
+
     // Verify task belongs to business
     const { data: task, error: taskError } = await supabase
       .from('tasks')
-      .select('id, business_id')
+      .select('id, business_id, series_id')
       .eq('id', id)
       .single()
 
@@ -41,7 +70,7 @@ export async function PATCH(
     // Fetch full task state including reminder fields
     const { data: fullTask, error: fullTaskError } = await supabase
       .from('tasks')
-      .select('id, due_date, due_time, reminder_offset_minutes, reminder_notify_at')
+      .select('id, due_date, due_time, reminder_offset_minutes, reminder_notify_at, series_id')
       .eq('id', id)
       .single()
 
@@ -59,6 +88,9 @@ export async function PATCH(
       lead_id,
       job_id,
       reminder_offset_minutes,
+      scope,
+      occurrence_date,
+      recurrence,
     } = body
 
     // Verify lead belongs to business if provided
@@ -155,6 +187,35 @@ export async function PATCH(
       }
     }
 
+    // Recurrence scopes. `series` is found via the row's series_id (materialized
+    // occurrences) or as the template row's owning series (anchor occurrence).
+    const editScope = scope === 'future' || scope === 'series' ? scope : 'occurrence'
+    const series = task.series_id
+      ? await getSeriesById(supabase, business.id, task.series_id)
+      : await getSeriesForTemplate(supabase, business.id, 'task', id)
+
+    const snapshotPatch: Record<string, any> = {}
+    for (const f of ['title', 'notes', 'due_time', 'lead_id', 'job_id', 'reminder_offset_minutes'] as const) {
+      if (f in body) snapshotPatch[f] = (body as any)[f]
+    }
+
+    if (editScope === 'future') {
+      if (!series) {
+        return NextResponse.json({ error: 'This reminder is not part of a recurring series' }, { status: 400 })
+      }
+      const occDate = occurrence_date || fullTask.due_date
+      if (!occDate) {
+        return NextResponse.json({ error: 'occurrence_date is required for this edit scope' }, { status: 400 })
+      }
+      const { newSeries, error: splitError } = await splitSeriesAt(
+        supabase, business.id, series, occDate, 'tasks', 'due_date', snapshotPatch,
+      )
+      if (splitError) {
+        return NextResponse.json({ error: 'Failed to update future occurrences' }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true, series: newSeries })
+    }
+
     const { data: updatedTask, error } = await supabase
       .from('tasks')
       .update(updateData)
@@ -165,6 +226,25 @@ export async function PATCH(
     if (error) {
       console.error('[Tasks API] PATCH error:', error)
       return NextResponse.json({ error: 'Failed to update reminder' }, { status: 500 })
+    }
+
+    // Entire-series edit: merge the field patch into the template snapshot and
+    // optionally update the recurrence rule itself.
+    if (editScope === 'series' && series) {
+      const seriesUpdate: Record<string, any> = {
+        template_snapshot: { ...(series.template_snapshot || {}), ...snapshotPatch },
+      }
+      if (due_date !== undefined && due_date) {
+        seriesUpdate.anchor_date = due_date
+        seriesUpdate.anchor_day = Number(due_date.split('-')[2])
+      }
+      if (recurrence && recurrence.frequency) {
+        seriesUpdate.frequency = recurrence.frequency
+        seriesUpdate.end_type = recurrence.end_type
+        seriesUpdate.end_date = recurrence.end_type === 'on_date' ? recurrence.end_date : null
+        seriesUpdate.max_occurrences = recurrence.end_type === 'after_occurrences' ? recurrence.max_occurrences : null
+      }
+      await supabase.from('recurrence_series').update(seriesUpdate).eq('id', series.id)
     }
 
     return NextResponse.json({ task: updatedTask })
@@ -179,7 +259,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: rawId } = await params
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -194,10 +274,38 @@ export async function DELETE(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
+    const scope = new URL(request.url).searchParams.get('scope') || 'occurrence'
+    const occurrenceDate = new URL(request.url).searchParams.get('occurrence_date')
+    const todayStr = new Date().toLocaleDateString('en-CA')
+
+    // Recurrence: deleting a virtual occurrence just marks the date skipped.
+    const virtual = parseVirtualId(rawId)
+    if (virtual) {
+      const series = await getSeriesById(supabase, business.id, virtual.seriesId)
+      if (!series) {
+        return NextResponse.json({ error: 'This recurring reminder no longer exists' }, { status: 404 })
+      }
+      if (scope === 'series') {
+        const { error } = await deleteSeries(supabase, business.id, series, 'tasks', todayStr)
+        if (error) return NextResponse.json({ error: 'Failed to delete series' }, { status: 500 })
+        return NextResponse.json({ success: true })
+      }
+      if (scope === 'future') {
+        const { error } = await endSeriesBefore(supabase, business.id, series, virtual.occurrenceDate, 'tasks')
+        if (error) return NextResponse.json({ error: 'Failed to delete future occurrences' }, { status: 500 })
+        return NextResponse.json({ success: true })
+      }
+      const { error } = await skipOccurrence(supabase, business.id, series.id, virtual.occurrenceDate)
+      if (error) return NextResponse.json({ error: 'Failed to delete occurrence' }, { status: 500 })
+      return NextResponse.json({ success: true })
+    }
+
+    const id = rawId
+
     // Verify task belongs to business
     const { data: task, error: taskError } = await supabase
       .from('tasks')
-      .select('id, business_id')
+      .select('id, business_id, series_id, due_date')
       .eq('id', id)
       .single()
 
@@ -209,6 +317,29 @@ export async function DELETE(
       return NextResponse.json({ error: 'Task does not belong to your business' }, { status: 403 })
     }
 
+    // Series-aware scopes for real rows (template anchor or materialized row).
+    const series = task.series_id
+      ? await getSeriesById(supabase, business.id, task.series_id)
+      : await getSeriesForTemplate(supabase, business.id, 'task', id)
+
+    if (scope === 'series' && series) {
+      const { error: seriesError } = await deleteSeries(supabase, business.id, series, 'tasks', todayStr)
+      if (seriesError) return NextResponse.json({ error: 'Failed to delete series' }, { status: 500 })
+      // Remove the row the user was looking at (template anchor or materialized).
+      await supabase.from('tasks').delete().eq('id', id)
+      return NextResponse.json({ success: true })
+    }
+
+    if (scope === 'future' && series) {
+      const occDate = occurrenceDate || task.due_date || todayStr
+      const { error: endError } = await endSeriesBefore(supabase, business.id, series, occDate, 'tasks')
+      if (endError) return NextResponse.json({ error: 'Failed to delete future occurrences' }, { status: 500 })
+      if (task.series_id) await supabase.from('tasks').delete().eq('id', id)
+      return NextResponse.json({ success: true })
+    }
+
+    // Default: delete this one row. If it is the series anchor, mark the date
+    // skipped so the (now row-less) anchor date stays suppressed.
     const { error } = await supabase
       .from('tasks')
       .delete()
@@ -217,6 +348,10 @@ export async function DELETE(
     if (error) {
       console.error('[Tasks API] DELETE error:', error)
       return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 })
+    }
+
+    if (series && !task.series_id && task.due_date === series.anchor_date) {
+      await skipOccurrence(supabase, business.id, series.id, task.due_date)
     }
 
     return NextResponse.json({ success: true })

@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import { calculateReminderNotifyAt } from '@/lib/reminder-notification-utils'
+import {
+  expandVirtualOccurrences,
+  createSeries,
+  recurrenceMetaForRow,
+  addDays,
+  EXPANSION_HORIZON_DAYS,
+  type RecurrenceInput,
+} from '@/lib/recurrence/service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,7 +67,55 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 })
     }
 
-    return NextResponse.json({ tasks: tasks || [] })
+    // Recurrence: expand virtual series occurrences into the requested window.
+    // Real rows already cover: the anchor occurrence (the template row) and any
+    // materialized exceptions. Virtuals fill the remaining matching dates.
+    const todayStr = new Date().toLocaleDateString('en-CA')
+    const rangeFrom = overdue ? '0001-01-01' : today ? todayStr : '0001-01-01'
+    const rangeTo = overdue
+      ? addDays(todayStr, -1)
+      : today
+        ? todayStr
+        : addDays(todayStr, EXPANSION_HORIZON_DAYS)
+
+    const { occurrences, seriesByTemplateId, seriesById } = await expandVirtualOccurrences(
+      supabase, business.id!, 'task', rangeFrom, rangeTo,
+    )
+
+    const virtualTasks = occurrences
+      .filter(({ series }) => {
+        const snap = series.template_snapshot || {}
+        if (lead_id && snap.lead_id !== lead_id) return false
+        if (completed === 'true') return false // virtuals are never completed
+        return true
+      })
+      .map(({ series, date, virtualId }) => ({
+        ...(series.template_snapshot || {}),
+        id: virtualId,
+        business_id: business.id,
+        due_date: date,
+        completed: false,
+        completed_at: null,
+        reminder_notify_at: null,
+        virtual: true,
+        occurrence_date: date,
+        ...recurrenceMetaForRow(series),
+      }))
+
+    const annotated = (tasks || []).map((t: any) => ({
+      ...t,
+      ...recurrenceMetaForRow(seriesByTemplateId.get(t.id) ?? (t.series_id ? seriesById.get(t.series_id) : undefined)),
+    }))
+
+    const merged = [...annotated, ...virtualTasks]
+    merged.sort((a: any, b: any) => {
+      const da = a.due_date || '', db = b.due_date || ''
+      if (da !== db) return da < db ? -1 : 1
+      const ta = a.due_time || '', tb = b.due_time || ''
+      return ta < tb ? -1 : ta > tb ? 1 : 0
+    })
+
+    return NextResponse.json({ tasks: merged })
   } catch (error) {
     console.error('[Tasks API] GET unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -92,7 +148,12 @@ export async function POST(request: NextRequest) {
       lead_id,
       job_id,
       reminder_offset_minutes,
-    } = body
+      recurrence,
+    } = body as {
+      title?: string; notes?: string; due_date?: string; due_time?: string
+      lead_id?: string; job_id?: string; reminder_offset_minutes?: number | null
+      recurrence?: RecurrenceInput
+    }
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
@@ -184,7 +245,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create reminder' }, { status: 500 })
     }
 
-    const response: any = { task }
+    // Recurrence: create a series anchored on this task (occurrence #1).
+    let createdSeries = null
+    if (recurrence && recurrence.frequency && due_date) {
+      const snapshot = {
+        title: task.title,
+        notes: task.notes,
+        due_time: task.due_time,
+        lead_id: task.lead_id,
+        job_id: task.job_id,
+        completed: false,
+        reminder_offset_minutes: task.reminder_offset_minutes,
+      }
+      const businessTimezone = business.business_hours_timezone || 'America/New_York'
+      const { series, error: seriesError } = await createSeries(
+        supabase, business.id!, 'task', task.id, snapshot, due_date, businessTimezone, recurrence,
+      )
+      if (seriesError) {
+        // Roll back the task so we never leave a half-created series
+        await supabase.from('tasks').delete().eq('id', task.id)
+        console.error('[Tasks API] series creation failed:', seriesError)
+        return NextResponse.json({ error: seriesError }, { status: 400 })
+      }
+      createdSeries = series
+    }
+
+    const response: any = { task: { ...task, ...recurrenceMetaForRow(createdSeries ?? undefined) } }
+    if (createdSeries) response.series = createdSeries
     if (notificationWarning) {
       response.warning = notificationWarning
     }

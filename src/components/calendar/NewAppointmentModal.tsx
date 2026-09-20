@@ -8,6 +8,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
+import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
@@ -45,6 +46,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
   const [isAllDay, setIsAllDay] = useState(false)
+  const [repeat, setRepeat] = useState<RepeatValue>(NO_REPEAT)
   // Customer linking (optional)
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
@@ -211,6 +213,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           custom_meeting_url: meetingType === 'custom' && customMeetingUrl.trim() ? customMeetingUrl.trim() : undefined,
           lead_id: leadId || undefined,
           request_id: requestId,
+          recurrence: repeatPayload(repeat) || undefined,
         })
       })
 
@@ -252,6 +255,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       }
       setMeetingType('in_person')
       setCustomMeetingUrl('')
+      setRepeat(NO_REPEAT)
     } catch (err) {
       setError('Failed to create appointment')
     } finally {
@@ -410,6 +414,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                   <span className="text-sm text-foreground">All day event</span>
                 </label>
               </div>
+
+              {date && (
+                <RepeatControls value={repeat} onChange={setRepeat} />
+              )}
             </div>
 
             {/* Section: Appointment Details */}

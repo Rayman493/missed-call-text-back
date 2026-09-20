@@ -3,6 +3,15 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import { geocodeAddress, isValidCoordinate, isGeocodingStale } from '@/lib/geocoding'
+import {
+  expandVirtualOccurrences,
+  createSeries,
+  recurrenceMetaForRow,
+  addDays,
+  EXPANSION_HORIZON_DAYS,
+  type RecurrenceInput,
+} from '@/lib/recurrence/service'
+import { toGoogleRRules } from '@/lib/recurrence/rule'
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,7 +96,48 @@ export async function GET(request: NextRequest) {
       time_summary: timeSummaryMap[job.id] || { completed_ms: 0, has_active_timer: false },
     }))
 
-    return NextResponse.json({ jobs: jobsWithSummary })
+    // Recurrence: expand virtual series occurrences into the requested window.
+    const todayStr = new Date().toLocaleDateString('en-CA')
+    const rangeFrom = from || '0001-01-01'
+    const rangeTo = to || addDays(todayStr, EXPANSION_HORIZON_DAYS)
+
+    const { occurrences, seriesByTemplateId, seriesById } = await expandVirtualOccurrences(
+      supabase, business.id!, 'job', rangeFrom, rangeTo,
+    )
+
+    const virtualJobs = occurrences
+      .filter(({ series }) => {
+        const snap = series.template_snapshot || {}
+        if (leadId && snap.lead_id !== leadId) return false
+        if (status && snap.status !== status && !(snap.status == null && status === 'scheduled')) return false
+        return true
+      })
+      .map(({ series, date, virtualId }) => ({
+        ...(series.template_snapshot || {}),
+        id: virtualId,
+        business_id: business.id,
+        scheduled_date: date,
+        status: (series.template_snapshot || {}).status || 'scheduled',
+        virtual: true,
+        occurrence_date: date,
+        time_summary: { completed_ms: 0, has_active_timer: false },
+        ...recurrenceMetaForRow(series),
+      }))
+
+    const annotated = jobsWithSummary.map((j: any) => ({
+      ...j,
+      ...recurrenceMetaForRow(seriesByTemplateId.get(j.id) ?? (j.series_id ? seriesById.get(j.series_id) : undefined)),
+    }))
+
+    const merged = [...annotated, ...virtualJobs]
+    merged.sort((a: any, b: any) => {
+      const da = a.scheduled_date || '', db = b.scheduled_date || ''
+      if (da !== db) return da < db ? -1 : 1
+      const ta = a.scheduled_time || '', tb = b.scheduled_time || ''
+      return ta < tb ? -1 : ta > tb ? 1 : 0
+    })
+
+    return NextResponse.json({ jobs: merged })
   } catch (error) {
     console.error('[Jobs API] GET unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -306,7 +356,8 @@ export async function POST(request: NextRequest) {
       lead_id,
       conversation_id,
       source = 'manual',
-    } = body
+      recurrence,
+    } = body as Record<string, any> & { recurrence?: RecurrenceInput }
 
     if (!title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
@@ -382,6 +433,44 @@ export async function POST(request: NextRequest) {
         code: error.code
       })
       return NextResponse.json({ error: 'Failed to create job' }, { status: 500 })
+    }
+
+    // Recurrence: create a series anchored on this job (occurrence #1).
+    let createdSeries = null
+    let seriesRules: string[] | null = null
+    if (recurrence && recurrence.frequency && scheduled_date) {
+      const snapshot = {
+        title: job.title,
+        customer_name: job.customer_name,
+        customer_phone: job.customer_phone,
+        service_address: job.service_address,
+        notes: job.notes,
+        scheduled_time: job.scheduled_time,
+        scheduled_end_time: job.scheduled_end_time,
+        status: 'scheduled',
+        lead_id: job.lead_id,
+        conversation_id: job.conversation_id,
+        source: job.source,
+        payment_status: 'none',
+      }
+      const businessTimezone = business.business_hours_timezone || 'America/New_York'
+      const { series, error: seriesError } = await createSeries(
+        supabase, business.id!, 'job', job.id, snapshot, scheduled_date, businessTimezone, recurrence,
+      )
+      if (seriesError || !series) {
+        await supabase.from('jobs').delete().eq('id', job.id)
+        console.error('[JOBS CREATE] series creation failed:', seriesError)
+        return NextResponse.json({ error: seriesError || 'Failed to create series' }, { status: 400 })
+      }
+      createdSeries = series
+      seriesRules = toGoogleRRules({
+        frequency: series.frequency,
+        anchorDate: series.anchor_date,
+        anchorDay: series.anchor_day,
+        endType: series.end_type,
+        endDate: series.end_date,
+        maxOccurrences: series.max_occurrences,
+      })
     }
 
     console.log('[JOBS CREATE] Job created successfully:', {
@@ -475,7 +564,7 @@ export async function POST(request: NextRequest) {
             endDateTimeStr = `${scheduled_date}T${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
           }
 
-          const eventBody = {
+          const eventBody: any = {
             summary: title,
             description: notes || '',
             start: {
@@ -486,6 +575,12 @@ export async function POST(request: NextRequest) {
               dateTime: endDateTimeStr,
               timeZone: businessTimezone
             },
+          }
+
+          // Recurring job: the linked Google event is a single native recurring
+          // event (RRULE set) — Google expands occurrences; no event explosion.
+          if (seriesRules) {
+            eventBody.recurrence = seriesRules
           }
 
           const response = await fetch(
@@ -597,7 +692,10 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[job_created]', { jobId: updatedJob.id, source, businessId: business.id, googleCalendarEventId: updatedJob.google_calendar_event_id })
-    return NextResponse.json({ job: updatedJob }, { status: 201 })
+    return NextResponse.json({
+      job: { ...updatedJob, ...recurrenceMetaForRow(createdSeries ?? undefined) },
+      ...(createdSeries ? { series: createdSeries } : {}),
+    }, { status: 201 })
   } catch (error) {
     console.error('[Jobs API] POST unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

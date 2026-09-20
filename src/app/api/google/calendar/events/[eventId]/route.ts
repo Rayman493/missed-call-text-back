@@ -44,6 +44,12 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3)
   throw lastError || new Error('Max retries exceeded')
 }
 
+// Recurring instance ids end with `_YYYYMMDDTHHMMSSZ`; the master event id is
+// the prefix. Non-recurring ids pass through unchanged.
+function masterEventId(eventId: string): string {
+  return eventId.replace(/_\d{8}T\d{6}Z$/, '')
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ eventId: string }> }
@@ -51,9 +57,18 @@ export async function PATCH(
   console.log('[GOOGLE CALENDAR PATCH] Request received')
   
   try {
-    const { eventId } = await params
+    const { eventId: rawEventId } = await params
     const body = await request.json()
-    
+    // scope=series updates the master recurring event; default patches only
+    // this instance (Google handles per-instance overrides natively).
+    const eventId = body.scope === 'series' ? masterEventId(rawEventId) : rawEventId
+    if (body.scope === 'future') {
+      return NextResponse.json(
+        { error: 'Editing this and future occurrences is not supported for calendar appointments. Choose this occurrence or the entire series.' },
+        { status: 400 }
+      )
+    }
+
     // Get user session using server client pattern
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -367,9 +382,51 @@ export async function DELETE(
       }
     }
 
+    const scope = new URL(request.url).searchParams.get('scope') || 'occurrence'
+    const occurrenceDate = new URL(request.url).searchParams.get('occurrence_date')
+
+    // scope=future on a recurring event: truncate the master's RRULE so all
+    // occurrences on/after occurrence_date disappear.
+    if (scope === 'future' && occurrenceDate) {
+      const masterId = masterEventId(eventId)
+      const masterRes = await fetchWithRetry(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(masterId)}`,
+        { method: 'GET', headers: { 'Authorization': `Bearer ${accessToken}` } }
+      )
+      if (!masterRes.ok) {
+        return NextResponse.json({ error: 'Failed to load recurring series' }, { status: 500 })
+      }
+      const master = await masterRes.json()
+      if (!Array.isArray(master.recurrence) || master.recurrence.length === 0) {
+        return NextResponse.json({ error: 'This event is not part of a recurring series' }, { status: 400 })
+      }
+      const dayBefore = new Date(`${occurrenceDate}T12:00:00Z`)
+      dayBefore.setUTCDate(dayBefore.getUTCDate() - 1)
+      const until = `${dayBefore.toISOString().slice(0, 10).replace(/-/g, '')}T235959Z`
+      const newRecurrence = master.recurrence.map((r: string) => {
+        if (!r.startsWith('RRULE:')) return r
+        const rule = r.replace(/;UNTIL=[^;]+|;COUNT=\d+/g, '')
+        return `${rule};UNTIL=${until}`
+      })
+      const patchRes = await fetchWithRetry(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(masterId)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recurrence: newRecurrence })
+        }
+      )
+      if (!patchRes.ok) {
+        return NextResponse.json({ error: 'Failed to delete future occurrences' }, { status: 500 })
+      }
+      return NextResponse.json({ success: true })
+    }
+
+    const targetId = scope === 'series' ? masterEventId(eventId) : eventId
+
     // Delete event from Google Calendar
     const deleteResponse = await fetchWithRetry(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(targetId)}`,
       {
         method: 'DELETE',
         headers: {

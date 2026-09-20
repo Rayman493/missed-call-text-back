@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyCronRequest } from "@/lib/cron-auth";
 import { sendPushForNotification } from "@/lib/push-delivery";
 import { processReminderNotifications } from "@/lib/reminder-worker";
+import { getSeriesForTemplate, nextPendingNotifyAt } from "@/lib/recurrence/service";
+import { calculateReminderNotifyAt } from "@/lib/reminder-notification-utils";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -143,6 +145,40 @@ export async function POST(request: Request) {
 
         if (error) {
           console.error(`[REMINDER_SCAN] Failed to clear schedule for task ${taskId}:`, error);
+          return;
+        }
+
+        // Recurrence re-arm: if this task is a recurring series template,
+        // schedule the notification for the next pending occurrence.
+        try {
+          const { data: task } = await supabase
+            .from('tasks')
+            .select('business_id, due_time, reminder_offset_minutes')
+            .eq('id', taskId)
+            .single();
+          const series = task?.business_id
+            ? await getSeriesForTemplate(supabase as any, task.business_id, 'task', taskId)
+            : null;
+          if (series && task) {
+            const { data: business } = await supabase
+              .from('businesses')
+              .select('timezone')
+              .eq('id', task.business_id)
+              .single();
+            const timezone = business?.timezone || 'America/New_York';
+            const offset = task?.reminder_offset_minutes ?? 30;
+            const nextNotify = await nextPendingNotifyAt(
+              supabase as any,
+              series,
+              (dueDate) => calculateReminderNotifyAt({ dueDate, dueTime: task?.due_time || null, offsetMinutes: offset, timezone }),
+              new Date().toISOString(),
+            );
+            if (nextNotify) {
+              await supabase.from('tasks').update({ reminder_notify_at: nextNotify }).eq('id', taskId);
+            }
+          }
+        } catch (rearmError) {
+          console.error(`[REMINDER_SCAN] Failed to re-arm recurring task ${taskId}:`, rearmError);
         }
       }
     });
