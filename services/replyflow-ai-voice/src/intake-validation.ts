@@ -537,7 +537,12 @@ export function resolveNextRequiredStage(
   // while leaving the corresponding canonical field empty. Scalar fields must pass
   // their semantic validators so meta/filler values cannot satisfy a stage.
   const hasName = isNameRequirementSatisfied(intake);
-  const hasRequest = isValidServiceRequest(intake.serviceRequested || '');
+  // serviceRequested is canonical; `request` is the Simple Mode compatibility
+  // field written by storeStageCapture for ask_request. A settled request that
+  // only reached the compat field must still satisfy ask_request.
+  const hasRequest =
+    isValidServiceRequest(intake.serviceRequested || '') ||
+    isValidServiceRequest(intake.request || '');
   const hasLocation = isUsableServiceAddress(intake) || !!intake.locationRefused;
   const hasCompletionTime = isValidCompletionTime(intake.desiredCompletionTime || '');
   const hasCallbackTime = isValidCallbackTime(intake.callbackTime || '');

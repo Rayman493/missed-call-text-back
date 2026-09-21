@@ -216,6 +216,28 @@ export function handleImmediateAdvanceIfMultiFieldCaptured(
   return false;
 }
 
+// Allocates a deterministic same-stage reprompt attempt identity for
+// (turn, stage). Returns null when this exact reprompt event was already
+// issued — duplicate callbacks/events for the same logical reprompt must not
+// redeliver. Distinct reprompts draw increasing attempt numbers so their
+// delivery identities never collide with the initial prompt or each other.
+export function nextRepromptDeliveryAttempt(
+  state: any,
+  turnId: number,
+  stage: string,
+  dedupeKey: string
+): number | null {
+  if (!state.repromptAttemptByScope) state.repromptAttemptByScope = {};
+  if (!state.repromptDedupeKeys) state.repromptDedupeKeys = new Set<string>();
+  const scope = `${turnId}:${stage}`;
+  const fullKey = `${scope}:${dedupeKey}`;
+  if (state.repromptDedupeKeys.has(fullKey)) return null;
+  state.repromptDedupeKeys.add(fullKey);
+  const attempt = (state.repromptAttemptByScope[scope] || 0) + 1;
+  state.repromptAttemptByScope[scope] = attempt;
+  return attempt;
+}
+
 // Helper function to build turn-by-turn transcript from Simple Mode stageCaptures
 // Uses canonical questions from intake templates and verbatim customer answers
 function buildSimpleModeTranscript(
@@ -519,14 +541,28 @@ export function finalizeSimpleModeSettledAnswer(
   state.answerAcceptedForStage = null;
   state.answerAcceptedTurnId = 0;
 
-  // Centralized routing after settle finalization, with race-safe mode resolution
+  // Centralized routing after settle finalization, with race-safe mode resolution.
+  // POST-WRITE INVARIANT: the resolver must run against the canonical state
+  // produced by steps 1–4 (extraction, ownership filtering, canonical writes,
+  // correction replacement). When no async serviceLocationType load is needed
+  // the resolution runs synchronously here so lifecycle observers see the
+  // committed transition, not a stale pre-callback snapshot.
   const needsResolution = finalStage === 'ask_request' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
-  const resolution = needsResolution && state.businessId
-    ? deps.loadServiceLocationTypeForBusiness(state.businessId)
-    : Promise.resolve();
-  resolution.then(() => {
+  const applyResolution = (triggerSuffix: string) => {
+    // Post-write diagnostic: prove the resolver sees freshly written fields.
+    console.log('[POST-WRITE RESOLUTION] =========================================');
+    console.log('[POST-WRITE RESOLUTION] callSid:', state.callSid);
+    console.log('[POST-WRITE RESOLUTION] finalizedStage:', finalStage);
+    console.log('[POST-WRITE RESOLUTION] serviceRequested:', state.intakeData.serviceRequested || null);
+    console.log('[POST-WRITE RESOLUTION] request:', state.intakeData.request || null);
+    console.log('[POST-WRITE RESOLUTION] serviceLocationType:', state.serviceLocationType || null);
+    console.log('[POST-WRITE RESOLUTION] =========================================');
     // Use field-aware resolver for Simple Mode stage advancement
     const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
+    console.log('[LOGICAL TURN LIFECYCLE] event: next_stage_resolved_post_write');
+    console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+    console.log('[LOGICAL TURN LIFECYCLE] finalizedStage:', finalStage);
+    console.log('[LOGICAL TURN LIFECYCLE] resolvedNextStage:', nextStage);
 
     // Check if this is a same-stage reprompt (identity-only retry, unusable answer, etc.)
     // The flag controls WHETHER to reprompt, not WHICH prompt variant to use
@@ -556,7 +592,7 @@ export function finalizeSimpleModeSettledAnswer(
       console.log('[STAGE TRANSITION] callSid:', state.callSid);
       console.log('[STAGE TRANSITION] fromStage:', previousStage);
       console.log('[STAGE TRANSITION] toStage:', nextStage);
-      console.log('[STAGE TRANSITION] trigger:', trigger);
+      console.log('[STAGE TRANSITION] trigger:', trigger + triggerSuffix);
       console.log('[STAGE TRANSITION] extractedFields:', fieldName);
       console.log('[STAGE TRANSITION] logicalStage:', nextStage);
       console.log('[STAGE TRANSITION] selectedPromptKey:', selectedPromptKey);
@@ -613,82 +649,19 @@ export function finalizeSimpleModeSettledAnswer(
         state.needsNameReprompt = false;
       });
     }
-  }).catch(() => {
-    // On resolution error, proceed with current state value (fallback onsite)
-    // Use field-aware resolver for Simple Mode stage advancement
-    const nextStage = resolveNextSimpleModeStage(state.intakeData, state.serviceLocationType);
-    const isSameStageReprompt = nextStage === finalStage && (state.needsServiceReprompt || state.needsNameReprompt);
+  };
 
-    if (nextStage && (nextStage !== finalStage || isSameStageReprompt)) {
-      const previousStage = state.currentStage;
-      const turnIdBefore = state.currentTurnId;
-      const pendingAnswerStageBefore = state.pendingAnswerStage;
-
-      // Only update currentStage if actually changing stages
-      if (nextStage !== finalStage) {
-        state.currentStage = nextStage;
-      }
-      const turnIdAfter = state.currentTurnId;
-      const pendingAnswerStageAfter = state.pendingAnswerStage;
-
-      // Use centralized prompt selector for field-aware variant selection
-      const selectedPromptKey = selectSimpleModePromptKey(nextStage, state.intakeData, {
-        needsServiceReprompt: state.needsServiceReprompt,
-        needsNameReprompt: state.needsNameReprompt
-      });
-
-      console.log('[STAGE TRANSITION] =========================================');
-      console.log('[STAGE TRANSITION] callSid:', state.callSid);
-      console.log('[STAGE TRANSITION] fromStage:', previousStage);
-      console.log('[STAGE TRANSITION] toStage:', nextStage);
-      console.log('[STAGE TRANSITION] trigger:', trigger + '_error_fallback');
-      console.log('[STAGE TRANSITION] extractedFields:', fieldName);
-      console.log('[STAGE TRANSITION] logicalStage:', nextStage);
-      console.log('[STAGE TRANSITION] selectedPromptKey:', selectedPromptKey);
-      console.log('[STAGE TRANSITION] sameStageReprompt:', isSameStageReprompt);
-      console.log('[STAGE TRANSITION] transitionCommitted:', true);
-      console.log('[STAGE TRANSITION] pendingAnswerStageBefore:', pendingAnswerStageBefore);
-      console.log('[STAGE TRANSITION] pendingAnswerStageAfter:', pendingAnswerStageAfter);
-      console.log('[STAGE TRANSITION] turnIdBefore:', turnIdBefore);
-      console.log('[STAGE TRANSITION] turnIdAfter:', turnIdAfter);
-      console.log('[STAGE TRANSITION] outboundPromptDispatched:', true);
-      console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
-      console.log('[STAGE TRANSITION] =========================================');
-
-      console.log('[ANSWER FINALIZATION] stageAdvanced:', nextStage !== finalStage);
-      console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
-      console.log('[ANSWER FINALIZATION] sameStageReprompt:', isSameStageReprompt);
-
-      // Pass selected prompt key as override to ensure correct variant is dispatched
-      // Clear reprompt flags ONLY when prompt dispatch actually succeeds
-      deps.sendPrompt(state.currentStage, selectedPromptKey).then((dispatched) => {
-        if (dispatched) {
-          // Only clear flags after successful dispatch to prevent silent loss of reprompt intent
-          state.needsServiceReprompt = false;
-          state.needsNameReprompt = false;
-        } else {
-          // Dispatch was suppressed - preserve reprompt intent for next turn
-          console.log('[REPROMPT FLAG PRESERVATION] =========================================');
-          console.log('[REPROMPT FLAG PRESERVATION] event: flags_preserved_after_suppressed_dispatch');
-          console.log('[REPROMPT FLAG PRESERVATION] reason: prompt_suppressed_before_audio_delivery');
-          console.log('[REPROMPT FLAG PRESERVATION] needsServiceReprompt:', state.needsServiceReprompt);
-          console.log('[REPROMPT FLAG PRESERVATION] needsNameReprompt:', state.needsNameReprompt);
-          console.log('[REPROMPT FLAG PRESERVATION] Timestamp:', new Date().toISOString());
-          console.log('[REPROMPT FLAG PRESERVATION] =========================================');
-        }
-      }).catch((error) => {
-        // If dispatch fails, clear flags to prevent sticky behavior
-        console.log('[REPROMPT FLAG CLEARANCE] =========================================');
-        console.log('[REPROMPT FLAG CLEARANCE] event: flags_cleared_after_dispatch_error');
-        console.log('[REPROMPT FLAG CLEARANCE] error:', error);
-        console.log('[REPROMPT FLAG CLEARANCE] reason: dispatch_failed_preventing_sticky_flags');
-        console.log('[REPROMPT FLAG CLEARANCE] Timestamp:', new Date().toISOString());
-        console.log('[REPROMPT FLAG CLEARANCE] =========================================');
-        state.needsServiceReprompt = false;
-        state.needsNameReprompt = false;
-      });
-    }
-  });
+  if (needsResolution && state.businessId) {
+    // Async path: serviceLocationType unknown — resolve after the load commits,
+    // still against canonical post-write intakeData.
+    deps.loadServiceLocationTypeForBusiness(state.businessId)
+      .then(() => applyResolution(''))
+      .catch(() => applyResolution('_error_fallback'));
+  } else {
+    // Synchronous path: resolve immediately from canonical post-write state so
+    // the lifecycle/operational stage is never a stale pre-resolution snapshot.
+    applyResolution('');
+  }
 }
 
 // Version log - guaranteed to appear on startup
@@ -3149,7 +3122,12 @@ function resolveNextRequiredStage(
   // Check field satisfaction. Explicit refusal flags count as handled for navigation
   // while leaving the corresponding canonical field empty.
   const hasName = isNameRequirementSatisfied(intake);
-  const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
+  // serviceRequested is canonical; `request` is the Simple Mode compatibility
+  // field. A settled request that only reached the compat field still
+  // satisfies ask_request.
+  const hasRequest =
+    Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0) ||
+    isValidServiceRequest(intake.request || '');
   const hasLocation = isUsableServiceAddress(intake) || !!intake.locationRefused;
   const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
   const hasCallbackTime = Boolean(intake.callbackTime && intake.callbackTime.trim().length > 0);
@@ -7143,6 +7121,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     currentTurnId: 0 as number,
     // Idempotency tracking for prompt delivery to prevent duplicate sends
     sentPrompts: new Set<string>(),
+    // Same-stage reprompt delivery identity. Each legitimate reprompt draws a
+    // distinct attempt number per (turn, stage); repromptDedupeKeys suppresses
+    // duplicate callbacks/events for the same logical reprompt so it cannot
+    // double-send or collide with the initial prompt identity.
+    repromptAttemptByScope: {} as Record<string, number>,
+    repromptDedupeKeys: new Set<string>(),
     // Cross-stage attribution: track which stage was active when speech started
     speechStartedStage: null as string | null,
     speechStartedTurnId: 0 as number,
@@ -8625,6 +8609,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       state.intakeData[extractedField] = capturedAnswer;
     }
 
+    // Canonical post-write promotion: the field-aware resolver checks
+    // serviceRequested, but ask_request persists into the compat field
+    // `request`. When a settled answer produced a valid request value and
+    // canonical serviceRequested is still empty, promote it so post-write
+    // resolution never sees a satisfied-but-invisible ask_request.
+    if (extractedField === 'request'
+        && !(state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim())
+        && isValidServiceRequest(state.intakeData.request || '')) {
+      state.intakeData.serviceRequested = state.intakeData.request.trim();
+      console.log('[INTAKE STATE] Canonical promotion:', { serviceRequested: state.intakeData.serviceRequested });
+    }
+
     // Explicit name self-identification always wins over a stale/bad name,
     // regardless of which merge branch or raw-write path ran above.
     // ("I said Michael Turner is my name" must replace "Like old times".)
@@ -9082,7 +9078,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
       console.log('[REPROMPT ARGUMENT TRACE] =========================================');
 
-      sendPrompt(stage, promptKeyOverride, 'stage_timeout_handler', state.currentTurnId, state.silenceRetryCountByStage[stage]);
+      // Draw the reprompt attempt from the shared per-(turn,stage) sequence so
+      // a timeout reprompt can never reuse an attempt already consumed by a
+      // meta-utterance reprompt (or vice versa).
+      const timeoutRepromptAttempt = nextRepromptDeliveryAttempt(
+        state,
+        state.currentTurnId,
+        stage,
+        `stage_timeout:${stage}:${state.silenceRetryCountByStage[stage] || 0}`
+      );
+      if (timeoutRepromptAttempt !== null) {
+        sendPrompt(stage, promptKeyOverride, 'stage_timeout_handler', state.currentTurnId, timeoutRepromptAttempt);
+      }
 
       console.log('[REPROMPT TIMEOUT LIFECYCLE] =========================================');
       console.log('[REPROMPT TIMEOUT LIFECYCLE] previousTimeoutCleared:', true);
@@ -12538,7 +12545,15 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] Timestamp:', new Date().toISOString());
                 console.log('[TRANSCRIPTION WATCHDOG REPROMPT ROUTING] =========================================');
 
-                sendPrompt(state.currentStage, promptKeyOverride, 'transcription_watchdog', state.currentTurnId);
+                const watchdogRepromptAttempt = nextRepromptDeliveryAttempt(
+                  state,
+                  state.currentTurnId,
+                  state.currentStage,
+                  'transcription_watchdog'
+                );
+                if (watchdogRepromptAttempt !== null) {
+                  sendPrompt(state.currentStage, promptKeyOverride, 'transcription_watchdog', state.currentTurnId, watchdogRepromptAttempt);
+                }
               }
             }, TRANSCRIPTION_TIMEOUT_MS);
             console.log('[TRANSCRIPTION WATCHDOG] =========================================');
@@ -13141,13 +13156,26 @@ Reply to this message if you'd like to update or add any information.
                     needsServiceReprompt: state.needsServiceReprompt,
                     needsNameReprompt: state.needsNameReprompt
                   });
+                  // Allocate a deterministic reprompt attempt identity so the
+                  // reprompt never reuses the initial prompt's delivery key.
+                  // A duplicate event for the same meta utterance draws null
+                  // and is suppressed — the reprompt can only deliver once.
+                  const metaRepromptAttempt = nextRepromptDeliveryAttempt(
+                    state,
+                    state.currentTurnId,
+                    originatingStage,
+                    `meta_utterance:${meaningfulTranscript.trim().toLowerCase()}`
+                  );
                   console.log('[META UTTERANCE REPROMPT] =========================================');
                   console.log('[META UTTERANCE REPROMPT] stage:', originatingStage);
                   console.log('[META UTTERANCE REPROMPT] selectedPromptKey:', metaRepromptKey);
-                  console.log('[META UTTERANCE REPROMPT] action: reprompt_current_stage');
+                  console.log('[META UTTERANCE REPROMPT] repromptAttempt:', metaRepromptAttempt);
+                  console.log('[META UTTERANCE REPROMPT] action:', metaRepromptAttempt === null ? 'reprompt_suppressed_duplicate_event' : 'reprompt_current_stage');
                   console.log('[META UTTERANCE REPROMPT] Timestamp:', new Date().toISOString());
                   console.log('[META UTTERANCE REPROMPT] =========================================');
-                  sendPrompt(originatingStage, metaRepromptKey, 'meta_utterance_stage_reprompt', state.currentTurnId);
+                  if (metaRepromptAttempt !== null) {
+                    sendPrompt(originatingStage, metaRepromptKey, 'meta_utterance_stage_reprompt', state.currentTurnId, metaRepromptAttempt);
+                  }
                   return;
                 }
 
@@ -13941,7 +13969,18 @@ Reply to this message if you'd like to update or add any information.
                     needsServiceReprompt: state.needsServiceReprompt,
                     needsNameReprompt: state.needsNameReprompt
                   });
-                  sendPrompt(previousStage, unresolvedPromptKey, 'same_stage_unresolved_reprompt', authorizedTurnId);
+                  // Distinct reprompt attempt identity — this path previously
+                  // reused the stage's initial delivery key and was blocked as
+                  // a duplicate, leaving the caller in silence.
+                  const unresolvedRepromptAttempt = nextRepromptDeliveryAttempt(
+                    state,
+                    authorizedTurnId,
+                    previousStage,
+                    `same_stage_unresolved:${meaningfulTranscript.trim().toLowerCase()}`
+                  );
+                  if (unresolvedRepromptAttempt !== null) {
+                    sendPrompt(previousStage, unresolvedPromptKey, 'same_stage_unresolved_reprompt', authorizedTurnId, unresolvedRepromptAttempt);
+                  }
                   return; // Block nonsensical transition
                 }
 

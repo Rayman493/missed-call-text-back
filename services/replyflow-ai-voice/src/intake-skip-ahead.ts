@@ -21,6 +21,29 @@ import {
   EARLY_CALLBACK_PATTERNS,
 } from './early-timing-patterns';
 
+const wordsOf = (t: string) => (t.toLowerCase().match(/[a-z0-9'-]+/g) || []);
+
+// A candidate detail that is a proper SUBSET of the service request — a
+// substring or word-level fragment — is grammatical residue of Reason, not new
+// information ("cut for a quarter acre yard" vs reason "grass cut for a
+// quarter acre yard"). A detail identical to the reason is left alone here:
+// the problem-context fallback intentionally preserves the full descriptive
+// utterance when it is the only detail source.
+const isServiceFragment = (part: string, serviceRequested: string): boolean => {
+  const p = part.trim().toLowerCase();
+  const s = serviceRequested.trim().toLowerCase();
+  if (!p || !s || p === s) return false;
+  if (s.includes(p)) return true;
+  const serviceWords = new Set(wordsOf(s));
+  const partWords = wordsOf(p);
+  return partWords.length > 0 && partWords.every((w) => serviceWords.has(w));
+};
+
+// A scalar-answer finder match covering most of a sentence means the whole
+// sentence is owned by that field, not a supporting detail.
+const finderOwnsSentence = (value: string, sentence: string): boolean =>
+  value.trim().length > 0 && value.trim().length >= sentence.trim().length * 0.5;
+
 export interface IntakeData {
   customerName?: string;
   nameRefused?: boolean;
@@ -562,8 +585,13 @@ function findIssueDescription(transcript: string, serviceRequested: string): Ext
     }
   }
   const serviceWords = serviceRequested.match(/[a-z0-9'-]+/gi) || [];
-  const hasProblemContext = /\b(?:storm|fell|fallen|onto|leak|leaking|drip|dripping|constantly|broken|broke|damage|damaged|crack|cracked|snapped|clogged|overflowing|won't|cannot|can't)\b/i.test(serviceRequested);
-  if (serviceWords.length >= 6 && hasProblemContext) {
+  // A single problem adjective inside the request noun phrase ("a leaking
+  // bathroom faucet") is still just the reason — the fallback exists to
+  // preserve genuine incident/symptom narratives, which carry multiple
+  // problem-context markers ("storm knocked ... onto", "leaking and dripping
+  // constantly").
+  const problemMarkers = serviceRequested.match(/\b(?:storm|fell|fallen|onto|leak|leaking|drip|dripping|constantly|broken|broke|damage|damaged|crack|cracked|snapped|clogged|overflowing|won't|cannot|can't)\b/gi) || [];
+  if (serviceWords.length >= 6 && problemMarkers.length >= 2) {
     return {
       value: serviceRequested.trim(),
       fullMatch: serviceRequested.trim(),
@@ -1009,7 +1037,16 @@ const CORRECTION_SCAFFOLD_CLAUSE_RE = /\b(?:i\s+(?:gave|told)\s+you\s+the\s+wron
 // A clause that is ONLY a timing expression (no problem/incident content) is a
 // timing-field answer, not a detail. Incident-history wording ("it shut off
 // around 2 pm yesterday") stays eligible as a detail.
-const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:sometime|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:week|week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening|no\s+rush|as\s+soon\s+as\s+(?:possible|you\s+can)|asap)\b[^.!?]*$/i;
+const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:the\s+)?(?:sometime|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|no\s+rush|as\s+soon\s+as\s+(?:possible|you\s+can)|asap)\b[^.!?]*$/i;
+
+// A clause that is ONLY a callback scalar answer — "after 3 PM", "anytime",
+// "around noon" — is callback field content, not a supporting detail.
+const CALLBACK_SCALAR_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:any\s?time|whenever|morning|afternoon|evening|tonight|noon|midnight|(?:after|before|around|at|by|from|until|between)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?(?:\s+(?:or\s+so|ish|at\s+the\s+latest))?|\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?))\b[^.!?]*$/i;
+
+// Conversational scaffolding that may trail a real clause ("..., hello",
+// "..., are you there"). Stripped only as a trailing run or standalone phrase —
+// never mid-clause — so real service wording containing common words survives.
+const META_TAIL_RE = /(?:[\s,]+(?:hello|hi|hey|okay|ok|thanks|thank you|are you (?:still )?there|can you hear me|still there)\??\s*)+$/i;
 
 /**
  * Extract detail sentences from a transcript: sentences that carry supporting
@@ -1032,7 +1069,14 @@ function extractDetailSentences(
     .filter(m => m.length > 2);
   let serviceSentenceConsumed = false;
 
-  for (const sentence of sentences) {
+  for (const rawSentence of sentences) {
+    // Strip trailing conversational scaffolding ("..., hello", "..., are you
+    // there") before ownership checks so a meta tail cannot pollute Details.
+    const sentence = rawSentence
+      .replace(META_TAIL_RE, '')
+      .replace(/[.,;!?\s]+$/, '')
+      .trim();
+    if (!sentence) continue;
     const sLower = sentence.toLowerCase();
     // Skip the name carrier sentence
     if (consumed.customerName && sLower.includes(consumed.customerName.toLowerCase())) continue;
@@ -1053,6 +1097,19 @@ function extractDetailSentences(
     if (ADDRESS_OWNED_CLAUSE_RE.test(sentence)) continue;
     if (CORRECTION_SCAFFOLD_CLAUSE_RE.test(sentence)) continue;
     if (TIMING_OWNED_CLAUSE_RE.test(sentence)) continue;
+    // A sentence that IS a completion/callback scalar answer ("Next couple
+    // days.", "After 3 PM.") is owned by that field even when the stage-scalar
+    // fallback stored it without a finder match. NOTE: the permissive field
+    // validators are intentionally NOT used here — they accept ordinary
+    // sentences. Only clauses that are pure temporal/callback scalars are
+    // owned.
+    if (CALLBACK_SCALAR_CLAUSE_RE.test(sentence)) continue;
+    // A sentence dominated by a completion/callback finder match is owned by
+    // that field; only a residual distinct clause would be a detail.
+    const sCompletion = findCompletionMatch(sentence) ?? findNaturalCompletionMatch(sentence);
+    if (sCompletion && finderOwnsSentence(sCompletion.value, sentence)) continue;
+    const sCallback = findCallbackMatch(sentence);
+    if (sCallback && finderOwnsSentence(sCallback.value, sentence)) continue;
     // First sentence carrying service intent is the reason carrier, not a detail
     if (!serviceSentenceConsumed && SERVICE_INTENT_RE.test(sentence)) {
       serviceSentenceConsumed = true;
@@ -1481,11 +1538,11 @@ export function enrichIntakeFromTranscript(
     alreadyExtracted: [issueDescription?.value || '', validCleanedService || '', detailFromService || ''],
   });
   // Merge detail sources: service-split details, regex detail, sentence details.
-  // A detail equal to the concise reason is still kept when it carries problem
-  // context (the findIssueDescription fallback intentionally reuses the service
-  // sentence when it is the only problem description).
+  // Parts that only restate the service request are Reason content, not
+  // supporting information, and are dropped rather than duplicated.
   const detailParts = [detailFromService, issueDescription?.value || null, transcriptDetails]
-    .filter((d): d is string => !!d && d.trim().length > 0);
+    .filter((d): d is string => !!d && d.trim().length > 0)
+    .filter((part) => !isServiceFragment(part, validCleanedService || ''));
   // Drop parts whose content is already contained inside another part so a
   // fact captured by the regex extractor ("the door is stuck halfway") is not
   // repeated after the sentence-level detail that already includes it.
@@ -1505,9 +1562,15 @@ export function enrichIntakeFromTranscript(
   // the residual text ("... warms up. I'm" → "... warms up").
   if (mergedDetailCandidate) {
     mergedDetailCandidate = mergedDetailCandidate
+      .replace(META_TAIL_RE, '')
       .replace(/(?:[.,;]\s*|\s+)(?:i'?m|i\s+am|we'?re|we\s+are|it'?s|the\s+address\s+is|you\s+can\s+call\s+me|call\s+me|and|so|at)\s*$/i, '')
       .replace(/[.,;!?\s]+$/, '')
       .trim() || null;
+    // If the merged result is only a fragment of the service request,
+    // Details adds no information and stays empty.
+    if (mergedDetailCandidate && isServiceFragment(mergedDetailCandidate, validCleanedService || '')) {
+      mergedDetailCandidate = null;
+    }
   }
 
   // Name containment: at non-name stages, suppress name extraction unless it's
