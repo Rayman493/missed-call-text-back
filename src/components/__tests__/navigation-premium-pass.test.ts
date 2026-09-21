@@ -81,8 +81,8 @@ describe('Navigation Premium Pass — Mobile Active Item', () => {
     expect(bottomNavContent).not.toContain('blur-[16px]')
   })
 
-  it('mobile active item uses stronger text (text-foreground / dark:text-white)', () => {
-    expect(bottomNavContent).toContain('text-foreground dark:text-white')
+  it('mobile active item uses accent-tinted text (blue-600 / dark:blue-400)', () => {
+    expect(bottomNavContent).toContain('text-blue-600 dark:text-blue-400')
   })
 
   it('mobile More button has same restrained active treatment', () => {

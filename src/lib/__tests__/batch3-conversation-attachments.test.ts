@@ -280,7 +280,7 @@ describe('Batch 3 — Camera correction pass', () => {
   it('23. large-image path does NOT require DataUrl (uses fetch+Blob from webPath/uri)', () => {
     const content = readContent('src/components/conversation/AttachmentActionSheet.tsx')
     // Should use fetch to convert webPath/uri to Blob (not base64 DataUrl)
-    expect(content).toContain('fetch(path)')
+    expect(content).toContain('fetch(url)')
     expect(content).toContain('await response.blob()')
     // Should NOT use DataUrl or base64 encoding
     expect(content).not.toContain('CameraResultType.DataUrl')

@@ -8,17 +8,20 @@ const readSrc = (rel: string) => readFileSync(join(repoRoot, rel), 'utf-8').repl
 describe('Batch 2B — camera attachment normalization', () => {
   const actionSheetSrc = readSrc('src/components/conversation/AttachmentActionSheet.tsx')
 
-  it('1. native Take Photo uses result.path + Capacitor.convertFileSrc', () => {
-    expect(actionSheetSrc).toContain('result.path')
-    expect(actionSheetSrc).toContain('Capacitor.convertFileSrc(result.path)')
+  it('1. native Take Photo converts result.uri via Capacitor.convertFileSrc', () => {
+    // takePhoto() returns MediaResult — fields are uri/webPath/metadata.
+    // There is no `path` field on MediaResult (that was the deprecated
+    // getPhoto() Photo shape). The native file URI must be converted to a
+    // WebView-accessible URL before fetch().
+    expect(actionSheetSrc).toContain('Capacitor.convertFileSrc(result.uri)')
   })
 
-  it('2. non-native or missing path falls back to webPath / uri', () => {
+  it('2. non-native or missing uri falls back to webPath / uri', () => {
     expect(actionSheetSrc).toContain('result.webPath || result.uri')
   })
 
   it('3. uses fetch + Blob to avoid base64 memory pressure', () => {
-    expect(actionSheetSrc).toContain('await fetch(path)')
+    expect(actionSheetSrc).toContain('await fetch(url)')
     expect(actionSheetSrc).toContain('await response.blob()')
     expect(actionSheetSrc).not.toContain('CameraResultType.DataUrl')
     expect(actionSheetSrc).not.toContain('atob(')
@@ -33,9 +36,12 @@ describe('Batch 2B — camera attachment normalization', () => {
     expect(actionSheetSrc).not.toContain("CameraSource.Camera")
   })
 
-  it('5. cancellation or missing path returns null, no phantom File', () => {
-    expect(actionSheetSrc).toContain('if (!path) return null')
+  it('5. no usable media → null; only cancellation is quiet', () => {
+    expect(actionSheetSrc).toContain('if (!url) return null')
     expect(actionSheetSrc).toContain('onPickerReturnRef.current(null)')
+    // Conversion failure must surface an error, not masquerade as cancel
+    expect(actionSheetSrc).toContain('onPickerErrorRef.current?.(')
+    expect(actionSheetSrc).toContain('isCameraCancel')
   })
 
   it('6. single normalization helper produces a File with sensible MIME/name', () => {

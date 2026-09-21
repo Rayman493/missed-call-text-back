@@ -85,7 +85,7 @@ describe('RC Batch 3 — Schedule Map Double-Tap Autofocus', () => {
     })
   })
 
-  describe('5. click handler double-tap branch only cancels timer (no focus)', () => {
+  describe('5. click handler double-tap branch is an authoritative detector (iOS)', () => {
     it('click handler still detects double-tap via lastClickTimeRef', () => {
       expect(source).toContain('lastClickTimeRef.current.get(item.id)')
       expect(source).toContain('isDoubleTap')
@@ -98,17 +98,15 @@ describe('RC Batch 3 — Schedule Map Double-Tap Autofocus', () => {
       expect(clickBlock![0]).toContain('clearTimeout(pendingTimer)')
     })
 
-    it('click handler double-tap branch does NOT call focusStopOnMap', () => {
+    it('click handler double-tap branch performs the focus action (iOS path)', () => {
       const clickBlock = source.match(/marker\.addListener\('click'[\s\S]*?\}\s*\)\s*\n\s*\/\/ Native marker/)
       expect(clickBlock).toBeTruthy()
-      // The click handler should NOT call focusStopOnMap (delegated to dblclick)
-      expect(clickBlock![0]).not.toContain('focusStopOnMap')
-    })
-
-    it('click handler double-tap branch does NOT call unfocusMarker', () => {
-      const clickBlock = source.match(/marker\.addListener\('click'[\s\S]*?\}\s*\)\s*\n\s*\/\/ Native marker/)
-      expect(clickBlock).toBeTruthy()
-      expect(clickBlock![0]).not.toContain('unfocusMarker')
+      // On iOS the marker `dblclick` event is unreliable, so the click pair
+      // itself is the authoritative double-tap detector — it must run the
+      // focus/unfocus action, deduped against the other detectors.
+      expect(clickBlock![0]).toContain('focusStopOnMap')
+      expect(clickBlock![0]).toContain('unfocusMarker')
+      expect(clickBlock![0]).toContain('lastFocusActionRef')
     })
   })
 

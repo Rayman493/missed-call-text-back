@@ -402,11 +402,15 @@ describe('TodayCommandCenter', () => {
       expect(content).toContain('Agenda is view-only')
     })
 
-    it('does not render inline appointment edit/delete actions in the agenda list', () => {
+    it('opens the exact record when a job/appointment row is tapped (no dead ends)', () => {
       const itemsIdx = content.indexOf('sortedWorkItems.map')
       const itemsBlock = content.substring(itemsIdx, itemsIdx + 2000)
-      expect(itemsBlock).not.toContain('onEditAppointment')
+      // Rows must open the exact record via the canonical handlers —
+      // no inline edit/delete affordances, but no dead-end rows either.
+      expect(itemsBlock).toContain('onJobClick')
+      expect(itemsBlock).toContain('onEditAppointment')
       expect(itemsBlock).not.toContain('onDeleteAppointment')
+      expect(itemsBlock).not.toContain('onDeleteJob')
     })
 
     it('navigates to category tabs via summary cards instead of inline create/edit actions', () => {
