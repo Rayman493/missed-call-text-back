@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { MessageMedia } from '@/lib/types'
+import { Capacitor } from '@capacitor/core'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
@@ -42,12 +43,61 @@ function getFileTypeLabel(mimeType: string): string {
 
 // Helper function to truncate filename
 function truncateFilename(filename: string, maxLength: number = 30): string {
-  if (!filename) return 'Unknown'
+  if (!filename) return 'Attachment'
   if (filename.length <= maxLength) return filename
-  const ext = filename.split('.').pop()
-  const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'))
-  const truncatedName = nameWithoutExt.substring(0, maxLength - ext!.length - 4) + '...'
+  const dot = filename.lastIndexOf('.')
+  if (dot <= 0) return filename.substring(0, maxLength - 3) + '...'
+  const ext = filename.substring(dot + 1)
+  const nameWithoutExt = filename.substring(0, dot)
+  const truncatedName = nameWithoutExt.substring(0, maxLength - ext.length - 4) + '...'
   return truncatedName + '.' + ext
+}
+
+// Storage keys (UUIDs, hashes, bucket paths, signed URLs) must never be
+// shown as the human-facing attachment name.
+function isStorageGarbageName(name: string): boolean {
+  if (!name) return true
+  const base = name.split('?')[0].split('/').pop() || ''
+  if (!base) return true
+  // UUID (optionally with extension)
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.\w+)?$/i.test(base)) return true
+  // Long hex/alphanumeric hash with no word characters/spaces
+  if (/^[0-9a-f]{24,}(\.\w{1,5})?$/i.test(base)) return true
+  // Anything still containing a scheme or path separators
+  if (/:\/\//.test(name) || name.includes('\\')) return true
+  return false
+}
+
+// Human-facing display name: prefer a meaningful persisted filename, then
+// recover the original name embedded in our own signed storage path
+// ("<ts>-<rand>-<original>" tail), then a semantic fallback by media type.
+// Never surfaces storage internals (UUIDs, bucket paths, JWT, URL tail).
+export function getDisplayFilename(mediaItem: MessageMedia): string {
+  const raw = mediaItem.filename
+  if (raw && !isStorageGarbageName(raw)) {
+    return truncateFilename(raw.split('?')[0].split('/').pop() || raw)
+  }
+
+  // Recover original filename from our own /api/mms-media/serve?path= URL —
+  // the storage key tail is "<timestamp>-<rand>-<originalFileName>".
+  try {
+    const url = new URL(mediaItem.media_url, 'https://placeholder.local')
+    if (url.pathname.endsWith('/api/mms-media/serve')) {
+      const storagePath = url.searchParams.get('path')
+      const tail = storagePath?.split('/').pop() || ''
+      const original = tail.replace(/^\d{10,}-[a-z0-9]+-/i, '')
+      if (original && original !== tail && !isStorageGarbageName(original)) {
+        return truncateFilename(original)
+      }
+    }
+  } catch { /* malformed URL — fall through */ }
+
+  const mime = mediaItem.mime_type || ''
+  if (mime.startsWith('image/')) return 'Photo'
+  if (mime.startsWith('video/')) return 'Video'
+  if (mime === 'application/pdf') return 'Document.pdf'
+  if (mime === 'text/csv') return 'Spreadsheet.csv'
+  return 'Attachment'
 }
 
 // Helper function to get media URL - use direct URL for Supabase, proxy for Twilio
@@ -374,6 +424,33 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     setExpandedMedia(mediaUrl)
   }
 
+  // Native document open: blob: URLs and target=_blank don't work in a
+  // Capacitor WebView. For our own signed MMS serve URLs, fetch a fresh
+  // authorized URL via the existing recover-url endpoint and open it in the
+  // system browser. Web behavior is unchanged (plain anchor navigation).
+  const handleAttachmentOpen = async (e: React.MouseEvent, mediaItem: MessageMedia, fallbackUrl: string) => {
+    if (!Capacitor.isNativePlatform()) return // let the anchor navigate normally
+    if (!mediaItem.media_url.includes('/api/mms-media/serve')) return // not our signed URL
+    e.preventDefault()
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      let openUrl = mediaItem.media_url
+      const res = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(mediaItem.media_url)}`, {
+        headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+      })
+      if (res.ok) {
+        const { validUrl } = await res.json()
+        if (validUrl) openUrl = validUrl
+      }
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url: openUrl })
+    } catch (err) {
+      console.error('[MessageMediaRenderer] Native attachment open failed:', err)
+      window.open(fallbackUrl, '_blank')
+    }
+  }
+
   const handleCloseExpanded = () => {
     setExpandedMedia(null)
   }
@@ -391,10 +468,12 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
 
   const handleImageLoad = (mediaId: string) => {
     setLoadedMedia(prev => new Set(prev).add(mediaId))
-    
-    // Call onImageLoad callback when first image loads
-    if (!hasLoadedFirstImage && onImageLoad) {
-      setHasLoadedFirstImage(true)
+
+    // Notify on EVERY media load — each loaded image/video can grow the
+    // bubble and invalidate the bottom pin. The parent coalesces multiple
+    // calls within the same frame into a single re-anchor.
+    if (onImageLoad) {
+      if (!hasLoadedFirstImage) setHasLoadedFirstImage(true)
       // Use requestAnimationFrame to ensure layout has updated
       requestAnimationFrame(() => {
         onImageLoad()
@@ -558,15 +637,14 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
 
           if (isDocument(mediaItem.mime_type)) {
             const FileIcon = getFileIcon(mediaItem.mime_type)
-            const filename = mediaItem.filename || mediaItem.media_url.split('/').pop() || 'Unknown'
-            const truncatedFilename = truncateFilename(filename)
+            const displayName = getDisplayFilename(mediaItem)
 
             return (
               <div key={mediaItem.id} className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
                 <FileIcon className="w-8 h-8 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                    {truncatedFilename}
+                    {displayName}
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {getFileTypeLabel(mediaItem.mime_type)} · {formatFileSize(mediaItem.size || 0)}
@@ -577,6 +655,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                     href={effectiveUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => { void handleAttachmentOpen(e, mediaItem, effectiveUrl) }}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0"
                   >
                     Tap to open
@@ -609,6 +688,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                     controls
                     className="max-w-full md:max-w-[420px] max-h-[500px] md:max-h-[600px] w-full object-contain bg-black"
                     preload="metadata"
+                    onLoadedMetadata={() => handleImageLoad(mediaItem.id)}
                     onError={() => handleImageError(mediaItem.id)}
                   />
                 ) : isTerminalFailed ? (
@@ -642,9 +722,10 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                   href={effectiveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => { void handleAttachmentOpen(e, mediaItem, effectiveUrl) }}
                   className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  View attachment ({mediaItem.mime_type})
+                  View attachment ({getFileTypeLabel(mediaItem.mime_type)})
                 </a>
               ) : isTerminalFailed ? (
                 <button

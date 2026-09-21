@@ -104,8 +104,15 @@ export default function Modal({
 
     const ro = new ResizeObserver(() => {
       const prev = contentScrollStateRef.current
+      // Only treat the user as "pinned to bottom" if the content was actually
+      // scrollable AND they had scrolled into the bottom zone. A fresh modal
+      // whose async content is still shorter than the viewport (loading
+      // state) has scrollTop=0 with scrollHeight<=clientHeight — counting
+      // that as near-bottom made the newly loaded detail pin the scroll to
+      // the bottom, i.e. the modal "opened at the bottom".
       const wasNearBottom =
-        prev.scrollHeight > 0 &&
+        prev.scrollHeight > prev.clientHeight &&
+        prev.scrollTop > 0 &&
         prev.scrollTop + prev.clientHeight >= prev.scrollHeight - CONTENT_RESIZE_ANCHOR_THRESHOLD_PX
       const scrollHeight = content.scrollHeight
       if (wasNearBottom && scrollHeight > prev.scrollHeight) {

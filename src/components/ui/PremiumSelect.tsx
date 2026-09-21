@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
+import { isDomNode } from '@/lib/utils'
 
 interface PremiumSelectProps<T extends string> {
   value: T
@@ -28,7 +29,7 @@ export default function PremiumSelect<T extends string>({
   // Close on pointer down outside
   useEffect(() => {
     const handlePointerDownOutside = (event: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (isDomNode(event.target) && containerRef.current && !containerRef.current.contains(event.target)) {
         markDropdownDismissed()
         setIsOpen(false)
       }

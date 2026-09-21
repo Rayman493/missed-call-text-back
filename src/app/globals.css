@@ -16,6 +16,17 @@ html {
   min-height: 100%;
 }
 
+/* html must follow the theme too — the iOS safe-area region and
+   overscroll reveal the html background below/behind body, so a
+   permanently-dark html shows as a black seam in light mode. */
+html.light {
+  background-color: #f8fafc;
+}
+
+html.dark {
+  background-color: #020617;
+}
+
 body {
   background-color: #020617;
   color: #ffffff;
@@ -70,6 +81,7 @@ html.dark body {
 @media (prefers-color-scheme: light) {
   html:not(.dark):not(.light):not([data-theme]) {
     color-scheme: light;
+    background-color: #f8fafc;
   }
 
   html:not(.dark):not(.light):not([data-theme]) body {

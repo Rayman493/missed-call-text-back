@@ -46,12 +46,12 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
       />
 
       {/* Modal */}
-      <div className="relative bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[calc(100dvh-80px)] flex flex-col" tabIndex={-1}>
+      <div className="relative bg-card rounded-2xl shadow-2xl max-w-2xl w-full max-h-[calc(100dvh-80px)] flex flex-col" tabIndex={-1}>
         {/* Header */}
-        <div className="flex-shrink-0 bg-slate-900 border-b border-border px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="flex-shrink-0 bg-muted/30 border-b border-border/50 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-900/30 rounded-full flex items-center justify-center">
-              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h2 id="help-modal-title" className="text-base sm:text-lg font-semibold text-foreground">Help & Troubleshooting</h2>
@@ -60,10 +60,10 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
+            className="flex h-11 w-11 -my-1.5 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
             aria-label="Close help modal"
           >
-            <X className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+            <X className="w-5 h-5 stroke-[1.5]" />
           </button>
         </div>
 
@@ -72,7 +72,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
           {/* Disable Forwarding Section */}
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-              <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
+              <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
               Disable Call Forwarding
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
@@ -84,7 +84,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
                   <span className="text-xs sm:text-sm font-medium text-foreground">Verizon</span>
                   <button
                     onClick={() => handleCopyCode('*73', 'verizon')}
-                    className="text-[10px] sm:text-xs text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
+                    className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
                   >
                     {copiedCode === 'verizon' ? (
                       <>
@@ -107,7 +107,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
                   <span className="text-xs sm:text-sm font-medium text-foreground">AT&T</span>
                   <button
                     onClick={() => handleCopyCode('*93', 'att')}
-                    className="text-[10px] sm:text-xs text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
+                    className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
                   >
                     {copiedCode === 'att' ? (
                       <>
@@ -130,7 +130,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
                   <span className="text-xs sm:text-sm font-medium text-foreground">T-Mobile</span>
                   <button
                     onClick={() => handleCopyCode('##61#', 'tmobile')}
-                    className="text-[10px] sm:text-xs text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
+                    className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5 transition-colors"
                   >
                     {copiedCode === 'tmobile' ? (
                       <>
@@ -156,7 +156,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
           {/* Re-enable Forwarding Section */}
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" />
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
               Re-enable Call Forwarding
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground">
@@ -167,7 +167,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
           {/* Troubleshooting Steps */}
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+              <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
               Common Issues
             </h3>
             <div className="space-y-2 sm:space-y-3">
@@ -200,7 +200,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 bg-white dark:bg-slate-900 border-t border-border px-4 sm:px-6 py-3 sm:py-4">
+        <div className="flex-shrink-0 bg-card border-t border-border px-4 sm:px-6 py-3 sm:py-4">
           <button
             onClick={onClose}
             className="w-full px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"

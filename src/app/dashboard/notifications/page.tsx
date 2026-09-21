@@ -290,6 +290,9 @@ export default function NotificationsPage() {
                 onPointerDown={(e) => handlePointerDown(e, notification.id)}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerCancel}
+                // Pointer leaving the row mid-press isn't a tap — clears the
+                // pressed highlight so rows can't appear stuck.
+                onPointerLeave={handlePointerCancel}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()

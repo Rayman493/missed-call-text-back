@@ -8,6 +8,7 @@ import { assertValidOutboundMmsMediaUrls } from './mms-url-validator';
 import { getExistingAssignment, getAllBusinessAssignments } from './twilio-assignment-helper';
 
 import { hasPhoneNumber } from './utils'
+import { canonicalClientMessageId } from './client-message-id'
 
 // Log Twilio environment status on module import
 logTwilioEnvStatus();
@@ -44,6 +45,16 @@ export async function sendSms(
     callSid?: string; // Twilio call SID for durable idempotency and webhook correlation
   }
 ): Promise<{ sid: string | null; messageId: string | null; idempotentSkip?: boolean; reason?: string }> {
+  // Canonical identity contract: messages.client_message_id is UUID-typed.
+  // A non-UUID clientMessageId (e.g. "billing-document-send:<uuid>:<token>")
+  // previously produced Postgres 22P02 at both the idempotency lookup and the
+  // persistence insert — customer got the SMS, ReplyFlow lost the record.
+  // Normalize here so every downstream UUID path is safe while deterministic
+  // seeds keep their idempotency semantics.
+  if (options?.clientMessageId) {
+    options.clientMessageId = canonicalClientMessageId(options.clientMessageId)
+  }
+
   // Phone-dependent gating: Prevent sending SMS to phone-less customers
   if (!hasPhoneNumber(to)) {
     console.error('[SMS TRACE sendSms PHONE_REQUIRED]', {
@@ -303,7 +314,15 @@ export async function sendSms(
           .single();
 
         if (insertError) {
-          console.warn('[SMS] system_sms insert failed (table may not exist), skipping optional logging');
+          // PGRST205 = table missing from the PostgREST schema cache — the
+          // canonical migration 20260618000000_create_system_sms.sql has not
+          // been applied to this environment. SMS still sends; the durable
+          // record lives in booking_request_events for booking SMS.
+          if ((insertError as any)?.code === 'PGRST205') {
+            console.warn('[SMS] system_sms table missing (migration 20260618000000_create_system_sms.sql not applied) — delivery-status tracking for this message will be skipped');
+          } else {
+            console.warn('[SMS] system_sms insert failed (table may not exist), skipping optional logging');
+          }
         } else {
           console.log('[SYSTEM SMS INSERTED] Simulated system SMS record inserted successfully', {
             system_sms_id: insertedSystemSms.id,
@@ -723,11 +742,22 @@ export async function sendSms(
         .single();
 
       if (insertError) {
-        console.error('[SMS SEND] system SMS insert failed:', {
-          message_sid: messageResult.sid,
-          business_id: business.id,
-          error: insertError
-        });
+        if ((insertError as any)?.code === 'PGRST205') {
+          // Table missing from schema cache — migration
+          // 20260618000000_create_system_sms.sql not applied in this
+          // environment. SMS was still delivered; booking sends keep their
+          // durable record in booking_request_events.
+          console.error('[SMS SEND] system_sms table missing (migration 20260618000000_create_system_sms.sql not applied) — status tracking skipped:', {
+            message_sid: messageResult.sid,
+            business_id: business.id
+          });
+        } else {
+          console.error('[SMS SEND] system SMS insert failed:', {
+            message_sid: messageResult.sid,
+            business_id: business.id,
+            error: insertError
+          });
+        }
       } else {
         console.log('[SYSTEM SMS INSERTED] System SMS record stored with delivery info:', {
           message_sid: messageResult.sid,
@@ -931,6 +961,13 @@ export async function sendMms(
     clientMessageId?: string; // Client-generated UUID for optimistic message correlation
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
+  // Same canonical identity contract as sendSms: messages.client_message_id
+  // is UUID-typed, so any deterministic seed must be normalized before it
+  // reaches the idempotency lookup or insert (see sendSms for details).
+  if (options?.clientMessageId) {
+    options.clientMessageId = canonicalClientMessageId(options.clientMessageId)
+  }
+
   console.log('[MMS TWILIO] sendMms ENTRY:', {
     business_id: business.id,
     business_name: business.name,
@@ -1312,7 +1349,11 @@ async function logFailedMessage(
           });
 
         if (insertError) {
-          console.warn('[SMS FAILED] system_sms insert failed (table may not exist), skipping optional logging');
+          if ((insertError as any)?.code === 'PGRST205') {
+            console.warn('[SMS FAILED] system_sms table missing (migration 20260618000000_create_system_sms.sql not applied) — skipping optional logging');
+          } else {
+            console.warn('[SMS FAILED] system_sms insert failed (table may not exist), skipping optional logging');
+          }
         } else {
           console.log('[SMS FAILED] Failed system SMS logged successfully');
         }

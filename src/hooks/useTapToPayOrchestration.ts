@@ -2832,7 +2832,28 @@ async function withTimeout<T>(
     setError('')
     setStructuredError(null)
     setMappedError(null)
-  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
+
+    // Reconcile the server-side record so a user cancel is stored as
+    // 'cancelled', not left for stale-attempt recovery to mark 'failed'.
+    // Backgrounded — never block the canceled UI on network.
+    const canceledPaymentIntentId = terminalService.getPaymentIntentId()
+    if (canceledPaymentIntentId) {
+      fetch('/api/terminal/reconcile-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId: canceledPaymentIntentId,
+          terminalAttemptId: terminalService.getCurrentAttemptId() || undefined,
+          outcome: 'canceled',
+        }),
+      }).then(res => {
+        if (res.ok) terminalService.clearUnresolvedAttempt()
+        else console.error('[TTP Hook] CANCELED_LOCAL_ATTEMPT_UPDATE_FAILED', { paymentIntentId: canceledPaymentIntentId })
+      }).catch(error => {
+        console.error('[TTP Hook] Cancel cleanup error (non-blocking):', error)
+      })
+    }
+  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress, terminalService])
 
   // Retry payment after a non-cancellation failure (e.g. connection/initialization error)
   const retryPayment = useCallback(async () => {
@@ -2862,7 +2883,7 @@ async function withTimeout<T>(
         const updateResponse = await fetch('/api/terminal/reconcile-payment', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentIntentId, terminalAttemptId: attemptId }),
+          body: JSON.stringify({ paymentIntentId, terminalAttemptId: attemptId, outcome: 'canceled' }),
         })
 
         if (updateResponse.ok) {

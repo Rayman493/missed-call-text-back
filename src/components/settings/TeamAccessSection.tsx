@@ -366,12 +366,12 @@ export default function TeamAccessSection() {
                   onChange={(e) => setInvitePhone(e.target.value)}
                   placeholder="Mobile phone number"
                   required
-                  className="flex-1 h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-border bg-background text-base sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                 />
                 <button
                   type="submit"
                   disabled={inviting || !invitePhone.trim()}
-                  className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] text-sm disabled:opacity-50"
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] text-sm disabled:opacity-50"
                 >
                   {inviting ? 'Sending…' : 'Invite Team Member'}
                 </button>

@@ -343,7 +343,7 @@ export default forwardRef<OnlineBookingSectionHandle, {
   }
 
   const inputCls =
-    'rounded-lg border border-border/50 bg-background px-3 py-2 text-sm text-foreground focus:border-blue-500 focus:outline-none'
+    'min-w-0 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm text-foreground focus:border-blue-500 focus:outline-none'
 
   return (
     <div className="space-y-6">
@@ -536,7 +536,7 @@ export default forwardRef<OnlineBookingSectionHandle, {
                     <button
                       type="button"
                       onClick={() => handleDeleteException(e.id)}
-                      className="text-xs font-medium text-red-600 hover:text-red-700"
+                      className="inline-flex min-h-[36px] items-center rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 hover:text-red-700 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
                     >
                       Remove
                     </button>
@@ -566,9 +566,10 @@ export default forwardRef<OnlineBookingSectionHandle, {
                     type="button"
                     onClick={handleAddException}
                     disabled={!canBlock}
-                    className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                    title={canBlock ? 'Block these dates' : 'Choose a From and To date first'}
+                    className={`inline-flex min-h-[36px] w-full items-center justify-center rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition-colors sm:w-auto ${
                       canBlock
-                        ? 'bg-slate-800 text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-300'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]'
                         : 'cursor-not-allowed bg-muted text-muted-foreground'
                     }`}
                   >

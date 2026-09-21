@@ -243,6 +243,11 @@ function getLeadStatusAccentColor(status: string): string {
 // Canonical near-bottom threshold for conversation auto-scroll
 // 150px allows for reasonable content growth (images, audio) without yanking users reading history
 const NEAR_BOTTOM_THRESHOLD_PX = 150
+// Bounded settle window for the keyboard open/close animation tail. The
+// Android keyboard can keep moving the visual viewport for a few hundred ms
+// after the last resize event, so a final delayed re-pin covers the settle
+// without relying on a continuous timer.
+const KEYBOARD_SETTLE_DELAY_MS = 400
 
 // Bounded window for attributing post-release inertial scroll events to a user
 // gesture. After this window, scroll events can no longer be treated as user
@@ -504,6 +509,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Keyboard cycle counter — increments on each composer-focus so physical
   // diagnostics can compare cycle 1 vs 2 vs 3+ side-by-side.
   const keyboardCycleRef = useRef(0)
+  // One-shot settle re-anchor timer — cleared and re-armed by each new
+  // keyboard/viewport event so only the final settle pass runs.
+  const keyboardSettleTimerRef = useRef<number | null>(null)
   // latestMessageIdRef tracks the ID of the latest message the user has seen.
   // Used to detect when new messages arrived while away from the conversation.
   const latestMessageIdRef = useRef<string | null>(null)
@@ -879,6 +887,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
     requestAnimationFrame(() => requestAnimationFrame(step))
   }, [getScrollContainer, scrollToTrueBottom, logConversationScroll])
+
+  // Settle re-anchor: the Android keyboard animation can keep shrinking the
+  // visual viewport (and the measured card/container) for a few hundred ms
+  // after the last resize event, so the bounded rAF reconcile window can end
+  // before the final geometry exists. This single delayed pass re-pins to
+  // true bottom once everything settles. The write is absolute
+  // (scrollHeight - clientHeight), so repeated open/close cycles cannot
+  // accumulate offset drift. Gated on followLatestRef — users reading
+  // history keep their position.
+  const scheduleKeyboardSettlePin = useCallback((reason: string) => {
+    if (typeof window === 'undefined') return
+    if (keyboardSettleTimerRef.current !== null) {
+      window.clearTimeout(keyboardSettleTimerRef.current)
+    }
+    keyboardSettleTimerRef.current = window.setTimeout(() => {
+      keyboardSettleTimerRef.current = null
+      const container = getScrollContainer()
+      if (!container || !followLatestRef.current) return
+      if (isContainerNearBottom(container)) return
+      logConversationScroll('keyboard-settle-pin', { reason })
+      scrollToTrueBottom(container)
+    }, KEYBOARD_SETTLE_DELAY_MS)
+  }, [getScrollContainer, isContainerNearBottom, scrollToTrueBottom, logConversationScroll])
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Container selection: fullScreenScrollRef.current when isFullScreen is true,
@@ -2142,6 +2173,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // (never transient geometry), coalesces duplicate events, and re-asserts
       // the pin across the keyboard animation's settle frames.
       reconcileConversationBottom('visual-viewport-resize')
+      scheduleKeyboardSettlePin('visual-viewport-resize')
     }
 
     // Re-anchor on ANY container resize, including composer auto-grow and
@@ -2178,6 +2210,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return () => {
         containerObserver?.disconnect()
         navVarObserver?.disconnect()
+        if (keyboardSettleTimerRef.current !== null) {
+          window.clearTimeout(keyboardSettleTimerRef.current)
+          keyboardSettleTimerRef.current = null
+        }
         window.visualViewport?.removeEventListener('resize', handleResize)
         window.visualViewport?.removeEventListener('scroll', handleViewportScroll)
         // Prevent the CSS variable from leaking after this conversation page
@@ -2195,6 +2231,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return () => {
         containerObserver?.disconnect()
         navVarObserver?.disconnect()
+        if (keyboardSettleTimerRef.current !== null) {
+          window.clearTimeout(keyboardSettleTimerRef.current)
+          keyboardSettleTimerRef.current = null
+        }
         window.removeEventListener('resize', handleResize)
         if (typeof document !== 'undefined') {
           document.documentElement.style.removeProperty('--visual-viewport-height')
@@ -2204,7 +2244,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       }
     }
-  }, [getScrollContainer, scrollToTrueBottom, reconcileConversationBottom, logConversationScroll])
+  }, [getScrollContainer, scrollToTrueBottom, reconcileConversationBottom, scheduleKeyboardSettlePin, logConversationScroll])
 
   const followUpJobs = leadData?.followUpJobs || []
   const hasCancelledFollowUps = followUpJobs.some((job: any) => job.status === 'cancelled' && job.cancelled_reason === 'customer_replied')
@@ -4060,6 +4100,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Schedule the canonical reconcile so the pin is re-asserted as the
     // keyboard animation and composer reflow settle over the next frames.
     reconcileConversationBottom('composer-focus')
+    scheduleKeyboardSettlePin('composer-focus')
   }
 
   const handleMobileTextareaBlur = () => {
@@ -4073,6 +4114,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // resize handler reconciles; schedule one here too so WebViews that only
     // fire window resize still re-anchor when following latest.
     reconcileConversationBottom('composer-blur')
+    scheduleKeyboardSettlePin('composer-blur')
   }
 
   // Reset embedded mobile textarea height when message is cleared externally (after send).
@@ -7391,6 +7433,7 @@ If you have questions, reply to this message.`
       }}
       onPickerLaunch={handlePickerLaunch}
       onPickerReturn={handlePickerReturn}
+      onPickerError={setError}
     />
 
     {/* New Unified Appointment Modal for Customer context */}

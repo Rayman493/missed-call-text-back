@@ -9,7 +9,7 @@
  * - Mobile touch scroll protection + horizontal scrub wrapper
  */
 
-import { formatCurrency as formatCanonicalCurrency } from './utils'
+import { formatCurrency as formatCanonicalCurrency, isDomNode } from './utils'
 
 /**
  * Format currency value for display
@@ -200,8 +200,8 @@ export function ChartSelectionPopup({
   // Close on pointer down outside the popup itself.
   React.useEffect(() => {
     const handlePointerDown = (e: Event) => {
-      const target = e.target as Node | null
-      if (!target) return
+      const target = e.target
+      if (!isDomNode(target)) return
       if (popupRef.current?.contains(target)) return
       onDismiss()
     }

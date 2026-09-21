@@ -16,6 +16,7 @@ interface BillingViewerModalProps {
   onEdit?: () => void
   onConvert?: () => void
   isSending?: boolean
+  isDownloading?: boolean
 }
 
 export default function BillingViewerModal({
@@ -27,6 +28,7 @@ export default function BillingViewerModal({
   onEdit,
   onConvert,
   isSending = false,
+  isDownloading = false,
 }: BillingViewerModalProps) {
   const [doc, setDoc] = useState<DocumentPresentation | null>(null)
   const [loading, setLoading] = useState(false)
@@ -168,7 +170,7 @@ export default function BillingViewerModal({
         {showEdit && onEdit && (
           <button
             onClick={onEdit}
-            className="flex-1 justify-center px-3 py-2 text-sm font-medium text-foreground border border-border/60 hover:bg-muted/50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 flex items-center gap-1.5"
+            className="flex-1 min-h-11 justify-center px-3 py-2 text-sm font-medium text-foreground border border-border/60 hover:bg-muted/50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 flex items-center gap-1.5"
           >
             <Edit className="w-4 h-4" />
             Edit
@@ -177,17 +179,18 @@ export default function BillingViewerModal({
         {showDownload && (
           <button
             onClick={onDownload}
-            className="flex-1 justify-center px-3 py-2 text-sm font-medium text-foreground border border-border/60 hover:bg-muted/50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 flex items-center gap-1.5"
+            disabled={isDownloading}
+            className="flex-1 min-h-11 justify-center px-3 py-2 text-sm font-medium text-foreground border border-border/60 hover:bg-muted/50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 flex items-center gap-1.5 disabled:opacity-50"
           >
-            <Download className="w-4 h-4" />
-            Download PDF
+            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {isDownloading ? 'Preparing PDF…' : 'Download PDF'}
           </button>
         )}
       </div>
       {showConvert && onConvert && (
         <button
           onClick={onConvert}
-          className="w-full justify-center px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5"
+          className="w-full min-h-11 justify-center px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5"
         >
           <ArrowRight className="w-4 h-4" />
           Create Invoice
@@ -197,7 +200,7 @@ export default function BillingViewerModal({
         <button
           onClick={onSend}
           disabled={isSending}
-          className="w-full justify-center px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+          className="w-full min-h-11 justify-center px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5 disabled:opacity-50"
         >
           {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           Send to Customer
@@ -207,7 +210,7 @@ export default function BillingViewerModal({
         <button
           onClick={onSend}
           disabled={isSending}
-          className="w-full justify-center px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+          className="w-full min-h-11 justify-center px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm flex items-center gap-1.5 disabled:opacity-50"
         >
           {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           Resend

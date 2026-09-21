@@ -9,6 +9,21 @@ export interface GeocodeResult {
   formattedAddress: string
   success: boolean
   error?: string
+  googleStatus?: string
+}
+
+// Values that are semantic non-physical locations, not street addresses.
+// Sending these to Google only produces ZERO_RESULTS — the caller should
+// treat them as "not geocodable" rather than a geocoding failure.
+const NON_PHYSICAL_LOCATION_TOKENS = new Set([
+  'remote', 'online', 'virtual', 'phone', 'phone call', 'video call',
+  'video', 'call', 'zoom', 'n/a', 'na', 'tbd', 'none',
+])
+
+export function isNonPhysicalLocation(value: string | null | undefined): boolean {
+  const v = (value ?? '').trim().toLowerCase()
+  if (!v) return false
+  return NON_PHYSICAL_LOCATION_TOKENS.has(v)
 }
 
 /**
@@ -98,6 +113,7 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
       return {
         success: false,
         error: data.error_message || `Geocoding failed: ${data.status}`,
+        googleStatus: data.status,
         latitude: 0,
         longitude: 0,
         formattedAddress: ''

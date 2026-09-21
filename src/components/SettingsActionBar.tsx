@@ -150,6 +150,12 @@ export default function SettingsActionBar({
               )}
               
               <button
+                type="button"
+                // Keep the tap from blurring the focused field first: on
+                // mobile, pointerdown default would blur the input, start the
+                // keyboard-close viewport shift, move this bar, and the click
+                // would land off-button — the "tap Save does nothing" failure.
+                onPointerDown={(e) => e.preventDefault()}
                 onClick={handleDiscard}
                 disabled={isSaving || saveSuccess}
                 className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:flex-none sm:px-4 sm:text-sm"
@@ -158,6 +164,12 @@ export default function SettingsActionBar({
               </button>
               
               <button
+                type="button"
+                // Same contract as Discard: preventDefault on pointerdown keeps
+                // focus (and the keyboard) on the active input, so the bar
+                // doesn't move mid-tap and the click always lands. The save
+                // path reads the live DOM value, so no blur commit is needed.
+                onPointerDown={(e) => e.preventDefault()}
                 onClick={handleSave}
                 disabled={isSaving || saveSuccess}
                 className={`inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed sm:min-w-[128px] sm:flex-none sm:px-4 sm:text-sm ${

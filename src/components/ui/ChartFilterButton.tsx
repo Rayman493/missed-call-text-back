@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useId, useLayoutEffect } from 'reac
 import { Filter, Check } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
 import { openDashboardOverlay, useDashboardOverlayDismissal } from '@/lib/dashboard-overlay-events'
+import { isDomNode } from '@/lib/utils'
 
 interface ChartFilterOption<T extends string> {
   value: T
@@ -37,16 +38,24 @@ interface ChartFilterButtonProps<T extends string> {
   disabled?: boolean
 }
 
+// Pointer travel (px) that turns a press into a swipe/scroll gesture. Small
+// and deterministic — below this a click is a deliberate tap, above it the
+// gesture belongs to scrolling and must not select an option or fire Reset.
+const SWIPE_DISMISS_THRESHOLD_PX = 8
+
 function ResetFiltersButton({
   groups,
   onReset,
+  shouldIgnoreTap,
 }: {
   groups: ChartFilterGroup[]
   onReset: () => void
+  shouldIgnoreTap?: () => boolean
 }) {
   const isAtDefaults = groups.every((g) => g.value === (g.activeValue ?? g.options[0]?.value ?? g.value))
 
   const handleReset = () => {
+    if (shouldIgnoreTap?.()) return
     groups.forEach((g) => {
       const defaultValue = g.activeValue ?? g.options[0]?.value ?? g.value
       g.onChange(defaultValue as string)
@@ -87,6 +96,11 @@ export default function ChartFilterButton<T extends string>({
   const containerRef = useRef<HTMLDivElement>(null)
   const popupRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  // Swipe-vs-tap discrimination inside the popup: a pointer that travels more
+  // than the threshold is a scroll gesture — a trailing synthesized click on
+  // whatever option the finger happened to land on must be ignored.
+  const swipeGestureRef = useRef(false)
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
   const id = useId()
   const [popupStyle, setPopupStyle] = useState<{ maxHeight?: number; placement: 'bottom' | 'top' }>({ placement: 'bottom' })
   const groupsMode = Array.isArray(groups) && groups.length > 0
@@ -122,7 +136,7 @@ export default function ChartFilterButton<T extends string>({
 
   useEffect(() => {
     const handlePointerDownOutside = (event: PointerEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (isDomNode(event.target) && containerRef.current && !containerRef.current.contains(event.target)) {
         markDropdownDismissed()
         setIsOpen(false)
       }
@@ -157,6 +171,10 @@ export default function ChartFilterButton<T extends string>({
       id={`chart-filter-option-${option.value}`}
       type="button"
       onClick={() => {
+        if (swipeGestureRef.current) {
+          swipeGestureRef.current = false
+          return
+        }
         onSelect(option.value)
         setIsOpen(false)
       }}
@@ -224,12 +242,31 @@ export default function ChartFilterButton<T extends string>({
           `}
           role="listbox"
           aria-activedescendant={`chart-filter-option-${value}`}
+          onPointerDownCapture={(e) => {
+            pointerStartRef.current = { x: e.clientX, y: e.clientY }
+            swipeGestureRef.current = false
+          }}
+          onPointerMoveCapture={(e) => {
+            const start = pointerStartRef.current
+            if (!start || swipeGestureRef.current) return
+            if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > SWIPE_DISMISS_THRESHOLD_PX) {
+              swipeGestureRef.current = true
+            }
+          }}
+          onPointerCancelCapture={() => {
+            pointerStartRef.current = null
+          }}
         >
           {groupsMode && (
             <>
               <ResetFiltersButton
                 groups={groups!}
                 onReset={() => setIsOpen(false)}
+                shouldIgnoreTap={() => {
+                  const wasSwipe = swipeGestureRef.current
+                  swipeGestureRef.current = false
+                  return wasSwipe
+                }}
               />
               <div className="border-t border-border/20 mx-3 my-1" role="separator" />
             </>

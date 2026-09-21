@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { parseVirtualId, getSeriesById, materializeOccurrence } from '@/lib/recurrence/service'
 
 // GET /api/jobs/[id]/time-entries — list all time entries for a job
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: jobId } = await params
+    let { id: jobId } = await params
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,6 +17,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const businessId = authResult.business.id!
+
+    // Recurrence: a virtual occurrence has no row to list entries against.
+    // Resolve through its materialized exception if one exists; otherwise
+    // the occurrence legitimately has zero entries (not a 404).
+    const virtual = parseVirtualId(jobId)
+    if (virtual) {
+      const { data: exception } = await supabase
+        .from('recurrence_exceptions')
+        .select('materialized_id')
+        .eq('business_id', businessId)
+        .eq('series_id', virtual.seriesId)
+        .eq('occurrence_date', virtual.occurrenceDate)
+        .eq('kind', 'materialized')
+        .maybeSingle()
+      if (!exception?.materialized_id) {
+        return NextResponse.json({ entries: [] })
+      }
+      jobId = exception.materialized_id
+    }
 
     // Verify job belongs to this business
     const { data: job, error: jobError } = await supabase
@@ -50,7 +70,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 // Body: { action: 'start' } | { action: 'stop' }
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: jobId } = await params
+    let { id: jobId } = await params
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -61,6 +81,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const businessId = authResult.business.id!
+
+    // Recurrence: starting/stopping a timer against a virtual occurrence
+    // materializes it into a real row first (same canonical mechanism as
+    // PATCH /api/jobs/[id]) — the time entry then belongs to that concrete
+    // occurrence/date, never to the series template or a raw virtual id.
+    const virtual = parseVirtualId(jobId)
+    if (virtual) {
+      const series = await getSeriesById(supabase, businessId, virtual.seriesId)
+      if (!series) {
+        return NextResponse.json({ error: 'This recurring job no longer exists' }, { status: 404 })
+      }
+      const { row, error: matError } = await materializeOccurrence(
+        supabase, businessId, series, virtual.occurrenceDate, 'jobs', 'scheduled_date',
+      )
+      if (matError || !row) {
+        return NextResponse.json({ error: 'Failed to resolve this occurrence' }, { status: 500 })
+      }
+      jobId = row.id
+    }
 
     // Verify job belongs to this business
     const { data: job, error: jobError } = await supabase

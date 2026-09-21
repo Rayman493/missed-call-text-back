@@ -7,6 +7,7 @@ import PickerListRow from '@/components/ui/PickerListRow'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 import type { JobPrefill } from './JobComposer'
 
 interface LeadRecord {
@@ -239,7 +240,14 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
             <div className="px-4 sm:px-5 py-2 pb-2 sm:pb-2 border-t border-border/50 flex-shrink-0 space-y-2">
               {onAddNew && (
                 <button
-                  onClick={() => { onClose(); onAddNew() }}
+                  onClick={() => {
+                    // Modal→modal handoff: suppress the picker's history.back()
+                    // cleanup so its popstate can't close the incoming
+                    // Add Customer modal (same race as lead → form handoffs).
+                    suppressNextHistoryBackCleanup()
+                    onClose()
+                    onAddNew()
+                  }}
                   className="w-full text-left text-sm font-medium text-primary hover:text-primary/80 py-2 px-1 rounded-lg hover:bg-primary/10 transition-colors"
                 >
                   + Create New Customer

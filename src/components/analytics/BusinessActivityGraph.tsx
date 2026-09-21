@@ -8,6 +8,7 @@ import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
+import { isDomNode } from '@/lib/utils'
 import { ChartHeaderControls } from './ChartHeaderControls'
 import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
@@ -63,8 +64,9 @@ export default function BusinessActivityGraph() {
   useEffect(() => {
     if (!selectedDatum) return
     const handlePointerDown = (e: PointerEvent) => {
-      const target = e.target as Node | null
-      if (chartWrapperRef.current && target && !chartWrapperRef.current.contains(target)) {
+      const target = e.target
+      if (!isDomNode(target)) return
+      if (chartWrapperRef.current && !chartWrapperRef.current.contains(target)) {
         setSelectedDatum(null)
       }
     }

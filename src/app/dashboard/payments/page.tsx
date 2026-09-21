@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, Filter, Edit, RefreshCw, Plus } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, AlertCircle, Info, ChevronDown, Filter, Edit, RefreshCw, Plus, Loader2 } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Button from '@/components/ui/Button'
@@ -307,7 +307,7 @@ export default function PaymentsPage() {
             }
             // New row — fetch full data (with leads join) in the background.
             // Don't block the realtime handler; just trigger a silent refetch.
-            fetchBillingDocuments()
+            fetchBillingDocuments({ silent: true })
             return prev
           })
         }
@@ -344,7 +344,7 @@ export default function PaymentsPage() {
             status: payload.new?.status
           })
           fetchPayments()
-          fetchBillingDocuments()
+          fetchBillingDocuments({ silent: true })
         }
       )
       .subscribe()
@@ -446,8 +446,13 @@ export default function PaymentsPage() {
   }
 
   // ---- Quote / Invoice handlers ----
-  const fetchBillingDocuments = async () => {
-    setBillingLoading(true)
+  // silent=true: background revalidation (realtime events, post-mutation
+  // reconciliation). Skipping the loading flag keeps the existing list
+  // mounted — the spinner branch would unmount every card and reset the
+  // user's scroll position mid-list.
+  const fetchBillingDocuments = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true
+    if (!silent) setBillingLoading(true)
     try {
       const supabase = createBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -460,7 +465,7 @@ export default function PaymentsPage() {
     } catch {
       // ignore
     } finally {
-      setBillingLoading(false)
+      if (!silent) setBillingLoading(false)
     }
   }
 
@@ -599,10 +604,15 @@ export default function PaymentsPage() {
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
       const res = await fetch(`/api/billing-documents/${doc.id}`, { method: 'DELETE', headers })
       if (res.ok) {
-        setBillingDocuments(billingDocuments.filter((d) => d.id !== doc.id))
+        setBillingDocuments((prev) => prev.filter((d) => d.id !== doc.id))
+        const label = doc.document_type === 'quote' ? 'Quote' : 'Invoice'
+        showToast(`${label} deleted.`, 'success')
+      } else {
+        const json = await res.json().catch(() => ({}))
+        showToast(json.error || 'Failed to delete document. Please try again.', 'error')
       }
     } catch {
-      // ignore
+      showToast('Failed to delete document. Please try again.', 'error')
     } finally {
       setBillingDeletingId(null)
     }
@@ -646,20 +656,26 @@ export default function PaymentsPage() {
             payment_request_id: updated.payment_request_id,
           } : d))
         }
+        const customerName = doc.leads?.contact_name || doc.display_name || 'customer'
+        const label = doc.document_type === 'quote' ? 'Quote' : 'Invoice'
+        showToast(doc.sent_at ? `${label} resent to ${customerName}.` : `${label} sent to ${customerName}.`, 'success')
       } else {
         const json = await res.json().catch(() => ({}))
-        setSuccessMessage('')
-        setError(json.error || 'Failed to send document. Please try again.')
+        showToast(json.error || 'Failed to send document. Please try again.', 'error')
       }
     } catch {
-      setSuccessMessage('')
-      setError('Failed to send document. Please try again.')
+      showToast('Failed to send document. Please try again.', 'error')
     } finally {
       setBillingSendingId(null)
     }
   }
 
-  const handleConvertBillingDoc = async (doc: BillingDocumentListItem) => {
+  // Returns the created/existing invoice list item on success, null on failure.
+  // The RPC (convert_quote_to_invoice) is idempotent — re-converting returns the
+  // existing invoice, so callers can safely open the result either way.
+  const handleConvertBillingDoc = async (doc: BillingDocumentListItem): Promise<BillingDocumentListItem | null> => {
+    // Re-entry guard: rapid/double taps must not fire a second conversion.
+    if (billingConvertingId) return null
     setBillingConvertingId(doc.id)
     try {
       const supabase = createBrowserClient()
@@ -670,38 +686,38 @@ export default function PaymentsPage() {
       if (res.ok) {
         const json = await res.json()
         const newInvoice = json.document
-        if (newInvoice) {
-          let isNewlyCreated = false
-          setBillingDocuments((prev) => {
-            const invoiceItem: BillingDocumentListItem = {
-              id: newInvoice.id,
-              document_type: 'invoice',
-              status: newInvoice.status || 'draft',
-              document_number: newInvoice.document_number,
-              display_name: newInvoice.display_name || null,
-              issue_date: newInvoice.issue_date,
-              valid_until: newInvoice.valid_until,
-              due_date: newInvoice.due_date,
-              total_cents: newInvoice.total_cents,
-              customer_id: newInvoice.customer_id,
-              public_token: newInvoice.public_token,
-              source_quote_id: newInvoice.source_quote_id,
-              payment_request_id: newInvoice.payment_request_id ?? null,
-              payment_request: newInvoice.payment_request ?? null,
-              leads: newInvoice.leads,
-              updated_at: newInvoice.updated_at,
-              sent_at: newInvoice.sent_at,
-            }
-            const existing = prev.some((document) => document.id === invoiceItem.id)
-            isNewlyCreated = !existing
-            return existing
-              ? prev.map((document) => document.id === invoiceItem.id ? { ...document, ...invoiceItem } : document)
-              : [invoiceItem, ...prev]
-          })
-          if (isNewlyCreated) {
-            showToast(`Invoice ${newInvoice.document_number || ''} created`.trim(), 'success')
-          }
+        if (!newInvoice) return null
+        const invoiceItem: BillingDocumentListItem = {
+          id: newInvoice.id,
+          document_type: 'invoice',
+          status: newInvoice.status || 'draft',
+          document_number: newInvoice.document_number,
+          display_name: newInvoice.display_name || null,
+          issue_date: newInvoice.issue_date,
+          valid_until: newInvoice.valid_until,
+          due_date: newInvoice.due_date,
+          total_cents: newInvoice.total_cents,
+          customer_id: newInvoice.customer_id,
+          public_token: newInvoice.public_token,
+          source_quote_id: newInvoice.source_quote_id,
+          payment_request_id: newInvoice.payment_request_id ?? null,
+          payment_request: newInvoice.payment_request ?? null,
+          leads: newInvoice.leads,
+          updated_at: newInvoice.updated_at,
+          sent_at: newInvoice.sent_at,
         }
+        let isNewlyCreated = false
+        setBillingDocuments((prev) => {
+          const existing = prev.some((document) => document.id === invoiceItem.id)
+          isNewlyCreated = !existing
+          return existing
+            ? prev.map((document) => document.id === invoiceItem.id ? { ...document, ...invoiceItem } : document)
+            : [invoiceItem, ...prev]
+        })
+        if (isNewlyCreated) {
+          showToast(`Invoice ${newInvoice.document_number || ''} created`.trim(), 'success')
+        }
+        return invoiceItem
       } else {
         let errorMessage = 'Failed to create invoice'
         try {
@@ -713,10 +729,12 @@ export default function PaymentsPage() {
           // response body was not JSON; keep fallback
         }
         showToast(errorMessage, 'error')
+        return null
       }
     } catch (err) {
       const fallback = err instanceof Error ? err.message : 'Failed to create invoice'
       showToast(fallback, 'error')
+      return null
     } finally {
       setBillingConvertingId(null)
     }
@@ -728,6 +746,12 @@ export default function PaymentsPage() {
   }
 
   const handleLeadSelected = (prefill: JobPrefill) => {
+    // Modal→modal handoff: the picker's useModalBackButton cleanup would
+    // call history.back() because no modal is registered yet at that moment;
+    // the resulting popstate would then close the incoming payment modal.
+    // Suppression makes the transition deterministic (same pattern as the
+    // quote/invoice chooser→editor handoff).
+    suppressNextHistoryBackCleanup()
     setPaymentPrefill(prefill)
     setIsLeadPickerOpen(false)
     setIsAddCustomerModalOpen(false)
@@ -759,6 +783,7 @@ export default function PaymentsPage() {
         lead_id: lead.id,
         conversation_id: conversationId || undefined,
       }
+      suppressNextHistoryBackCleanup()
       setPaymentPrefill(prefill)
       setIsAddCustomerModalOpen(false)
       setIsLeadPickerOpen(false)
@@ -2076,6 +2101,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
               await handleCreatePayment({ amount, description, paymentProvider: provider })
             }}
             onChangeCustomer={() => {
+              suppressNextHistoryBackCleanup()
               setShowPaymentModal(false)
               setIsLeadPickerOpen(true)
             }}
@@ -2325,6 +2351,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           }}
           onConvert={() => viewingBillingDoc && setBillingConvertTarget(viewingBillingDoc)}
           isSending={billingSendingId === viewingBillingDoc?.id}
+          isDownloading={billingDownloadingId === viewingBillingDoc?.id}
         />
 
         <Modal
@@ -2368,22 +2395,31 @@ const getPaymentDescription = (payment: PaymentRequest) => {
 
         <Modal
           isOpen={!!billingConvertTarget}
-          onClose={() => setBillingConvertTarget(null)}
+          onClose={() => { if (!billingConvertingId) setBillingConvertTarget(null) }}
           title={`Create invoice from ${billingConvertTarget?.document_number || 'quote'}?`}
         >
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">The original quote will remain accepted and viewable in history. A new draft invoice will be created.</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setBillingConvertTarget(null)} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-lg">Cancel</button>
+              <button onClick={() => setBillingConvertTarget(null)} disabled={!!billingConvertingId} className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-lg disabled:opacity-50">Cancel</button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const target = billingConvertTarget
-                  setBillingConvertTarget(null)
-                  if (target) handleConvertBillingDoc(target)
+                  if (!target || billingConvertingId) return
+                  const invoice = await handleConvertBillingDoc(target)
+                  if (invoice) {
+                    setBillingConvertTarget(null)
+                    // Open the exact created/existing invoice in the viewer —
+                    // success is never silent and the user lands on the result.
+                    setViewingBillingDoc(invoice)
+                    setShowBillingViewer(true)
+                  }
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+                disabled={!!billingConvertingId}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-1.5"
               >
-                Create Invoice
+                {billingConvertingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {billingConvertingId ? 'Creating Invoice…' : 'Create Invoice'}
               </button>
             </div>
           </div>

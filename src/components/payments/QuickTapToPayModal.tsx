@@ -1435,7 +1435,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 active:scale-95"
                         style={{ minHeight: '44px' }}
                       >
-                        <AppleTapToPayIcon size={16} />
+                        <AppleTapToPayIcon size={16} color="#ffffff" />
                         Try Again
                       </button>
                     </>

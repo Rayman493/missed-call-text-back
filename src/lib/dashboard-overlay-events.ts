@@ -7,6 +7,7 @@
  * - avoid building a global React context
  */
 import { useEffect, RefObject } from 'react'
+import { isDomNode } from '@/lib/utils'
 
 export const DASHBOARD_OVERLAY_OPEN = 'rf:dashboard-overlay-open'
 
@@ -27,10 +28,9 @@ export function useDashboardOverlayDismissal(
     if (typeof window === 'undefined') return
 
     const belongsToOverlay = (target: EventTarget | null) => {
-      const el = target as Node | null
-      if (!el) return false
-      if (refs.containerRef?.current && refs.containerRef.current.contains(el)) return true
-      if (refs.popupRef?.current && refs.popupRef.current.contains(el)) return true
+      if (!isDomNode(target)) return false
+      if (refs.containerRef?.current && refs.containerRef.current.contains(target)) return true
+      if (refs.popupRef?.current && refs.popupRef.current.contains(target)) return true
       return false
     }
 

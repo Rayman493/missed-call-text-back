@@ -76,6 +76,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: mapped.error, code: reason }, { status: mapped.status })
   }
 
+  // Mark the account as an invited member. Members who accept on a
+  // pre-existing account skip /api/team/signup (the only other place this
+  // flag is set), so without this a later removal leaves them with no
+  // membership AND no invited_member flag — and BusinessGuard/onboarding
+  // would treat them as a brand-new owner instead of showing the
+  // fail-closed no-access screen.
+  const existingMeta = (user.user_metadata ?? {}) as Record<string, unknown>
+  if (existingMeta.invited_member !== true) {
+    const { error: metaError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+      user_metadata: { ...existingMeta, invited_member: true },
+    })
+    if (metaError) {
+      // Non-fatal: membership was created; the flag only affects the
+      // removed-member UX path.
+      console.error('[TEAM INVITE ACCEPT] failed to set invited_member flag:', metaError)
+    }
+  }
+
   const { data: business } = await supabaseAdmin
     .from('businesses')
     .select('id, name')

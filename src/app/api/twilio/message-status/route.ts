@@ -66,12 +66,21 @@ export async function POST(req: NextRequest) {
       error_message: ErrorMessage
     })
     
-    // First, check if this is a system SMS (offboarding, admin notifications)
+    // First, check if this is a system SMS (offboarding, admin notifications).
+    // PGRST205 means the system_sms migration (20260618000000) is not applied
+    // in this environment — skip the lookup instead of logging a scary error;
+    // the message may still be a normal conversation message.
     const { data: systemSms, error: systemSmsError } = await supabase
       .from('system_sms')
       .select('*')
       .eq('twilio_message_sid', MessageSid)
       .single()
+
+    if (systemSmsError?.code === 'PGRST205') {
+      console.warn('[twilio] system_sms table missing (migration 20260618000000_create_system_sms.sql not applied) — skipping system SMS lookup')
+    } else if (systemSmsError && systemSmsError.code !== 'PGRST116') {
+      console.warn('[twilio] system_sms lookup error (continuing to messages lookup):', systemSmsError.code)
+    }
     
     if (systemSms && !systemSmsError) {
       // This is a system SMS - update its status

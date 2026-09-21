@@ -167,6 +167,20 @@ export function capitalizeFirstAlpha(text: string | null | undefined): string {
   return text.replace(/[a-z]/i, (match) => match.toUpperCase())
 }
 
+/**
+ * Outside-click safety: EventTarget is not guaranteed to be a DOM Node
+ * (e.g. window/synthetic targets on some Android WebView pointer flows).
+ * Node.contains() throws "parameter 1 is not of type 'Node'" in that case —
+ * a non-Node target is definitionally outside, so return false instead.
+ */
+export function isDomNode(value: unknown): value is Node {
+  return typeof Node !== 'undefined' && value instanceof Node
+}
+
+export function safeContains(parent: Node | null | undefined, target: unknown): boolean {
+  return !!parent && isDomNode(target) && parent.contains(target)
+}
+
 // Zod schemas for validation
 export const twilioVoiceStatusSchema = z.object({
   CallSid: z.string(),

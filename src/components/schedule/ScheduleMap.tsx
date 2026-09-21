@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { isValidCoordinate, getMarkerTapAction } from '@/lib/map-utils'
+import { isNonPhysicalLocation } from '@/lib/geocoding'
 import { Capacitor } from '@capacitor/core'
 import { formatEventTimeRange, formatTime12Hour } from '@/lib/calendar-date-utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -337,6 +338,10 @@ const previousMapFilterRef = useRef<MapFilter>('all') // Track previous filter t
   // Pending single-tap timers per marker, cancelled when a double-tap is recognized.
   // This is the single canonical arbitration mechanism — no parallel competing timers.
   const singleTapTimerRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  // Dedupe guard: a double-tap can be recognized by the marker `click` pair,
+  // the marker `dblclick` listener, AND the touchend hit-test — without this,
+  // a single physical double-tap could run the focus/unfocus action twice.
+  const lastFocusActionRef = useRef<Map<string, number>>(new Map())
 
   // Tap-vs-swipe tracking for stop cards. The cards live in a horizontally
   // scrollable row. A deliberate tap focuses the stop on the map; a horizontal
@@ -437,6 +442,7 @@ useEffect(() => {
 
   // Geocode business address using existing API endpoint (consistent with calendar events)
   const geocodeBusinessAddress = useCallback(async (address: string): Promise<{ lat: number; lng: number; formattedAddress: string } | null> => {
+    if (isNonPhysicalLocation(address)) return null
     try {
       const response = await fetch('/api/geocode/address', {
         method: 'POST',
@@ -1148,6 +1154,11 @@ useEffect(() => {
         continue
       }
 
+      // Semantic non-physical locations are not addresses — skip geocoding.
+      if (isNonPhysicalLocation(serviceAddress)) {
+        continue
+      }
+
       // Check if already geocoded with valid coordinates
       if (hasCoordinates && isValidCoordinate(job.latitude, job.longitude)) {
         // Resolve customer name with precedence: job.customer_name > job.leads.raw_metadata > lead cache
@@ -1282,6 +1293,12 @@ useEffect(() => {
 
       const normalizedLocation = event.location.trim()
       if (!normalizedLocation || normalizedLocation.length === 0) {
+        continue
+      }
+
+      // Semantic non-physical locations ("Remote", "Online", …) are not
+      // addresses — skip the geocoder and leave the event off the map.
+      if (isNonPhysicalLocation(normalizedLocation)) {
         continue
       }
 
@@ -1759,6 +1776,12 @@ useEffect(() => {
         }
         lastClickTimeRef.current.delete(item.id)
 
+        // Dedupe: the marker click-pair detector may already have run this
+        // action for the same physical double-tap.
+        const lastTouchAction = lastFocusActionRef.current.get(item.id) ?? 0
+        if (now - lastTouchAction < DOUBLE_TAP_DELAY_MS * 2) return
+        lastFocusActionRef.current.set(item.id, now)
+
         // Use ref to avoid stale closure (touch handler lives in map-init effect)
         const currentFocusedId = focusedMarkerIdRef.current
 
@@ -2152,14 +2175,38 @@ useEffect(() => {
 
           if (isDoubleTap) {
             // Cancel the pending single-tap timer so the single-tap toggle
-            // does NOT execute. The focus/unfocus action is handled by the
-            // marker's `dblclick` listener and the touch-based detector.
+            // does NOT execute. The focus/unfocus action is handled here:
+            // on iOS the marker `dblclick` event and the touchend hit-test
+            // are both unreliable, but two `click` events on the marker DO
+            // arrive — so the click pair is the authoritative detector.
             const pendingTimer = singleTapTimerRef.current.get(item.id)
             if (pendingTimer) {
               clearTimeout(pendingTimer)
               singleTapTimerRef.current.delete(item.id)
             }
             lastClickTimeRef.current.delete(item.id)
+
+            // Dedupe: if `dblclick` or the touch detector already ran this
+            // action for the same physical double-tap, skip it.
+            const lastAction = lastFocusActionRef.current.get(item.id) ?? 0
+            if (now - lastAction >= DOUBLE_TAP_DELAY_MS * 2) {
+              lastFocusActionRef.current.set(item.id, now)
+              const currentFocusedId = focusedMarkerIdRef.current
+              if (item.type !== 'business') {
+                if (currentFocusedId === item.id) {
+                  console.log('[ScheduleMap] marker_unfocus', { source: 'marker_click_pair', stopId: item.id, platform })
+                  toggleMapItemDetails(item.id)
+                  setFocusedMarkerId(null)
+                  unfocusMarker()
+                } else {
+                  console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_click_pair', stopId: item.id, platform })
+                  focusStopOnMap(item.id, item.latitude, item.longitude)
+                  setFocusedMarkerId(item.id)
+                }
+              } else {
+                toggleMapItemDetails(item.id)
+              }
+            }
             if (!isSingle) {
               setSelectedMarker(markerInfo)
             }
@@ -2214,6 +2261,15 @@ useEffect(() => {
             singleTapTimerRef.current.delete(item.id)
           }
           lastClickTimeRef.current.delete(item.id)
+
+          // Dedupe: if the click-pair detector or touch detector already ran
+          // this action for the same physical double-tap, skip it.
+          const lastDblAction = lastFocusActionRef.current.get(item.id) ?? 0
+          if (Date.now() - lastDblAction < DOUBLE_TAP_DELAY_MS * 2) {
+            if (!isSingle) setSelectedMarker(markerInfo)
+            return
+          }
+          lastFocusActionRef.current.set(item.id, Date.now())
 
           const currentFocusedId = focusedMarkerIdRef.current
 
@@ -3209,7 +3265,7 @@ useEffect(() => {
         
         {/* Selected Item Info Card - Compact floating callout, anchored bottom-left */}
         {selectedItem && (
-          <div className="absolute bottom-4 left-4 right-auto w-[68%] max-w-[300px] md:left-6 md:right-auto md:w-72 md:max-w-[320px] bg-slate-900/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/50 dark:border-slate-700/50 z-20 p-2.5 md:p-3 duration-150">
+          <div className="absolute bottom-4 left-4 right-auto w-[68%] max-w-[300px] md:left-6 md:right-auto md:w-72 md:max-w-[320px] bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg shadow-md border border-slate-200/80 dark:border-slate-700/50 z-20 p-2.5 md:p-3 duration-150">
             {/* Mobile: Compact layout */}
             <div className="md:hidden">
               <div className="flex items-center gap-2">

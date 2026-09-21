@@ -56,7 +56,7 @@ import ImportContactsModal from '@/components/ImportContactsModal'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault, getOutOfOfficeStatus } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck, Phone, Unlink } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, RefreshCw, ChevronDown, ChevronUp, ShieldCheck, Phone, Unlink, Pencil } from 'lucide-react'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Modal from '@/components/ui/Modal'
@@ -210,6 +210,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const [isAdding, setIsAdding] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [label, setLabel] = useState('')
+
+  // Edit ignored contact modal state — label is the only mutable field;
+  // phone_number is the routing identity and stays read-only.
+  const [editingContact, setEditingContact] = useState<any | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const [isSavingContactEdit, setIsSavingContactEdit] = useState(false)
+  const [editContactError, setEditContactError] = useState('')
 
   // Track visualViewport height for the Add Personal Contact modal so it
   // adapts when the on-screen keyboard opens on mobile.
@@ -1064,9 +1071,15 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   }, [])
 
   const globalSaveInFlightRef = useRef(false)
+  // While a save is in flight (and briefly after it commits), suppress the
+  // scroll-spy from reassigning the active section. Save can blur the focused
+  // field / dismiss the keyboard / reflow section content, which fires scroll
+  // events whose recomputed section is a transient artifact — not user intent.
+  const saveScrollFreezeRef = useRef(false)
   const handleGlobalSave = useCallback(async () => {
     if (globalSaveInFlightRef.current) return
     globalSaveInFlightRef.current = true
+    saveScrollFreezeRef.current = true
     try {
       const booking = onlineBookingRef.current
       const wantsBookingSave = booking?.isDirty ?? bookingDirty
@@ -1081,10 +1094,17 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       const pendingField = activeEl?.dataset?.settingsField as keyof Business | undefined
       let businessOverride: Business | undefined
       if (pendingField && formBusiness && typeof activeEl?.value === 'string') {
+        // Some fields transform on change (e.g. uppercase state/postal codes)
+        // — apply the same transform to the live DOM value so the saved value
+        // matches what the controlled input would have committed.
+        const upperCaseFields: (keyof Business)[] = ['business_address_state', 'business_address_country']
+        const liveValue = upperCaseFields.includes(pendingField)
+          ? activeEl.value.toUpperCase()
+          : activeEl.value
         const currentStateValue = (formBusiness[pendingField] as unknown as string | null | undefined) ?? ''
-        if (activeEl.value !== currentStateValue) {
-          businessOverride = { ...formBusiness, [pendingField]: activeEl.value }
-          updateBusiness({ [pendingField]: activeEl.value } as Partial<Business>)
+        if (liveValue !== currentStateValue) {
+          businessOverride = { ...formBusiness, [pendingField]: liveValue }
+          updateBusiness({ [pendingField]: liveValue } as Partial<Business>)
         }
       }
 
@@ -1118,14 +1138,30 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       if (businessOk && bookingOk) setSaveSuccess(true)
     } finally {
       globalSaveInFlightRef.current = false
+      // Release the scroll-spy freeze after the post-save render has settled
+      // (two frames covers the committed re-render + any viewport resize
+      // scroll event from a keyboard dismissal racing the save).
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          saveScrollFreezeRef.current = false
+        })
+      })
     }
   }, [bookingDirty, hasUnsavedChanges, saveChanges, formBusiness, updateBusiness])
 
   const handleGlobalDiscard = useCallback(() => {
+    // Discard reverts field values which can reflow sections — freeze the
+    // scroll-spy for the same two-frame settle window as save.
+    saveScrollFreezeRef.current = true
     onlineBookingRef.current?.discard()
     setBookingDirty(false)
     setBookingSaveError(null)
     discardChanges()
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        saveScrollFreezeRef.current = false
+      })
+    })
   }, [discardChanges])
 
   // Toast functions
@@ -1473,6 +1509,55 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       showToast(error instanceof Error ? error.message : 'Couldn\'t add contact. Please try again.', 'error')
     } finally {
       setIsAdding(false)
+    }
+  }
+
+  // Edit ignored contact — updates only the label on the persisted record.
+  // On failure the modal stays open with the error visible and local state
+  // is left untouched (no false success).
+  const handleUpdateIgnoredContact = async () => {
+    if (!editingContact) return
+
+    setIsSavingContactEdit(true)
+    setEditContactError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/ignored-contacts/${editingContact.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          label: editLabel.trim() || null
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Could not update contact')
+      }
+
+      // Reconcile local state with the canonical persisted record
+      const data = await response.json()
+      setIgnoredContacts(prev =>
+        prev.map(contact => contact.id === data.ignoredContact.id ? data.ignoredContact : contact)
+      )
+
+      setEditingContact(null)
+      setEditLabel('')
+      showToast('Contact updated', 'success')
+    } catch (error) {
+      console.error('Error updating personal contact:', error)
+      setEditContactError(error instanceof Error ? error.message : 'Couldn\'t update contact. Please try again.')
+    } finally {
+      setIsSavingContactEdit(false)
     }
   }
 
@@ -2693,7 +2778,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
     const updateActiveSection = () => {
       // Skip scroll-spy updates during programmatic navigation to prevent race conditions
-      if (programmaticScrollInProgressRef.current) {
+      // and during save so save-driven layout/viewport shifts can't flip the
+      // active section out from under the user.
+      if (programmaticScrollInProgressRef.current || saveScrollFreezeRef.current) {
         return
       }
 
@@ -3072,6 +3159,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     <input
                       type="text"
                       value={formBusiness.name || ''}
+                      data-settings-field="name"
                       onChange={(e) => updateBusiness({ name: e.target.value })}
                       className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
                     />
@@ -3086,6 +3174,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           type="tel"
                           inputMode="tel"
                           value={formBusiness.business_phone_number || ''}
+                          data-settings-field="business_phone_number"
                           onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(555) 123-4567"
                           disabled={phoneCooldown?.inCooldown || role === 'member'}
@@ -3344,6 +3433,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     <input
                       type="text"
                       value={formBusiness.business_address_line1 || ''}
+                      data-settings-field="business_address_line1"
                       onChange={(e) => updateBusiness({ business_address_line1: e.target.value })}
                       placeholder="123 Main Street"
                       className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
@@ -3356,6 +3446,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     <input
                       type="text"
                       value={formBusiness.business_address_line2 || ''}
+                      data-settings-field="business_address_line2"
                       onChange={(e) => updateBusiness({ business_address_line2: e.target.value })}
                       placeholder="e.g., Suite 200"
                       className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
@@ -3369,6 +3460,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       <input
                         type="text"
                         value={formBusiness.business_address_city || ''}
+                        data-settings-field="business_address_city"
                         onChange={(e) => updateBusiness({ business_address_city: e.target.value })}
                         placeholder="San Francisco"
                         className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
@@ -3381,6 +3473,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       <input
                         type="text"
                         value={formBusiness.business_address_state || ''}
+                        data-settings-field="business_address_state"
                         onChange={(e) => updateBusiness({ business_address_state: e.target.value.toUpperCase() })}
                         placeholder="CA"
                         maxLength={2}
@@ -3395,6 +3488,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     <input
                       type="text"
                       value={formBusiness.business_address_postal_code || ''}
+                      data-settings-field="business_address_postal_code"
                       onChange={(e) => updateBusiness({ business_address_postal_code: e.target.value })}
                       placeholder="94102"
                       className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
@@ -3697,6 +3791,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </label>
                             <textarea
                               value={normalizeBrokenTemplates(formBusiness.after_hours_message || getDefaultAfterHoursTemplate())}
+                              data-settings-field="after_hours_message"
                               onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                               rows={4}
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
@@ -3956,6 +4051,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </label>
                             <textarea
                               value={normalizeBrokenTemplates(formBusiness.out_of_office_message || getDefaultOutOfOfficeTemplate())}
+                              data-settings-field="out_of_office_message"
                               onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
                               rows={4}
                               className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none min-h-[120px]"
@@ -5042,12 +5138,26 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               </div>
                             )}
                           </div>
-                          <button
-                            onClick={() => removeIgnoredContact(contact.id)}
-                            className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors duration-150"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => {
+                                setEditingContact(contact)
+                                setEditLabel(contact.label || '')
+                                setEditContactError('')
+                              }}
+                              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors duration-150"
+                              aria-label={`Edit contact ${contact.label || formatPhoneNumber(contact.phone_number)}`}
+                              title="Edit contact"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => removeIgnoredContact(contact.id)}
+                              className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors duration-150"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -5726,6 +5836,81 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       Numbers added here stay out of your customer workflow. Any voicemail they leave will appear separately in Personal Voicemail.
                     </p>
                   </div>
+                </div>
+          </Modal>
+
+          {/* Edit Personal Contact Modal */}
+          <Modal
+            isOpen={!!editingContact}
+            onClose={() => {
+              setEditingContact(null)
+              setEditLabel('')
+              setEditContactError('')
+            }}
+            title="Edit Personal Contact"
+            footer={
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setEditingContact(null)
+                    setEditLabel('')
+                    setEditContactError('')
+                  }}
+                  disabled={isSavingContactEdit}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateIgnoredContact}
+                  disabled={isSavingContactEdit}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                >
+                  {isSavingContactEdit ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            }
+          >
+                <p className="text-sm text-slate-600 dark:text-muted-foreground mb-4">
+                  Update the label for this personal contact. The phone number stays the same.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={editingContact ? formatPhoneNumber(editingContact.phone_number) : ''}
+                      readOnly
+                      disabled
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-muted/50 text-muted-foreground cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-900 dark:text-foreground mb-2">
+                      Label (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={editLabel}
+                      onChange={(e) => setEditLabel(e.target.value)}
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-slate-900 dark:text-foreground placeholder:text-muted-foreground"
+                      placeholder="e.g., John Doe"
+                    />
+                  </div>
+                  {editContactError && (
+                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg">
+                      <p className="text-xs text-red-600 dark:text-red-400">{editContactError}</p>
+                    </div>
+                  )}
                 </div>
           </Modal>
 

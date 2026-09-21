@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { geocodeAddress } from '@/lib/geocoding'
+import { geocodeAddress, isNonPhysicalLocation } from '@/lib/geocoding'
 
 /**
  * POST /api/geocode/address
@@ -71,13 +71,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Non-physical locations ("Remote", "Online", "Phone call", …) are a
+    // semantic location, not an address — do not send them to Google and do
+    // not report a server error. The caller treats this as "not geocodable".
+    if (isNonPhysicalLocation(normalizedAddress)) {
+      return NextResponse.json(
+        { success: false, error: 'Location is not a physical address', code: 'non_physical_location' },
+        { status: 200 }
+      )
+    }
+
     // Geocode the address
     const result = await geocodeAddress(normalizedAddress)
 
     if (!result.success) {
+      // ZERO_RESULTS / NOT_FOUND are "address did not resolve" outcomes, not
+      // server malfunctions — surface them as 422 so clients don't see a 500.
+      const googleStatus = (result as any).googleStatus
+      const isUnresolved = googleStatus === 'ZERO_RESULTS' || googleStatus === 'NOT_FOUND'
       return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
+        { success: false, error: result.error, code: isUnresolved ? 'address_not_found' : 'geocoding_failed' },
+        { status: isUnresolved ? 422 : 500 }
       )
     }
 

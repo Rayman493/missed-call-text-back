@@ -12,7 +12,7 @@ import { ChartHeaderControls } from './ChartHeaderControls'
 import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, isDomNode } from '@/lib/utils'
 
 interface RevenueData {
   date: string
@@ -39,8 +39,9 @@ export default function RevenueGraph() {
   useEffect(() => {
     if (!selectedDatum) return
     const handlePointerDown = (e: PointerEvent) => {
-      const target = e.target as Node | null
-      if (chartWrapperRef.current && target && !chartWrapperRef.current.contains(target)) {
+      const target = e.target
+      if (!isDomNode(target)) return
+      if (chartWrapperRef.current && !chartWrapperRef.current.contains(target)) {
         setSelectedDatum(null)
       }
     }

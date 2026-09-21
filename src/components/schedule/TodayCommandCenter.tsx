@@ -450,10 +450,22 @@ export default function TodayCommandCenter({
           </div>
         ) : (
           <div className="px-3 pb-2.5 space-y-0.5 flex-1">
-            {sortedWorkItems.map(item => (
+            {sortedWorkItems.map(item => {
+              // Job and appointment rows open their exact record via the
+              // canonical handlers — the row must never be a dead end.
+              const openRecord = item.type === 'job'
+                ? (onJobClick ? () => onJobClick(item.data as Job) : undefined)
+                : item.type === 'appointment'
+                  ? (onEditAppointment ? () => onEditAppointment(item.data as CalendarEvent) : undefined)
+                  : undefined
+              return (
               <div
                 key={item.id}
-                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors group"
+                className={`flex items-center gap-2 px-2 py-1.5 rounded hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors group ${openRecord ? 'cursor-pointer' : ''}`}
+                onClick={openRecord}
+                role={openRecord ? 'button' : undefined}
+                tabIndex={openRecord ? 0 : undefined}
+                onKeyDown={openRecord ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRecord() } } : undefined}
               >
                 <div className="flex-shrink-0">
                   {item.type === 'task' ? (
@@ -503,7 +515,8 @@ export default function TodayCommandCenter({
                   <div className="flex items-center gap-0.5" />
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

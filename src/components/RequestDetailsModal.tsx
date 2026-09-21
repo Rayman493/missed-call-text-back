@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Modal from '@/components/ui/Modal'
-import { MessageSquare, FileText, MapPin, Clock, Phone, Calendar, CheckCircle2, User } from 'lucide-react'
+import { MessageSquare, FileText, MapPin, Clock, Calendar, CheckCircle2, User } from 'lucide-react'
 import type { NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 import { capitalizeFirstAlpha } from '@/lib/utils'
 
@@ -104,7 +104,7 @@ export default function RequestDetailsModal({ isOpen, onClose, record }: Request
 
         {/* Preferred Callback Time */}
         <DetailRow
-          icon={<Phone className="w-4 h-4" />}
+          icon={<Clock className="w-4 h-4" />}
           label="Preferred Callback Time"
           value={record.callbackTime}
         />

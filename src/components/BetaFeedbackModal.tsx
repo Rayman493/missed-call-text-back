@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { X, MessageCircle, CheckCircle } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
+import { isDomNode } from '@/lib/utils'
 
 interface BetaFeedbackModalProps {
   isOpen: boolean
@@ -27,7 +28,8 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
   useEffect(() => {
     if (!catOpen) return
     const onDocPointerDown = (e: PointerEvent) => {
-      const t = e.target as Node
+      const t = e.target
+      if (!isDomNode(t)) return
       if (catMenuRef.current && !catMenuRef.current.contains(t) && catButtonRef.current && !catButtonRef.current.contains(t)) {
         markDropdownDismissed()
         setCatOpen(false)

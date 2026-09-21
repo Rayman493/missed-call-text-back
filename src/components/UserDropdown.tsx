@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { handleBillingAction } from '@/lib/billing'
 import { useTheme } from 'next-themes'
+import { isDomNode } from '@/lib/utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X, Monitor, Sun, Moon, Mail, HelpCircle } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
@@ -150,9 +151,9 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
     }
 
     const handleClickOutside = (event: MouseEvent) => {
-      const isClickInsideTrigger = triggerRef.current?.contains(event.target as Node)
-      const isClickInsideMobileDropdown = dropdownContentRef.current?.contains(event.target as Node)
-      const isClickInsideDesktopDropdown = desktopDropdownContentRef.current?.contains(event.target as Node)
+      const isClickInsideTrigger = isDomNode(event.target) && triggerRef.current?.contains(event.target)
+      const isClickInsideMobileDropdown = isDomNode(event.target) && dropdownContentRef.current?.contains(event.target)
+      const isClickInsideDesktopDropdown = isDomNode(event.target) && desktopDropdownContentRef.current?.contains(event.target)
       if (!isClickInsideTrigger && !isClickInsideMobileDropdown && !isClickInsideDesktopDropdown) {
         setIsOpen(false)
       }

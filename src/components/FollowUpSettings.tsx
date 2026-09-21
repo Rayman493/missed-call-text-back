@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface FollowUpConfig {
   step: number
@@ -92,9 +93,21 @@ export default function FollowUpSettings({ isOpen, onClose, onSave, businessName
     }
   }, [isOpen, onClose])
 
+  // On native, the Supabase session lives in WebView storage, not cookies —
+  // send the bearer token explicitly (same pattern as LeadPickerModal).
+  const getAuthHeaders = async (): Promise<HeadersInit> => {
+    const supabase = createBrowserClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : {}
+  }
+
   const loadSettings = async () => {
     try {
-      const response = await fetch('/api/settings/follow-ups')
+      const response = await fetch('/api/settings/follow-ups', {
+        headers: await getAuthHeaders(),
+      })
       if (!response.ok) {
         throw new Error('We couldn\'t load your settings. Please try again.')
       }
@@ -130,6 +143,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave, businessName
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify(normalizedSettings),
       })

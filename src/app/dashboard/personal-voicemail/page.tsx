@@ -12,6 +12,7 @@ import Navigation from '@/components/Navigation'
 import BottomNavigation from '@/components/BottomNavigation'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { PersonalVoicemailPlayer } from '@/components/PersonalVoicemailPlayer'
+import { ToastContainer } from '@/components/Toast'
 import EmptyState from '@/components/ui/EmptyState'
 import { ListItemSkeleton } from '@/components/ui/Skeleton'
 import Link from 'next/link'
@@ -87,6 +88,8 @@ export default function PersonalVoicemailPage() {
   const [overflowMenuId, setOverflowMenuId] = useState<string | null>(null)
   const [expandedTranscripts, setExpandedTranscripts] = useState<Set<string>>(new Set())
   const [refreshing, setRefreshing] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const supabase = useMemo(() => createBrowserClient(), [])
   const voicemailsRef = useRef<PersonalVoicemail[]>([])
   const fetchInFlightRef = useRef<Promise<void> | null>(null)
@@ -273,23 +276,42 @@ export default function PersonalVoicemailPage() {
     }
   }
 
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    const id = Date.now().toString()
+    setToasts(prev => [...prev, { id, message, type }])
+  }
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id))
+  }
+
   const handleDelete = async (voicemail: PersonalVoicemail) => {
+    if (deletingId) return
+    setDeletingId(voicemail.id)
     // Stop playback if deleting the active voicemail
     if (globalPlayingId === voicemail.id) {
       setGlobalPlayingId(null)
     }
-    
+
     try {
       const response = await fetch(`/api/personal-voicemails/${voicemail.id}`, {
         method: 'DELETE',
         credentials: 'include',
       })
-      
+
       if (response.ok) {
         setVoicemails(prev => prev.filter(v => v.id !== voicemail.id))
+        showToast('Voicemail deleted', 'success')
+      } else {
+        const data = await response.json().catch(() => ({}))
+        console.error('[Personal Voicemail] Delete failed:', response.status, data)
+        showToast(data.error || 'Couldn\'t delete voicemail. Please try again.', 'error')
       }
     } catch (err) {
       console.error('[Personal Voicemail] Error deleting:', err)
+      showToast('Couldn\'t delete voicemail. Please try again.', 'error')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -361,9 +383,7 @@ export default function PersonalVoicemailPage() {
                     return (
                       <div
                         key={voicemail.id}
-                        className={`bg-card rounded-xl border border-border/50 p-5 shadow-sm hover:shadow-md transition-all duration-200 ${
-                          !voicemail.listened_at ? 'border-l-4 border-l-blue-500' : ''
-                        }`}
+                        className="bg-card rounded-xl border border-border/50 p-5 shadow-sm hover:shadow-md transition-all duration-200"
                       >
                         {/* Unified Layout for Desktop and Mobile */}
                         {/* Card Header with Overflow Menu */}
@@ -422,7 +442,8 @@ export default function PersonalVoicemailPage() {
                                       handleDelete(voicemail)
                                       setOverflowMenuId(null)
                                     }}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:bg-red-50/50"
+                                    disabled={deletingId === voicemail.id}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:bg-red-50/50 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <Trash2 className="w-4 h-4 stroke-[1.5]" />
                                     Delete voicemail
@@ -504,6 +525,7 @@ export default function PersonalVoicemailPage() {
           </main>
 
           <BottomNavigation />
+          <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
         </div>
       </BusinessGuard>
     </AuthGuard>

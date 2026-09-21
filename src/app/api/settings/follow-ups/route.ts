@@ -1,15 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import { getSafeBusinessName } from '@/lib/template-utils'
 
 export const dynamic = 'force-dynamic'
 
+// Resolve a request-scoped Supabase client. On web, auth comes from SSR
+// cookies; on the native app the session lives in WebView storage (no
+// cookies), so callers send Authorization: Bearer instead. A bearer-scoped
+// anon client keeps RLS identical in both cases — same pattern as /api/leads.
+async function getRequestSupabaseClient(request: NextRequest) {
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: authHeader } } }
+    )
+  }
+  return createServerSupabaseClient()
+}
+
 // GET /api/settings/follow-ups - Retrieve follow-up settings
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Use server client pattern for proper RLS enforcement
-    const supabase = await createServerSupabaseClient()
+    const supabase = await getRequestSupabaseClient(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -77,8 +93,7 @@ export async function GET() {
 // PUT /api/settings/follow-ups - Update follow-up settings
 export async function PUT(request: NextRequest) {
   try {
-    // Use server client pattern for proper RLS enforcement
-    const supabase = await createServerSupabaseClient()
+    const supabase = await getRequestSupabaseClient(request)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {

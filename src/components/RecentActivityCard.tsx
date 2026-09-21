@@ -76,7 +76,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             *,
             jobs(id, title, status, created_at, updated_at, scheduled_date),
             tasks(id, title, status, created_at, updated_at),
-            payment_requests(id, amount_cents, status, created_at, updated_at, paid_at, payment_method_type, lead_id),
+            payment_requests!lead_id(id, amount_cents, status, created_at, updated_at, paid_at, payment_method_type, lead_id),
             ai_call_records(id, outcome, created_at)
           `)
           .eq('business_id', business.id)
@@ -89,7 +89,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         }
 
         // Fetch terminal payments linked to jobs (Tap to Pay)
-        const { data: terminalPayments } = await supabase
+        const { data: terminalPayments, error: terminalPaymentsError } = await supabase
           .from('payment_requests')
           .select(`
             id,
@@ -107,6 +107,10 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(5)
+        if (terminalPaymentsError) {
+          console.error('[RecentActivityCard] terminal payments query failed:', terminalPaymentsError)
+          hadQueryError = true
+        }
 
         // Fetch recent messages with lead information. Scope by the canonical
         // business_id — matching on twilio_phone_number text silently dropped
@@ -116,7 +120,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .from('messages')
           .select(`
             *,
-            leads(id, caller_phone, name)
+            leads(id, caller_phone, contact_name)
           `)
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
@@ -128,13 +132,17 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         }
 
         // Add voicemails through leads
-        const { data: voicemailLeads } = await supabase
+        const { data: voicemailLeads, error: voicemailLeadsError } = await supabase
           .from('leads')
-          .select('id, voicemail_recordings (id, recording_url, recording_duration, recording_status, created_at), caller_phone')
+          .select('id, voicemail_recordings (id, recording_url, recording_duration, recording_status, created_at), caller_phone, contact_name')
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(5)
+        if (voicemailLeadsError) {
+          console.error('[RecentActivityCard] voicemail leads query failed:', voicemailLeadsError)
+          hadQueryError = true
+        }
 
         const voicemails = (voicemailLeads || []).flatMap((l: any) => l.voicemail_recordings || []).slice(0, 4)
 
@@ -147,7 +155,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .from('jobs')
           .select(`
             id, title, status, created_at, updated_at, scheduled_date,
-            leads(id, caller_phone, name, business_id)
+            leads(id, caller_phone, contact_name, business_id)
           `)
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
@@ -162,7 +170,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .from('tasks')
           .select(`
             id, title, status, created_at, updated_at,
-            leads(id, caller_phone, name, business_id)
+            leads(id, caller_phone, contact_name, business_id)
           `)
           .eq('business_id', business.id)
           .eq('status', 'completed')
@@ -178,7 +186,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .from('payment_requests')
           .select(`
             id, amount_cents, status, created_at, updated_at, paid_at, payment_method_type, lead_id,
-            leads(id, caller_phone, name, business_id)
+            leads!lead_id(id, caller_phone, contact_name, business_id)
           `)
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
@@ -360,7 +368,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         // Add messages
         messages?.forEach((message: any) => {
           const lead = message.leads
-          const customerName = lead?.name || 'Unknown'
+          const customerName = lead?.contact_name || 'Unknown'
           const displayName = getDisplayName(customerName, lead?.caller_phone)
           const displayPhone = message.direction === 'outbound' ? message.to_phone : message.from_phone
           const formattedPhone = formatPhoneNumber(displayPhone)
@@ -400,7 +408,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         voicemails?.forEach((voicemail: any) => {
           const lead = voicemailLeads?.find((l: any) => l.voicemail_recordings?.some((v: any) => v.id === voicemail.id))
           if (lead) {
-            const customerName = lead.name || 'Unknown'
+            const customerName = lead.contact_name || 'Unknown'
             const displayName = getDisplayName(customerName, lead.caller_phone)
             events.push({
               id: `voicemail-${voicemail.id}`,
@@ -462,7 +470,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           // lead proves a different business. Unlinked (standalone) jobs and
           // reminders still count as real business activity.
           if (lead && lead.business_id !== business.id) return
-          const customerName = lead?.name || 'Unknown'
+          const customerName = lead?.contact_name || 'Unknown'
           const displayName = getDisplayName(customerName, lead?.caller_phone)
           const jobDate = job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
           events.push({
@@ -504,7 +512,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           if (existingEventIds.has(`task-completed-${task.id}`)) return
           const lead = task.leads
           if (lead && lead.business_id !== business.id) return
-          const customerName = lead?.name || 'Unknown'
+          const customerName = lead?.contact_name || 'Unknown'
           const displayName = getDisplayName(customerName, lead?.caller_phone)
           events.push({
             id: `task-completed-${task.id}`,
@@ -524,7 +532,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         recentPaymentRequests?.forEach((pr: any) => {
           const lead = pr.leads
           if (lead && lead.business_id !== business.id) return
-          const customerName = lead?.name || 'Unknown'
+          const customerName = lead?.contact_name || 'Unknown'
           const displayName = getDisplayName(customerName, lead?.caller_phone)
           const amount = formatCurrency(pr.amount_cents, true)
           if (pr.status === 'pending' && !existingEventIds.has(`payment-requested-${pr.id}`)) {

@@ -7,6 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { filterLeadsBySearchQuery, normalizePhoneDigits, getCustomerDisplayName, getCustomerServiceText, getCustomerTertiaryText } from '@/components/payments/customer-search-helpers'
 import { formatForDisplay } from '@/utils/phone-formatting'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
+import { isDomNode } from '@/lib/utils'
 
 export interface Customer {
   id: string
@@ -101,7 +102,7 @@ export default function SearchableCustomerSelect({
   // Close on outside click (pointerdown covers mouse + touch reliably)
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (pickerRef.current && pickerRef.current.contains(event.target as Node)) {
+      if (isDomNode(event.target) && pickerRef.current && pickerRef.current.contains(event.target)) {
         // Pointer started inside the picker — track this so focusout doesn't
         // dismiss the dropdown during touch-scroll of the results list.
         pointerDownInsideRef.current = true
@@ -135,10 +136,10 @@ export default function SearchableCustomerSelect({
   // Close when focus leaves the picker (e.g., user taps another field)
   useEffect(() => {
     const handleFocusOut = (event: FocusEvent) => {
-      const next = event.relatedTarget as Node | null
+      const next = event.relatedTarget
       // If focus is moving to an element inside the picker (e.g., a customer row),
       // keep the dropdown open so the selection click can complete.
-      if (next && pickerRef.current && pickerRef.current.contains(next)) return
+      if (isDomNode(next) && pickerRef.current && pickerRef.current.contains(next)) return
       // Don't dismiss if the pointer is currently down inside the picker.
       // On mobile, touching the results list to scroll blurs the input and fires
       // focusout with relatedTarget=null. This is not a real "focus left" event.

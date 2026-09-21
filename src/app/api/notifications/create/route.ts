@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { capitalizeFirstAlpha, normalizePunctuation } from '@/lib/utils'
 import crypto from 'crypto'
 
 /**
@@ -121,7 +122,10 @@ export async function POST(request: NextRequest) {
       }
       finalTitle = title || 'New Request'
       const nameLabel = customerName || null
-      const serviceLabel = serviceRequested || null
+      // Match the ai_intake_completed template's presentation: the raw
+      // transcript phrase arrives lowercase ("someone to repair…") and must be
+      // normalized/capitalized for display. Stored data is untouched.
+      const serviceLabel = serviceRequested ? capitalizeFirstAlpha(normalizePunctuation(serviceRequested)) : null
       const preview = nameLabel && serviceLabel
         ? `${nameLabel} \u2022 ${serviceLabel}`
         : serviceLabel || nameLabel || 'New customer request'

@@ -38,6 +38,56 @@ function applyExtractedAliases(target: Record<string, any>, keys: string[], valu
   for (const key of keys) target[key] = value;
 }
 
+// GET /api/leads/[id] — fetch a single lead scoped to the caller's business.
+// JobDetailsModal (and the Booking → View Job / Today → Job surfaces) load the
+// linked customer this way; previously this route only exported PATCH/DELETE
+// so these calls returned 405.
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
+
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('id', id)
+      .eq('business_id', authResult.business.id!)
+      .maybeSingle()
+
+    if (error || !lead) {
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(lead);
+  } catch (error) {
+    console.error('[API LEADS GET:id] Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

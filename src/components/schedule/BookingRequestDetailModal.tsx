@@ -468,7 +468,7 @@ export default function BookingRequestDetailModal({
                     <button
                       disabled={busy !== null}
                       onClick={() => runAction('accept')}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-1.5 self-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 disabled:opacity-50"
                     >
                       <Check className="h-4 w-4" /> {busy === 'accept' ? 'Accepting…' : 'Accept'}
                     </button>
@@ -587,7 +587,7 @@ export default function BookingRequestDetailModal({
                     {hasAppointment && (
                       <button
                         type="button"
-                        onClick={() => navigateFromModal('/dashboard/calendar?tab=appointments')}
+                        onClick={() => navigateFromModal(`/dashboard/calendar?tab=appointments&event=${detail.appointment_id}`)}
                         className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
                       >
                         <ExternalLink className="h-4 w-4" /> View Appointment
@@ -596,7 +596,7 @@ export default function BookingRequestDetailModal({
                     {hasJob && (
                       <button
                         type="button"
-                        onClick={() => navigateFromModal('/dashboard/calendar?tab=jobs')}
+                        onClick={() => navigateFromModal(`/dashboard/calendar?tab=jobs&job=${detail.job_id}`)}
                         className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-slate-900 dark:text-emerald-300 dark:hover:bg-slate-800"
                       >
                         <ExternalLink className="h-4 w-4" /> View Job

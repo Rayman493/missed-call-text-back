@@ -40,10 +40,11 @@ import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
-import { formatPhoneNumber } from '@/lib/utils'
+import { formatPhoneNumber, isDomNode } from '@/lib/utils'
 import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
 import { openExternalLink } from '@/lib/external-link'
 import { formatDuration, JOB_TIME_CHANGED_EVENT, notifyJobTimeChanged } from '@/lib/job-time-utils'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 
 interface CalendarEvent {
   id: string
@@ -461,15 +462,15 @@ function MeetingsTab({
                     )}
                     {/* Status badges — informational, on the LEFT with other event info */}
                     {completedMap?.has(ev.id) && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap font-medium">Completed</span>
+                      <span className="text-[10px] px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 whitespace-nowrap font-semibold">Completed</span>
                     )}
                     {!completedMap?.has(ev.id) && (() => {
                       const endRaw = ev.end?.dateTime || ev.end?.date
                       const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
                       return isPastDue ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 whitespace-nowrap font-medium">Past</span>
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 whitespace-nowrap font-semibold">Past</span>
                       ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 whitespace-nowrap font-medium">Scheduled</span>
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 whitespace-nowrap font-semibold">Scheduled</span>
                       )
                     })()}
                   </div>
@@ -812,6 +813,46 @@ export default function SchedulePage() {
     }
   }, [searchParams, authHydrated])
 
+  // Deep-link tab reconciliation: ?tab= is read once by the scheduleTab
+  // initializer on mount, so a same-page navigation (e.g. Booking Request →
+  // "View Job" pushes /dashboard/calendar?tab=jobs) would otherwise leave the
+  // active tab unchanged and the action appears to do nothing.
+  useEffect(() => {
+    const tabParam = searchParams?.get('tab')
+    if (tabParam === 'agenda' || tabParam === 'reminders' || tabParam === 'jobs' || tabParam === 'appointments' || tabParam === 'calendar' || tabParam === 'map') {
+      setScheduleTab((prev) => (prev === tabParam ? prev : tabParam))
+    }
+  }, [searchParams])
+
+  // Canonical record deep-link: ?tab=jobs&job=<id> opens that exact job in
+  // JobDetailsModal; ?tab=appointments&event=<id> opens that exact calendar
+  // event in EventDetailsModal. Used by Booking "View Job"/"View Appointment"
+  // and any future Today-row navigation. The param is consumed (stripped)
+  // once resolved so re-navigating to the same record still works and the
+  // modal doesn't reopen on unrelated searchParams changes.
+  useEffect(() => {
+    if (!authHydrated) return
+    const jobId = searchParams?.get('job')
+    const eventId = searchParams?.get('event')
+    const tabParam = searchParams?.get('tab')
+    if (jobId) {
+      const job = jobs.find(j => j.id === jobId)
+      if (!job) return // wait for fetchJobs; realtime reconciliation covers late arrivals
+      setScheduleTab('jobs')
+      setSelectedJob(job)
+      setIsJobDetailsOpen(true)
+      window.history.replaceState(null, '', `/dashboard/calendar${tabParam ? `?tab=${tabParam}` : ''}`)
+    } else if (eventId) {
+      const ev = events.find(e => e.id === eventId)
+      if (!ev) return
+      setScheduleTab('appointments')
+      setSelectedEvent(ev)
+      setEventDetailsMode('details')
+      setIsEventDetailsOpen(true)
+      window.history.replaceState(null, '', `/dashboard/calendar${tabParam ? `?tab=${tabParam}` : ''}`)
+    }
+  }, [searchParams, jobs, events, authHydrated])
+
   const fetchJobs = async () => {
     setIsLoadingJobs(true)
     try {
@@ -852,6 +893,50 @@ export default function SchedulePage() {
       fetchTasks()
     }
   }, [business])
+
+  // Jobs realtime reconciliation: when a job row for this business is created
+  // or changed anywhere (booking conversion, composer, API), silently refetch
+  // the Jobs tab list — the fetch replaces state wholesale so no dedup needed.
+  // The binding is intentionally UNFILTERED — server-side postgres_changes
+  // filters on this project previously yielded SUBSCRIBED-but-zero-events —
+  // with a client-side business guard and RLS as the security boundary.
+  const jobsRealtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    const businessId = business?.id
+    if (!businessId) return
+
+    let cancelled = false
+    const channel = supabase
+      .channel(`schedule-jobs-list:${businessId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'jobs' },
+        (payload: any) => {
+          const row = (payload?.new ?? payload?.old) as { business_id?: string } | undefined
+          if (row?.business_id !== businessId) return
+          if (jobsRealtimeDebounceRef.current) clearTimeout(jobsRealtimeDebounceRef.current)
+          jobsRealtimeDebounceRef.current = setTimeout(() => fetchJobs(), 300)
+        }
+      )
+
+    ;(async () => {
+      // Resolve realtime auth before joining — an unauthenticated websocket
+      // reports SUBSCRIBED but RLS blocks all postgres_changes events because
+      // auth.uid() is NULL with the anon key.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) await (supabase as any).realtime.setAuth(session.access_token)
+      } catch { /* best effort */ }
+      if (cancelled) return
+      channel.subscribe()
+    })()
+
+    return () => {
+      cancelled = true
+      if (jobsRealtimeDebounceRef.current) clearTimeout(jobsRealtimeDebounceRef.current)
+      supabase.removeChannel(channel)
+    }
+  }, [business?.id])
 
   
   // Resolve job and customer for selected event
@@ -898,7 +983,8 @@ export default function SchedulePage() {
     if (!isCalendarOverflowOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node
+      const target = event.target
+      if (!isDomNode(target)) return
       const isClickInsideDesktopButton = desktopCalendarOverflowButtonRef.current?.contains(target)
       const isClickInsideDesktopMenu = desktopCalendarOverflowRef.current?.contains(target)
       const isClickInsideMobileButton = mobileCalendarOverflowButtonRef.current?.contains(target)
@@ -2705,6 +2791,10 @@ export default function SchedulePage() {
                     isOpen={isLeadPickerOpen}
                     onClose={() => setIsLeadPickerOpen(false)}
                     onSelect={(prefill) => {
+                      // Modal→modal handoff: suppress the picker's
+                      // history.back() cleanup so its popstate can't close
+                      // the incoming JobComposer modal.
+                      suppressNextHistoryBackCleanup()
                       setJobPrefill(prefill)
                       setIsLeadPickerOpen(false)
                       setIsJobComposerOpen(true)
@@ -2728,6 +2818,10 @@ export default function SchedulePage() {
                     isOpen={isAddCustomerModalOpen}
                     onClose={() => setIsAddCustomerModalOpen(false)}
                     onLeadCreated={(leadId, leadData) => {
+                      // Modal→modal handoff: suppress AddCustomerModal's
+                      // history.back() cleanup so its popstate can't close
+                      // the incoming JobComposer modal.
+                      suppressNextHistoryBackCleanup()
                       setNewlyCreatedLeadId(leadId)
                       setIsAddCustomerModalOpen(false)
                       

@@ -954,7 +954,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                         value={editedLocation}
                         onChange={(e) => setEditedLocation(e.target.value)}
                         placeholder="Add location"
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
                       />
                     ) : (
                       <span className="block break-words">{event.location || 'No location added'}</span>
@@ -995,9 +995,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     type="checkbox"
                     checked={isAllDay}
                     onChange={(e) => setIsAllDay(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 dark:focus:ring-offset-slate-900"
                   />
-                  <span className="text-sm text-slate-200">All day event</span>
+                  <span className="text-sm text-foreground">All day event</span>
                 </label>
               </div>
             )}

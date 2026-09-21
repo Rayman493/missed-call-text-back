@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBusinessSafe } from '@/contexts/BusinessContext'
 import { Home } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
+import { isDomNode } from '@/lib/utils'
 
 interface MobileDrawerProps {
   isOpen: boolean
@@ -115,8 +116,8 @@ export default function MobileDrawer({ isOpen, onClose, triggerRef }: MobileDraw
     if (!isOpen) return
 
     const handlePointerDownOutside = (event: PointerEvent) => {
-      const isClickInsideTrigger = triggerRef?.current?.contains(event.target as Node)
-      const isClickInsideDropdown = dropdownContentRef.current?.contains(event.target as Node)
+      const isClickInsideTrigger = isDomNode(event.target) && triggerRef?.current?.contains(event.target)
+      const isClickInsideDropdown = isDomNode(event.target) && dropdownContentRef.current?.contains(event.target)
       if (!isClickInsideTrigger && !isClickInsideDropdown) {
         markDropdownDismissed()
         onClose()

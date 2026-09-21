@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Play, Pause, Volume2, VolumeX, Volume1 } from 'lucide-react'
 import { volumeManager } from '@/lib/volume-manager'
+import { isDomNode } from '@/lib/utils'
 
 interface PremiumAudioPlayerProps {
   audioRef: React.RefObject<HTMLAudioElement>
@@ -89,7 +90,7 @@ export default function PremiumAudioPlayer({
   // Close mobile volume popover on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (volumeControlRef.current && !volumeControlRef.current.contains(event.target as Node)) {
+      if (isDomNode(event.target) && volumeControlRef.current && !volumeControlRef.current.contains(event.target)) {
         setIsMobileVolumeOpen(false)
         setIsDesktopVolumeOpen(false)
       }

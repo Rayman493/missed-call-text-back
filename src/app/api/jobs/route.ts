@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
-import { geocodeAddress, isValidCoordinate, isGeocodingStale } from '@/lib/geocoding'
+import { geocodeAddress, isValidCoordinate, isGeocodingStale, isNonPhysicalLocation } from '@/lib/geocoding'
 import {
   expandVirtualOccurrences,
   createSeries,
@@ -280,6 +280,15 @@ export async function POST(request: NextRequest) {
         })
       }
 
+      // Non-physical locations ("Remote", "Online", …) are semantic, not
+      // addresses — do not send them to Google and do not report a 500.
+      if (isNonPhysicalLocation(normalizedAddress)) {
+        return NextResponse.json(
+          { success: false, error: 'Location is not a physical address', code: 'non_physical_location' },
+          { status: 200 }
+        )
+      }
+
       // Geocode the address
       const result = await geocodeAddress(normalizedAddress)
 
@@ -288,7 +297,11 @@ export async function POST(request: NextRequest) {
           success: false,
           error: result.error
         })
-        return NextResponse.json({ error: result.error }, { status: 500 })
+        const isUnresolved = result.googleStatus === 'ZERO_RESULTS' || result.googleStatus === 'NOT_FOUND'
+        return NextResponse.json(
+          { error: result.error, code: isUnresolved ? 'address_not_found' : 'geocoding_failed' },
+          { status: isUnresolved ? 422 : 500 }
+        )
       }
 
       // Update the job with geocoded coordinates

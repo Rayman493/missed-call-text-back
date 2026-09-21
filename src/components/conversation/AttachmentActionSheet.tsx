@@ -47,38 +47,52 @@ interface AttachmentActionSheetProps {
   onPickerLaunch: () => void
   /** Native picker returned. files = null means cancelled. */
   onPickerReturn: (files: File[] | null) => void
+  /** Picker/capture failed with a real error (NOT cancellation) — show a message */
+  onPickerError?: (message: string) => void
   /** Full accept string for the "Choose File" path */
   fileAccept?: string
 }
 
 /**
- * Convert a Capacitor Camera MediaResult to a File object using fetch+Blob.
- * This avoids loading a full-resolution base64 DataUrl into JS memory.
- * The image bytes stay native (via webPath/uri) until fetched as a Blob.
+ * Convert a Capacitor Camera MediaResult (takePhoto, v8.1+) to a File via
+ * fetch+Blob — image bytes stay native until fetched, avoiding a full-
+ * resolution base64 string in JS memory.
+ *
+ * MediaResult exposes `uri` (native file URI) and `webPath` (WebView
+ * URL) — there is no `path` field on MediaResult (that was the Photo
+ * shape from the older deprecated photo API). On native we always run the
+ * file URI through Capacitor.convertFileSrc() so a raw file:/// or
+ * content:// URI becomes a fetchable WebView URL.
  */
-async function mediaResultToFile(result: { path?: string; webPath?: string; uri?: string; metadata?: { format?: string } }): Promise<File | null> {
-  // On native, convertFileSrc converts the native file path to a WebView-accessible
-  // URL. This is more reliable on iOS than webPath/uri after app resume.
-  // Fall back to webPath/uri if no path is present.
-  let path: string | undefined
-  if (Capacitor.isNativePlatform() && result.path) {
-    path = Capacitor.convertFileSrc(result.path)
+export async function mediaResultToFile(result: { uri?: string; webPath?: string; metadata?: { format?: string } }): Promise<File | null> {
+  let url: string | undefined
+  if (Capacitor.isNativePlatform() && result.uri) {
+    url = Capacitor.convertFileSrc(result.uri)
   } else {
-    path = result.webPath || result.uri
+    url = result.webPath || result.uri
   }
-  if (!path) return null
+  if (!url) return null
 
-  // Fetch the native URI as a Blob — bytes stay native until this point
-  const response = await fetch(path)
+  // Fetch the WebView-accessible URL as a Blob — bytes stay native until now
+  const response = await fetch(url)
+  if (!response.ok) return null
   const blob = await response.blob()
+  if (blob.size === 0) return null
 
-  // Determine extension from metadata format or default to jpeg
-  const format = result.metadata?.format || 'jpeg'
-  const ext = format === 'png' ? 'png' : 'jpg'
-  const mime = format === 'png' ? 'image/png' : 'image/jpeg'
+  // MIME: trust the fetched blob type first (reliable), then metadata format,
+  // then jpeg default.
+  const format = result.metadata?.format?.toLowerCase()
+  const mime = blob.type || (format === 'png' ? 'image/png' : format === 'gif' ? 'image/gif' : 'image/jpeg')
+  const ext = mime === 'image/png' ? 'png' : mime === 'image/gif' ? 'gif' : 'jpg'
   const filename = `photo_${Date.now()}.${ext}`
 
   return new File([blob], filename, { type: mime })
+}
+
+/** Camera plugin rejects cancellations with "User cancelled photos app". */
+export function isCameraCancel(err: unknown): boolean {
+  const msg = (err as any)?.message ?? String(err ?? '')
+  return /cancel/i.test(msg)
 }
 
 export default function AttachmentActionSheet({
@@ -86,6 +100,7 @@ export default function AttachmentActionSheet({
   onClose,
   onPickerLaunch,
   onPickerReturn,
+  onPickerError,
   fileAccept = FILE_ACCEPT
 }: AttachmentActionSheetProps) {
   // cameraInputRef is only used as a web/desktop fallback for Take Photo
@@ -94,9 +109,11 @@ export default function AttachmentActionSheet({
   const filePickerRef = useRef<HTMLInputElement>(null)
   // Track which input was launched so we can map return signals
   const activeInputRef = useRef<HTMLInputElement | null>(null)
-  // Ref for onPickerReturn to avoid re-attaching cancel listeners on every render
+  // Refs for callbacks to avoid re-attaching listeners / stale closures
   const onPickerReturnRef = useRef(onPickerReturn)
   onPickerReturnRef.current = onPickerReturn
+  const onPickerErrorRef = useRef(onPickerError)
+  onPickerErrorRef.current = onPickerError
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target // the actual input element — use directly for reset
@@ -161,6 +178,10 @@ export default function AttachmentActionSheet({
       try {
         const result = await CapacitorCamera.takePhoto({
           quality: 90,
+          // Cap target dimensions so a modern-phone capture stays under the
+          // 5 MB MMS image limit — aspect ratio is preserved by the plugin.
+          targetWidth: 2048,
+          targetHeight: 2048,
           saveToGallery: false,
         })
         // Convert the MediaResult (webPath/uri) to a File via fetch+Blob
@@ -169,12 +190,24 @@ export default function AttachmentActionSheet({
         if (file) {
           onPickerReturnRef.current([file])
         } else {
-          // No path returned — treat as cancel
+          // Result carried no fetchable media — a real failure, not a cancel.
           onPickerReturnRef.current(null)
+          onPickerErrorRef.current?.('Couldn’t read the photo. Please try again.')
         }
       } catch (err) {
-        // Camera cancelled or failed — treat as cancel (no phantom attachment)
-        onPickerReturnRef.current(null)
+        if (isCameraCancel(err)) {
+          // Quiet cancel — no error, no phantom attachment
+          onPickerReturnRef.current(null)
+        } else {
+          // Real failure (permission denied, conversion error) — surface it
+          onPickerReturnRef.current(null)
+          const msg = (err as any)?.message
+          onPickerErrorRef.current?.(
+            msg && /permission/i.test(msg)
+              ? 'Camera permission is needed to take a photo. Enable it in your device settings.'
+              : 'Couldn’t attach the photo. Please try again.'
+          )
+        }
       }
     } else {
       // Web/desktop fallback: HTML input with capture attribute

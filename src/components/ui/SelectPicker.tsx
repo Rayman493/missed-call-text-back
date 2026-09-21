@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useId, type ReactNode } from 'react'
 import { ChevronDown, X, Check, Search } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
+import { isDomNode } from '@/lib/utils'
 
 export interface SelectOption {
   value: string
@@ -88,10 +89,14 @@ export default function SelectPicker({
     }
   }, [isOpen])
 
-  // Close on outside click (pointerdown covers mouse + touch reliably)
+  // Close on outside click (pointerdown covers mouse + touch reliably).
+  // The dropdown and trigger both live inside pickerRef, so this must only
+  // fire for taps OUTSIDE the picker — closing on an inside pointerdown
+  // unmounts the option before its click can fire and consumes the whole
+  // pointer sequence, silently swallowing the selection.
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+      if (isDomNode(event.target) && pickerRef.current && !pickerRef.current.contains(event.target)) {
         markDropdownDismissed()
         setIsOpen(false)
         setSearchQuery('')

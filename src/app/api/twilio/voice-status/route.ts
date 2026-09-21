@@ -881,7 +881,13 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
   }
 
   // Store canonical conversationId from helper
-  let canonicalConversationId: string | null = null
+  // The baseline conversation is created by the /api/twilio/voice route before
+  // streaming begins and stamped onto call_events.conversation_id. Reusing that
+  // row lets this callback reconcile the call event even when the
+  // ai_call_records row has not landed yet (status callback races ahead of
+  // AI-side persistence) — previously this variable was never assigned and the
+  // call event update + downstream completion flow early-returned.
+  let canonicalConversationId: string | null = callEventForRouting?.conversation_id || null
 
   let lead = null
 

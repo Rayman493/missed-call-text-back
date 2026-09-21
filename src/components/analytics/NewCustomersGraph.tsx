@@ -101,6 +101,18 @@ export default function NewCustomersGraph() {
   const maxValue = data.length > 0 ? Math.max(...data.map(d => d.customers)) : 0
   const yTicks = getIntegerTicks(maxValue)
 
+  // Responsive bar width. A fixed px barCategoryGap collapses bars to
+  // hairlines once the per-day band drops below the gap (30+ points on
+  // mobile). Scale the gap by point density instead, and pin an explicit
+  // barSize on sparse ranges so short windows render comfortably wide bars.
+  const pointCount = data.length
+  const barSize = pointCount <= 8 ? 32 : pointCount <= 16 ? 20 : undefined
+  const barCategoryGap =
+    pointCount > 60 ? '8%' :
+    pointCount > 31 ? '12%' :
+    pointCount > 16 ? '20%' :
+    CHART_STYLES.categoryGap
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
@@ -149,13 +161,25 @@ export default function NewCustomersGraph() {
           <div
             className="h-[260px] relative"
             onClick={(e) => {
-              if ((e.target as HTMLElement).closest?.('.recharts-bar-rectangle')) return
+              // The chart owns selection via activeTooltipIndex (full-column
+              // hit area — thin bars stay tappable). Clicks on the plot
+              // surface are handled there; only clicks outside it dismiss.
+              if ((e.target as HTMLElement).closest?.('.recharts-surface')) return
               setSelectedDatum(null)
             }}
           >
             <ChartPassiveTouchSurface className="w-full h-full">
               <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data} margin={CHART_STYLES.margin} barGap={CHART_STYLES.barGap} barCategoryGap={CHART_STYLES.categoryGap}>
+                  <BarChart
+                    data={data}
+                    margin={CHART_STYLES.margin}
+                    barGap={CHART_STYLES.barGap}
+                    barCategoryGap={barCategoryGap}
+                    onClick={(state: any) => {
+                      const index = typeof state?.activeTooltipIndex === 'number' ? state.activeTooltipIndex : -1
+                      if (index >= 0 && index < data.length) toggleDatum(index)
+                    }}
+                  >
                     <CartesianGrid
                       strokeDasharray={CHART_STYLES.gridStrokeDasharray}
                       stroke={CHART_STYLES.gridStroke}
@@ -188,9 +212,9 @@ export default function NewCustomersGraph() {
                       dataKey="customers"
                       radius={CHART_STYLES.barRadius}
                       maxBarSize={CHART_STYLES.barMaxSize}
+                      barSize={barSize}
                       minPointSize={3}
                       activeBar={false}
-                      onClick={(_, index) => toggleDatum(index)}
                     >
                       {data.map((entry, index) => (
                         <Cell

@@ -412,11 +412,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   }}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
                     isActive(item)
-                      ? 'text-foreground dark:text-white bg-blue-500/10 dark:bg-blue-500/15'
+                      ? 'text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/15'
                       : 'text-muted-foreground active:text-foreground'
                   }`}
                 >
-                  <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
+                  <Icon className={`w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200 ${isActive(item) ? 'stroke-[2.25]' : ''}`} />
                   <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                     isActive(item) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
@@ -430,11 +430,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
               className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
                 isMoreMenuOpen
-                  ? 'text-foreground dark:text-white bg-blue-500/10 dark:bg-blue-500/15'
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/15'
                   : 'text-muted-foreground active:text-foreground'
               }`}
             >
-                <Settings className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
+                <Settings className={`w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200 ${isMoreMenuOpen ? 'stroke-[2.25]' : ''}`} />
               <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                 isMoreMenuOpen ? 'font-semibold' : ''
               }`}>More</span>

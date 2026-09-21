@@ -36,7 +36,11 @@ export async function POST(request: NextRequest) {
   console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_start')
   try {
     const body = await request.json()
-    const { paymentIntentId: initialPaymentIntentId, terminalAttemptId } = body
+    const { paymentIntentId: initialPaymentIntentId, terminalAttemptId, outcome } = body
+    // 'canceled' is only a hint that the user intentionally canceled the
+    // attempt. It can never downgrade a succeeded PI — the succeeded case
+    // runs before this is consulted.
+    const userCanceled = outcome === 'canceled'
 
     // Support terminalAttemptId-only recovery for legacy unresolved markers
     const isTerminalAttemptIdOnly = !initialPaymentIntentId && terminalAttemptId && typeof terminalAttemptId === 'string'
@@ -462,6 +466,38 @@ export async function POST(request: NextRequest) {
             status: 'cancelled',
             paymentRequestId: paymentRequest.id,
           })
+        }
+
+        // User-initiated cancel: the PI sits at requires_payment_method
+        // because the native collect sheet was dismissed, not because the
+        // card failed. Cancel the PI server-side (best effort) and record
+        // 'cancelled' so history does not show a misleading 'Failed'.
+        if (userCanceled) {
+          try {
+            await stripe.paymentIntents.cancel(
+              paymentIntentId,
+              {},
+              { stripeAccount: trustedStripeAccountId }
+            )
+            console.log('[TERMINAL_RECONCILIATION] stage=pi_canceled_on_user_cancel payment_intent_id=' + paymentIntentId)
+          } catch (cancelError) {
+            console.warn('[TERMINAL_RECONCILIATION] stage=pi_cancel_nonfatal reason=' + (cancelError instanceof Error ? cancelError.message : 'unknown'))
+          }
+
+          if (paymentRequest.status === 'pending' || paymentRequest.status === 'processing' || paymentRequest.status === 'draft') {
+            const cancelValidation = validateStateTransition(paymentRequest.status, 'cancelled')
+            if (cancelValidation.allowed) {
+              await supabaseAdmin
+                .from('payment_requests')
+                .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+                .eq('id', paymentRequest.id)
+              console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete status=cancelled reason=user_canceled')
+              return NextResponse.json({
+                status: 'cancelled',
+                paymentRequestId: paymentRequest.id,
+              })
+            }
+          }
         }
 
         const failedValidation = validateStateTransition(paymentRequest.status, 'failed')

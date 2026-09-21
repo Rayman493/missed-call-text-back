@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, Pause, Loader2, AlertCircle, VolumeX, Volume1, Volume2 } from 'lucide-react'
 import { volumeManager } from '@/lib/volume-manager'
+import { isDomNode } from '@/lib/utils'
 
 interface PersonalVoicemailPlayerProps {
   voicemailId: string
@@ -93,10 +94,11 @@ export function PersonalVoicemailPlayer({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
+        isDomNode(event.target) &&
         volumePopoverRef.current &&
-        !volumePopoverRef.current.contains(event.target as Node) &&
+        !volumePopoverRef.current.contains(event.target) &&
         volumeButtonRef.current &&
-        !volumeButtonRef.current.contains(event.target as Node)
+        !volumeButtonRef.current.contains(event.target)
       ) {
         setIsVolumePopoverOpen(false)
       }
@@ -427,7 +429,7 @@ export function PersonalVoicemailPlayer({
               onTouchEnd={handleSeekEnd}
               onPointerDown={handleSeekFromPointer}
               disabled={playerState === 'loading'}
-              className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"
+              className="w-full h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200 touch-action-pan-y [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:-mt-[3px] [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:shadow-md"
               style={{
                 background: `linear-gradient(to right, #2563eb ${progress}%, #e2e8f0 ${progress}%)`,
               }}

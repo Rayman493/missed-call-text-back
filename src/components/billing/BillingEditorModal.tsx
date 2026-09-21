@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, Trash2, Search, User, X, Loader2, Eye, CalendarDays, AlertCircle } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, isDomNode } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import DocumentRenderer from './DocumentRenderer'
 import { DocumentPresentation } from '@/lib/billing/document-presentation'
@@ -215,7 +215,7 @@ export default function BillingEditorModal({
   useEffect(() => {
     if (!showCustomerPicker) return
     const handlePointerDown = (e: PointerEvent) => {
-      if (customerFieldRef.current && !customerFieldRef.current.contains(e.target as Node)) {
+      if (isDomNode(e.target) && customerFieldRef.current && !customerFieldRef.current.contains(e.target)) {
         setShowCustomerPicker(false)
         setCustomerSearch('')
       }

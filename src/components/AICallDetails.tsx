@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, capitalizeFirstAlpha } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, Pencil, MapPin, Calendar, Phone, Clock, Info } from 'lucide-react'
+import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, Pencil, MapPin, Clock, Info, FileText } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { CallTranscriptCard } from '@/components/CallTranscriptCard'
@@ -294,7 +294,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Pencil className="w-4 h-4 text-muted-foreground" />
+                <FileText className="w-4 h-4 text-muted-foreground" />
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Details</span>
               </div>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
@@ -381,7 +381,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Desired Completion</span>
               </div>
               {manualFields.has('desiredCompletionTime') && !isEditMode && (
@@ -409,7 +409,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-muted-foreground" />
+                <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Preferred Callback</span>
               </div>
               {manualFields.has('preferredCallbackTime') && !isEditMode && (

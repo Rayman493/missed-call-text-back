@@ -8,6 +8,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Notification, resolveNotificationSubject } from '@/lib/notifications'
 import { generateCanonicalRequestTitle, validateRequestTitle } from '@/lib/ai-intake-formatter'
+import { isDomNode } from '@/lib/utils'
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 import { getNotificationIcon, getNotificationColor, getNotificationDotColor } from '@/lib/notification-icons'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -109,7 +110,7 @@ export default function NavbarNotifications() {
     if (!isOpen) return
 
     const handlePointerDownOutside = (event: PointerEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (isDomNode(event.target) && dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         markDropdownDismissed()
         setIsOpen(false)
       }

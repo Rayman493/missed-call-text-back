@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
+import { isDomNode } from '@/lib/utils'
 
 export interface DropdownOption {
   value: string
@@ -43,7 +44,7 @@ export default function Dropdown({
     if (!isOpen) return
 
     const handlePointerDownOutside = (event: PointerEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (isDomNode(event.target) && dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         markDropdownDismissed()
         setIsOpen(false)
       }
