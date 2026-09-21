@@ -12,16 +12,30 @@ export interface PaymentLinkResult {
 }
 
 /**
+ * Normalize a payment-provider username to its bare form (no leading @).
+ * Trims whitespace and removes ALL leading @ characters so 'user', '@user',
+ * and '@@user' all normalize to 'user'. Returns null for empty input.
+ */
+export function normalizeProviderHandle(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.trim().replace(/^@+/, '');
+  return normalized || null;
+}
+
+/**
+ * Canonical display form of a provider handle: exactly one leading @ when
+ * non-empty ('@user'), empty string for empty input. Never produces '@@'.
+ */
+export function canonicalProviderHandle(value: string | null | undefined): string {
+  const normalized = normalizeProviderHandle(value);
+  return normalized ? `@${normalized}` : '';
+}
+
+/**
  * Normalize Venmo username by removing @ prefix if present
  */
 export function normalizeVenmoUsername(username: string | null | undefined): string | null {
-  if (!username) return null;
-  
-  // Remove @ prefix if present
-  const normalized = username.trim().replace(/^@/, '');
-  
-  // Return null if empty after normalization
-  return normalized || null;
+  return normalizeProviderHandle(username);
 }
 
 /**
@@ -64,7 +78,7 @@ export function generateVenmoLink(
  */
 export function normalizePaypalUsername(value: string | null | undefined): string | null {
   if (!value) return null;
-  const normalized = value.trim().replace(/^@/, '');
+  const normalized = value.trim().replace(/^@+/, '');
   if (!normalized) return null;
   try {
     const url = new URL(normalized.startsWith('http') ? normalized : `https://${normalized}`);

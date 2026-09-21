@@ -26,6 +26,18 @@ export function attachmentSizeHelperText(): string {
   return `Images up to ${MAX_IMAGE_SIZE / 1024 / 1024} MB • PDFs/CSV/videos up to ${MAX_DOCUMENT_SIZE / 1024} KB • ${MAX_ATTACHMENTS} files total`
 }
 
+/**
+ * Scannable per-line limits for the attachment action sheet.
+ * Derived from the canonical constants — never hardcode these numbers in UI.
+ */
+export function attachmentLimitLines(): string[] {
+  return [
+    `Photos: up to ${MAX_IMAGE_SIZE / 1024 / 1024} MB`,
+    `Files & videos: up to ${MAX_DOCUMENT_SIZE / 1024} KB each`,
+    `Up to ${MAX_ATTACHMENTS} attachments`,
+  ]
+}
+
 export function maxSizeForMimeType(mimeType: string): number {
   if (SUPPORTED_DOCUMENT_TYPES.includes(mimeType) || SUPPORTED_VIDEO_TYPES.includes(mimeType)) {
     return MAX_DOCUMENT_SIZE

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { requireBusinessOwner } from '@/lib/team-access'
+import { requireBusinessOwner, MAX_PENDING_TEAM_INVITES_PER_BUSINESS } from '@/lib/team-access'
 import {
   generateInviteToken,
   hashInviteToken,
@@ -68,6 +68,32 @@ export async function POST(request: Request) {
       .update({ status: 'expired' })
       .eq('id', existingPending.id)
       .eq('status', 'pending')
+  }
+
+  // Safety ceiling: actionable pending invites only (not accepted/cancelled/
+  // expired). Checked BEFORE token generation and SMS so a blocked invite
+  // never consumes send budget or produces a dead link.
+  const { count: pendingCount, error: countError } = await supabaseAdmin
+    .from('team_invites')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', businessId)
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString())
+
+  if (countError) {
+    console.error('[TEAM INVITE] pending count failed:', countError)
+    return NextResponse.json({ error: 'Failed to create invite' }, { status: 500 })
+  }
+
+  if ((pendingCount ?? 0) >= MAX_PENDING_TEAM_INVITES_PER_BUSINESS) {
+    return NextResponse.json(
+      {
+        error:
+          'This business has reached the current pending invitation limit. Remove an old invitation or contact support if you need more.',
+        code: 'TEAM_INVITE_LIMIT_REACHED',
+      },
+      { status: 409 }
+    )
   }
 
   const token = generateInviteToken()

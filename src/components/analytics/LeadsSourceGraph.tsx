@@ -251,7 +251,8 @@ export default function LeadsSourceGraph() {
                       <Cell
                         key={`cell-${index}`}
                         fill={entry.color}
-                        className="[&:focus]:outline-none"
+                        fillOpacity={activeSlice ? (activeSlice.name === entry.name ? 1 : 0.55) : 1}
+                        className="[&:focus]:outline-none transition-opacity duration-200"
                       />
                     ))}
                   </Pie>

@@ -21,12 +21,14 @@ export const EARLY_COMPLETION_PATTERNS = [
  * Only match when temporal language clearly expresses contact/availability preference
  */
 export const EARLY_CALLBACK_PATTERNS = [
-  /(?:best time|good time|prefer)\s+(?:to|at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
-  /(?:call me|call back|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:best time|good time|prefer)\s+(?:to|at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)\b([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:call me|call back|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night|today|tomorrow)\b([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
   /(?:i'm|i am)\s+(?:available|free)\s+(?:anytime|morning|afternoon|evening|night|after \d+|before \d+|between \d+ and \d+)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
-  /(?:anytime|morning|afternoon|evening|night)s?\s+(?:are|work|is)\s+(?:best|good|fine|ok)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
-  /(?:morning|afternoon|evening|night)s?\s+(?:would|will|'d|'ll)\s+(?:be\s+)?(?:best|good|fine|ok|easier|easiest|prefer(?:red)?)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
-  /(?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  // "ok" must be word-bounded so it does not match inside "okay" and leave a
+  // mid-word capture ("ay, but ...") as the extracted callback value.
+  /(?:anytime|morning|afternoon|evening|night)s?\s+(?:are|work|is)\s+(?:best|good|fine|ok(?:ay)?)\b([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:morning|afternoon|evening|night)s?\s+(?:would|will|'d|'ll)\s+(?:be\s+)?(?:best|good|fine|ok(?:ay)?|easier|easiest|prefer(?:red)?)\b([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
+  /(?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)\b([^.!?]*?(?=\s+if you\s+|[.!?]|$))/i,
 ];
 
 /**

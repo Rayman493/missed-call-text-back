@@ -188,6 +188,7 @@ export default function NewCustomersGraph() {
                       dataKey="customers"
                       radius={CHART_STYLES.barRadius}
                       maxBarSize={CHART_STYLES.barMaxSize}
+                      minPointSize={3}
                       activeBar={false}
                       onClick={(_, index) => toggleDatum(index)}
                     >

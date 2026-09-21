@@ -7,6 +7,7 @@
 import Twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 import { isSystemPhoneNumber } from './twilio-assignment';
+import { isTransientError, normalizeErrorField } from './twilio-error-utils';
 import { getExistingAssignment, getAllBusinessAssignments } from './twilio-assignment-helper';
 
 const MIN_AVAILABLE_WARM_NUMBERS = parseInt(process.env.WARM_INVENTORY_TARGET || '3', 10); // Warm buffer target
@@ -1669,35 +1670,8 @@ export async function recycleTwilioNumberToInventoryPostDeletion(
   }
 }
 
-/**
- * Check if an error is transient and should be retried
- */
-function isTransientError(error: any): boolean {
-  if (!error) return false;
-
-  const errorMessage = error.message?.toLowerCase() || '';
-  const errorCode = error.code?.toLowerCase() || '';
-
-  // Network-related transient errors
-  if (errorMessage.includes('fetch failed')) return true;
-  if (errorMessage.includes('und_err_socket')) return true;
-  if (errorMessage.includes('econnreset')) return true;
-  if (errorMessage.includes('connection reset')) return true;
-  if (errorMessage.includes('connection closed')) return true;
-  if (errorMessage.includes('timeout')) return true;
-  if (errorMessage.includes('etimedout')) return true;
-  if (errorMessage.includes('enotfound')) return true;
-  if (errorMessage.includes('econnrefused')) return true;
-  if (errorMessage.includes('network')) return true;
-
-  // Specific error codes
-  if (errorCode.includes('5')) return true; // 5xx server errors
-  if (errorCode === '503') return true;
-  if (errorCode === '502') return true;
-  if (errorCode === '504') return true;
-
-  return false;
-}
+// isTransientError / normalizeErrorField now live in ./twilio-error-utils
+// (imported at top) — Twilio `code` may be numeric, never assume string.
 
 /**
  * Sleep for a specified duration
@@ -1723,7 +1697,9 @@ async function retryWithBackoff<T>(
     } catch (error: any) {
       lastError = error.message || String(error);
 
-      console.error(`[RETRY] Attempt ${attempt}/${maxAttempts} failed:`, lastError);
+      const normalizedCode = normalizeErrorField(error?.code) || 'none';
+      const normalizedMessage = normalizeErrorField(error?.message) || lastError;
+      console.error(`[RETRY] Attempt ${attempt}/${maxAttempts} failed:`, lastError, `(code: ${normalizedCode}, message: ${normalizedMessage})`);
 
       // Don't retry non-transient errors
       if (!isTransientError(error)) {

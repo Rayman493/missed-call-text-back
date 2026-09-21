@@ -16,6 +16,7 @@ import Footer from '@/components/Footer'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
+import NoBusinessAccess from '@/components/NoBusinessAccess'
 
 const supabase = createBrowserClient()
 
@@ -25,6 +26,7 @@ export default function OnboardingPage() {
   const { refreshBusiness } = useBusiness()
   const [user, setUser] = useState<any>(null)
   const [checkingBusiness, setCheckingBusiness] = useState(true)
+  const [noAccess, setNoAccess] = useState(false)
   const [error, setError] = useState('')
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
@@ -119,6 +121,14 @@ export default function OnboardingPage() {
         .limit(1)
         .maybeSingle()
 
+      // Removed team member: invited-member account with no membership must
+      // never enter new-owner onboarding (which would offer business creation).
+      if (!existingMembership && user.user_metadata?.invited_member === true) {
+        setCheckingBusiness(false)
+        setNoAccess(true)
+        return
+      }
+
       let existingBusiness: any = null
       let existingError: any = null
       if (existingMembership) {
@@ -202,6 +212,11 @@ export default function OnboardingPage() {
 
     getUser()
   }, [router])
+
+  // Removed team member: authenticated but no accessible business.
+  if (noAccess) {
+    return <NoBusinessAccess />
+  }
 
   // Show setup error if env vars are missing
   if (!supabase) {

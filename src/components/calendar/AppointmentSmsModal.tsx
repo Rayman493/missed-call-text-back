@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface AppointmentSmsModalProps {
   isOpen: boolean
@@ -16,6 +18,9 @@ export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMe
   const [message, setMessage] = useState(initialMessage)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useBodyScrollLock(isOpen, 'AppointmentSmsModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

@@ -19,7 +19,22 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null)
   const [hasValidRecoverySession, setHasValidRecoverySession] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const router = useRouter()
+
+  // User-triggered post-reset navigation: tear down the recovery session,
+  // then go to sign-in. No auto-redirect — the success state stays until
+  // the user explicitly continues.
+  const handleSignInAgain = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    try {
+      await supabase.auth.signOut()
+    } catch (signOutError) {
+      console.error('Sign out error:', signOutError)
+    }
+    router.push('/auth?mode=signin')
+  }
 
   // Check for valid reset session on mount and listen for auth state changes
   useEffect(() => {
@@ -199,23 +214,9 @@ export default function ResetPasswordPage() {
         return
       }
 
-      // Success - show success message and redirect
+      // Success — stable success state; session teardown happens on CTA press.
       setSuccess(true)
-      
-      // Optionally sign out user after password update
-      setTimeout(async () => {
-        try {
-          await supabase.auth.signOut()
-        } catch (signOutError) {
-          console.error('Sign out error:', signOutError)
-        }
-        
-        // Redirect to login after 1-2 seconds
-        setTimeout(() => {
-          router.push('/auth?mode=signin')
-        }, 1000)
-      }, 1500)
-      
+
     } catch (err) {
       console.error('Password reset unexpected error:', err)
       setError('An unexpected error occurred. Please try again.')
@@ -281,14 +282,14 @@ export default function ResetPasswordPage() {
             <div className="space-y-3">
               <Link
                 href="/forgot-password"
-                className="block w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold text-center"
+                className="flex items-center justify-center w-full h-12 bg-blue-600 text-white px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold"
               >
                 Request new reset link
               </Link>
               
               <Link
                 href="/auth?mode=signin"
-                className="block w-full h-12 bg-slate-700 text-white py-2 px-4 rounded-xl hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold text-center"
+                className="flex items-center justify-center w-full h-12 bg-slate-700 text-white px-4 rounded-xl hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold"
               >
                 Back to sign in
               </Link>
@@ -335,16 +336,17 @@ export default function ResetPasswordPage() {
                 Your password has been updated
               </h2>
               <p className="text-slate-400 mb-8">
-                Redirecting you to sign in with your new password...
+                You can now sign in with your new password.
               </p>
             </div>
 
-            <Link
-              href="/auth?mode=signin"
-              className="block w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold text-center"
+            <button
+              onClick={handleSignInAgain}
+              disabled={signingOut}
+              className="w-full h-12 bg-blue-600 text-white px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold flex items-center justify-center disabled:opacity-50"
             >
-              Sign in with new password
-            </Link>
+              {signingOut ? 'Signing out…' : 'Sign in again'}
+            </button>
           </div>
         </div>
         <Footer />

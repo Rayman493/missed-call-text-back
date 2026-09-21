@@ -16,6 +16,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export type BusinessRole = 'owner' | 'member'
 
+export {
+  MAX_TEAM_MEMBERS_PER_BUSINESS,
+  MAX_PENDING_TEAM_INVITES_PER_BUSINESS,
+} from '@/lib/team-limits'
+
 export interface MembershipRecord {
   id: string
   business_id: string
@@ -23,12 +28,21 @@ export interface MembershipRecord {
   role: BusinessRole
   invited_by: string | null
   created_at: string
+  /**
+   * Post-launch sparse permission overrides (see team-permissions.ts).
+   * Column added by 20261003000000 migration; intentionally NOT selected
+   * below until that migration is applied in production — selecting a
+   * missing column would break all access resolution.
+   */
+  permissions?: unknown
 }
 
 export interface BusinessAccess {
   business: any
   role: BusinessRole
   membershipId: string
+  /** Reserved for post-launch permission checks (undefined until enabled). */
+  permissions?: unknown
 }
 
 /**

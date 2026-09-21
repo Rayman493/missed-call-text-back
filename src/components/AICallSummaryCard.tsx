@@ -210,7 +210,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
           <h3 className="text-sm font-semibold text-foreground">AI Intake Summary</h3>
         </div>
         {aiCallRecord.outcome && (
-          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getOutcomeStatus(aiCallRecord.outcome).color}`}>
+          <span className={`inline-flex items-center justify-center h-6 px-2.5 rounded-full text-xs font-medium leading-none whitespace-nowrap ${getOutcomeStatus(aiCallRecord.outcome).color}`}>
             {getOutcomeStatus(aiCallRecord.outcome).label}
           </span>
         )}

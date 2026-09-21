@@ -13,6 +13,7 @@ import CheckoutRedirectLoadingScreen from '@/components/CheckoutRedirectLoadingS
 import { NotificationStartupPermission } from '@/components/notifications/NotificationStartupPermission'
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 import { isStripeReturnUrl } from '@/lib/stripe-return'
+import NoBusinessAccess from '@/components/NoBusinessAccess'
 
 export default function BusinessGuard({ children }: { children: React.ReactNode }) {
   const { business, loading, fetchComplete, error: businessError, businessMissingConfirmed } = useBusiness()
@@ -141,6 +142,10 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       // Redirect if no business exists
       if (!business) {
         if (fetchComplete && businessMissingConfirmed) {
+          // Removed team members (invited_member accounts) have no business by
+          // design — they get the intentional no-access screen rendered below,
+          // never the new-owner onboarding flow.
+          if (user?.user_metadata?.invited_member === true) return
           if (hasRedirectedRef.current === pathname) return
 
           if (!session) {
@@ -327,6 +332,24 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   }
 
   if (!business) {
+    // Removed member / invited account with no accessible business: intentional
+    // access-loss state. Fail-closed — no business data rendered.
+    if (initialized && fetchComplete && businessMissingConfirmed && user?.user_metadata?.invited_member === true) {
+      logRouteFlashDebug({
+        source: 'BusinessGuard',
+        pathname,
+        previousPathname: previousPathnameRef.current,
+        authLoading: false,
+        userId: user?.id ?? null,
+        businessId: null,
+        onboardingStatus: null,
+        subscription_status: null,
+        renderBranch: 'no-business-access',
+        reason: 'invited member with confirmed missing membership; rendering access-loss screen',
+      })
+      return <NoBusinessAccess />
+    }
+
     logRouteFlashDebug({
       source: 'BusinessGuard',
       pathname,
@@ -339,7 +362,7 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
       renderBranch: 'onboarding-redirect',
       reason: 'no business after fetch complete; redirecting to onboarding for recovery',
     })
-    
+
     // Redirect to onboarding instead of showing error screen
     // This handles orphan auth users gracefully
     if (hasRedirectedRef.current === pathname) return

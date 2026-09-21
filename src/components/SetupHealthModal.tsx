@@ -4,6 +4,8 @@ import React from 'react'
 import { createPortal } from 'react-dom'
 import { X, Check, AlertTriangle, Clock, Settings, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface SetupHealthModalProps {
   isOpen: boolean
@@ -75,6 +77,9 @@ export default function SetupHealthModal({ isOpen, onClose, setupHealth }: Setup
         return 'bg-slate-800/50 border-slate-700'
     }
   }
+
+  useBodyScrollLock(isOpen, 'SetupHealthModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

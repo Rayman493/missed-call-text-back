@@ -51,6 +51,97 @@ function isUncertaintyNonAnswer(text: string): boolean {
 }
 
 /**
+ * Meta-conversation / channel-check phrases that must never satisfy an intake
+ * field. These are conversational repair utterances directed at the call itself
+ * ("hello, still there?", "can you hear me?"), not answers to the question.
+ *
+ * Matching is anchored/exact-shape only - a longer utterance that embeds a
+ * greeting plus a real answer ("Hello, I need a plumber") is NOT meta.
+ */
+const META_UTTERANCE_PATTERNS = [
+  /^(?:um|uh|so|well|okay|ok|yeah|yes|hi|hey)?[,\s]*hello\b[\s,?!]*$/i,
+  /^(?:hello\b[\s,?!]*)?(?:are\s+you|you)\s+(?:still\s+)?there\b[?.!\s]*$/i,
+  /^hello[,\s]+still\s+there\b[?.!\s]*$/i,
+  /\bstill\s+there\b[?.!\s]*$/i,
+  /\b(?:are\s+you|you)\s+(?:still\s+)?(?:there|listening)\b[?.!\s]*$/i,
+  /\bcan\s+you\s+(?:hear|see)\s+me\b[?.!\s]*$/i,
+  /\b(?:did|do)\s+you\s+(?:hear|get|catch)\s+(?:that|me|what\s+i\s+said)\b[?.!\s]*$/i,
+  /\b(?:could|can)\s+you\s+repeat\s+(?:that|what\s+you\s+said)\b[?.!\s]*$/i,
+  /\bwhat\s+did\s+you\s+say\b[?.!\s]*$/i,
+  /\bi\s+(?:didn'?t|did\s+not|couldn'?t|could\s+not)\s+(?:hear|catch|understand)\s+(?:you|that|what\s+you\s+said)\b[?.!\s]*$/i,
+  /^(?:sorry|pardon|excuse\s+me|what|huh|eh|hmm?|mhm?)[?.!\s]*$/i,
+  /^(?:one\s+)?(?:sec|second|moment|minute)[,.\s]*(?:please)?[?.!\s]*$/i,
+  /\b(?:one\s+second|one\s+sec|hold\s+on|hang\s+on|wait\s+(?:a\s+)?(?:sec|second|moment|minute)|give\s+me\s+a\s+(?:sec|second|moment|minute)|bear\s+with\s+me)\b[?.!\s]*$/i,
+  /\b(?:hold|hang)\s+on\s+(?:a\s+)?(?:sec|second|moment|minute)\b[?.!\s]*$/i,
+  /\bjust\s+a\s+(?:sec|second|moment|minute)\b[?.!\s]*$/i,
+  /\bthat'?s\s+not\s+what\s+i\s+said\b[?.!\s]*$/i,
+  /\bi\s+(?:already\s+)?(?:told|said)\s+you\b[?.!\s]*$/i,
+];
+
+/**
+ * Check whether an utterance is pure meta-conversation (channel check,
+ * filler repair, stalling) with no field-answer content.
+ */
+export function isMetaUtterance(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+  // Longer substantive utterances are not meta even if they contain a greeting.
+  if (trimmed.split(/\s+/).length > 6) return false;
+  return META_UTTERANCE_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+/**
+ * Conversational/function words that carry no field content on their own.
+ * Shared by the name validator (as disqualifiers) and by
+ * isConversationalFragment (a phrase made ONLY of these words is small talk,
+ * not an answer). Deliberately excludes plausible name-words like
+ * will/may/grace/bill/mark.
+ */
+const NON_NAME_WORDS = new Set([
+  'like', 'old', 'times', 'fine', 'whatever', 'works', 'working', 'calling',
+  'hear', 'heard', 'hello', 'there', 'second', 'sec', 'hold', 'on', 'wait',
+  'okay', 'ok', 'yes', 'yeah', 'yep', 'no', 'nope', 'hi', 'hey', 'bye',
+  'thanks', 'thank', 'is', 'are', 'was', 'were', 'just',
+  'can', 'could', 'you', 'me', 'my', 'mine', 'the', 'a', 'an', 'and', 'or',
+  'but', 'so', 'well', 'now', 'here', 'this', 'that', 'these', 'those',
+  'it', 'its', 'what', 'who', 'how', 'when', 'where', 'why', 'still',
+  'yet', 'again', 'please', 'sorry', 'actually', 'really', 'sure', 'know',
+  'think', 'guess', 'maybe', 'perhaps', 'want', 'wanted', 'need', 'needed',
+  'have', 'has', 'had', 'got', 'get', 'getting', 'go', 'going', 'gone',
+  'said', 'say', 'saying', 'told', 'tell', 'ask', 'asked', 'repeat',
+  'understand', 'understood', 'right', 'wrong', 'correct', 'exactly',
+  'uh', 'um', 'hmm', 'oh', 'ah', 'anyway', 'anyways', 'else', 'something',
+  'anything', 'nothing', 'everything', 'someone', 'somebody', 'anyone',
+  'anybody', 'everyone', 'nobody', 'thing', 'things', 'stuff', 'bit',
+  'moment', 'minute', 'see', 'seen', 'listen', 'listening', 'speak',
+  'speaking', 'talk', 'talking', 'back', 'later', 'soon', 'then', 'than',
+  'about', 'around', 'because', 'before', 'after', 'very', 'much', 'many',
+  'good', 'bad', 'great', 'nice', 'fine', 'busy', 'free', 'available',
+  'sounds', 'sound', 'seems', 'seem', 'looks', 'look', 'feel', 'feels',
+  'mean', 'meant', 'matter', 'mind', 'care', 'prefer', 'rather',
+  'to', 'for', 'of', 'in', 'at', 'by', 'with', 'from', 'into', 'onto',
+  'out', 'up', 'down', 'over', 'under', 'off', 'per', 'via',
+  // Contractions with apostrophes stripped ("that's" -> "thats")
+  'thats', 'its', 'im', 'ive', 'ill', 'id', 'dont', 'cant', 'wont', 'didnt',
+  'isnt', 'arent', 'wasnt', 'werent', 'couldnt', 'shouldnt', 'wouldnt',
+  'youd', 'youre', 'youve', 'youll', 'shes', 'hes', 'lets', 'whats', 'heres',
+]);
+
+/**
+ * True when the text is composed entirely of conversational/function words
+ * ("like old times", "that's fine", "can you hear me") — i.e. it carries no
+ * substantive field content. Requires >=2 words so terse single-word answers
+ * keep their existing handling.
+ */
+export function isConversationalFragment(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const words = text.trim().toLowerCase().match(/[\p{L}]+(?:['’\-][\p{L}]+)*/gu);
+  if (!words || words.length < 2) return false;
+  return words.every(w => NON_NAME_WORDS.has(w.replace(/['’\-]/g, '')));
+}
+
+/**
  * Validate service address - reject refusals but accept flexible address formats
  *
  * For onsite service, a plain person name (e.g. "Michael Carter") must NOT
@@ -62,6 +153,8 @@ export function isValidServiceAddress(text: string): boolean {
   if (trimmed.length === 0) return false;
   if (isRefusal(trimmed)) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
+  if (isMetaUtterance(trimmed)) return false;
+  if (isConversationalFragment(trimmed)) return false;
 
   // Reject obvious non-answers
   const nonAnswerPatterns = [
@@ -138,10 +231,12 @@ export function isValidServiceRequest(text: string): boolean {
 
   // Reject clear refusals so they are not stored as real service requests
   if (isRefusal(trimmed)) return false;
+  if (isMetaUtterance(trimmed)) return false;
+  if (isConversationalFragment(trimmed)) return false;
 
   // Reject only truly unusable answers
   const unusableAnswers = [
-    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea', 'not provided', 'not collected'
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
@@ -163,10 +258,12 @@ export function isValidCompletionTime(text: string): boolean {
 
   // Reject clear refusals so they are not stored as real timing values
   if (isRefusal(trimmed)) return false;
+  if (isMetaUtterance(trimmed)) return false;
+  if (isConversationalFragment(trimmed)) return false;
 
   // Reject only truly unusable answers
   const unusableAnswers = [
-    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea', 'not provided', 'not collected'
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
@@ -211,10 +308,12 @@ export function isValidCallbackTime(text: string): boolean {
 
   // Reject clear refusals so they are not stored as real callback preferences
   if (isRefusal(trimmed)) return false;
+  if (isMetaUtterance(trimmed)) return false;
+  if (isConversationalFragment(trimmed)) return false;
 
   // Reject only truly unusable answers
   const unusableAnswers = [
-    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
+    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea', 'not provided', 'not collected'
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
@@ -236,7 +335,13 @@ export function isValidCustomerName(name: string): boolean {
     return false;
   }
 
-  const trimmedName = name.trim().toLowerCase();
+  const trimmed = name.trim();
+  const trimmedName = trimmed.toLowerCase();
+
+  // Reject meta-conversation and uncertainty non-answers
+  if (isMetaUtterance(trimmed) || isUncertaintyNonAnswer(trimmed)) {
+    return false;
+  }
 
   // Reject if too short or too long
   if (trimmedName.length < 2 || trimmedName.length > 50) {
@@ -284,9 +389,19 @@ export function isValidCustomerName(name: string): boolean {
     return false;
   }
 
-  // Check if it's a multi-word phrase that looks like a service description
-  const words = trimmedName.split(/\s+/);
-  if (words.length > 2) {
+  // Structural name check: 1-4 name tokens (supports multi-part names like
+  // "Mary Ann Smith" and "Siobhan O'Connor"), each token letters/apostrophes/
+  // hyphens only, and no conversational/function words ("like old times",
+  // "can you hear me", "that's fine" are rejected here, not by a name list).
+  const words = trimmed.split(/\s+/);
+  if (words.length > 4) {
+    return false;
+  }
+  const nameTokenRe = /^[\p{L}]+(?:['’\-][\p{L}]+)*$/u;
+  if (!words.every(w => nameTokenRe.test(w))) {
+    return false;
+  }
+  if (words.some(w => NON_NAME_WORDS.has(w.toLowerCase().replace(/['’\-]/g, '')))) {
     return false;
   }
 
@@ -407,12 +522,13 @@ export function resolveNextRequiredStage(
   const isOnsite = normalizedMode === 'onsite';
 
   // Check field satisfaction. Explicit refusal flags count as handled for navigation
-  // while leaving the corresponding canonical field empty.
+  // while leaving the corresponding canonical field empty. Scalar fields must pass
+  // their semantic validators so meta/filler values cannot satisfy a stage.
   const hasName = isNameRequirementSatisfied(intake);
-  const hasRequest = Boolean(intake.serviceRequested && intake.serviceRequested.trim().length > 0);
+  const hasRequest = isValidServiceRequest(intake.serviceRequested || '');
   const hasLocation = isUsableServiceAddress(intake) || !!intake.locationRefused;
-  const hasCompletionTime = Boolean(intake.desiredCompletionTime && intake.desiredCompletionTime.trim().length > 0);
-  const hasCallbackTime = Boolean(intake.callbackTime && intake.callbackTime.trim().length > 0);
+  const hasCompletionTime = isValidCompletionTime(intake.desiredCompletionTime || '');
+  const hasCallbackTime = isValidCallbackTime(intake.callbackTime || '');
 
   // Determine location requirement
   const locationSatisfied = isOnsite ? hasLocation : true;

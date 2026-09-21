@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { isPlaceholderValue } from '@/components/payments/customer-search-helpers'
+import { canonicalProviderHandle } from '@/lib/payment-links'
 
 interface PaymentHandoffProps {
   provider: 'venmo' | 'paypal'
@@ -62,9 +63,12 @@ export default function PaymentHandoff({
     </button>
   )
 
-  // Recipient as shown inside each provider's app
-  const venmoRecipient = venmoUsername ? `@${venmoUsername}` : businessName
-  const paypalRecipient = paypalHandle ? `@${paypalHandle}` : businessName
+  // Recipient as shown inside each provider's app — canonicalProviderHandle
+  // strips any @ the stored value already carries so we never render '@@'.
+  const venmoDisplay = canonicalProviderHandle(venmoUsername)
+  const paypalDisplay = canonicalProviderHandle(paypalHandle)
+  const venmoRecipient = venmoDisplay || businessName
+  const paypalRecipient = paypalDisplay || businessName
 
   // How-to-pay steps per provider. These are instructions only — the launch UI
   // intentionally does not open the native app or deep-link out (confirmed
@@ -117,22 +121,22 @@ export default function PaymentHandoff({
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Payment Details</h2>
 
           <div className="space-y-4">
-            {provider === 'venmo' && venmoUsername && (
+            {provider === 'venmo' && venmoDisplay && (
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Recipient</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-900 font-medium">@{venmoUsername}</span>
-                  {copyButton(`@${venmoUsername}`, 'username', 'Copy recipient')}
+                  <span className="text-gray-900 font-medium">{venmoDisplay}</span>
+                  {copyButton(venmoDisplay, 'username', 'Copy recipient')}
                 </div>
               </div>
             )}
 
-            {provider === 'paypal' && paypalHandle && (
+            {provider === 'paypal' && paypalDisplay && (
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">Recipient</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-900 font-medium">@{paypalHandle}</span>
-                  {copyButton(`@${paypalHandle}`, 'recipient', 'Copy recipient')}
+                  <span className="text-gray-900 font-medium">{paypalDisplay}</span>
+                  {copyButton(paypalDisplay, 'recipient', 'Copy recipient')}
                 </div>
               </div>
             )}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -16,9 +16,14 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const lastSentAtRef = useRef(0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Client-side cooldown: one reset email per 60s from this page so rapid
+    // resubmits can't stack Supabase Auth recovery emails.
+    if (Date.now() - lastSentAtRef.current < 60_000) return
+    lastSentAtRef.current = Date.now()
     setLoading(true)
     setError('')
 
@@ -139,7 +144,7 @@ export default function ForgotPasswordPage() {
               <div className="space-y-3">
                 <Link
                   href="/auth"
-                  className="block w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold text-center"
+                  className="flex items-center justify-center w-full h-12 bg-blue-600 text-white px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold"
                 >
                   Back to sign in
                 </Link>
@@ -149,7 +154,7 @@ export default function ForgotPasswordPage() {
                     setSuccess(false)
                     setEmail('')
                   }}
-                  className="block w-full h-12 bg-slate-700 text-white py-2 px-4 rounded-xl hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold"
+                  className="w-full h-12 bg-slate-700 text-white px-4 rounded-xl hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500/30 shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold flex items-center justify-center"
                 >
                   Try another email
                 </button>

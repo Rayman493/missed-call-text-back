@@ -74,7 +74,9 @@ describe('B/C. Venmo/PayPal instruction page (no app launch)', () => {
   })
 
   it('keeps recipient/amount/note copy controls in the details card', () => {
-    expect(handoffSrc).toContain('@{venmoUsername}')
+    // Canonical handle helper — never renders a double-@ recipient.
+    expect(handoffSrc).toContain('canonicalProviderHandle(venmoUsername)')
+    expect(handoffSrc).not.toContain('@{venmoUsername}')
     expect(handoffSrc).toContain("'amount'")
     expect(handoffSrc).toContain('Payment Note')
   })

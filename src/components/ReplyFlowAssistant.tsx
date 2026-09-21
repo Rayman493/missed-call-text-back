@@ -332,7 +332,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
           {onClose && (
             <button
               onClick={onClose}
-              className="absolute right-0 top-0 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0"
+              className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0"
               aria-label="Close ReplyFlow Assistant"
             >
               <X className="w-4 h-4" />

@@ -70,6 +70,7 @@ export async function POST(request: Request) {
       already_accepted: { error: 'This invite was already used by another account. Sign in with the account that accepted it, or ask for a new invite.', status: 409 },
       has_business: { error: 'Your account already owns a business. A business owner cannot join another team.', status: 409 },
       already_in_business: { error: 'Your account already belongs to a business.', status: 409 },
+      member_limit: { error: 'This business has reached its current team member limit. Ask the business owner to contact support.', status: 409 },
     }
     const mapped = map[reason] || { error: 'This invite could not be accepted.', status: 400 }
     return NextResponse.json({ error: mapped.error, code: reason }, { status: mapped.status })

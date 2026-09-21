@@ -58,7 +58,7 @@ export default function InfoBanner({ primary, secondary, message, duration = 500
         prefersReducedMotion
           ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-200/60 dark:border-blue-800/40'
           : isExiting
-            ? 'opacity-0 translate-y-[-4px] bg-blue-50/80 dark:bg-blue-950/40 border-blue-200/60 dark:border-blue-800/40'
+            ? 'opacity-0 pointer-events-none translate-y-[-4px] bg-blue-50/80 dark:bg-blue-950/40 border-blue-200/60 dark:border-blue-800/40'
             : 'opacity-100 translate-y-0 bg-blue-50/90 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/50'
       }`}
       style={!prefersReducedMotion ? {

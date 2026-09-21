@@ -2,6 +2,8 @@
 
 import React from 'react'
 import { X, Copy, CheckCircle2, Phone, AlertCircle, HelpCircle } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface HelpTroubleshootingModalProps {
   isOpen: boolean
@@ -23,6 +25,9 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
       onClose()
     }
   }
+
+  useBodyScrollLock(isOpen, 'HelpTroubleshootingModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

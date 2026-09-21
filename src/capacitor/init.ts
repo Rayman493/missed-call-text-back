@@ -498,7 +498,8 @@ async function handleDeepLink(url: string) {
       const path = urlObj.pathname + urlObj.search + urlObj.hash
       console.log('[UNIVERSAL LINK] Navigating to path:', path)
       console.log('[NAV_SOURCE] source=HANDLE_DEEP_LINK_NAVIGATE destination=' + path)
-      window.location.pathname = path
+      // Assign to href, not pathname: pathname discards ?query and #hash.
+      window.location.href = path
       return
     }
 

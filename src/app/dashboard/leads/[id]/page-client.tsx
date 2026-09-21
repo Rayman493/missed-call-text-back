@@ -453,6 +453,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [highlightedTimelineItemId, setHighlightedTimelineItemId] = useState<string | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
+  // Outer mobile conversation card — its height is measured (not estimated)
+  // against the live visual viewport so the software keyboard cannot squeeze
+  // or hide the composer.
+  const mobileWorkspaceCardRef = useRef<HTMLDivElement>(null)
   const isInitialAutoScrollingRef = useRef(false)
   const initialScrollDoneRef = useRef<string | null>(null)
   // followLatestRef tracks the user's intent to remain at/near the newest message.
@@ -2087,9 +2091,48 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
     updateVisibleHeight(window.visualViewport?.height || window.innerHeight)
 
+    // Size the mobile conversation card to the REAL space between its own top
+    // edge and the bottom of the visual viewport. The previous fixed `7rem`
+    // estimate for the app/customer header overflowed whenever the header
+    // stack was taller (or when Android panned the visual viewport, which adds
+    // offsetTop), so the keyboard squeezed the card and pushed the composer
+    // below the visible area. Measuring keeps the composer visible without
+    // hiding any context permanently.
+    const updateMobileCardHeight = () => {
+      const card = mobileWorkspaceCardRef.current
+      if (!card || typeof document === 'undefined') return
+      const vv = window.visualViewport
+      const visibleBottom = (vv?.height ?? window.innerHeight) + (vv?.offsetTop ?? 0)
+      const navHeight = parseFloat(
+        getComputedStyle(document.body).getPropertyValue('--bottom-nav-height')
+      ) || 0
+      // getBoundingClientRect is already in layout-viewport coordinates;
+      // visibleBottom converts the visual viewport into the same space.
+      const cardTop = card.getBoundingClientRect().top
+      const available = visibleBottom - cardTop - navHeight - 8
+      card.style.height = `${Math.max(220, available)}px`
+    }
+    // Defer one frame so layout settles after vv changes, plus a second pass
+    // covering the native bottom-nav hide/show var update that races the
+    // keyboard animation.
+    const scheduleMobileCardHeight = () => {
+      updateMobileCardHeight()
+      requestAnimationFrame(updateMobileCardHeight)
+      setTimeout(updateMobileCardHeight, 300)
+    }
+    scheduleMobileCardHeight()
+
+    // The native keyboard-open path hides the bottom nav by mutating
+    // --bottom-nav-height on <body> — re-measure when that inline style changes.
+    const navVarObserver = typeof MutationObserver !== 'undefined'
+      ? new MutationObserver(scheduleMobileCardHeight)
+      : null
+    navVarObserver?.observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] })
+
     const handleResize = () => {
       const currentHeight = window.visualViewport?.height || window.innerHeight
       updateVisibleHeight(currentHeight)
+      scheduleMobileCardHeight()
       logConversationScroll('visual-viewport-resize', { nextViewportHeight: currentHeight })
 
       // Re-anchor to the true bottom on any viewport/keyboard/window resize
@@ -2125,12 +2168,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // true bottom on those offset changes too — same deterministic write,
       // gated on the user's follow intent.
       const handleViewportScroll = () => {
+        scheduleMobileCardHeight()
         logConversationScroll('visual-viewport-scroll')
         reconcileConversationBottom('visual-viewport-scroll')
       }
       window.visualViewport.addEventListener('scroll', handleViewportScroll)
       return () => {
         containerObserver?.disconnect()
+        navVarObserver?.disconnect()
         window.visualViewport?.removeEventListener('resize', handleResize)
         window.visualViewport?.removeEventListener('scroll', handleViewportScroll)
         // Prevent the CSS variable from leaking after this conversation page
@@ -2138,15 +2183,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         if (typeof document !== 'undefined') {
           document.documentElement.style.removeProperty('--visual-viewport-height')
         }
+        if (mobileWorkspaceCardRef.current) {
+          mobileWorkspaceCardRef.current.style.height = ''
+        }
       }
     } else {
       // Fallback to window resize
       window.addEventListener('resize', handleResize)
       return () => {
         containerObserver?.disconnect()
+        navVarObserver?.disconnect()
         window.removeEventListener('resize', handleResize)
         if (typeof document !== 'undefined') {
           document.documentElement.style.removeProperty('--visual-viewport-height')
+        }
+        if (mobileWorkspaceCardRef.current) {
+          mobileWorkspaceCardRef.current.style.height = ''
         }
       }
     }
@@ -3251,6 +3303,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const handleOnline = () => handleReconnectionSignal('window-online')
     window.addEventListener('online', handleOnline)
 
+    // Re-authenticate the realtime websocket when Supabase rotates the access
+    // token. setAuth is applied once at subscribe time; without this, an
+    // expired JWT makes postgres_changes RLS silently drop every event while
+    // the channel still reports SUBSCRIBED — the historical "SUBSCRIBED but
+    // zero events" failure that required a manual refresh to recover from.
+    const { data: { subscription: realtimeAuthSubscription } } = supabase.auth.onAuthStateChange(
+      (event: string, session: any) => {
+        if (!session?.access_token) return
+        if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN') return
+        Promise.resolve((supabase as any).realtime.setAuth(session.access_token))
+          .then(() => logRealtimeSms('realtime-setauth-refresh', { channelName, event }))
+          .catch(() => {})
+      }
+    )
+
     // Foreground self-heal: when the page returns to the foreground (window
     // focus or visibilitychange back to visible), reconcile silently once and
     // re-arm the channel if it died while backgrounded. `focus` and
@@ -3342,6 +3409,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         clearInterval(stuckMessageCheckIntervalRef.current)
         stuckMessageCheckIntervalRef.current = null
       }
+      realtimeAuthSubscription.unsubscribe()
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('focus', handleWindowFocus)
       document.removeEventListener('visibilitychange', handleVisibilitySync)
@@ -5924,7 +5992,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
           <div className="px-4 sm:px-5 space-y-3 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(var(--visual-viewport-height,100dvh)-7rem-var(--bottom-nav-height,72px))]">
+          <div ref={mobileWorkspaceCardRef} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(var(--visual-viewport-height,100dvh)-7rem-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -7726,7 +7794,7 @@ If you have questions, reply to this message.`
 
     {/* Full-screen Conversation Overlay */}
     {isFullScreen && typeof document !== 'undefined' && createPortal(
-      <div className="fixed inset-0 z-[999] flex items-center justify-center bg-background animate-in fade-in duration-200 p-4 sm:p-8" role="dialog" aria-modal="true" aria-label="Full screen conversation">
+      <div className="fixed top-0 left-0 right-0 z-[999] flex items-center justify-center bg-background animate-in fade-in duration-200 p-4 sm:p-8" style={{ height: 'var(--visual-viewport-height, 100dvh)' }} role="dialog" aria-modal="true" aria-label="Full screen conversation">
         {/* Side depth layer - radial gradients for environmental depth */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-primary/5 via-transparent to-transparent"></div>

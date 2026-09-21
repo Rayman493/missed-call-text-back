@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { X, Calendar, Clock, Plus } from 'lucide-react'
 import { openExternalLink } from '@/lib/external-link'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface DayDetailModalProps {
   isOpen: boolean
@@ -20,6 +22,9 @@ interface DayDetailModalProps {
 
 export default function DayDetailModal({ isOpen, onClose, date, events, onAddEvent }: DayDetailModalProps) {
   const [isAdding, setIsAdding] = useState(false)
+
+  useBodyScrollLock(isOpen, 'DayDetailModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

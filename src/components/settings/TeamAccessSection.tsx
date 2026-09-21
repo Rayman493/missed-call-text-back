@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
+import { MAX_PENDING_TEAM_INVITES_PER_BUSINESS } from '@/lib/team-limits'
 
 type MemberEntry = {
   membership_id: string
@@ -57,6 +58,9 @@ export default function TeamAccessSection() {
       if (!token) throw new Error('Not signed in')
       return fetch(url, {
         ...init,
+        // Never serve a cached team list — a removed member must stay removed
+        // on refresh (Android WebView can otherwise reuse a stale GET body).
+        cache: 'no-store',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -191,7 +195,10 @@ export default function TeamAccessSection() {
 
   if (role !== 'owner') return null
 
-  const pendingInvites = (team?.invites || []).filter((i) => i.status === 'pending')
+  const pendingInvites = (team?.invites || []).filter(
+    (i) => i.status === 'pending' && new Date(i.expires_at) > new Date()
+  )
+  const pendingLimitReached = pendingInvites.length >= MAX_PENDING_TEAM_INVITES_PER_BUSINESS
   const pastInvites = (team?.invites || []).filter((i) => i.status !== 'pending')
 
   return (
@@ -343,28 +350,37 @@ export default function TeamAccessSection() {
           ))}
 
           {/* Invite form */}
-          <form onSubmit={handleInvite} className="pt-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="tel"
-                value={invitePhone}
-                onChange={(e) => setInvitePhone(e.target.value)}
-                placeholder="Mobile phone number"
-                required
-                className="flex-1 h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              />
-              <button
-                type="submit"
-                disabled={inviting || !invitePhone.trim()}
-                className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] text-sm disabled:opacity-50"
-              >
-                {inviting ? 'Sending…' : 'Invite Team Member'}
-              </button>
+          {pendingLimitReached ? (
+            <div className="pt-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Pending invitation limit reached</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                You currently have {pendingInvites.length} pending invitations. Revoke an old invitation or contact support if you need more.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              We'll text them a secure link to join. The link expires in 7 days.
-            </p>
-          </form>
+          ) : (
+            <form onSubmit={handleInvite} className="pt-2">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="tel"
+                  value={invitePhone}
+                  onChange={(e) => setInvitePhone(e.target.value)}
+                  placeholder="Mobile phone number"
+                  required
+                  className="flex-1 h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+                <button
+                  type="submit"
+                  disabled={inviting || !invitePhone.trim()}
+                  className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] text-sm disabled:opacity-50"
+                >
+                  {inviting ? 'Sending…' : 'Invite Team Member'}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                We'll text them a secure link to join. The link expires in 7 days.
+              </p>
+            </form>
+          )}
         </div>
       )}
     </div>

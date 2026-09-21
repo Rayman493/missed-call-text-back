@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { hasActiveAccess } from '@/lib/subscription-utils'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { 
   hasValidSubscription,
   getSubscriptionStatusText,
@@ -25,6 +27,9 @@ interface SetupChecklistItem {
 export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: TestSetupModalProps) {
   const { business, refreshBusiness } = useBusiness()
   const [isCompleting, setIsCompleting] = useState(false)
+
+  useBodyScrollLock(isOpen, 'TestSetupModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

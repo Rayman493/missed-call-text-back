@@ -88,7 +88,7 @@ import {
 } from './lib/timing-policy';
 import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
 import { EARLY_COMPLETION_PATTERNS, EARLY_CALLBACK_PATTERNS } from './early-timing-patterns';
-import { enrichIntakeFromTranscript, hasUsableLocation, isNameRefusal, isLocationRefusal, detectCorrectionIntent } from './intake-skip-ahead';
+import { enrichIntakeFromTranscript, hasUsableLocation, isNameRefusal, isLocationRefusal, detectCorrectionIntent, extractExplicitNameCorrection, extractCompletionTimeCandidate, extractCallbackTimeCandidate, splitServiceAndDetails } from './intake-skip-ahead';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -131,7 +131,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
-import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isUsableServiceAddress } from './intake-validation';
+import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isValidCustomerName as isCanonicalCustomerName, isUsableServiceAddress, isMetaUtterance, isValidCompletionTime, isValidCallbackTime, isValidServiceRequest, isValidServiceAddress } from './intake-validation';
 
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
@@ -1567,10 +1567,10 @@ function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: 
   // This matches the canonical semantics: ask_request collects required reason + optional details
   const allCollected = !!(
     isNameRequirementSatisfied(intake) &&
-    intake.serviceRequested &&
+    isValidServiceRequest(intake.serviceRequested || intake.request || '') &&
     (requiresServiceAddress ? isUsableServiceAddress(intake) : true) &&
-    intake.desiredCompletionTime &&
-    intake.callbackTime
+    isValidCompletionTime(intake.desiredCompletionTime || '') &&
+    isValidCallbackTime(intake.callbackTime || '')
   );
   console.log('[REQUIRED FIELDS CHECK] =========================================');
   console.log('[REQUIRED FIELDS CHECK] serviceLocationType:', serviceLocationType);
@@ -2271,22 +2271,6 @@ function isRefusal(text: string): boolean {
 /**
  * Validate service address - reject refusals but accept flexible address formats
  */
-function isValidServiceAddress(text: string): boolean {
-  if (!text || typeof text !== 'string') return false;
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return false;
-  if (isRefusal(trimmed)) return false;
-
-  // Reject obvious non-answers
-  const nonAnswerPatterns = [
-    /^(i don't know|i dont know|not sure|no idea|unknown)$/i,
-    /^(i don't have the address|i dont have the address|no address)$/i
-  ];
-  if (nonAnswerPatterns.some(pattern => pattern.test(trimmed))) return false;
-
-  return true;
-}
-
 /**
  * Validate service address for EARLY extraction with higher confidence threshold.
  * This is used when opportunistically extracting location from answers to OTHER questions.
@@ -2331,64 +2315,23 @@ function isConfidentEarlyServiceAddress(text: string, patternType: 'explicit' | 
 }
 
 /**
- * Validate service request - reject only truly unusable answers
- * Issue description (additional details) is optional and handled separately
+ * Loose check that a sentence actually states a service request or problem —
+ * used by parser fallbacks so conversational fragments ("Like old times",
+ * "I said X is my name") are never stored as the service request.
+ * Matches explicit intent verbs, "my/the X is/stopped/won't" problem
+ * statements, or any known service noun/action.
  */
-function isValidServiceRequest(text: string): boolean {
-  if (!text || typeof text !== 'string') return false;
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return false;
-
-  // Reject clear refusals so they are not stored as real service requests
-  if (isRefusal(trimmed)) return false;
-
-  // Reject only truly unusable answers
-  const unusableAnswers = [
-    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
-  ];
-  if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
-
-  return true;
-}
-
-/**
- * Validate desired completion time - accept flexible timing expressions
- */
-function isValidCompletionTime(text: string): boolean {
-  if (!text || typeof text !== 'string') return false;
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return false;
-
-  // Reject clear refusals so they are not stored as real timing values
-  if (isRefusal(trimmed)) return false;
-
-  // Reject only truly unusable answers
-  const unusableAnswers = [
-    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
-  ];
-  if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
-
-  return true;
-}
-
-/**
- * Validate callback time - accept flexible callback preferences
- */
-function isValidCallbackTime(text: string): boolean {
-  if (!text || typeof text !== 'string') return false;
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return false;
-
-  // Reject clear refusals so they are not stored as real callback preferences
-  if (isRefusal(trimmed)) return false;
-
-  // Reject only truly unusable answers
-  const unusableAnswers = [
-    '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea'
-  ];
-  if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
-
-  return true;
+function looksLikeServiceStatement(sentence: string): boolean {
+  const t = (sentence || '').trim().toLowerCase();
+  if (t.length < 3) return false;
+  // Explicit intent / call framing
+  if (/\b(?:i\s+(?:need|want|would\s+like)|i'?d\s+like|i'?m\s+(?:calling|looking|trying)|i\s+am\s+(?:calling|looking)|calling\s+(?:about|because)|looking\s+(?:for|to)|need\s+some(?:one|body)|trying\s+to\s+(?:get|find)|get\s+my)\b/.test(t)) return true;
+  // Problem statement: "my sink is leaking", "the furnace stopped working"
+  if (/\b(?:my|the|our)\s+[a-z' -]+?\s+(?:is|has|have|was|keeps?|stopped|won'?t|wont|doesn'?t|dont|isn'?t|isnt)\b/.test(t)) return true;
+  // Service nouns or action verbs
+  if (/\b(?:need|want|repair|repaired|fix|fixed|install|installed|replace|replaced|remove|removed|clean|cleaned|cut|mow|mowed|paint|painted|patch|patched|service|serviced|inspect|inspected|check|haul|unclog|leak|leaking|broke|broken|snapped|clogged|stopped\s+working|not\s+working|no\s+power|no\s+heat)\b/.test(t)) return true;
+  if (/\b(?:sink|toilet|tub|faucet|shower|pipe|drain|roof|gutter|fence|gate|lock|door|window|floor|wall|ceiling|garage|lawn|grass|yard|tree|ac|a\/c|heater|heating|furnace|boiler|hvac|air\s+conditioner|electrical|electric|outlet|switch|wire|wiring|light|bulb|appliance|machine|washer|dryer|dishwasher|fridge|refrigerator|oven|stove|water\s+heater|thermostat|sump\s+pump|basement|carpet|tile|siding|deck|driveway|plumb\w*|electrician|plumber|handyman|contractor|exterminator|pest)\b/.test(t)) return true;
+  return false;
 }
 
 /**
@@ -3862,25 +3805,9 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   if (intake.stage === 'ask_name_reason') {
     // Validation functions (matching the merge logic in storeStageCapture)
     const isValidCustomerName = (name: string): boolean => {
-      if (!name || typeof name !== 'string') return false;
-      const trimmed = name.trim();
-      // Reject if too long (likely full sentence)
-      if (trimmed.length > 50) return false;
-      // Reject if contains service-request language
-      const servicePhrases = [
-        "i'm calling because",
-        "i am calling because",
-        "i need",
-        "calling about",
-        "looking for",
-        "i want to",
-        "i would like"
-      ];
-      const lowerName = trimmed.toLowerCase();
-      if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
-      // Reject if contains problem description patterns
-      if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
-      return true;
+      // Delegate to the canonical structural validator so conversational
+      // phrases ("like old times") can never be stored as a customer name.
+      return isCanonicalCustomerName(name);
     };
 
     const isValidServiceRequested = (service: string): boolean => {
@@ -4912,8 +4839,32 @@ export async function buildCanonicalExtractedInfo(
 
   if (hasExplicitService) {
     // Trust the canonical fields. Do not let the original raw request transcript overwrite a correction.
-    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', explicitService);
-    importantDetails = sanitizeEnglishIntakeField('importantDetails', rawImportantDetails);
+    // Split a multi-sentence explicit service into a concise reason plus
+    // supporting details so persisted/pill values stay concise while no
+    // volunteered fact is dropped.
+    const serviceSplit = splitServiceAndDetails(explicitService);
+    const conciseService = serviceSplit.details && serviceSplit.reason
+      ? serviceSplit.reason
+      : explicitService;
+    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', conciseService);
+    // Merge service-split details ahead of any captured details (deduped).
+    let mergedDetails = rawImportantDetails;
+    if (serviceSplit.details) {
+      const existing = (rawImportantDetails || '').trim();
+      const existingLower = existing.toLowerCase().replace(/[.,;!?]+$/, '');
+      const newDetail = serviceSplit.details.trim().replace(/[.,;!?]+$/, '');
+      if (!existing || existingLower !== newDetail.toLowerCase()) {
+        mergedDetails = existing
+          ? (existing.toLowerCase().includes(newDetail.toLowerCase()) ? existing : `${existing.replace(/[.,;!?]+$/, '')}. ${newDetail}`)
+          : newDetail;
+      }
+      console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+      console.log('[CANONICAL REQUEST DIAGNOSTIC] event: service_details_split');
+      console.log('[CANONICAL REQUEST DIAGNOSTIC] conciseService:', conciseService);
+      console.log('[CANONICAL REQUEST DIAGNOSTIC] mergedDetails:', mergedDetails);
+      console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+    }
+    importantDetails = sanitizeEnglishIntakeField('importantDetails', mergedDetails);
   } else if (rawRequestText.trim() !== '') {
     // No explicit canonical service - perform model-based semantic extraction from the raw text
     const semanticExtraction = await extractRequestTitleAndDetailsWithModel(rawRequestText, callSid || 'unknown');
@@ -5013,10 +4964,10 @@ function isAIIntakeComplete(extractedFields: any): boolean {
     customerName: extractedFields.customerName,
     nameRefused: extractedFields.nameRefused
   });
-  const hasRequest = !!extractedFields.serviceRequested || !!extractedFields.request || !!extractedFields.issueDescription;
-  const hasLocation = !!extractedFields.serviceAddress || !!extractedFields.locationRefused;
-  const hasDesiredCompletionTime = !!extractedFields.desiredCompletionTime || !!extractedFields.desiredCompletion;
-  const hasCallbackTime = !!extractedFields.callbackTime;
+  const hasRequest = isValidServiceRequest(extractedFields.serviceRequested || extractedFields.request || extractedFields.issueDescription || '');
+  const hasLocation = isValidServiceAddress(extractedFields.serviceAddress || '') || !!extractedFields.locationRefused;
+  const hasDesiredCompletionTime = isValidCompletionTime(extractedFields.desiredCompletionTime || extractedFields.desiredCompletion || '');
+  const hasCallbackTime = isValidCallbackTime(extractedFields.callbackTime || '');
 
   const isComplete = hasName && hasRequest && hasLocation && hasDesiredCompletionTime && hasCallbackTime;
 
@@ -7385,6 +7336,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     let parserRuleMatched = 'none';
     let parseNameAndServiceCalled = false;
 
+    // Meta-conversation guard: channel checks and conversational repair
+    // utterances must never mutate intake fields, regardless of which entry
+    // path reached this store (settle window, queued transcript, etc.).
+    if (isMetaUtterance(rawTranscript)) {
+      console.log('[INTAKE META REJECTION] =========================================');
+      console.log('[INTAKE META REJECTION] stage:', stage);
+      console.log('[INTAKE META REJECTION] rawTranscript:', rawTranscript);
+      console.log('[INTAKE META REJECTION] action: reprompt_current_stage_no_field_mutation');
+      console.log('[INTAKE META REJECTION] Timestamp:', new Date().toISOString());
+      console.log('[INTAKE META REJECTION] =========================================');
+      state.answerAcceptedForStage = null; // Ensure current stage is re-prompted
+      return null;
+    }
+
     // Lenient validation for service when name is already valid
     // Allows service text that may include the caller's name (e.g., repeated full sentences)
     const isValidServiceRequestedLenient = (service: string): boolean => {
@@ -7685,15 +7650,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         if (!name || typeof name !== 'string') return false;
         const trimmed = name.trim();
         if (isNonAnswer(trimmed)) return false;
-        if (trimmed.length > 50) return false;
-        const servicePhrases = [
-          "i'm calling because", "i am calling because", "i need",
-          "calling about", "looking for", "i want to", "i would like"
-        ];
-        const lowerName = trimmed.toLowerCase();
-        if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
-        if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
-        return true;
+        return isCanonicalCustomerName(trimmed);
       };
 
       const isValidServiceRequested = (service: string): boolean => {
@@ -7768,12 +7725,28 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
       // Fallback: No valid data
       else {
-        console.log('[ASK_NAME FALLBACK: NO VALID DATA] =========================================');
-        console.log('[ASK_NAME FALLBACK: NO VALID DATA] action: stay_in_name_stage');
-        console.log('[ASK_NAME FALLBACK: NO VALID DATA] Timestamp:', new Date().toISOString());
-        console.log('[ASK_NAME FALLBACK: NO VALID DATA] =========================================');
-        state.answerAcceptedForStage = null; // Force re-prompt
-        return null;
+        // Last resort: explicit self-identification correction ("I said
+        // Michael Turner is my name") produces a valid name even when the
+        // generic parser rejected the conversational wrapper.
+        const explicitName = extractExplicitNameCorrection(rawTranscript, { allowNameIntro: true });
+        if (explicitName) {
+          console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] =========================================');
+          console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] extractedName:', explicitName);
+          console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] action: capture_name_and_proceed');
+          console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] Timestamp:', new Date().toISOString());
+          console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] =========================================');
+          state.intakeData.customerName = explicitName;
+          state.intakeData.nameRefused = false;
+          capturedAnswer = explicitName;
+          extractedField = 'customerName';
+        } else {
+          console.log('[ASK_NAME FALLBACK: NO VALID DATA] =========================================');
+          console.log('[ASK_NAME FALLBACK: NO VALID DATA] action: stay_in_name_stage');
+          console.log('[ASK_NAME FALLBACK: NO VALID DATA] Timestamp:', new Date().toISOString());
+          console.log('[ASK_NAME FALLBACK: NO VALID DATA] =========================================');
+          state.answerAcceptedForStage = null; // Force re-prompt
+          return null;
+        }
       }
     }
     // Special handling for ask_name_reason: parse name and service from combined response
@@ -8220,14 +8193,27 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
         // Final fallback: if still no service, try sentence splitting
         if (!serviceRequested && remainingText.length > 0) {
-          const sentences = remainingText.split(/\.(?:\s+|$)/).filter(s => s.trim());
-          if (sentences.length > 0) {
-            // Use the first remaining sentence as service
-            const serviceFromSentence = stripServicePrefix(sentences[0].trim()).replace(/[.,;]\s*$/, '');
-            if (serviceFromSentence && serviceFromSentence !== customerName) {
-              serviceRequested = serviceFromSentence;
-              parserRuleMatched = 'sentence_split';
+          // Name-correction/self-identification prose must never become the
+          // service request ("I said Michael Turner is my name").
+          const isNameCorrectionProse = !!extractExplicitNameCorrection(trimmed, { allowNameIntro: true })
+            || /\bi\s+(?:said|told\s+you|already\s+(?:said|told\s+you))\b/i.test(trimmed)
+            || /\bmy\s+name\s+is\b/i.test(trimmed);
+          if (!isNameCorrectionProse) {
+            const sentences = remainingText.split(/\.(?:\s+|$)/).filter(s => s.trim());
+            if (sentences.length > 0) {
+              // Use the first remaining sentence as service, but only when it
+              // actually reads like a service/problem statement — conversational
+              // fragments ("Like old times") must never satisfy the request field.
+              const serviceFromSentence = stripServicePrefix(sentences[0].trim()).replace(/[.,;]\s*$/, '');
+              if (serviceFromSentence && serviceFromSentence !== customerName && looksLikeServiceStatement(serviceFromSentence)) {
+                serviceRequested = serviceFromSentence;
+                parserRuleMatched = 'sentence_split';
+              } else if (serviceFromSentence && !looksLikeServiceStatement(serviceFromSentence)) {
+                console.log('[PARSER SENTENCE SPLIT SUPPRESSED] not_a_service_statement:', serviceFromSentence);
+              }
             }
+          } else {
+            console.log('[PARSER SENTENCE SPLIT SUPPRESSED] name_correction_prose:', trimmed);
           }
         }
 
@@ -8265,23 +8251,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           return false;
         }
 
-        // Reject if too long (likely full sentence)
-        if (trimmed.length > 50) return false;
-        // Reject if contains service-request language
-        const servicePhrases = [
-          "i'm calling because",
-          "i am calling because",
-          "i need",
-          "calling about",
-          "looking for",
-          "i want to",
-          "i would like"
-        ];
-        const lowerName = trimmed.toLowerCase();
-        if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
-        // Reject if contains problem description patterns
-        if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
-        return true;
+        // Delegate to the canonical structural validator so conversational
+        // phrases ("like old times") can never be stored as a customer name.
+        return isCanonicalCustomerName(trimmed);
       };
 
       // Validation: Reject obviously invalid serviceRequested values
@@ -8639,6 +8611,30 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         }
       }
       state.intakeData[extractedField] = capturedAnswer;
+    }
+
+    // Explicit name self-identification always wins over a stale/bad name,
+    // regardless of which merge branch or raw-write path ran above.
+    // ("I said Michael Turner is my name" must replace "Like old times".)
+    // Weak intro forms ("it's X") are only accepted at name-collecting stages so
+    // phrases like "it's urgent" cannot clobber the name on a later stage.
+    const isNameStageForCorrection = ['ask_name', 'ask_name_reason'].includes(stage);
+    const explicitNameCorrection = extractExplicitNameCorrection(rawTranscript, { allowNameIntro: isNameStageForCorrection });
+    if (explicitNameCorrection && explicitNameCorrection !== state.intakeData.customerName) {
+      const previousName = state.intakeData.customerName || '';
+      console.log('[INTAKE CORRECTION] =========================================');
+      console.log('[INTAKE CORRECTION] field:', 'customerName');
+      console.log('[INTAKE CORRECTION] action:', 'replace');
+      console.log('[INTAKE CORRECTION] reason:', 'explicit_self_identification');
+      console.log('[INTAKE CORRECTION] oldValue:', previousName);
+      console.log('[INTAKE CORRECTION] newValue:', explicitNameCorrection);
+      console.log('[INTAKE CORRECTION] Timestamp:', new Date().toISOString());
+      console.log('[INTAKE CORRECTION] =========================================');
+      state.intakeData.customerName = explicitNameCorrection;
+      state.intakeData.nameRefused = false;
+      if (extractedField === 'customerName') {
+        capturedAnswer = explicitNameCorrection;
+      }
     }
 
     const capture = {
@@ -9689,14 +9685,27 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       // Final fallback: if still no service, try sentence splitting
       if (!serviceRequested && remainingText.length > 0) {
-        const sentences = remainingText.split(/\.(?:\s+|$)/).filter(s => s.trim());
-        if (sentences.length > 0) {
-          // Use the first remaining sentence as service
-          const serviceFromSentence = stripServicePrefix(sentences[0].trim()).replace(/[.,;]\s*$/, '');
-          if (serviceFromSentence && serviceFromSentence !== customerName) {
-            serviceRequested = serviceFromSentence;
-            parserRuleMatched = 'sentence_split';
+        // Name-correction/self-identification prose must never become the
+        // service request ("I said Michael Turner is my name").
+        const isNameCorrectionProse = !!extractExplicitNameCorrection(trimmed, { allowNameIntro: true })
+          || /\bi\s+(?:said|told\s+you|already\s+(?:said|told\s+you))\b/i.test(trimmed)
+          || /\bmy\s+name\s+is\b/i.test(trimmed);
+        if (!isNameCorrectionProse) {
+          const sentences = remainingText.split(/\.(?:\s+|$)/).filter(s => s.trim());
+          if (sentences.length > 0) {
+            // Use the first remaining sentence as service, but only when it
+            // actually reads like a service/problem statement — conversational
+            // fragments ("Like old times") must never satisfy the request field.
+            const serviceFromSentence = stripServicePrefix(sentences[0].trim()).replace(/[.,;]\s*$/, '');
+            if (serviceFromSentence && serviceFromSentence !== customerName && looksLikeServiceStatement(serviceFromSentence)) {
+              serviceRequested = serviceFromSentence;
+              parserRuleMatched = 'sentence_split';
+            } else if (serviceFromSentence && !looksLikeServiceStatement(serviceFromSentence)) {
+              console.log('[PARSER SENTENCE SPLIT SUPPRESSED] not_a_service_statement:', serviceFromSentence);
+            }
           }
+        } else {
+          console.log('[PARSER SENTENCE SPLIT SUPPRESSED] name_correction_prose:', trimmed);
         }
       }
 
@@ -9830,15 +9839,25 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return titleWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     };
 
+    // Capitalize the first alphabetic character of a displayed value without
+    // altering the rest of the string (preserves acronyms, brand casing,
+    // interior capitalization). Presentation-only - does not mutate intake data.
+    const capitalizeDisplayValue = (value: string): string => {
+      if (!value || value === 'Not collected') return value;
+      const idx = value.search(/[\p{L}]/u);
+      if (idx === -1) return value;
+      return value.slice(0, idx) + value.charAt(idx).toUpperCase() + value.slice(idx + 1);
+    };
+
     // Helper function to format AI intake summary (used by SMS and dashboard)
     const formatAiIntakeSummary = (intakeData: any, callerPhone: string, businessName?: string): string => {
-      const customerName = sanitizeEnglishIntakeField('customerName', intakeData.customerName || '') || 'Not collected';
-      const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', intakeData.serviceRequested || '') || 'Not collected';
+      const customerName = capitalizeDisplayValue(sanitizeEnglishIntakeField('customerName', intakeData.customerName || '') || 'Not collected');
+      const serviceRequested = capitalizeDisplayValue(sanitizeEnglishIntakeField('serviceRequested', intakeData.serviceRequested || '') || 'Not collected');
       const canonicalRequest = generateCanonicalTitle(serviceRequested);
-      const serviceAddress = sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '') || 'Not collected';
-      const desiredCompletionTime = sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '') || 'Not collected';
-      const callbackTime = sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '') || 'Not collected';
-      const issueDescription = sanitizeEnglishIntakeField('additionalDetails', intakeData.issueDescription || '') || 'Not collected';
+      const serviceAddress = capitalizeDisplayValue(sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '') || 'Not collected');
+      const desiredCompletionTime = capitalizeDisplayValue(sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '') || 'Not collected');
+      const callbackTime = capitalizeDisplayValue(sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '') || 'Not collected');
+      const issueDescription = capitalizeDisplayValue(sanitizeEnglishIntakeField('additionalDetails', intakeData.issueDescription || '') || 'Not collected');
 
       const displayName = businessName || 'us';
 
@@ -9901,25 +9920,10 @@ Reply to this message if you'd like to update or add any information.
 
       // COMPLETION STAGE VALIDATION: Check if existing values are valid before overwriting
       const isValidCustomerName = (name: string): boolean => {
-        if (!name || typeof name !== 'string') return false;
-        const trimmed = name.trim();
-        // Reject if too long (likely full sentence)
-        if (trimmed.length > 50) return false;
-        // Reject if contains service-request language
-        const servicePhrases = [
-          "i'm calling because",
-          "i am calling because",
-          "i need",
-          "calling about",
-          "looking for",
-          "i want to",
-          "i would like"
-        ];
-        const lowerName = trimmed.toLowerCase();
-        if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
-        // Reject if contains problem description patterns
-        if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
-        return true;
+        // Delegate to the canonical structural validator so a previously
+        // captured conversational phrase is treated as invalid and can be
+        // repaired/overwritten by a real name.
+        return isCanonicalCustomerName(name);
       };
 
       const isValidServiceRequested = (service: string): boolean => {
@@ -10766,6 +10770,13 @@ Reply to this message if you'd like to update or add any information.
   const validateStageAnswer = (stage: string, transcript: string, existingIntakeData?: typeof state.intakeData): { accepted: boolean; rejectionReason?: string } => {
     const trimmed = transcript.trim().toLowerCase();
 
+    // Meta-conversation / channel-check utterances never satisfy any intake
+    // stage. Rejection keeps the caller on the current stage (no persistence,
+    // no advancement) so the same question is re-asked.
+    if (isMetaUtterance(transcript)) {
+      return { accepted: false, rejectionReason: 'meta_utterance' };
+    }
+
     // Helper to check if text is filler-only
     const isFillerOnly = (text: string): boolean => {
       const fillerWords = ['yeah', 'yep', 'yes', 'uh', 'um', 'okay', 'ok', 'alright', 'sure', 'fine', 'sorry', 'well', 'so', 'hold on', 'one second', 'let me think', 'a minute'];
@@ -10805,8 +10816,22 @@ Reply to this message if you'd like to update or add any information.
         if (isFillerOnly(trimmed)) {
           return { accepted: false, rejectionReason: 'filler_only' };
         }
-        // Accept if it has name content or is at least 2 characters
-        if (hasNameContent(trimmed) || trimmed.length >= 2) {
+        // A name refusal is a valid answer - handled downstream as refusal state.
+        if (isNameRefusal(transcript)) {
+          return { accepted: true };
+        }
+        // Reject uncertainty/non-answer phrases before the name-content probe
+        // so "I'm not sure" cannot pass via the "i'm" indicator.
+        if (isNonAnswer(trimmed)) {
+          return { accepted: false, rejectionReason: 'non_answer' };
+        }
+        // Accept only a structurally valid name candidate or an extractable
+        // name introduction; conversational text ("like old times") reprompts.
+        if (
+          isCanonicalCustomerName(trimmed) ||
+          extractExplicitNameCorrection(transcript, { allowNameIntro: true }) ||
+          hasNameContent(trimmed)
+        ) {
           return { accepted: true };
         }
         return { accepted: false, rejectionReason: 'no_name_content' };
@@ -10889,6 +10914,11 @@ Reply to this message if you'd like to update or add any information.
         if (isFillerOnly(trimmed)) {
           return { accepted: false, rejectionReason: 'filler_only' };
         }
+        // Explicit location refusal is a valid answer - the store path marks
+        // locationRefused so the stage resolves instead of reprompting forever.
+        if (isLocationRefusal(transcript) || isRefusal(transcript)) {
+          return { accepted: true };
+        }
         // Reject clearly incomplete fragments
         if (isIncomplete(trimmed)) {
           return { accepted: false, rejectionReason: 'incomplete' };
@@ -10909,8 +10939,11 @@ Reply to this message if you'd like to update or add any information.
         if (isIncomplete(trimmed)) {
           return { accepted: false, rejectionReason: 'incomplete_timing' };
         }
-        // Reject refusals and unusable answers so they are not stored as real timing values
-        if (!isValidCompletionTime(transcript)) {
+        // Reject refusals and unusable answers so they are not stored as real timing values.
+        // An utterance that fails raw validation may still carry an extractable
+        // timing preference ("I'm not sure. Whenever you have availability is
+        // fine.") — accept when semantic extraction can resolve one.
+        if (!isValidCompletionTime(transcript) && !extractCompletionTimeCandidate(transcript)) {
           return { accepted: false, rejectionReason: 'invalid_completion_time' };
         }
         // Accept meaningful timing expressions, including vague/flexible timing.
@@ -10941,8 +10974,10 @@ Reply to this message if you'd like to update or add any information.
         if (isFillerOnly(trimmed)) {
           return { accepted: false, rejectionReason: 'filler_only' };
         }
-        // Reject refusals and unusable answers so they are not stored as real callback preferences
-        if (!isValidCallbackTime(transcript)) {
+        // Reject refusals and unusable answers so they are not stored as real
+        // callback preferences. An utterance that fails raw validation may
+        // still carry an extractable callback preference.
+        if (!isValidCallbackTime(transcript) && !extractCallbackTimeCandidate(transcript)) {
           return { accepted: false, rejectionReason: 'invalid_callback_time' };
         }
         // Accept any meaningful response for callback time

@@ -740,16 +740,23 @@ export default function SchedulePage() {
       const supabase = createBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
-      if (!token) return
+      if (!token) {
+        showToast('Failed to delete reminder', 'error')
+        return
+      }
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
-      if (!response.ok) return
+      if (!response.ok) {
+        showToast('Failed to delete reminder', 'error')
+        return
+      }
       setTasks(prev => prev.filter(t => t.id !== taskId))
       setTaskRefreshTrigger(prev => prev + 1)
     } catch (error) {
       console.error('[Schedule] Failed to delete task:', error)
+      showToast('Failed to delete reminder', 'error')
     }
   }, [])
 

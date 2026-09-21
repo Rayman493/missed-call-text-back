@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { X, Search, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import PickerListRow from '@/components/ui/PickerListRow'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import type { JobPrefill } from './JobComposer'
 
@@ -58,6 +60,12 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
+
+  // Shared modal contract: scroll lock sets data-modal-open/data-chrome-covered
+  // so app header + bottom nav hide behind this overlay; Android Back closes it.
+  useBodyScrollLock(isOpen, 'LeadPickerModal')
+  useModalBackButton({ isOpen, onClose })
+
   useEffect(() => {
     if (!isOpen) return
     setQuery('')

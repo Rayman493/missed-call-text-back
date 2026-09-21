@@ -2,6 +2,8 @@
 
 import { Smartphone, X } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface BusinessPhoneModalProps {
   isOpen: boolean
@@ -33,6 +35,9 @@ export default function BusinessPhoneModal({
   const isNativeMobile = () => {
     return Capacitor.isNativePlatform()
   }
+
+  useBodyScrollLock(isOpen, 'BusinessPhoneModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

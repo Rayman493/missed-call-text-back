@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 import { X, Phone, Copy, Check, Loader2, ArrowRight, MessageSquare, User, Sparkles } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 type TestStep = 'intro' | 'testing' | 'success'
 
@@ -58,6 +60,9 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
       setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  useBodyScrollLock(isOpen, 'TestReplyFlowModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

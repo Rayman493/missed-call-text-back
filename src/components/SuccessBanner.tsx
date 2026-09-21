@@ -58,7 +58,7 @@ export default function SuccessBanner({ primary, secondary, message, duration = 
         prefersReducedMotion
           ? 'bg-green-50/80 dark:bg-green-950/40 border-green-200/60 dark:border-green-800/40'
           : isExiting
-            ? 'opacity-0 translate-y-[-4px] bg-green-50/80 dark:bg-green-950/40 border-green-200/60 dark:border-green-800/40'
+            ? 'opacity-0 pointer-events-none translate-y-[-4px] bg-green-50/80 dark:bg-green-950/40 border-green-200/60 dark:border-green-800/40'
             : 'opacity-100 translate-y-0 bg-green-50/90 dark:bg-green-950/50 border-green-200 dark:border-green-800/50'
       }`}
       style={!prefersReducedMotion ? {

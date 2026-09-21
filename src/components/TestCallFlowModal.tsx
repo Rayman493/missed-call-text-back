@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Business } from '@/lib/types'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface TestCallFlowModalProps {
   isOpen: boolean
@@ -12,6 +14,9 @@ interface TestCallFlowModalProps {
 
 export default function TestCallFlowModal({ isOpen, onClose, business, onTestCompleted }: TestCallFlowModalProps) {
   const [testCompleted, setTestCompleted] = useState(false)
+
+  useBodyScrollLock(isOpen, 'TestCallFlowModal')
+  useModalBackButton({ isOpen, onClose })
 
   if (!isOpen) return null
 

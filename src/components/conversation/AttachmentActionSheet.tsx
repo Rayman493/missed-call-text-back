@@ -2,10 +2,10 @@
 
 import React, { useRef, useCallback, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
-import { Camera, Image as ImageIcon, FileText } from 'lucide-react'
+import { Camera, Image as ImageIcon, FileText, X } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { Camera as CapacitorCamera } from '@capacitor/camera'
-import { FILE_ACCEPT, attachmentSizeHelperText } from '@/lib/mms-constants'
+import { FILE_ACCEPT, attachmentLimitLines } from '@/lib/mms-constants'
 
 /**
  * AttachmentActionSheet — Premium paperclip action surface
@@ -233,12 +233,27 @@ export default function AttachmentActionSheet({
         bottomSheetOnMobile
       >
         <div className="py-2">
-          <p className="text-xs text-muted-foreground font-medium mb-1 px-1">
-            Attach to message
-          </p>
-          <p className="text-[10px] text-muted-foreground/70 mb-3 px-1">
-            {attachmentSizeHelperText()}
-          </p>
+          <div className="flex items-center justify-between gap-2 mb-1 px-1">
+            <p className="text-xs text-muted-foreground font-medium">
+              Attach to message
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 -my-1.5 -mr-1 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              aria-label="Close attachment options"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mb-3 px-1">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70 mb-0.5">File limits</p>
+            {attachmentLimitLines().map((line) => (
+              <p key={line} className="text-[11px] text-muted-foreground/70 leading-snug">
+                {line}
+              </p>
+            ))}
+          </div>
           <div className="space-y-1">
             <button
               type="button"

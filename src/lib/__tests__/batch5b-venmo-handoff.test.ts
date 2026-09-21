@@ -44,8 +44,12 @@ describe('Venmo/PayPal handoff — instruction page (no app launch)', () => {
   })
 
   it('keeps recipient, amount, and note visible and copyable', () => {
-    expect(handoffSrc).toContain('@{venmoUsername}')
-    expect(handoffSrc).toContain('paypal.me/{paypalHandle}')
+    // Recipient renders through the canonical handle helper so a stored value
+    // that already carries @ can never produce a double-@ display.
+    expect(handoffSrc).toContain('canonicalProviderHandle(venmoUsername)')
+    expect(handoffSrc).toContain('canonicalProviderHandle(paypalHandle)')
+    expect(handoffSrc).not.toContain('@{venmoUsername}')
+    expect(handoffSrc).not.toContain('@{paypalHandle}')
     expect(handoffSrc).toContain("'amount'")
     expect(handoffSrc).toContain('Payment Note')
     expect(handoffSrc).toContain("'note'")

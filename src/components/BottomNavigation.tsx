@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useTheme } from 'next-themes'
 import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink, Sun, Moon, Monitor, HelpCircle, Mail, ReceiptText } from 'lucide-react'
-import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
+import { primaryNavItems, accountMenuItems, type NavItem } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
@@ -235,12 +235,18 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
   // Reconcile pendingHref: once the actual pathname matches the pending
   // destination, clear the pending state so the active highlight is
-  // driven by the real pathname going forward. This prevents the
-  // pending state from getting stuck if navigation fails.
+  // driven by the real pathname going forward. A bounded timeout covers
+  // the failure/redirect case where pathname never equals pendingHref —
+  // without it the pending tab would stay highlighted forever alongside
+  // the real active tab.
   useEffect(() => {
-    if (pendingHref && pathname === pendingHref) {
+    if (!pendingHref) return
+    if (pathname === pendingHref) {
       setPendingHref(null)
+      return
     }
+    const timeout = setTimeout(() => setPendingHref(null), 1500)
+    return () => clearTimeout(timeout)
   }, [pathname, pendingHref])
 
   // Clear pendingHref when the nav is hidden (e.g. modal opened during
@@ -284,21 +290,22 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     }
   }, [hideNav, isMoreMenuOpen])
 
-  const isActive = (href: string) => {
+  const isActive = (item: NavItem) => {
     // When More menu is open, don't highlight any nav items (only More button should be active)
     if (isMoreMenuOpen) {
       return false
     }
-    // Pending destination provides immediate visual feedback on tap
-    // before pathname updates. If the user tapped this tab, highlight it
-    // immediately even if the route hasn't completed yet.
-    if (pendingHref === href) {
-      return true
+    // Pending destination provides immediate visual feedback on tap before
+    // pathname updates. While a tap is in flight it is the SINGLE active
+    // source — falling through to pathname here previously highlighted both
+    // the tapped tab and the still-current tab simultaneously.
+    if (pendingHref) {
+      return pendingHref === item.href
     }
-    if (href === '/dashboard') {
-      return pathname === '/dashboard'
-    }
-    return pathname?.startsWith(href)
+    // Canonical per-item resolver from navigation-config (same source the
+    // desktop nav uses) — exact/prefix matching is defined there, so
+    // overlapping paths can never double-highlight.
+    return item.isActive ? item.isActive(pathname ?? '') : pathname === item.href
   }
 
   const handleLogout = async () => {
@@ -404,14 +411,14 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                     })
                   }}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-colors duration-150 ${
-                    isActive(item.href)
+                    isActive(item)
                       ? 'text-foreground dark:text-white bg-blue-500/10 dark:bg-blue-500/15'
                       : 'text-muted-foreground active:text-foreground'
                   }`}
                 >
                   <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
                   <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
-                    isActive(item.href) ? 'font-semibold' : ''
+                    isActive(item) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
                 </Link>
               )

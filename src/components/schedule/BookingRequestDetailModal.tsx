@@ -359,9 +359,13 @@ export default function BookingRequestDetailModal({
                     <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Phone</p>
-                      <a href={`tel:${detail.customer_phone}`} className="font-medium text-foreground hover:text-primary-600">
-                        {formatPhoneNumber(detail.customer_phone)}
-                      </a>
+                      {detail.customer_phone ? (
+                        <a href={`tel:${detail.customer_phone}`} className="font-medium text-foreground hover:text-primary-600">
+                          {formatPhoneNumber(detail.customer_phone)}
+                        </a>
+                      ) : (
+                        <p className="font-medium text-muted-foreground">No phone on file</p>
+                      )}
                     </div>
                   </div>
                   {detail.customer_email && (

@@ -27,7 +27,7 @@ import { Capacitor } from '@capacitor/core'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
-import { normalizePaypalUsername } from '@/lib/payment-links'
+import { normalizePaypalUsername, normalizeVenmoUsername, canonicalProviderHandle } from '@/lib/payment-links'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import Navigation from '@/components/Navigation'
 import PageBackground from '@/components/PageBackground'
@@ -483,6 +483,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   // Handle Tap to Pay enablement from Settings
   const handleEnableTapToPay = async () => {
+    // Owner-level Stripe Terminal enablement — members cannot trigger it.
+    if (role !== 'owner') {
+      console.log('[SettingsContent] Tap to Pay enable skipped: non-owner role', role)
+      return
+    }
     // Guard against duplicate concurrent attempts
     if (isEnablingTapToPay) {
       console.log('[SettingsContent] Enablement already in progress, ignoring duplicate request')
@@ -642,7 +647,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       const isIOS = platform === 'ios'
       const isNative = Capacitor.isNativePlatform()
 
-      if (!isNative || !isIOS || !isSupported) {
+      // Tap to Pay enablement rides on the owner's Stripe Connect account —
+      // members must not trigger Terminal init / linkage checks.
+      if (!isNative || !isIOS || !isSupported || role !== 'owner') {
         setAppleAccountLinkageState({ status: 'unavailable', isLoading: false })
         return
       }
@@ -670,7 +677,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     }
 
     checkAppleAccountLinkage()
-  }, [tapToPayAwareness.state.tapToPaySupportStatus])
+  }, [tapToPayAwareness.state.tapToPaySupportStatus, role])
   
   const handleImportSuccess = (message: string) => {
     fetchIgnoredContacts({ showLoading: false })
@@ -973,7 +980,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         business_hours_timezone: businessData.business_hours_timezone,
         after_hours_message: businessData.after_hours_message || DEFAULT_AFTER_HOURS_MESSAGE,
         automation_settings: automationSettings,
-        venmo_username: businessData.venmo_username,
+        venmo_username: normalizeVenmoUsername(businessData.venmo_username),
         paypal_payment_link: normalizePaypalUsername(businessData.paypal_payment_link)
       }
 
@@ -1063,13 +1070,31 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     try {
       const booking = onlineBookingRef.current
       const wantsBookingSave = booking?.isDirty ?? bookingDirty
-      const wantsBusinessSave = hasUnsavedChanges
+
+      // Commit the live DOM value of the currently focused business field.
+      // Mobile keyboards (autocorrect/predictive text) can defer the final
+      // onChange commit until blur — if Save is tapped while the keyboard is
+      // still open, controlled state may lag the visible text by that last
+      // edit. Reading the input's own value guarantees what is on screen is
+      // what gets persisted, with no blur dependency and no timers.
+      const activeEl = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null
+      const pendingField = activeEl?.dataset?.settingsField as keyof Business | undefined
+      let businessOverride: Business | undefined
+      if (pendingField && formBusiness && typeof activeEl?.value === 'string') {
+        const currentStateValue = (formBusiness[pendingField] as unknown as string | null | undefined) ?? ''
+        if (activeEl.value !== currentStateValue) {
+          businessOverride = { ...formBusiness, [pendingField]: activeEl.value }
+          updateBusiness({ [pendingField]: activeEl.value } as Partial<Business>)
+        }
+      }
+
+      const wantsBusinessSave = hasUnsavedChanges || !!businessOverride
 
       if (wantsBookingSave) setBookingSaving(true)
       setBookingSaveError(null)
 
       const [businessResult, bookingResult] = await Promise.allSettled([
-        wantsBusinessSave ? saveChanges() : Promise.resolve({ ok: true }),
+        wantsBusinessSave ? saveChanges(businessOverride) : Promise.resolve({ ok: true }),
         wantsBookingSave && booking ? booking.save() : Promise.resolve({ ok: true }),
       ])
 
@@ -1094,7 +1119,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     } finally {
       globalSaveInFlightRef.current = false
     }
-  }, [bookingDirty, hasUnsavedChanges, saveChanges])
+  }, [bookingDirty, hasUnsavedChanges, saveChanges, formBusiness, updateBusiness])
 
   const handleGlobalDiscard = useCallback(() => {
     onlineBookingRef.current?.discard()
@@ -1637,6 +1662,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   }, [business, user, supabase.auth, calendarConnected, isLoadingCalendar])
 
   const handleConnectCalendar = async () => {
+    // Business-global integration — connecting would overwrite the owner's
+    // calendar connection, so members must not launch the OAuth flow.
+    if (role !== 'owner') {
+      console.log('[Settings] Calendar connect skipped: non-owner role', role)
+      return
+    }
     // Prevent duplicate concurrent OAuth launches
     if (isConnectingCalendar) {
       console.log('[Settings] Google Calendar connection already in progress, ignoring duplicate tap')
@@ -1737,6 +1768,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   }
 
   const handleDisconnectCalendar = async () => {
+    if (role !== 'owner') {
+      console.log('[Settings] Calendar disconnect skipped: non-owner role', role)
+      return
+    }
     setIsDisconnectingCalendar(true)
     try {
       const response = await fetch('/api/google/calendar/disconnect', {
@@ -1792,6 +1827,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   // Handle Stripe Connect onboarding
   const handleConnectStripe = async () => {
     if (isStripeConnectUnavailable || isConnectingStripe) {
+      return
+    }
+    // Owner-only Stripe management — members never reach this via UI, guard
+    // anyway so a stale/raced call can't hit an owner-guarded endpoint.
+    if (role !== 'owner') {
+      console.log('[Settings] Stripe action skipped: non-owner role', role)
       return
     }
 
@@ -1943,6 +1984,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   }
 
   const handleBillingActionClick = async (action: 'portal' | 'upgrade') => {
+    // Business subscription/billing is an owner responsibility.
+    if (role !== 'owner') {
+      console.log('[Settings] Billing action skipped: non-owner role', role)
+      return
+    }
     // Prevent duplicate rapid taps while opening
     if (isOpeningPortal) {
       console.log('[Settings] Billing action already in progress, ignoring duplicate tap')
@@ -1981,6 +2027,16 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const refreshStripeStatus = useCallback(async () => {
     if (!business?.id) {
       console.log('[STRIPE CONNECT] No business ID, skipping refresh')
+      return
+    }
+
+    // Stripe Connect management is owner-only. Members share the owner's
+    // business row (including stripe_connect_account_id), so without this
+    // gate every app resume fired an owner-guarded refresh that predictably
+    // returned member_denied and surfaced a generic error. Backend denial
+    // stays in place as defense-in-depth.
+    if (role !== 'owner') {
+      console.log('[STRIPE CONNECT] status_refresh_skipped_non_owner role=', role)
       return
     }
 
@@ -2056,12 +2112,20 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         }
       } else {
         const errorText = await response.text()
-        console.error('[STRIPE CONNECT] status_refresh_failed=true', {
-          http_status: response.status,
-          error_body: errorText
-        })
-        console.log('[STRIPE CONNECT UI] checking_state=false')
-        showToast(`Failed to refresh Stripe status (${response.status})`, 'error')
+        // Expected authorization denial (e.g. a stale page racing a role
+        // change) is not a Stripe failure — log quietly instead of showing a
+        // scary generic error. Real owner failures still surface normally.
+        const isExpectedDenial = response.status === 403 || /member_denied/i.test(errorText)
+        if (isExpectedDenial) {
+          console.log('[STRIPE CONNECT] status_refresh_denied_non_owner=true')
+        } else {
+          console.error('[STRIPE CONNECT] status_refresh_failed=true', {
+            http_status: response.status,
+            error_body: errorText
+          })
+          console.log('[STRIPE CONNECT UI] checking_state=false')
+          showToast(`Failed to refresh Stripe status (${response.status})`, 'error')
+        }
       }
     } catch (error) {
       console.error('[STRIPE CONNECT] status_refresh_failed=true', {
@@ -2072,7 +2136,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     } finally {
       setStripeStatusChecking(false)
     }
-  }, [business?.id, invalidateBusinessCache, refreshBusiness])
+  }, [business?.id, invalidateBusinessCache, refreshBusiness, role])
 
   // Track BusinessContext Stripe state changes to distinguish stale closure from actual state
   useEffect(() => {
@@ -2101,7 +2165,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       ? sessionStorage.getItem('external_return_flow') === 'STRIPE_CONNECT'
       : false
 
-    if ((stripeOnboardingComplete || sessionStorageReturn) && business?.id && !stripeConnectReturnProcessedRef.current) {
+    // Owner-only: a member can never legitimately be mid-onboarding, so do not
+    // fire the owner-guarded refresh endpoint for them.
+    if ((stripeOnboardingComplete || sessionStorageReturn) && business?.id && role === 'owner' && !stripeConnectReturnProcessedRef.current) {
       console.log('[STRIPE_CONNECT_STATUS] return_received=true')
 
       // Mark as processed to prevent duplicate handling
@@ -2174,10 +2240,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
       reconcile()
     }
-  }, [business?.id, appVisibilityTrigger])
+  }, [business?.id, appVisibilityTrigger, role])
 
   // Bounded recheck for transitional Stripe Connect statuses
   const performBoundedRecheck = () => {
+    if (role !== 'owner') return
     let recheckCount = 0
     const maxRechecks = 5 // 5 checks * 3 seconds = 15 seconds total
     const recheckInterval = 3000 // 3 seconds
@@ -2271,9 +2338,16 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         return
       }
 
-      // Account deleted successfully. Clear client state, sign out locally,
-      // and leave the protected dashboard before the guard can render a
-      // blank shell on the settings page.
+      // Account deleted successfully (authoritative server confirmation).
+      // Navigate to the public completion route FIRST — before auth teardown.
+      // Local sign-out fires SIGNED_OUT which triggers competing redirects in
+      // AuthContext/BusinessGuard and unmounts this protected page; doing it
+      // before navigation can cancel the replace and strand the user on a
+      // blank /dashboard/settings. /account-deleted sits outside every guard.
+      router.replace('/account-deleted')
+
+      // Now tear down auth + client state. SIGNED_OUT while on a public route
+      // is harmless — no guard redirects apply there.
       try {
         const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
         if (signOutError) {
@@ -2291,8 +2365,6 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
           console.error('[Settings] Error clearing storage:', e)
         }
       }
-
-      router.replace('/auth/signin')
     } catch (error) {
       console.error('[Settings] Delete account network error:', error)
       showToast('Failed to delete account. Please try again.', 'error')
@@ -2383,8 +2455,15 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     }
   }
 
+  const [isResendingConfirmation, setIsResendingConfirmation] = useState(false)
+  const resendConfirmationCooldownUntilRef = useRef(0)
+
   const handleResendConfirmation = async () => {
-    if (!pendingNewEmail) return
+    if (!pendingNewEmail || isResendingConfirmation) return
+    if (Date.now() < resendConfirmationCooldownUntilRef.current) return
+
+    setIsResendingConfirmation(true)
+    resendConfirmationCooldownUntilRef.current = Date.now() + 60_000
 
     try {
       const { error } = await supabase.auth.updateUser({
@@ -2399,6 +2478,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     } catch (error) {
       console.error('[Settings] Resend confirmation error:', error)
       showToast('Failed to resend confirmation. Please try again.', 'error')
+    } finally {
+      setIsResendingConfirmation(false)
     }
   }
 
@@ -2498,7 +2579,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   // App resume reconciliation for Stripe Connect
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && business?.stripe_connect_account_id) {
+      if (document.visibilityState === 'visible' && business?.stripe_connect_account_id && role === 'owner') {
         const urlParams = new URLSearchParams(window.location.search)
         const isPaymentsSection = urlParams.get('stripe_connect_return') !== '1' // Don't double-refresh on return
 
@@ -2516,7 +2597,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [business?.stripe_connect_account_id, stripeStatusChecking])
+  }, [business?.stripe_connect_account_id, stripeStatusChecking, role])
 
   // App resume reconciliation for Google Calendar
   useEffect(() => {
@@ -4216,6 +4297,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           <p className="text-xs text-muted-foreground sm:text-right">
                             Managed by the business owner
                           </p>
+                        ) : role !== 'owner' ? (
+                          // Role still resolving — do not flash owner-only controls.
+                          <div className="w-full sm:w-24 h-[26px] rounded-md bg-slate-100 dark:bg-slate-800/60 animate-pulse" aria-hidden="true" />
                         ) : (
                         <button
                             onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
@@ -4447,6 +4531,15 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           
                           // Show active action for supported
                           if (status === 'supported' && isNativeMobile()) {
+                            // Tap to Pay enablement is an owner-level Stripe
+                            // action — members get the passive state instead.
+                            if (role !== 'owner') {
+                              return role === 'member' ? (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  Managed by the business owner
+                                </p>
+                              ) : null
+                            }
                             // If Apple account is not linked, show enablement action
                             if (appleAccountLinkageState.status === 'not_linked') {
                               return (
@@ -4705,6 +4798,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Managed by the business owner
                         </p>
+                      ) : role !== 'owner' ? (
+                        // Role still resolving — do not flash owner-only controls.
+                        <div className="w-full h-[30px] rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" aria-hidden="true" />
                       ) : isConnectingStripe || stripeStatus === 'verifying' ? (
                         <div className="w-full px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
                           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-slate-400"></div>
@@ -4779,6 +4875,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     <input
                       type="text"
                       value={formBusiness.venmo_username || ''}
+                      data-settings-field="venmo_username"
                       onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
                       placeholder="joesplumbing"
                       className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
@@ -4797,7 +4894,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           {formBusiness.paypal_payment_link ? (
                             <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
-                              @{formBusiness.paypal_payment_link.replace(/^https?:\/\/paypal\.me\//, '')}
+                              {canonicalProviderHandle(normalizePaypalUsername(formBusiness.paypal_payment_link))}
                             </span>
                           ) : (
                             <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
@@ -4815,6 +4912,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       <input
                         type="text"
                         value={formBusiness.paypal_payment_link || ''}
+                        data-settings-field="paypal_payment_link"
                         onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
                         placeholder="@username"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
@@ -5037,9 +5135,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       </div>
                       <button
                         onClick={handleResendConfirmation}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300 whitespace-nowrap"
+                        disabled={isResendingConfirmation}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300 whitespace-nowrap disabled:opacity-50"
                       >
-                        Resend Confirmation
+                        {isResendingConfirmation ? 'Sending…' : 'Resend Confirmation'}
                       </button>
                     </div>
                   )}
@@ -5233,6 +5332,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       <p className="text-xs text-muted-foreground">
                         Managed by the business owner
                       </p>
+                    ) : role !== 'owner' ? (
+                      // Role still resolving — do not flash owner-only controls.
+                      <div className="w-28 h-[34px] rounded-lg bg-slate-100 dark:bg-slate-800/60 animate-pulse" aria-hidden="true" />
                     ) : (business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
                       <p className="text-xs text-muted-foreground">
                         Billing not required
@@ -5264,7 +5366,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     When you're finished in Stripe, tap X to return to ReplyFlow.
                   </p>
                 )}
-                {role !== 'member' && needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
+                {role === 'owner' && needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
                   <button
                     onClick={() => handleBillingActionClick('upgrade')}
                     disabled={isStartingCheckout}
@@ -5285,7 +5387,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 )}
               </div>
 
-              {/* Danger Zone Section */}
+              {/* Danger Zone Section — owner-only destructive controls.
+                  Not rendered at all for members (and while role is still
+                  resolving) so no owner-only UI can flash or be deep-linked. */}
+              {role === 'owner' && (
               <div id="danger-zone" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border-2 border-red-200/50 dark:border-red-900/40 shadow-sm p-6 scroll-mt-[64px]">
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-2">
@@ -5298,11 +5403,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-foreground mb-1">{role === 'member' ? 'Delete My Account' : 'Delete Account'}</h3>
+                    <h3 className="text-sm font-medium text-foreground mb-1">Delete Account</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      {role === 'member'
-                        ? 'Permanently delete your ReplyFlow login and remove your access. The business and its data are unaffected.'
-                        : 'Permanently delete your account and associated data.'}
+                      Permanently delete your account and associated data.
                     </p>
                   </div>
                   <div className="flex-shrink-0">
@@ -5320,6 +5423,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   </div>
                 </div>
               </div>
+              )}
             </div>
           </>
           )}
