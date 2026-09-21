@@ -182,18 +182,18 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean }[] =
     // "it's 937 Pine Hollow Road". The corrected house number is captured
     // and reattached to the street phrase.
     pattern:
-      /\bit'?s\s+(?:not\s+\d+\s*,?\s*(?:it'?s\s+)?|it\s+is\s+)?(\d[\d\s-]*)\s*,?\s*(?:not\s+\d[\d\s-]*\s*,?\s*)?([^.!?\n]*?\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b[^.!?\n]*?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+      /\bit'?s\s+(?:not\s+\d+\s*,?\s*(?:it'?s\s+)?|it\s+is\s+)?(\d[\d\s-]*)\s*,?\s*(?:not\s+\d[\d\s-]*\s*,?\s*)?([^.!?\n]*?\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b[^.!?\n]*?)(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
     type: 'explicit-correction',
     combine: true,
   },
   {
     pattern:
-      /\b(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at|my address is)\s+([^.!?\n]+?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+      /\b(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at|my address is)\s+([^.!?\n]+?)(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
     type: 'explicit',
   },
   {
     pattern:
-      /\b(?:at|@)\s+(\d[^.!?\n]*?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+      /\b(?:at|@)\s+(\d[^.!?\n]*?)(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
     type: 'bare-numbered',
   },
   {
@@ -205,7 +205,7 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean }[] =
   // Accepts phrases like "I'm in Pittsburgh", "Near Squirrel Hill", "Bethel Park".
   {
     pattern:
-      /\b(?:i['"]?m\s+in|i\s+am\s+in|we['"]?re\s+in|we\s+are\s+in|located\s+in|somewhere\s+in|in\s+the\s+area\s+of|near)\s+([a-z][a-z\s\-]+?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+      /\b(?:i['"]?m\s+in|i\s+am\s+in|we['"]?re\s+in|we\s+are\s+in|located\s+in|somewhere\s+in|in\s+the\s+area\s+of|near)\s+([a-z][a-z\s\-]+?)(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
     type: 'area',
   },
   // Standalone city/neighborhood area (e.g. "Bethel Park", "Just Pittsburgh for now").
@@ -213,7 +213,7 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean }[] =
   // to avoid matching normal sentences.
   {
     pattern:
-      /\b(?:[jJ][uU][sS][tT]\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*(?:for\s+now|,?\s*and\b|[.!?](?:\s|$)|;|$))/,
+      /\b(?:[jJ][uU][sS][tT]\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?=\s*(?:for\s+now|,?\s*\band\b|[.!?](?:\s|$)|;|$))/,
     type: 'area',
   },
 ];
@@ -277,25 +277,25 @@ export function hasUsableLocation(transcript: string): boolean {
 
 // Completion patterns are evaluated in order; more specific first.
 const COMPLETION_PATTERNS: RegExp[] = [
-  /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:done|completed|finished)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:done|completed|finished)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
   // Same intent without a preposition, e.g. "I'd like it done Friday" or "I want it done tomorrow morning".
-  /\b((?:i'd like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
-  /\b((?:i'd like|i would like|i want|i need)\s+(?:someone|somebody)\s+(?:to come\s+)?(?:out|here)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
-  /\b((?:can you|could you)\s+(?:come|get here|make it)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:i'd like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:i'd like|i would like|i want|i need)\s+(?:someone|somebody)\s+(?:to come\s+)?(?:out|here)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:can you|could you)\s+(?:come|get here|make it)\s+(?:by|on|in)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
   // Correction/short-form completions: "make it Monday instead" or "I need it Saturday".
-  /\b((?:make it|make that|set it for|set it to)\s+([^.,;]+?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
-  /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:by\s+|on\s+|for\s+)?([^.,;]{2,30}?))(?=\s+instead\b|\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:make it|make that|set it for|set it to)\s+([^.,;]+?))(?=\s+instead\b|\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:i'd like|i would like|i want|i need)\s+it\s+(?:by\s+|on\s+|for\s+)?([^.,;]{2,30}?))(?=\s+instead\b|\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
   // Standalone temporal words with optional "if possible" / "if you can" qualifier.
   // Captures "tomorrow", "tomorrow if possible", "today if possible", "this week if possible".
-  /\b((?:today|tomorrow|tonight)(?:\s+if\s+(?:possible|you\s+(?:can|could)))?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  /\b((?:today|tomorrow|tonight)(?:\s+if\s+(?:possible|you\s+(?:can|could)))?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
   // Weekday and week/month phrases, including judgment scaffolds:
   // "Friday", "tomorrow would be great", "next week is fine",
   // "sometime later this week", "later this week".
   /\b((?:(?:sometime|later)\s+)*(?:this|next)\s+(?:week|month|weekend))(?:\s+(?:is|works|would|will|'d|'ll)\s+(?:be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
-  /\b((?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?)(?=\s*[.!?;,]|\s+and\b|$)/i,
+  /\b((?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:is|works?|would|will|'d|'ll|sounds?|seems?)\s+(?:be\s+|to\s+be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?)(?=\s*[.!?;,]|\s+\band\b|$)/i,
   /\b((?:today|tomorrow|tonight))(?:\s+(?:would|will|is|works|'d|'ll)\s+(?:be\s+)?(?:great|good|fine|best|ok(?:ay)?|better|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
   // Vague completion phrases: keep the full semantic phrase, e.g. "Whenever you can".
-  /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+  /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
   ...EARLY_COMPLETION_PATTERNS,
 ];
 
@@ -346,7 +346,7 @@ const PAST_CONTEXT_MARKERS = /\b(?:ago|last|since|started|broke|snapped|noticed|
 const CALLBACK_CONTEXT_MARKERS = /\b(?:call me(?: back)?|you can call me(?: back)?|reach me|contact me|you can reach me)\b/i;
 const NEGATIVE_TIMING_PREFIX = /\b(?:for|since|over|the last|the past|last|ago)\s*$/i;
 const NATURAL_COMPLETION_RE =
-  '\\b(((?:in|within|sometime in|sometime within|sometime this|sometime next|by|on|this|next|today|tomorrow)\\s+(?:the\\s+)?(?:next|coming|following|upcoming)?\\s*(?:two|three|four|a few|couple of|couple|one|1|2|3|4|5|several)?\\s*(?:days?|weeks?|months?|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)days?|today|tomorrow|morning|afternoon|evening|night))(?:\\s+(?:or so|about|around|ish|give or take))?)(?=\\s*(?:,?\\s*and\\b|[.!?](?:\\s|$)|;|$))';
+  '\\b(((?:in|within|sometime in|sometime within|sometime this|sometime next|by|on|this|next|today|tomorrow)\\s+(?:the\\s+)?(?:next|coming|following|upcoming)?\\s*(?:two|three|four|a few|couple of|couple|one|1|2|3|4|5|several)?\\s*(?:days?|weeks?|months?|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)days?|today|tomorrow|morning|afternoon|evening|night))(?:\\s+(?:or so|about|around|ish|give or take))?)(?=\\s*(?:,?\\s*\\band\\b|[.!?](?:\\s|$)|;|$))';
 
 function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
   const re = new RegExp(NATURAL_COMPLETION_RE, 'gi');
@@ -388,22 +388,22 @@ function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
 const NEGATION_PREFIX = /\b(?:don'?t|dont|do\s+not|didn'?t|didnt|won'?t|wont|never|not)\s*$/i;
 
 const CALLBACK_PATTERN_ENTRIES: { pattern: RegExp; valueIsFullMatch: boolean; rejectIfPrecededByCompletionIntent?: boolean; rejectIfPrecededByIncident?: boolean; rejectIfPrecededByNegation?: boolean }[] = [
-  { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByNegation: true },
-  { pattern: /\b((?:i'?m|i am)\s+(?:available|free)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
-  { pattern: /\b((?:morning|afternoon|evening|night)s?\s+(?:are|work|is|would|will|'d|'ll)\s+(?:best|good|fine|ok(?:ay)?|easier|easiest|prefer(?:red)?)(?:\s+[^.,;]+?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByNegation: true },
+  { pattern: /\b((?:i'?m|i am)\s+(?:available|free)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b((?:morning|afternoon|evening|night)s?\s+(?:are|work|is|would|will|'d|'ll)\s+(?:best|good|fine|ok(?:ay)?|easier|easiest|prefer(?:red)?)(?:\s+[^.,;]+?)?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   // "call after 3" / "call tomorrow morning" — bare "call" without "me",
   // common in negated restatements ("don't call me in the morning; call after 3").
-  { pattern: /\b((?:call|you\s+can\s+call)\s+(?!me\b)(?:back\s+)?(?:after|before|at|in|on|between|around|anytime|whenever|tomorrow|today|tonight|morning|afternoon|evening)\s+[^.,;]*?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByNegation: true },
+  { pattern: /\b((?:call\s*back|callback|call|you\s+can\s+call)\s+(?!me\b)(?:back\s+)?(?:after|before|at|in|on|between|around|anytime|whenever|tomorrow|today|tonight|morning|afternoon|evening)\s+[^.,;]*?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByNegation: true },
   // "anytime" answers including comma-qualified constraints
   // ("Anytime, but preferably later in the afternoon"). "ok" is word-bounded
   // via ok(?:ay)? so it cannot truncate mid-word.
-  { pattern: /\b(any(?:\s)?time(?:\s+(?:is|works|best|good|fine|ok(?:ay)?|after|before|between|today|tomorrow|tonight|morning|afternoon|evening|this\s+week|next\s+week|(?:mon|tues|wednes|thurs|fri|satur|sun)day)(?:\s+[^.,;]+?)?)?(?:\s*,\s*(?:but\s+)?[^.,;]+?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
-  { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)?\s+whenever(?:\s+(?:is|works|best|good|fine|ok(?:ay)?))?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
-  { pattern: /\b((?:best time|good time)\s+(?:to|at|in|on|after|before|between|is)\s+[^.,;]+?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
-  { pattern: /\b((?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b(any(?:\s)?time(?:\s+(?:is|works|best|good|fine|ok(?:ay)?|after|before|between|today|tomorrow|tonight|morning|afternoon|evening|this\s+week|next\s+week|(?:mon|tues|wednes|thurs|fri|satur|sun)day)(?:\s+[^.,;]+?)?)?(?:\s*,\s*(?:but\s+)?[^.,;]+?)?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)?\s+whenever(?:\s+(?:is|works|best|good|fine|ok(?:ay)?))?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b((?:best time|good time)\s+(?:to|at|in|on|after|before|between|is)\s+[^.,;]+?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b((?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   // Bare temporal callback answers: "tomorrow after 2", "this afternoon",
   // "tomorrow morning" — common at the ask_callback_time stage.
-  { pattern: /\b((?:today|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening)(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:after|before|around|at|by)\s+\d+(?::\d+)?\s*(?:am|pm|a\.m\.?|p\.m\.?)?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByCompletionIntent: true, rejectIfPrecededByIncident: true },
+  { pattern: /\b((?:today|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening)(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:after|before|around|at|by)\s+\d+(?::\d+)?\s*(?:am|pm|a\.m\.?|p\.m\.?)?)?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByCompletionIntent: true, rejectIfPrecededByIncident: true },
   ...EARLY_CALLBACK_PATTERNS.map((pattern) => ({ pattern, valueIsFullMatch: true })),
 ];
 
@@ -442,10 +442,16 @@ function clauseContaining(transcript: string, index: number): string {
 
 function normalizeCallbackTime(value: string): string {
   let cleaned = value.trim()
+    // Strip correction scaffolding that is not part of the requested time
+    // ("make the callback ... instead", "change that to ...").
+    .replace(/^(?:actually[,.\s]*)?(?:please\s+)?(?:make|change|set)\s+(?:the\s+)?(?:call\s*back|callback|that|it)\s+(?:to\s+|for\s+)?/i, '')
     // Strip trigger scaffolding that early patterns keep in match[0].
-    .replace(/^(?:you can reach me|you can call me(?:\s+back)?|you can call|reach me|contact me|call me(?:\s+back)?|call(?!\s+me\b)|call\s+me)\s+/i, '')
+    .replace(/^(?:you can reach me|you can call me(?:\s+back)?|you can call|reach me|contact me|call me(?:\s+back)?|call\s*back|callback|call(?!\s+me\b)|call\s+me)\s+/i, '')
     .replace(/^(?:i'?m|i am)\s+(?:available|free)\s+/i, '')
     .replace(/^(?:best time|good time)\s+(?:to|at|in|on|is)\s+/i, '')
+    // "call back after 5" leaves a "back" residue once the trigger is stripped.
+    .replace(/^back\s+(?=\S)/i, '')
+    .replace(/\s*[,.\s]*\binstead\s*$/i, '')
     .trim();
   const lower = cleaned.toLowerCase();
   // Canonicalize "anytime/whenever ..." answers: collapse filler scaffolding
@@ -995,6 +1001,16 @@ export function splitServiceAndDetails(serviceText: string): { reason: string; d
   return { reason, details: details.length > 0 ? details : null };
 }
 
+// Sentences whose content belongs to a structured field must never be absorbed
+// into Details. These markers identify clause ownership, not problem context.
+const CALLBACK_OWNED_CLAUSE_RE = /\b(?:don'?t|do\s+not|didn'?t|please\s+don'?t|never)\s+call\b|\bcall\s*back\b|\bcallback\b|\bcall\s+me\b|\byou\s+can\s+call\b|\breach\s+me\b|\bcontact\s+me\b|\bphone\s+me\b|\btext\s+me\b/i;
+const ADDRESS_OWNED_CLAUSE_RE = /\b(?:my\s+address\s+is|the\s+address\s+is|address\s+is|i'?m\s+at\b|i\s+am\s+at\b|we'?re\s+at\b|we\s+are\s+at\b|located\s+at|live\s+at|i\s+live\s+at|the\s+property\s+is\s+at|it'?s\s+at)\b/i;
+const CORRECTION_SCAFFOLD_CLAUSE_RE = /\b(?:i\s+(?:gave|told)\s+you\s+the\s+wrong|the\s+wrong\s+(?:address|name|number|time|day)|i\s+meant?\b|i\s+said\b|make\s+(?:that|it|the)\b|change\s+(?:that|it|the)\b|scratch\s+that\b|\binstead\b|let\s+me\s+(?:correct|fix)\b)/i;
+// A clause that is ONLY a timing expression (no problem/incident content) is a
+// timing-field answer, not a detail. Incident-history wording ("it shut off
+// around 2 pm yesterday") stays eligible as a detail.
+const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:sometime|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:week|week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening|no\s+rush|as\s+soon\s+as\s+(?:possible|you\s+can)|asap)\b[^.!?]*$/i;
+
 /**
  * Extract detail sentences from a transcript: sentences that carry supporting
  * facts but are not the name carrier, not the service carrier, and do not
@@ -1028,6 +1044,15 @@ function extractDetailSentences(
     if (alreadyExtracted.some(m => sLower.includes(m))) continue;
     // Skip meta/filler/refusal sentences
     if (isMetaUtterance(sentence) || isNameRefusal(sentence) || isLocationRefusal(sentence)) continue;
+    // Skip clauses owned by other structured fields or by correction
+    // scaffolding — callback directives ("don't call me in the morning"),
+    // address carriers ("the address is ...", "I'm at ..."), and correction
+    // wrappers ("I gave you the wrong address", "make that ... instead")
+    // are field content, not supporting details.
+    if (CALLBACK_OWNED_CLAUSE_RE.test(sentence)) continue;
+    if (ADDRESS_OWNED_CLAUSE_RE.test(sentence)) continue;
+    if (CORRECTION_SCAFFOLD_CLAUSE_RE.test(sentence)) continue;
+    if (TIMING_OWNED_CLAUSE_RE.test(sentence)) continue;
     // First sentence carrying service intent is the reason carrier, not a detail
     if (!serviceSentenceConsumed && SERVICE_INTENT_RE.test(sentence)) {
       serviceSentenceConsumed = true;
@@ -1035,8 +1060,11 @@ function extractDetailSentences(
     }
     // Skip pure name-introduction sentences ("my name is X")
     if (/^(?:hi|hello|hey)[,\s]*(?:my name is|my name's|this is|i'?m|i am)\s+\S/i.test(sentence)) continue;
-    // Need at least 3 words to be a meaningful detail
-    if ((sentence.match(/[\p{L}\p{N}'’-]+/gu) || []).length < 3) continue;
+    // Need at least 3 words to be a meaningful detail — unless the sentence
+    // carries explicit symptom signal ("it's rattling.", "handle feels
+    // loose"), which is real supporting context even at 2 words.
+    const detailWordCount = (sentence.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
+    if (detailWordCount < 3 && !/\b(?:rattl\w*|leak\w*|drip\w*|squeak\w*|grind\w*|vibrat\w*|smell\w*|spark\w*|loose|stuck|broken|crack\w*|pool\w*|swell\w*|snap(?:ped)?|clog\w*|overflow\w*|soaked|frozen|flicker\w*|noisy|loud)\b/i.test(sentence)) continue;
     details.push(sentence.replace(/[.,;!?\s]+$/, ''));
   }
   if (details.length === 0) return null;
@@ -1472,6 +1500,15 @@ export function enrichIntakeFromTranscript(
   for (const part of dedupedParts) {
     mergedDetailCandidate = mergeDetails(mergedDetailCandidate || undefined, part, false) || null;
   }
+  // Strip dangling connector fragments left behind when a structured-field
+  // clause ("I'm at 1260 Highland Ave", "call me after 4") was removed from
+  // the residual text ("... warms up. I'm" → "... warms up").
+  if (mergedDetailCandidate) {
+    mergedDetailCandidate = mergedDetailCandidate
+      .replace(/(?:[.,;]\s*|\s+)(?:i'?m|i\s+am|we'?re|we\s+are|it'?s|the\s+address\s+is|you\s+can\s+call\s+me|call\s+me|and|so|at)\s*$/i, '')
+      .replace(/[.,;!?\s]+$/, '')
+      .trim() || null;
+  }
 
   // Name containment: at non-name stages, suppress name extraction unless it's
   // a clear correction. This prevents garbled/misheard names from contaminating
@@ -1601,6 +1638,10 @@ export function enrichIntakeFromTranscript(
       };
       if (tailClaims[field as string] || Object.entries(tailClaims).some(([f, m]) => f !== field && !!m)) return;
     }
+    // Field ownership: when another structured scalar was extracted from this
+    // utterance ("call me after 5" at ask_location → callback), the stage
+    // fallback must not raw-write that text into this field.
+    if (!correctionTail && ['serviceAddress', 'desiredCompletionTime', 'callbackTime'].some(f => f !== field && applied.includes(f as string))) return;
     const source = (correctionTail || transcript).trim();
     const cleaned = source
       .replace(/^[\s,.\-—–]+/, '')

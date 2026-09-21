@@ -8548,15 +8548,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Run semantic enrichment BEFORE writing the stage-local field so corrections
     // and multi-field utterances resolve into canonical values before the raw
     // transcript can pollute the current stage.
-    if (stage !== 'ask_name_reason') {
-      enrichIntakeFromTranscript(
-        rawTranscript,
-        state.intakeData,
-        stage,
-        state.callSid,
-        state.currentTurnId
-      );
-    }
+    const enrichResult = stage !== 'ask_name_reason'
+      ? enrichIntakeFromTranscript(
+          rawTranscript,
+          state.intakeData,
+          stage,
+          state.callSid,
+          state.currentTurnId
+        )
+      : null;
 
     if (!stage || stage !== 'ask_name_reason') {
       // For location, never fall back to the raw transcript if the caller explicitly
@@ -8589,10 +8589,22 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const enrichedValue = state.intakeData[extractedField];
         const isCorrectionUtterance = detectCorrectionIntent(rawTranscript).isCorrection;
 
-        if (enrichedValue && typeof enrichedValue === 'string' && enrichedValue.trim().length > 0) {
+        // Field-ownership invariant: when the utterance was confidently owned
+        // by a different structured field (e.g. an address correction given at
+        // the completion-time stage), the current stage's field must NOT absorb
+        // the raw text — even when the utterance carries no explicit correction
+        // marker. Some extraction occurred does not mean this stage was answered.
+        const stageFieldSatisfied = typeof enrichedValue === 'string' && enrichedValue.trim().length > 0;
+        const ownedFields = (enrichResult?.applied || []).filter(
+          f => f !== 'request' && f !== 'serviceRequested' && f !== 'nameRefused' && f !== 'locationRefused' && f !== 'issueDescription'
+        );
+        const ownedByOtherField =
+          !stageFieldSatisfied && ownedFields.some(f => f !== extractedField);
+
+        if (stageFieldSatisfied) {
           // Enrichment extracted a clean value for this field — use it.
           capturedAnswer = enrichedValue;
-        } else if (isCorrectionUtterance && stage !== 'ask_name') {
+        } else if ((isCorrectionUtterance || ownedByOtherField) && stage !== 'ask_name') {
           // Correction targeted other fields, not the current stage.
           // Do NOT write the raw correction prose into the current stage field.
           // Leave the field empty so the caller is re-prompted for THIS stage.
@@ -13121,6 +13133,24 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ANSWER VALIDATION] Timestamp:', new Date().toISOString());
                 console.log('[ANSWER VALIDATION] =========================================');
 
+                // Meta utterances ("hello, are you still there?") are not partial
+                // answers — re-ask the current stage immediately so the caller is
+                // not left in silence waiting for the stage timeout.
+                if (validationResult.rejectionReason === 'meta_utterance') {
+                  const metaRepromptKey = selectSimpleModePromptKey(originatingStage, state.intakeData, {
+                    needsServiceReprompt: state.needsServiceReprompt,
+                    needsNameReprompt: state.needsNameReprompt
+                  });
+                  console.log('[META UTTERANCE REPROMPT] =========================================');
+                  console.log('[META UTTERANCE REPROMPT] stage:', originatingStage);
+                  console.log('[META UTTERANCE REPROMPT] selectedPromptKey:', metaRepromptKey);
+                  console.log('[META UTTERANCE REPROMPT] action: reprompt_current_stage');
+                  console.log('[META UTTERANCE REPROMPT] Timestamp:', new Date().toISOString());
+                  console.log('[META UTTERANCE REPROMPT] =========================================');
+                  sendPrompt(originatingStage, metaRepromptKey, 'meta_utterance_stage_reprompt', state.currentTurnId);
+                  return;
+                }
+
                 console.log('[ANSWER CONTINUATION] =========================================');
                 console.log('[ANSWER CONTINUATION] fragment:', meaningfulTranscript);
                 console.log('[ANSWER CONTINUATION] stage:', originatingStage);
@@ -13901,9 +13931,17 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE ADVANCEMENT INVARIANT] originatingStage:', originatingStage);
                   console.log('[STAGE ADVANCEMENT INVARIANT] previousStage:', previousStage);
                   console.log('[STAGE ADVANCEMENT INVARIANT] nextStage:', nextStage);
-                  console.log('[STAGE ADVANCEMENT INVARIANT] action: no_stage_change');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] action: same_stage_reprompt');
                   console.log('[STAGE ADVANCEMENT INVARIANT] timestamp:', new Date().toISOString());
                   console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
+                  // The answer was accepted but did not satisfy this stage's
+                  // field (e.g. a cross-field correction). Re-ask the current
+                  // stage instead of going silent.
+                  const unresolvedPromptKey = selectSimpleModePromptKey(previousStage, state.intakeData, {
+                    needsServiceReprompt: state.needsServiceReprompt,
+                    needsNameReprompt: state.needsNameReprompt
+                  });
+                  sendPrompt(previousStage, unresolvedPromptKey, 'same_stage_unresolved_reprompt', authorizedTurnId);
                   return; // Block nonsensical transition
                 }
 
