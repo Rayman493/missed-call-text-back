@@ -40,7 +40,6 @@
 
 // VERSION PROOF CONSTANTS - Hardcoded to prove deployment
 const AI_VOICE_DEPLOY_VERSION = "extraction-tracing-v1";
-const AI_VOICE_EXPECTED_COMMIT = process.env.FLY_IMAGE_REF || process.env.FLY_ALLOC_ID || "local";
 const AI_VOICE_BUILD_TIMESTAMP = new Date().toISOString();
 const AI_VOICE_DEPLOY_ENV = process.env.NODE_ENV || "unknown";
 
@@ -59,6 +58,7 @@ const AI_VOICE_ENTRY_FILE = typeof __filename !== "undefined" ? __filename : "un
 const AI_VOICE_RUNTIME_START_AT = new Date().toISOString();
 
 import { createServer } from 'http';
+import { buildHealthPayload } from './health';
 import { Server as WebSocketServer } from 'ws';
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
@@ -708,7 +708,7 @@ console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
 console.log('====================================================================================================');
 console.log('[VERSION PROOF - STARTUP] =========================================');
 console.log('[VERSION PROOF - STARTUP] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
-console.log('[VERSION PROOF - STARTUP] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
+console.log('[VERSION PROOF - STARTUP] BUILD_COMMIT_SHA:', BUILD_COMMIT_SHA);
 console.log('[VERSION PROOF - STARTUP] AI_VOICE_BUILD_TIMESTAMP:', AI_VOICE_BUILD_TIMESTAMP);
 console.log('[VERSION PROOF - STARTUP] AI_VOICE_DEPLOY_ENV:', AI_VOICE_DEPLOY_ENV);
 console.log('[VERSION PROOF - STARTUP] NODE_ENV:', process.env.NODE_ENV || 'unknown');
@@ -846,7 +846,7 @@ console.log('[AI VOICE BUILD MARKER] =========================================')
 
 // Unmistakable deployment proof marker
 console.log('[AI VOICE DEPLOYMENT PROOF] =========================================');
-console.log('[AI VOICE DEPLOYMENT PROOF] expectedCommit: 596cf8c6');
+console.log('[AI VOICE DEPLOYMENT PROOF] buildCommitSha:', BUILD_COMMIT_SHA);
 console.log('[AI VOICE DEPLOYMENT PROOF] actualCommit:', commitSha);
 console.log('[AI VOICE DEPLOYMENT PROOF] sourceRepo: Rayman493/missed-call-text-back');
 console.log('[AI VOICE DEPLOYMENT PROOF] appDrivenIntakeEnabled: true');
@@ -2849,7 +2849,7 @@ function sendStagePrompt(
 ): void {
   console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] =========================================');
   console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
-  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
+  console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] BUILD_COMMIT_SHA:', BUILD_COMMIT_SHA);
   console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] Stage:', stage);
   console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] Timestamp:', new Date().toISOString());
   console.log('[VERSION PROOF - SEND STAGE PROMPT ENTERED] =========================================');
@@ -6245,7 +6245,7 @@ const server = createServer(async (req, res) => {
   // Health check endpoint
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'healthy', service: 'ai-voice-poc', commit: '3c67556', hangupRouter: 'v3' }));
+    res.end(JSON.stringify(buildHealthPayload()));
     return;
   }
 
@@ -16176,7 +16176,7 @@ Return only JSON, no other text.`;
         if (message.event === 'start') {
           console.log('[TWILIO START EVENT RECEIVED]');
           console.log('[CALL USING BUILD] =========================================');
-          console.log('[CALL USING BUILD] commit:', AI_VOICE_EXPECTED_COMMIT);
+          console.log('[CALL USING BUILD] commit:', BUILD_COMMIT_SHA);
           console.log('[CALL USING BUILD] callSid:', message.start?.callSid || 'unknown');
           console.log('[CALL USING BUILD] streamSid:', message.streamSid || 'unknown');
           console.log('[CALL USING BUILD] hasEarlyChunkBuffering: true');
@@ -19206,7 +19206,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   callSessionState.silenceTimeoutId = setTimeout(() => {
                     console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] =========================================');
                     console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] AI_VOICE_DEPLOY_VERSION:', AI_VOICE_DEPLOY_VERSION);
-                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] AI_VOICE_EXPECTED_COMMIT:', AI_VOICE_EXPECTED_COMMIT);
+                    console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] BUILD_COMMIT_SHA:', BUILD_COMMIT_SHA);
                     console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] Silence timer code is executing');
                     console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] Timestamp:', new Date().toISOString());
                     console.log('[VERSION PROOF - SILENCE TIMER CODE PRESENT] =========================================');
@@ -21193,7 +21193,7 @@ server.listen(PORT, () => {
   console.log('[BUILD METADATA] DEPLOYMENT_VERSION:', DEPLOYMENT_VERSION);
   console.log('[BUILD METADATA] =========================================');
   console.log('[RUNTIME VERSION CHECK] =========================================');
-  console.log('[RUNTIME VERSION CHECK] commit:', AI_VOICE_EXPECTED_COMMIT);
+  console.log('[RUNTIME VERSION CHECK] commit:', BUILD_COMMIT_SHA);
   console.log('[RUNTIME VERSION CHECK] feature:', AI_VOICE_DEPLOY_VERSION);
   console.log('[RUNTIME VERSION CHECK] expectedDebugLogs:');
   console.log('[RUNTIME VERSION CHECK] - AUDIO BUFFERED');

@@ -12,6 +12,8 @@ import {
   recordModalShown,
   recordModalDismissed
 } from '@/lib/notification-education-eligibility'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface NotificationPermissionEducationProps {
   onComplete?: () => void
@@ -25,6 +27,12 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
   const hasShownRef = useRef(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const firstButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Lock page scroll while shown; Back/dismiss routes through handleDismiss so
+  // the dismissal is still recorded (declared below via function hoisting).
+  useBodyScrollLock(show, 'notification-permission-education')
+  useModalBackButton({ isOpen: show, onClose: () => { void handleDismissRef.current?.() } })
+  const handleDismissRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     checkEligibility()
@@ -118,6 +126,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     setShow(false)
     onComplete?.()
   }
+  handleDismissRef.current = handleDismiss
 
   if (!show) {
     return null

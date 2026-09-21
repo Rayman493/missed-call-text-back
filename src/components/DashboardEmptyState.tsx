@@ -9,12 +9,19 @@ import { hasActiveAccess } from '@/lib/subscription-utils'
 import { hasValidSubscription } from '@/lib/subscription'
 import CallForwardingInstructions from './CallForwardingInstructions'
 import BrandIcon from './BrandIcon'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 export default function DashboardEmptyState() {
   const router = useRouter()
   const { business } = useBusiness()
   const [showTestModal, setShowTestModal] = useState(false)
   const [showInstructionsModal, setShowInstructionsModal] = useState(false)
+
+  // CallForwardingInstructions manages its own lock/back handling; this test
+  // modal is hand-built and needs the shared behavior.
+  useBodyScrollLock(showTestModal, 'dashboard-empty-state-test-modal')
+  useModalBackButton({ isOpen: showTestModal, onClose: () => setShowTestModal(false) })
 
   // Only show test setup if user has active access and set up number
   const canShowTestSetup = hasActiveAccess(business) && business?.twilio_phone_number
@@ -118,7 +125,7 @@ export default function DashboardEmptyState() {
           aria-labelledby="test-modal-title"
           onKeyDown={handleKeyDown}
         >
-          <div className="bg-card rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30 animate-in zoom-in-95 duration-200" tabIndex={-1}>
+          <div data-scroll-lock-allow className="bg-card rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30 animate-in zoom-in-95 duration-200" tabIndex={-1}>
             <h2 id="test-modal-title" className="text-xl font-bold text-foreground mb-4">
               Test Your Setup
             </h2>

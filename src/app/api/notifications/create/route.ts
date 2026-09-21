@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     let finalTitle = title
     let finalMessage = message
     let finalActionUrl = actionUrl || `/dashboard/leads/${leadId}`
-    let finalActionText = actionText || 'View Lead'
+    let finalActionText = actionText || 'View Customer'
 
     if (type === 'ai_intake_completed') {
       // CRITICAL FIX: The NOTIFICATION_TEMPLATES.ai_intake_completed template
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       finalMessage = message || preview
       console.log('[notification_preview_generated]', { nameLabel, serviceLabel, preview, hasIdempotencyKey: !!(callSid || aiCallRecordId) })
       finalActionUrl = actionUrl || `/dashboard/leads/${leadId}`
-      finalActionText = actionText || 'View Lead'
+      finalActionText = actionText || 'View Customer'
     } else if (type === 'new_lead') {
       data = { leadName: customerName || 'Customer', leadPhone: customerPhone || '', leadId }
     }

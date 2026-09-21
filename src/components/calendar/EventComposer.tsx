@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { X, Calendar, FileText, Tag, MapPin } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface EventComposerProps {
   isOpen: boolean
@@ -20,6 +22,8 @@ interface EventComposerProps {
 
 export default function EventComposer({ isOpen, onClose, onSave, selectedDate, prefill }: EventComposerProps) {
   const { business } = useBusiness()
+  useBodyScrollLock(isOpen, 'event-composer')
+  useModalBackButton({ isOpen, onClose })
   const timezone = business?.business_hours_timezone
   const [title, setTitle] = useState(prefill?.title || '')
   const [startDate, setStartDate] = useState(getDateInputValueInTimeZone(selectedDate ?? new Date(), timezone))
@@ -147,7 +151,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
         </div>
 
         {/* Form - scrollable on mobile */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">

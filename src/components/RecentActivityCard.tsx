@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatRelativeTime, formatCurrency } from '@/lib/utils'
+import { formatRelativeTime, formatCurrency, capitalizeFirstAlpha } from '@/lib/utils'
 import { Phone, MessageSquare, Reply, Calendar, Mic, Briefcase, CheckCircle, CreditCard, AlertCircle, Bot, DollarSign, Video, Send } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 
@@ -651,7 +651,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                       <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>
                     </div>
                     {activity.description && (
-                      <p className="text-xs text-muted-foreground/70 truncate">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground/70 truncate">{capitalizeFirstAlpha(activity.description)}</p>
                     )}
                   </div>
                 </Link>
@@ -674,7 +674,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                     <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>
                   </div>
                   {activity.description && (
-                    <p className="text-xs text-muted-foreground/70 truncate">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground/70 truncate">{capitalizeFirstAlpha(activity.description)}</p>
                   )}
                 </div>
               </div>

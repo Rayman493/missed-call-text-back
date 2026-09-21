@@ -4,6 +4,7 @@ import React from 'react'
 import Modal from '@/components/ui/Modal'
 import { MessageSquare, FileText, MapPin, Clock, Phone, Calendar, CheckCircle2, User } from 'lucide-react'
 import type { NormalizedIntake } from '@/lib/ai-call-record-normalizer'
+import { capitalizeFirstAlpha } from '@/lib/utils'
 
 interface RequestDetailsModalProps {
   isOpen: boolean
@@ -128,7 +129,7 @@ function DetailRow({
         {label}
       </label>
       <p className="text-sm text-foreground px-3 py-2 bg-muted/30 rounded-lg break-words whitespace-pre-wrap">
-        {value && value.trim() ? value : 'Not provided'}
+        {value && value.trim() ? capitalizeFirstAlpha(value) : 'Not provided'}
       </p>
     </div>
   )

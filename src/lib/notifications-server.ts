@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendPushForNotification } from '@/lib/push-delivery'
-import { normalizePunctuation } from '@/lib/utils'
+import { normalizePunctuation, capitalizeFirstAlpha } from '@/lib/utils'
 import { shouldSuppressNotification } from '@/lib/notification-preferences'
 
 /**
@@ -94,7 +94,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'New Customer' : `${displayName}`,
       message: 'New customer request',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -115,7 +115,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'Follow-Up Sent' : `${displayName}`,
       message: 'All follow-up messages sent',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -162,12 +162,12 @@ export const NOTIFICATION_TEMPLATES = {
 
   ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string; aiCallRecordId?: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
-    const service = data.serviceRequested ? normalizePunctuation(data.serviceRequested) : ''
+    const service = data.serviceRequested ? capitalizeFirstAlpha(normalizePunctuation(data.serviceRequested)) : ''
     return {
       title: displayName === 'Customer' ? 'New Request' : `${displayName}`,
       message: service ? `${service}` : 'New customer request',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -178,7 +178,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: 'Payment Requested',
       message: `${amount} sent to ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -189,7 +189,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: 'Payment Request Ready',
       message: `${amount} for ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -200,7 +200,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: 'Payment Received',
       message: `${amount} from ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -259,7 +259,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'Follow-Up Sent' : `${displayName}`,
       message: 'Follow-up message sent',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -269,7 +269,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'Missed Call' : `${displayName}`,
       message: 'Missed call',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   }
 }

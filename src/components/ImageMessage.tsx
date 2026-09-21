@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 interface ImageMessageProps {
   mediaUrls: string[]
@@ -11,6 +13,11 @@ interface ImageMessageProps {
 
 export function ImageMessage({ mediaUrls, mediaTypes, onImageLoad }: ImageMessageProps) {
   const [expandedImage, setExpandedImage] = useState<string | null>(null)
+
+  // Lock page scroll and wire hardware/browser Back to close the lightbox
+  // instead of navigating away while an image is expanded.
+  useBodyScrollLock(!!expandedImage, 'image-message-lightbox')
+  useModalBackButton({ isOpen: !!expandedImage, onClose: () => setExpandedImage(null) })
 
   if (!mediaUrls || mediaUrls.length === 0) {
     return null

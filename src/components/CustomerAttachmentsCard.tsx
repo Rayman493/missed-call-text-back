@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 import { MessageMedia } from '@/lib/types'
 import Modal from '@/components/ui/Modal'
 import { FileText, FileSpreadsheet, File, Paperclip, X } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useModalBackButton } from '@/hooks/useModalBackButton'
 
 // Maximum number of thumbnails to show in the card before "View All"
 const PREVIEW_LIMIT = 6
@@ -64,6 +66,10 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
   // Track which original URLs have already attempted a 401 recovery so we
   // never enter an infinite refresh loop (at most one recovery per URL).
   const recoveryAttemptedRef = useRef<Set<string>>(new Set())
+
+  // Lightbox: lock scroll and close on hardware/browser Back.
+  useBodyScrollLock(!!expandedImage, 'customer-attachments-lightbox')
+  useModalBackButton({ isOpen: !!expandedImage, onClose: () => setExpandedImage(null) })
 
   // Collect all media from all messages, newest message first
   const allAttachments = useMemo(() => {

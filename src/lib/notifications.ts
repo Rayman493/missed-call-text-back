@@ -170,7 +170,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'New Customer' : `${displayName}`,
       message: 'New customer request',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -191,7 +191,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'Follow-Up Sent' : `${displayName}`,
       message: 'All follow-up messages sent',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -243,7 +243,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'New Request' : `${displayName}`,
       message: service ? `${service}` : 'New customer request',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -254,7 +254,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: 'Payment Requested',
       message: `${amount} sent to ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -265,7 +265,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: 'Payment Request Ready',
       message: `${amount} for ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -276,7 +276,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: 'Payment Received',
       message: `${amount} from ${displayName}`,
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -344,7 +344,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'Follow-Up Sent' : `${displayName}`,
       message: 'Follow-up message sent',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 
@@ -354,7 +354,7 @@ export const NOTIFICATION_TEMPLATES = {
       title: displayName === 'Customer' ? 'Missed Call' : `${displayName}`,
       message: 'Missed call',
       action_url: `/dashboard/leads/${data.leadId}`,
-      action_text: 'View Lead'
+      action_text: 'View Customer'
     }
   },
 

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink, Smartphone, MessageSquareText, Navigation, Share2 } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, capitalizeFirstAlpha } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import JobTimer from '@/components/jobs/JobTimer'
 import { isNativeCapacitor } from '@/lib/terminal'
@@ -386,7 +386,7 @@ export default function JobDetailsModal({
                 <Briefcase className="w-4 h-4 text-primary" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-foreground leading-snug break-words">{displayTitle}</h2>
+                <h2 className="text-lg font-semibold text-foreground leading-snug break-words">{capitalizeFirstAlpha(displayTitle)}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[job.status]}`}>
                     {currentStatusOption?.label}
