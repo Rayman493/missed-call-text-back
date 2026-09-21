@@ -24,7 +24,10 @@ export interface ApnsTokenResult {
   success: boolean
   permanentFailure: boolean
   errorCode?: string
+  errorKind?: 'token' | 'config' | 'transient'
 }
+
+export type ApnsErrorKind = 'token' | 'config' | 'transient'
 
 function base64url(input: Buffer | string): string {
   const buf = Buffer.isBuffer(input) ? input : Buffer.from(input)
@@ -104,6 +107,36 @@ async function disableInvalidIosToken(token: string): Promise<void> {
 
 function isPermanentInvalidReason(reason: string): boolean {
   return reason === 'BadDeviceToken' || reason === 'DeviceTokenNotForTopic' || reason === 'Unregistered'
+}
+
+// APNs reasons indicating a provider/auth configuration problem. Retrying
+// the same send cannot succeed, but they do NOT prove the device token is
+// invalid — the token row must stay enabled.
+const NON_RETRYABLE_CONFIG_REASONS = new Set([
+  'InvalidProviderToken',
+  'ExpiredProviderToken',
+  'BadTopic',
+  'TopicDisallowed',
+])
+
+/**
+ * Classify an APNs failure so retries and token invalidation are correct:
+ * - 'token':     permanently invalid device token -> disable it, never retry
+ * - 'config':    provider/topic/auth problem -> stop retrying this send,
+ *                keep the token enabled
+ * - 'transient': retryable within the bounded retry loop
+ */
+export function classifyApnsError(
+  status: number,
+  reason?: string
+): { kind: ApnsErrorKind; retryable: boolean; disableToken: boolean } {
+  if (status === 410 || (reason && isPermanentInvalidReason(reason))) {
+    return { kind: 'token', retryable: false, disableToken: true }
+  }
+  if (reason && NON_RETRYABLE_CONFIG_REASONS.has(reason)) {
+    return { kind: 'config', retryable: false, disableToken: false }
+  }
+  return { kind: 'transient', retryable: true, disableToken: false }
 }
 
 export async function sendApnsToTokens(
@@ -193,16 +226,15 @@ export async function sendApnsToTokens(
               }
             } catch {}
 
-            const isPermanent = status === 410 || (reason && isPermanentInvalidReason(reason))
+            const classification = classifyApnsError(status, reason)
 
-            if (isPermanent) {
+            if (classification.disableToken) {
               await disableInvalidIosToken(token)
               result.disabled++
-              tokenResult.permanentFailure = true
-              tokenResult.errorCode = reason || `HTTP_${status}`
-            } else {
-              tokenResult.errorCode = reason || `HTTP_${status}`
             }
+            tokenResult.permanentFailure = !classification.retryable
+            tokenResult.errorCode = reason || `HTTP_${status}`
+            tokenResult.errorKind = classification.kind
           }
 
           result.results!.push(tokenResult)

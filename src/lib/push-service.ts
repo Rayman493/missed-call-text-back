@@ -278,11 +278,28 @@ class PushService {
       return
     }
 
+    // The FCM sender (fcm-sender.ts) targets channelId 'replyflow-high' on
+    // every Android send. If the channel does not exist on-device, Android
+    // posts to the FCM "Miscellaneous" fallback. Create the channel the sender
+    // already references so importance/visibility are what the payload intends.
+    if (this.currentPlatform === 'android') {
+      PushNotifications.createChannel({
+        id: 'replyflow-high',
+        name: 'ReplyFlow Notifications',
+        description: 'Time-sensitive ReplyFlow alerts',
+        importance: 5,
+        visibility: 1,
+      }).catch(error => {
+        console.warn('[PUSH SERVICE] Failed to create notification channel:', error)
+      })
+    }
+
     // Listen for token registration
     PushNotifications.addListener('registration', (token) => {
       console.log('[PUSH SERVICE] FCM/APNs registration event received', {
         platform: this.currentPlatform,
         tokenPrefix: token.value.substring(0, 8) + '...',
+        tokenLength: token.value.length,
         businessId: this.currentBusinessId
       })
       this.currentToken = token.value
@@ -294,9 +311,15 @@ class PushService {
       this.maybeRegisterDevice()
     })
 
-    // Listen for registration errors
+    // Listen for registration errors — log the full Capacitor error object
+    // (platform + code + message), not just error.error, so iOS APNs failures
+    // (e.g. missing aps-environment) are distinguishable in diagnostics.
     PushNotifications.addListener('registrationError', (error) => {
-      console.error('[PUSH SERVICE] FCM registration error:', error.error)
+      console.error('[PUSH SERVICE] Push registration error:', {
+        platform: this.currentPlatform,
+        error: error.error,
+        message: (error as any)?.message ?? null
+      })
     })
 
     // Listen for incoming push notifications (app in foreground)

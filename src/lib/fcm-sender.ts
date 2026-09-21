@@ -146,14 +146,12 @@ export async function sendPushForNotification(notification: {
           return { success: true, token }
         } catch (error: any) {
           console.error('[FCM SENDER] Push send failed for token:', token.substring(0, 20) + '...', error)
-          
-          // Check if token is invalid/unregistered
-          if (error.code === 'messaging/registration-token-not-registered' ||
-              error.code === 'messaging/invalid-registration-token') {
+
+          if (classifyFcmSendError(error?.code).disableToken) {
             console.log('[FCM SENDER] Disabling invalid token:', token.substring(0, 20) + '...')
             await disableInvalidToken(token)
           }
-          
+
           return { success: false, token, error: error.message }
         }
       })
@@ -182,6 +180,45 @@ export interface FcmTokenResult {
   success: boolean
   permanentFailure: boolean
   errorCode?: string
+  errorKind?: 'token' | 'config' | 'transient'
+}
+
+export type FcmErrorKind = 'token' | 'config' | 'transient'
+
+// Codes that prove the device token itself is permanently invalid.
+// Only these justify disabling the push_devices row.
+const PERMANENT_TOKEN_CODES = new Set([
+  'messaging/registration-token-not-registered',
+  'messaging/invalid-registration-token',
+])
+
+// Provider/sender configuration errors: retrying this send cannot succeed,
+// but they say nothing about the token's validity — the token must NOT be
+// disabled (e.g. mismatched-credential means the app registered against a
+// different Firebase project/sender than the service account).
+const PROVIDER_CONFIG_CODES = new Set([
+  'messaging/mismatched-credential',
+  'messaging/invalid-argument',
+  'messaging/third-party-auth-error',
+])
+
+/**
+ * Classify an FCM send error so retries and token invalidation are correct:
+ * - 'token':     permanently invalid device token -> disable it, never retry
+ * - 'config':    provider/sender/auth problem -> stop retrying this send,
+ *                keep the token enabled
+ * - 'transient': retryable within the bounded retry loop
+ */
+export function classifyFcmSendError(
+  code?: string
+): { kind: FcmErrorKind; retryable: boolean; disableToken: boolean } {
+  if (code && PERMANENT_TOKEN_CODES.has(code)) {
+    return { kind: 'token', retryable: false, disableToken: true }
+  }
+  if (code && PROVIDER_CONFIG_CODES.has(code)) {
+    return { kind: 'config', retryable: false, disableToken: false }
+  }
+  return { kind: 'transient', retryable: true, disableToken: false }
 }
 
 /**
@@ -219,12 +256,6 @@ export async function sendToFcmTokens(
     token: '',
   }
 
-  // Permanent FCM error codes that should never be retried
-  const PERMANENT_FAILURE_CODES = new Set([
-    'messaging/registration-token-not-registered',
-    'messaging/invalid-registration-token',
-  ])
-
   const results = await Promise.allSettled(
     uniqueTokens.map(async (token) => {
       try {
@@ -232,18 +263,20 @@ export async function sendToFcmTokens(
         await messaging.send(message as any)
         return { success: true, token, permanentFailure: false }
       } catch (error: any) {
-        const isPermanent = PERMANENT_FAILURE_CODES.has(error?.code)
+        const classification = classifyFcmSendError(error?.code)
 
-        // Handle invalid token disabling for permanent failures
-        if (isPermanent) {
+        // Only true token-invalid responses disable the row; provider/config
+        // errors stop retrying this send but leave the token enabled.
+        if (classification.disableToken) {
           await disableInvalidToken(token)
         }
 
         return {
           success: false,
           token,
-          permanentFailure: isPermanent,
-          errorCode: error?.code
+          permanentFailure: !classification.retryable,
+          errorCode: error?.code,
+          errorKind: classification.kind
         }
       }
     })
@@ -350,10 +383,8 @@ export async function sendTestPush(
           return { success: true, token: device.push_token }
         } catch (error: any) {
           console.error('[FCM SENDER] Test push failed for token:', device.push_token.substring(0, 20) + '...', error)
-          
-          // Check if token is invalid/unregistered
-          if (error.code === 'messaging/registration-token-not-registered' ||
-              error.code === 'messaging/invalid-registration-token') {
+
+          if (classifyFcmSendError(error?.code).disableToken) {
             console.log('[FCM SENDER] Disabling invalid token:', device.push_token.substring(0, 20) + '...')
             await disableInvalidToken(device.push_token)
           }

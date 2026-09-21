@@ -13,6 +13,7 @@ export interface TokenResult {
   permanentFailure: boolean
   platform: 'android' | 'ios'
   errorCode?: string
+  errorKind?: 'token' | 'config' | 'transient' | 'provider'
 }
 
 /**
@@ -229,7 +230,8 @@ export async function sendPushForNotification(notification: {
             success: fcmResult.success,
             permanentFailure: fcmResult.permanentFailure,
             platform: 'android',
-            errorCode: fcmResult.errorCode
+            errorCode: fcmResult.errorCode,
+            errorKind: fcmResult.errorKind
           })
         }
 
@@ -251,7 +253,8 @@ export async function sendPushForNotification(notification: {
               success: apnsResult.success,
               permanentFailure: apnsResult.permanentFailure,
               platform: 'ios',
-              errorCode: apnsResult.errorCode
+              errorCode: apnsResult.errorCode,
+              errorKind: apnsResult.errorKind
             })
           }
         }
@@ -259,6 +262,48 @@ export async function sendPushForNotification(notification: {
         return result
       })(),
     ])
+
+    // A wholesale rejection means the provider call itself failed before any
+    // per-token result existed (e.g. missing Firebase credentials, APNs key
+    // signing failure). Diagnose it distinctly and stop burning retries:
+    // mark that platform's outstanding tokens non-retryable for THIS send
+    // without disabling them — the failure is not evidence the tokens are bad.
+    if (androidRes.status === 'rejected') {
+      console.error('[PUSH DELIVERY] FCM provider call rejected', {
+        notificationId: notification.id,
+        attempt,
+        reason: androidRes.reason instanceof Error ? androidRes.reason.message : String(androidRes.reason),
+        correlationId
+      })
+      for (const token of retryAndroidTokens) {
+        tokenState.set(token, {
+          token,
+          success: false,
+          permanentFailure: true,
+          platform: 'android',
+          errorCode: 'PROVIDER_CALL_FAILED',
+          errorKind: 'provider'
+        })
+      }
+    }
+    if (iosRes.status === 'rejected') {
+      console.error('[PUSH DELIVERY] APNs provider call rejected', {
+        notificationId: notification.id,
+        attempt,
+        reason: iosRes.reason instanceof Error ? iosRes.reason.message : String(iosRes.reason),
+        correlationId
+      })
+      for (const token of retryIosTokens) {
+        tokenState.set(token, {
+          token,
+          success: false,
+          permanentFailure: true,
+          platform: 'ios',
+          errorCode: 'PROVIDER_CALL_FAILED',
+          errorKind: 'provider'
+        })
+      }
+    }
 
     const android = androidRes.status === 'fulfilled' ? androidRes.value : { attempted: 0, successful: 0, failed: 0, results: [] }
     const ios = iosRes.status === 'fulfilled' ? iosRes.value : { attempted: 0, successful: 0, failed: 0, disabled: 0, results: [] }
@@ -269,10 +314,26 @@ export async function sendPushForNotification(notification: {
     const iosSuccessful = Array.from(tokenState.values()).filter(s => s.platform === 'ios' && s.success).length
     const iosFailed = Array.from(tokenState.values()).filter(s => s.platform === 'ios' && !s.success).length
 
+    const newAndroidSuccess = androidSuccessful - finalResult.android.successful
+    const newIosSuccess = iosSuccessful - finalResult.ios.successful
+
     finalResult = {
       android: { attempted: retryAndroidTokens.length, successful: androidSuccessful, failed: androidFailed },
       ios: { attempted: retryIosTokens.length, successful: iosSuccessful, failed: iosFailed }
     }
+
+    // Per-token failure classification — without this, production logs cannot
+    // distinguish a stale/unregistered token from a transient provider error,
+    // which determines whether the retry loop is doing the right thing.
+    const tokenFailureDetails = Array.from(tokenState.values())
+      .filter(s => !s.success)
+      .map(s => ({
+        token: s.token.substring(0, 12) + '…',
+        platform: s.platform,
+        errorCode: s.errorCode ?? null,
+        errorKind: s.errorKind ?? null,
+        permanent: s.permanentFailure,
+      }))
 
     // Log attempt results
     console.log(`[PUSH DELIVERY] Attempt ${attempt} complete`, {
@@ -285,9 +346,10 @@ export async function sendPushForNotification(notification: {
       iosAttempted: (ios as any).attempted,
       iosSuccessful: (ios as any).successful,
       iosFailed: (ios as any).failed,
-      newAndroidSuccess: androidSuccessful - finalResult.android.successful,
-      newIosSuccess: iosSuccessful - finalResult.ios.successful,
+      newAndroidSuccess,
+      newIosSuccess,
       remainingRetryTokens: Array.from(tokenState.values()).filter(s => !s.success && !s.permanentFailure).length,
+      tokenFailures: tokenFailureDetails,
       correlationId
     })
 

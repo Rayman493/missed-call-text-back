@@ -120,23 +120,22 @@ export async function POST(request: NextRequest) {
 
     // Upsert the device token (insert or update if exists).
     //
-    // STABLE DEVICE IDENTITY AUDIT:
-    // The push_devices schema has an optional `device_identifier` column, but the
-    // current native client (src/lib/push-service.ts) always sends null because
-    // Capacitor's Device plugin is not wired up. Therefore we cannot distinguish
-    // a token rotation on Device A from a brand-new Device B. We MUST NOT disable
-    // other tokens for the same (user_id, business_id, platform) because that would
-    // implement "one active device per platform per user" and break iPhone + iPad,
-    // multiple Android devices, etc.
+    // STABLE DEVICE IDENTITY:
+    // The native client (src/lib/push-service.ts) sends `deviceIdentifier` from
+    // Capacitor Device.getId() — a stable per-installation identifier. When a
+    // physical installation receives a NEW provider token (FCM/APNs rotation),
+    // the fresh token inserts as a new enabled row and prior enabled tokens for
+    // the SAME device_identifier are disabled below, so a stale token cannot
+    // outvote the fresh one during delivery.
     //
     // Correct contract:
     // - Same token re-registered -> idempotent update of last_seen_at (unique on
     //   user_id, platform, push_token).
-    // - Different token registered -> new active row. Because the native client
-    //   does not yet send a stable deviceIdentifier, a new token for the same
-    //   platform is treated as the canonical active device. Older tokens for the
-    //   same (user_id, business_id, platform) are disabled immediately so stale
-    //   or invalid tokens cannot outvote the fresh one during push delivery.
+    // - Different token, same device_identifier -> new enabled row; prior tokens
+    //   for that installation are disabled.
+    // - deviceIdentifier missing -> no cleanup: we cannot distinguish rotation
+    //   on this device from a different legitimate device (iPhone + iPad), so
+    //   other rows are left alone rather than disabling real devices.
     console.log('[PUSH DEVICE REGISTRATION] Upserting device token')
     const { data: device, error: deviceError } = await supabaseAdmin
       .from('push_devices')
