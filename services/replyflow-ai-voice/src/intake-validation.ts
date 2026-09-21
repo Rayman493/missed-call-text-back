@@ -51,6 +51,13 @@ function isUncertaintyNonAnswer(text: string): boolean {
 }
 
 /**
+ * Pure conversational acknowledgments / channel filler that carry no field
+ * semantics. Anchored to the whole (stripped) utterance so real answers that
+ * merely contain these words are unaffected.
+ */
+const CONVERSATIONAL_ACK = /^(?:okay|ok|yeah|yep|yes|yup|sure|whatever|maybe|fine|alright|all right|sounds good|got it|right|correct|hello|hi|hey|thanks|thank you|bye|goodbye|no problem|cool|great|good|perfect|nice)[.!?\s]*$/i;
+
+/**
  * Meta-conversation / channel-check phrases that must never satisfy an intake
  * field. These are conversational repair utterances directed at the call itself
  * ("hello, still there?", "can you hear me?"), not answers to the question.
@@ -71,7 +78,8 @@ const META_UTTERANCE_PATTERNS = [
   /\bi\s+(?:didn'?t|did\s+not|couldn'?t|could\s+not)\s+(?:hear|catch|understand)\s+(?:you|that|what\s+you\s+said)\b[?.!\s]*$/i,
   /^(?:sorry|pardon|excuse\s+me|what|huh|eh|hmm?|mhm?)[?.!\s]*$/i,
   /^(?:one\s+)?(?:sec|second|moment|minute)[,.\s]*(?:please)?[?.!\s]*$/i,
-  /\b(?:one\s+second|one\s+sec|hold\s+on|hang\s+on|wait\s+(?:a\s+)?(?:sec|second|moment|minute)|give\s+me\s+a\s+(?:sec|second|moment|minute)|bear\s+with\s+me)\b[?.!\s]*$/i,
+  /\b(?:one\s+second|one\s+sec|hold\s+on|hang\s+on|wait\s+(?:a\s+|one\s+)?(?:sec|second|moment|minute)|give\s+me\s+(?:a|one)\s+(?:sec|second|moment|minute)|bear\s+with\s+me)\b[?.!\s]*$/i,
+  /^(?:sorry[,\s]+)?what\s+was\s+that\b[?.!\s]*$/i,
   /\b(?:hold|hang)\s+on\s+(?:a\s+)?(?:sec|second|moment|minute)\b[?.!\s]*$/i,
   /\bjust\s+a\s+(?:sec|second|moment|minute)\b[?.!\s]*$/i,
   /\bthat'?s\s+not\s+what\s+i\s+said\b[?.!\s]*$/i,
@@ -267,6 +275,9 @@ export function isValidCompletionTime(text: string): boolean {
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
+  // Pure acknowledgments carry no timing semantics — "okay", "yeah", "whatever"
+  // must never satisfy a structured timing field.
+  if (CONVERSATIONAL_ACK.test(trimmed)) return false;
 
   // Reject work verbs / action words that are NOT timing expressions.
   // These are commonly misextracted from service descriptions.
@@ -317,6 +328,7 @@ export function isValidCallbackTime(text: string): boolean {
   ];
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
+  if (CONVERSATIONAL_ACK.test(trimmed)) return false;
 
   return true;
 }

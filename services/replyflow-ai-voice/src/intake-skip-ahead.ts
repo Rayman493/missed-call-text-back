@@ -157,12 +157,12 @@ function extractCustomerName(transcript: string): string | null {
   const trimmed = transcript.trim();
   if (isNameRefusal(trimmed)) return null;
   const patterns = [
-    /\bmy name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-    /\bmy name's\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-    /\bi am\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-    /\bi'm\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-    /\bthis is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-    /\bhi[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+    /\bmy name is\s+(.+?)(?:\.|,|;|—|–|\band\b|$)/i,
+    /\bmy name's\s+(.+?)(?:\.|,|;|—|–|\band\b|$)/i,
+    /\bi am\s+(.+?)(?:\.|,|;|—|–|\band\b|$)/i,
+    /\bi'm\s+(.+?)(?:\.|,|;|—|–|\band\b|$)/i,
+    /\bthis is\s+(.+?)(?:\.|,|;|—|–|\band\b|$)/i,
+    /\bhi[,\s]+my name is\s+(.+?)(?:\.|,|;|—|–|\band\b|$)/i,
   ];
   for (const pattern of patterns) {
     const match = trimmed.match(pattern);
@@ -176,10 +176,19 @@ function extractCustomerName(transcript: string): string | null {
   return null;
 }
 
-const ADDRESS_PATTERNS: { pattern: RegExp; type: string }[] = [
+const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean }[] = [
+  {
+    // Numbered-street correction: "it's 937, not 931, Pine Hollow Road" /
+    // "it's 937 Pine Hollow Road". The corrected house number is captured
+    // and reattached to the street phrase.
+    pattern:
+      /\bit'?s\s+(?:not\s+\d+\s*,?\s*(?:it'?s\s+)?|it\s+is\s+)?(\d[\d\s-]*)\s*,?\s*(?:not\s+\d[\d\s-]*\s*,?\s*)?([^.!?\n]*?\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b[^.!?\n]*?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+    type: 'explicit-correction',
+    combine: true,
+  },
   {
     pattern:
-      /\b(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at)\s+([^.!?\n]+?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
+      /\b(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at|my address is)\s+([^.!?\n]+?)(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
     type: 'explicit',
   },
   {
@@ -215,7 +224,7 @@ function isConfidentEarlyServiceAddress(
 ): boolean {
   if (!isValidServiceAddress(text)) return false;
   const trimmed = text.trim().toLowerCase();
-  if (type === 'explicit') return true;
+  if (type === 'explicit' || type === 'explicit-correction') return true;
   if (type === 'street-address') return true;
   if (type === 'bare-numbered') {
     return /^\d/.test(trimmed) || /\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b/.test(trimmed);
@@ -230,16 +239,21 @@ function isConfidentEarlyServiceAddress(
 }
 
 function findAddressMatch(transcript: string): ExtractedMatch | null {
-  for (const { pattern, type } of ADDRESS_PATTERNS) {
+  for (const { pattern, type, combine } of ADDRESS_PATTERNS) {
     const match = transcript.match(pattern);
     if (match && match[1]) {
-      const candidate = match[1]
-        .replace(/,\s*(?:i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b).*$/i, '')
-        .trim();
+      let candidate = combine && match[2]
+        ? `${match[1].trim()} ${match[2].trim()}`
+        : match[1]
+          .replace(/,\s*(?:i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b).*$/i, '')
+          .trim();
+      candidate = candidate.trim();
       if (isConfidentEarlyServiceAddress(candidate, type)) {
         const value = candidate
           .replace(/[.,;]\s*$/, '')
           .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
+          .replace(/[\s,]+(?:and|in|at|on|for)\s*$/i, '')
+          .replace(/[.,;]\s*$/, '')
           .trim();
         return {
           value,
@@ -274,6 +288,12 @@ const COMPLETION_PATTERNS: RegExp[] = [
   // Standalone temporal words with optional "if possible" / "if you can" qualifier.
   // Captures "tomorrow", "tomorrow if possible", "today if possible", "this week if possible".
   /\b((?:today|tomorrow|tonight)(?:\s+if\s+(?:possible|you\s+(?:can|could)))?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i,
+  // Weekday and week/month phrases, including judgment scaffolds:
+  // "Friday", "tomorrow would be great", "next week is fine",
+  // "sometime later this week", "later this week".
+  /\b((?:(?:sometime|later)\s+)*(?:this|next)\s+(?:week|month|weekend))(?:\s+(?:is|works|would|will|'d|'ll)\s+(?:be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
+  /\b((?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?)(?=\s*[.!?;,]|\s+and\b|$)/i,
+  /\b((?:today|tomorrow|tonight))(?:\s+(?:would|will|is|works|'d|'ll)\s+(?:be\s+)?(?:great|good|fine|best|ok(?:ay)?|better|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
   // Vague completion phrases: keep the full semantic phrase, e.g. "Whenever you can".
   /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*and\b|[.!?](?:\s|$)|;|$))/i,
   ...EARLY_COMPLETION_PATTERNS,
@@ -281,8 +301,26 @@ const COMPLETION_PATTERNS: RegExp[] = [
 
 function findCompletionMatch(transcript: string): ExtractedMatch | null {
   for (const pattern of COMPLETION_PATTERNS) {
-    const match = transcript.match(pattern);
-    if (match) {
+    const re = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(transcript)) !== null) {
+      // A temporal phrase immediately after a callback marker belongs to the
+      // callback field ("call me Friday"), and one after a past-incident verb
+      // belongs to the problem history ("the pipe started leaking Friday").
+      const immediatePrefix = transcript.slice(Math.max(0, (match.index || 0) - 30), match.index || 0);
+      if (CALLBACK_CONTEXT_MARKERS.test(immediatePrefix) || INCIDENT_HISTORY_PREFIX.test(immediatePrefix) || PAST_MARKER_PREFIX.test(immediatePrefix)) {
+        continue;
+      }
+      if (CLAUSE_NEGATION_RE.test(clauseContaining(transcript, match.index || 0))) {
+        continue;
+      }
+      // A bare weekday/daypart directly preceded by "next/this/coming" belongs
+      // to the longer natural phrase ("by next Tuesday") — let the natural
+      // completion matcher claim the full form instead of truncating to
+      // "tuesday".
+      if (/\b(?:next|this|coming|following|upcoming|every|by|in|on|within|sometime)\s*$/i.test(immediatePrefix)) {
+        continue;
+      }
       // Early completion patterns capture only the suffix in group 1. Use the full match
       // when group 1 is a suffix so phrases like "whenever you can" are preserved.
       const rawValue = match[2] || (match[1] && /^[\s,;]/.test(match[1]) ? match[0] : match[1]);
@@ -308,7 +346,7 @@ const PAST_CONTEXT_MARKERS = /\b(?:ago|last|since|started|broke|snapped|noticed|
 const CALLBACK_CONTEXT_MARKERS = /\b(?:call me(?: back)?|you can call me(?: back)?|reach me|contact me|you can reach me)\b/i;
 const NEGATIVE_TIMING_PREFIX = /\b(?:for|since|over|the last|the past|last|ago)\s*$/i;
 const NATURAL_COMPLETION_RE =
-  '\\b(((?:in|within|sometime in|sometime within|sometime this|sometime next|by|this|next|today|tomorrow)\\s+(?:the\\s+)?(?:next|coming|following|upcoming)?\\s*(?:two|three|four|a few|couple of|couple|one|1|2|3|4|5|several)?\\s*(?:days?|weeks?|months?|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)days?|today|tomorrow|morning|afternoon|evening|night))(?:\\s+(?:or so|about|around|ish|give or take))?)(?=\\s*(?:,?\\s*and\\b|[.!?](?:\\s|$)|;|$))';
+  '\\b(((?:in|within|sometime in|sometime within|sometime this|sometime next|by|on|this|next|today|tomorrow)\\s+(?:the\\s+)?(?:next|coming|following|upcoming)?\\s*(?:two|three|four|a few|couple of|couple|one|1|2|3|4|5|several)?\\s*(?:days?|weeks?|months?|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)days?|today|tomorrow|morning|afternoon|evening|night))(?:\\s+(?:or so|about|around|ish|give or take))?)(?=\\s*(?:,?\\s*and\\b|[.!?](?:\\s|$)|;|$))';
 
 function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
   const re = new RegExp(NATURAL_COMPLETION_RE, 'gi');
@@ -347,14 +385,19 @@ function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
 // the candidate so no mid-word fragment is ever used as a field value.
 // `rejectIfPrecededByCompletionIntent` suppresses bare temporal matches that are
 // really the tail of a completion-time phrase ("I need it done tomorrow").
-const CALLBACK_PATTERN_ENTRIES: { pattern: RegExp; valueIsFullMatch: boolean; rejectIfPrecededByCompletionIntent?: boolean; rejectIfPrecededByIncident?: boolean }[] = [
-  { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+const NEGATION_PREFIX = /\b(?:don'?t|dont|do\s+not|didn'?t|didnt|won'?t|wont|never|not)\s*$/i;
+
+const CALLBACK_PATTERN_ENTRIES: { pattern: RegExp; valueIsFullMatch: boolean; rejectIfPrecededByCompletionIntent?: boolean; rejectIfPrecededByIncident?: boolean; rejectIfPrecededByNegation?: boolean }[] = [
+  { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByNegation: true },
   { pattern: /\b((?:i'?m|i am)\s+(?:available|free)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   { pattern: /\b((?:morning|afternoon|evening|night)s?\s+(?:are|work|is|would|will|'d|'ll)\s+(?:best|good|fine|ok(?:ay)?|easier|easiest|prefer(?:red)?)(?:\s+[^.,;]+?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  // "call after 3" / "call tomorrow morning" — bare "call" without "me",
+  // common in negated restatements ("don't call me in the morning; call after 3").
+  { pattern: /\b((?:call|you\s+can\s+call)\s+(?!me\b)(?:back\s+)?(?:after|before|at|in|on|between|around|anytime|whenever|tomorrow|today|tonight|morning|afternoon|evening)\s+[^.,;]*?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByNegation: true },
   // "anytime" answers including comma-qualified constraints
   // ("Anytime, but preferably later in the afternoon"). "ok" is word-bounded
   // via ok(?:ay)? so it cannot truncate mid-word.
-  { pattern: /\b(any(?:\s)?time(?:\s+(?:is|works|best|good|fine|ok(?:ay)?|after|before|between)(?:\s+[^.,;]+?)?)?(?:\s*,\s*(?:but\s+)?[^.,;]+?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b(any(?:\s)?time(?:\s+(?:is|works|best|good|fine|ok(?:ay)?|after|before|between|today|tomorrow|tonight|morning|afternoon|evening|this\s+week|next\s+week|(?:mon|tues|wednes|thurs|fri|satur|sun)day)(?:\s+[^.,;]+?)?)?(?:\s*,\s*(?:but\s+)?[^.,;]+?)?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)?\s+whenever(?:\s+(?:is|works|best|good|fine|ok(?:ay)?))?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   { pattern: /\b((?:best time|good time)\s+(?:to|at|in|on|after|before|between|is)\s+[^.,;]+?)(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   { pattern: /\b((?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)\s+([^.,;]+?))(?=\s*,?\s*and\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
@@ -367,12 +410,40 @@ const CALLBACK_PATTERN_ENTRIES: { pattern: RegExp; valueIsFullMatch: boolean; re
 const COMPLETION_INTENT_PREFIX = /\b(?:done|completed|finished|out|here|by|on|in|for|it|installed|repaired|fixed|someone|somebody)\s*$/i;
 // Past-incident verbs right before a temporal word mean the timing describes
 // when the problem happened ("cables snapped this morning"), not when to call.
-const INCIDENT_HISTORY_PREFIX = /\b(?:snapped|broke|broken|burst|started|leaked|leaking|dripped|dripping|happened|failed|cracked|fell|collapsed|stopped|froze|frozen|overflowed|overflowing|backed\s+up|went\s+out|died|popped|came\s+off|began|noticed|appeared|heard)\b(?:\s+(?:this|that|last|yesterday|earlier|just|a|an|the|one|my))*\s*$/i;
+const INCIDENT_HISTORY_PREFIX = /\b(?:snapped|broke|broken|burst|started|leaked|leaking|dripped|dripping|happened|failed|cracked|fell|collapsed|stopped|froze|frozen|overflowed|overflowing|backed\s+up|went\s+out|died|popped|came\s+off|began|shut\s+(?:off|down)|cut\s+out|gave\s+out|quit|noticed|appeared|heard)\b(?:\s+(?:this|that|last|yesterday|earlier|just|a|an|the|one|my))*\s*$/i;
+
+// A temporal word directly preceded by a past-time marker ("yesterday
+// morning", "last night") is incident history, never a callback preference.
+const PAST_MARKER_PREFIX = /\b(?:yesterday|ago|earlier|last\s+(?:night|week|month|year|monday|tuesday|wednesday|thursday|friday|saturday|sunday))\s*$/i;
+
+// Whole-answer incident prose — used to stop the stage scalar fallback from
+// raw-writing "the furnace shut off around 2 pm" into a timing field.
+const INCIDENT_ANSWER_RE = /\b(?:snapped|broke|broken|burst|started|leak(?:ed|ing|s)?|dripp?ed|dripping|drips?|happened|failed|cracked|fell|collapsed|stopped|froze|frozen|overflowed|overflowing|backed\s+up|went\s+out|died|popped|came\s+off|began|shut\s+(?:off|down)|cut\s+out|gave\s+out|quit|noticed|appeared|yesterday|\bago\b|last\s+(?:night|week|month|year)|earlier\s+today)\b/i;
+
+// Clause-level negation: a temporal match inside a negated clause is a
+// contradiction, not a preference ("don't call me in the morning; call
+// after 3", "I don't need it tomorrow, next week is fine"). Bare "not" is
+// deliberately excluded so "not before noon" still parses.
+const CLAUSE_NEGATION_RE = /\b(?:don'?t|do\s+not|didn'?t|won'?t|never|ain'?t|isn'?t|aren'?t|shouldn'?t|can'?t)\b/i;
+
+function clauseContaining(transcript: string, index: number): string {
+  const start = Math.max(
+    transcript.lastIndexOf('.', index),
+    transcript.lastIndexOf('!', index),
+    transcript.lastIndexOf('?', index),
+    transcript.lastIndexOf(';', index),
+    transcript.lastIndexOf(',', index)
+  ) + 1;
+  const rest = transcript.slice(index);
+  const endMatch = rest.search(/[.!?;,]/);
+  const end = endMatch === -1 ? transcript.length : index + endMatch;
+  return transcript.slice(start, end);
+}
 
 function normalizeCallbackTime(value: string): string {
   let cleaned = value.trim()
     // Strip trigger scaffolding that early patterns keep in match[0].
-    .replace(/^(?:you can reach me|you can call me(?:\s+back)?|reach me|contact me|call me(?:\s+back)?)\s+/i, '')
+    .replace(/^(?:you can reach me|you can call me(?:\s+back)?|you can call|reach me|contact me|call me(?:\s+back)?|call(?!\s+me\b)|call\s+me)\s+/i, '')
     .replace(/^(?:i'?m|i am)\s+(?:available|free)\s+/i, '')
     .replace(/^(?:best time|good time)\s+(?:to|at|in|on|is)\s+/i, '')
     .trim();
@@ -408,9 +479,13 @@ function normalizeCallbackTime(value: string): string {
 }
 
 function findCallbackMatch(transcript: string): ExtractedMatch | null {
-  for (const { pattern, valueIsFullMatch, rejectIfPrecededByCompletionIntent, rejectIfPrecededByIncident } of CALLBACK_PATTERN_ENTRIES) {
-    const match = transcript.match(pattern);
-    if (match) {
+  for (const { pattern, valueIsFullMatch, rejectIfPrecededByCompletionIntent, rejectIfPrecededByIncident, rejectIfPrecededByNegation } of CALLBACK_PATTERN_ENTRIES) {
+    // Iterate every match in the utterance so a negated first clause
+    // ("don't call me in the morning; call after 3") can be skipped in
+    // favor of the later positive instruction.
+    const re = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(transcript)) !== null) {
       if (rejectIfPrecededByCompletionIntent) {
         const preceding = transcript.slice(Math.max(0, (match.index || 0) - 40), match.index || 0);
         if (COMPLETION_INTENT_PREFIX.test(preceding)) {
@@ -419,9 +494,18 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
       }
       if (rejectIfPrecededByIncident) {
         const preceding = transcript.slice(Math.max(0, (match.index || 0) - 40), match.index || 0);
-        if (INCIDENT_HISTORY_PREFIX.test(preceding)) {
+        if (INCIDENT_HISTORY_PREFIX.test(preceding) || PAST_MARKER_PREFIX.test(preceding)) {
           continue;
         }
+      }
+      if (rejectIfPrecededByNegation) {
+        const preceding = transcript.slice(Math.max(0, (match.index || 0) - 20), match.index || 0);
+        if (NEGATION_PREFIX.test(preceding)) {
+          continue;
+        }
+      }
+      if (CLAUSE_NEGATION_RE.test(clauseContaining(transcript, match.index || 0))) {
+        continue;
       }
       const rawValue = (valueIsFullMatch ? match[0] : (match[2] || match[1])).trim();
       const value = normalizeCallbackTime(rawValue)
@@ -530,18 +614,24 @@ function cleanServiceRequest(serviceRequested: string, matches: (ExtractedMatch 
 
 function extractServiceRequestCandidate(
   transcript: string,
-  customerName?: string
+  customerNames?: (string | undefined)[]
 ): string | null {
   let s = transcript.trim();
-  if (customerName) {
-    const idx = s.toLowerCase().indexOf(customerName.toLowerCase());
-    if (idx !== -1) {
-      s = s.slice(idx + customerName.length).trim();
-    }
+  // Remove every known name token (word-bounded so "A" can't cut "garage")
+  // plus any name-introduction / name-restatement scaffolding left behind.
+  for (const customerName of customerNames || []) {
+    if (!customerName) continue;
+    const nameRe = new RegExp(`\\b${escapeRegex(customerName.trim())}\\b`, 'gi');
+    s = s.replace(nameRe, ' ');
   }
-  // Remove leading punctuation/connectors before matching service fields.
-  s = s.replace(/^[.,;:]\s*/, '').trim();
-  s = s.replace(/^(?:and|so|then|also)\s+/i, '');
+  s = s
+    .replace(/\b(?:i\s+said|i\s+told\s+you|i\s+already\s+(?:said|told\s+you))\s+/gi, ' ')
+    .replace(/\bis\s+my\s+name\b/gi, ' ')
+    .replace(/(?:my name is|my name's|name is|i'?m|i am|this is|it'?s|it is)\s*(?=[.,;]|$)/gi, ' ')
+    .replace(/^[.,;:\s]+/, '')
+    .replace(/^(?:hi|hello|hey)\b[\s,;.!?]*/i, '')
+    .replace(/^(?:and|so|then|also)\s+/i, '')
+    .trim();
 
   const matches: (ExtractedMatch | null)[] = [
     findAddressMatch(s),
@@ -549,23 +639,34 @@ function extractServiceRequestCandidate(
     findNaturalCompletionMatch(s),
     findCallbackMatch(s),
   ];
-  const earliestMatch = matches
+  const validMatches = matches
     .filter((m): m is ExtractedMatch => !!m)
-    .sort((a, b) => a.startIndex - b.startIndex)[0];
+    .sort((a, b) => a.startIndex - b.startIndex);
 
-  if (earliestMatch && earliestMatch.startIndex >= 0) {
-    const valueIndex = earliestMatch.fullMatch.indexOf(earliestMatch.value);
+  // The service candidate is whatever lies OUTSIDE the extracted scalar
+  // values: text before the first match's extracted value plus text after the
+  // last match. Connector-style full matches ("at", "call me") begin the field
+  // itself; service-inclusive matches ("I need it done next Friday") keep the
+  // service scaffolding before the extracted value. Service text may also
+  // follow a match ("I'm at 937 Pine and I need a plumber").
+  if (validMatches.length > 0) {
+    const first = validMatches[0];
+    const last = validMatches[validMatches.length - 1];
+    const valueIndex = first.fullMatch.indexOf(first.value);
     const valueStart = valueIndex >= 0 ? valueIndex : 0;
-    // Connector-style full matches (at, call me, etc.) begin the trailing field
-    // itself; slice before the whole match. Service-inclusive full matches (e.g.
-    // "I need it done next Friday") keep the service before the extracted value.
-    const valueOffset = CONNECTOR_PREFIX_RE.test(earliestMatch.fullMatch) ? 0 : valueStart;
-    const sliceIndex = earliestMatch.startIndex + valueOffset;
-    s = s.slice(0, sliceIndex).trim();
+    const valueOffset = CONNECTOR_PREFIX_RE.test(first.fullMatch) ? 0 : valueStart;
+    const prefix = s.slice(0, first.startIndex + valueOffset);
+    const suffix = s.slice(last.startIndex + last.fullMatch.length);
+    s = `${prefix} ${suffix}`;
   }
 
+  s = s.replace(/^[.,;:\s]+/, '').replace(/^(?:and|so|then|also)\s+/i, '');
+  s = s
+    .replace(/^(?:hi|hello|hey)\b[\s,;.!?]*/i, '')
+    .replace(/^(?:i'?m|i am|this is|it'?s|it is)\s+(?=\S)/i, '')
+    .trim();
   s = stripServicePrefix(s);
-  s = s.replace(/[.,;:]$/, '').trim();
+  s = s.replace(/(?:[.,;:\s])+$/, '').trim();
   s = s.replace(/\s+(?:and|at|by|on|in)$/i, '').trim();
   if (isValidServiceRequest(s)) return s;
   return null;
@@ -602,6 +703,10 @@ function mergeIfMissing(
  */
 const SAME_TURN_CORRECTION_RE = /\b(?:make\s+that|make\s+it|scratch\s+that|sorry[,.]?\s*(?:i\s+mean(?:t)?\s+)?|actually[,.]?\s*|i\s+mean(?:t)?\s+|i\s+meant\s+to\s+say\s+|no[,.]?\s+|instead[,.]?\s*|let'?s\s+go\s+with\s+|rather[,.]?\s*)\b/gi;
 
+// Continuations after a bare "no" that are conversational, not corrections:
+// "no rush", "no problem", "no worries", "no need", etc.
+const NO_NON_CORRECTION_TAIL_RE = /^(?:rush|hurry|problem|problems|worries|worry|pressure|preference|particular|specific|deadline|need|offense|big\s+deal|biggie|stress|concern|emergency|trouble|issue|hassle)\b/i;
+
 function splitCorrectionTail(transcript: string): string | null {
   const matches = [...transcript.matchAll(SAME_TURN_CORRECTION_RE)];
   // Use the LAST marker that is followed by real content. A trailing
@@ -613,7 +718,13 @@ function splitCorrectionTail(transcript: string): string | null {
       .replace(/^[.,;\s]+/, '')
       .replace(/(?:\s+instead)?[.,;!?\s]*$/i, '')
       .trim();
-    if (tail.length >= 2) return tail;
+    if (tail.length < 2) continue;
+    // A bare "no" marker followed by a conversational continuation
+    // ("no rush", "no problem") is a polite answer, not a correction.
+    if (/^no\b/i.test(matches[i][0]) && NO_NON_CORRECTION_TAIL_RE.test(tail)) {
+      continue;
+    }
+    return tail;
   }
   return null;
 }
@@ -641,6 +752,9 @@ export function extractExplicitNameCorrection(
     // normal intro handled by name extraction, not an explicit correction.
     /\b(?:no|nope|nah)[,.]?\s+(?:my\s+name\s+is|my\s+name's)\s+(?:actually\s+)?(.+?)(?:[.,;]|\s+and\b|$)/i,
     /\b(?:my\s+name\s+is|my\s+name's)\s+actually\s+(.+?)(?:[.,;]|\s+and\b|$)/i,
+    // Bare "I said X" / "I told you X" restatement — the candidate still has to
+    // pass isValidCustomerName, so "I said I don't know" is rejected naturally.
+    /\b(?:i\s+said|i\s+told\s+you|i\s+already\s+(?:said|told\s+you))\s+(?:it'?s\s+|it\s+is\s+)?(.+?)(?:[.,;]|\s+and\b|$)/i,
   ];
   const introPatterns = [
     /\b(?:it'?s|it\s+is)\s+(?:actually\s+)?(.+?)(?:[.,;]|\s+and\b|$)/i,
@@ -686,12 +800,14 @@ export function detectCorrectionIntent(transcript: string): { isCorrection: bool
   }, 0);
 
   // High-confidence: explicit correction markers or a "not X, Y" / "Y, not X" structure.
-  const hasNotStructure = /\bnot\s+(?:the\s+)?[a-z]+\b/.test(lower);
+  // Contraction negations ("don't need it tomorrow") count as not-structure so a
+  // negated statement followed by a restatement can overwrite a prior value.
+  const hasNotStructure = /\b(?:not|n'?t)\s+(?:the\s+|a\s+|an\s+)?[a-z]+\b/.test(lower);
   const hasInsteadStructure = /\binstead\b/.test(lower);
   const hasActually = /\bactually\b/.test(lower);
   const hasMeant = /\bi meant\b/.test(lower);
   const highConfidence = markerCount >= 2 || (markerCount >= 1 && (hasNotStructure || hasInsteadStructure));
-  const mediumConfidence = hasActually || hasMeant || (markerCount >= 1 && hasNotStructure);
+  const mediumConfidence = hasActually || hasMeant || hasNotStructure || (markerCount >= 1 && hasNotStructure);
 
   if (highConfidence || mediumConfidence) {
     return { isCorrection: true, confidence: highConfidence ? 'high' : 'low' };
@@ -704,6 +820,17 @@ export function detectCorrectionIntent(transcript: string): { isCorrection: bool
 //   "It's the shower, not the toilet" -> "shower repair"
 //   "Actually use a lawn cut instead" -> "lawn cut"
 function extractCorrectionServiceRequest(transcript: string, existingService?: string): string | null {
+  // Negated-fixture relocation: "it's not the toilet. The leak is under the
+  // kitchen sink." The negated noun is dropped and the relocated problem
+  // clause supplies the corrected service ("kitchen sink leak").
+  const relocation = transcript.match(
+    /\b(?:it'?s|it is|its)\s+not\s+(?:the|a|an)\s+[a-z][a-z\s\-']*?[.,;]\s*(?:the\s+|my\s+)?(leak|issue|problem|break|crack|drip|damage|noise|smell|flood|damp|mold)\s+is\s+(?:in|inside|under|at|behind|near|on|around|coming\s+from|by)\s+(?:the\s+|my\s+)?([a-z][a-z\s\-']+?)(?=\s*(?:[.,;]|$))/i
+  );
+  if (relocation && relocation[1] && relocation[2]) {
+    const candidate = `${relocation[2].trim()} ${relocation[1].trim()}`.trim();
+    if (isValidServiceRequest(candidate)) return candidate;
+  }
+
   const explicitPatterns = [
     // "Actually it's the shower, not the toilet"
     /\b(?:actually,?\s*it's|actually,?\s*it is|it's|it is|it was|sorry,?\s*it's)\s+(?:a\s+|the\s+)?([a-z][a-z\s\-]+?)(?:,|;|\.\s|\s+not\b|\s+instead\b|\s+and\s+(?:the\s+)?(?:address|call|phone))/i,
@@ -851,6 +978,16 @@ export function splitServiceAndDetails(serviceText: string): { reason: string; d
     if (clause && clause[1] && clause[2] && SERVICE_INTENT_RE.test(clause[1])) {
       return { reason: tightenReason(clause[1]), details: clause[2].trim() };
     }
+    // "... and it's starting to damage the wood" — the and-it continuation is
+    // a supporting fact, not part of the concise reason.
+    const andClause = text.match(/^(.*?),?\s+and\s+(it'?s\s+.+|it\s+is\s+.+|it\s+has\s+.+|it\s+keeps\s+.+|it\s+seems\s+.+)$/i);
+    // The head may be a problem statement rather than an explicit request
+    // ("my sink is leaking under the cabinet") — accept either shape.
+    const PROBLEM_STATE_RE = /\b(?:leak|drip|broken|broke|crack|damage|flood|clog|overflow|stuck|rattle|noise|fail|shut|stopped|frozen|mold|damp|spark|smell|sag|rot|peel|chip|dent|scratch)/i;
+    if (andClause && andClause[1] && andClause[2] &&
+        (SERVICE_INTENT_RE.test(andClause[1]) || PROBLEM_STATE_RE.test(andClause[1]))) {
+      return { reason: tightenReason(andClause[1]), details: andClause[2].trim() };
+    }
     return { reason: tightenReason(text), details: null };
   }
   const reason = tightenReason(sentences[0]);
@@ -926,7 +1063,8 @@ function mergeDetails(existing: string | undefined, incoming: string | null, isC
   const existingSentences = oldText.split(/(?<=[.!?])\s+/).map(s => s.trim().toLowerCase().replace(/[.,;!?]+$/, ''));
   const newSentences = incoming.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => {
     const k = s.toLowerCase().replace(/[.,;!?]+$/, '');
-    return k.length > 0 && !existingSentences.includes(k);
+    // Skip exact duplicates and sentences already contained in an existing one.
+    return k.length > 0 && !existingSentences.includes(k) && !existingSentences.some(e => e.includes(k));
   });
   if (newSentences.length === 0) return oldText;
   return [oldText.replace(/[.,;!?]+$/, ''), ...newSentences].join('. ').trim();
@@ -994,8 +1132,43 @@ export function enrichIntakeFromTranscript(
 
   const isNameStageEarly = ['ask_name', 'ask_name_reason'].includes(currentStage);
   const explicitName = extractExplicitNameCorrection(transcript, { allowNameIntro: isNameStageEarly });
-  const name = explicitName || extractCustomerName(transcript);
+  // Same-turn name correction whose corrected half is a bare name:
+  // "My name is Jason — sorry, Jason Miller" -> tail "Jason Miller".
+  const correctionTailName = (() => {
+    if (!isNameStageEarly || !correctionTail) return null;
+    const candidate = normalizeNameCandidate(correctionTail);
+    if (
+      candidate &&
+      isValidCustomerName(candidate) &&
+      !NAME_SERVICE_BLOCKERS.test(candidate) &&
+      !findAddressMatch(candidate)
+    ) {
+      return candidate;
+    }
+    return null;
+  })();
+  // Filler-prefixed bare name ("Uh, Daniel Harris") at a name stage: the whole
+  // utterance reduces to a valid name with no service/location/timing content.
+  const bareName = (() => {
+    if (!isNameStageEarly) return null;
+    const candidate = normalizeNameCandidate(transcript);
+    if (
+      candidate &&
+      isValidCustomerName(candidate) &&
+      !NAME_SERVICE_BLOCKERS.test(candidate) &&
+      !findAddressMatch(transcript) &&
+      !SERVICE_INTENT_RE.test(transcript) &&
+      !findCompletionMatch(transcript) &&
+      !findCallbackMatch(transcript)
+    ) {
+      return candidate;
+    }
+    return null;
+  })();
   const nameRefused = isNameRefusal(transcript);
+  // A name refusal ("No name", "I'd rather not say") owns the whole utterance:
+  // no name candidate may be extracted from its correction tail or fallback.
+  const name = nameRefused ? null : (explicitName || correctionTailName || extractCustomerName(transcript) || bareName);
   const locationRefused = isLocationRefusal(transcript);
 
   // A bare name answer at ask_name must not be interpreted as a location, timing,
@@ -1016,8 +1189,6 @@ export function enrichIntakeFromTranscript(
   // tail exists ("... make that tomorrow after 2"), a tail match wins for its
   // field; fields with no tail match fall back to full-transcript extraction
   // in fill-only mode so the superseded head value cannot overwrite them.
-  const tailHasScaffold = (m: ExtractedMatch | null): boolean =>
-    !!m && m.fullMatch.trim().toLowerCase() !== m.value.trim().toLowerCase();
   // A temporal correction tail names exactly one field, but a multi-sentence
   // tail may carry corrections for several fields ("... the address is 220 Oak
   // Street. I need it Saturday and call me tomorrow afternoon instead"). Split
@@ -1043,32 +1214,70 @@ export function enrichIntakeFromTranscript(
       .split(/(?<=[.!?])\s+|(?=\b(?:call me|you can call me|reach me|contact me)\b)/i)
       .map(s => s.trim())
       .filter(Boolean);
+    // Two passes: segments with explicit markers claim their field first;
+    // unmarked temporal segments then default to the current stage's field
+    // only if that field is still unclaimed, otherwise they try the sibling
+    // temporal field. This keeps "make that Friday, and call me after 3" from
+    // assigning Friday to the callback that "call me after 3" already owns.
+    const marked: string[] = [];
+    const unmarked: string[] = [];
     for (const segment of tailSegments) {
-      const segIsCallback = CALLBACK_CONTEXT_MARKERS.test(segment) ||
-        (!completionAnaphora &&
-          (CALLBACK_CONTEXT_MARKERS.test(transcript) || currentStageField === 'callbackTime'));
-      // Per-segment anaphora: "I need it Saturday" claims completion for that
-      // segment only, while a sibling "call me tomorrow" still claims callback.
-      const segIsCompletion = COMPLETION_ANAPHORA_RE.test(segment) ||
-        (!segIsCallback && currentStageField === 'desiredCompletionTime');
-      if (!tailMatches.serviceAddress) {
-        tailMatches.serviceAddress = findAddressMatch(segment);
+      if (CALLBACK_CONTEXT_MARKERS.test(segment) || COMPLETION_ANAPHORA_RE.test(segment)) {
+        marked.push(segment);
+      } else {
+        unmarked.push(segment);
       }
-      if (!tailMatches.desiredCompletionTime && !segIsCallback) {
-        tailMatches.desiredCompletionTime = findCompletionMatch(segment) ?? findNaturalCompletionMatch(segment);
+    }
+    // Each segment feeds at most ONE temporal field: try the preferred field
+    // first and only fall through to the sibling when the preferred match is
+    // absent or already claimed.
+    const fillFromSegment = (
+      segment: string,
+      fields: ('callbackTime' | 'desiredCompletionTime')[]
+    ) => {
+      if (!tailMatches!.serviceAddress) {
+        tailMatches!.serviceAddress = findAddressMatch(segment);
       }
-      if (!tailMatches.callbackTime && !segIsCompletion &&
-          !(completionAnaphora && !CALLBACK_CONTEXT_MARKERS.test(segment))) {
-        tailMatches.callbackTime = findCallbackMatch(segment);
+      for (const f of fields) {
+        if (tailMatches![f]) continue;
+        const m = f === 'callbackTime'
+          ? findCallbackMatch(segment)
+          : (findCompletionMatch(segment) ?? findNaturalCompletionMatch(segment));
+        if (m) {
+          tailMatches![f] = m;
+          break;
+        }
+      }
+    };
+    for (const segment of marked) {
+      const segIsCallback = CALLBACK_CONTEXT_MARKERS.test(segment);
+      fillFromSegment(segment, segIsCallback
+        ? ['callbackTime', 'desiredCompletionTime']
+        : ['desiredCompletionTime', 'callbackTime']);
+    }
+    for (const segment of unmarked) {
+      // An unmarked tail answers the question currently being asked; "make it"
+      // anaphora targets completion even at the callback stage. If the
+      // preferred field is already claimed by a marked sibling, the sibling
+      // field still gets its shot.
+      const preferCallback = currentStageField === 'callbackTime' && !completionAnaphora;
+      const preferCompletion = currentStageField === 'desiredCompletionTime' || completionAnaphora;
+      if (preferCallback) {
+        fillFromSegment(segment, ['callbackTime', 'desiredCompletionTime']);
+      } else if (preferCompletion) {
+        fillFromSegment(segment, ['desiredCompletionTime', 'callbackTime']);
+      } else {
+        fillFromSegment(segment, ['desiredCompletionTime', 'callbackTime']);
       }
     }
   }
   const tailUsable = (m: ExtractedMatch | null, field: keyof IntakeData): ExtractedMatch | null => {
     if (!m) return null;
     if (field === currentStageField) return m;
-    // Cross-field correction from a tail requires connector scaffolding so a
-    // bare "tomorrow" tail cannot clobber an unrelated field.
-    return tailHasScaffold(m) ? m : null;
+    // Tail matches are produced by the deliberate two-pass segment
+    // classification above — a match stored for a field was assigned to that
+    // field, so scaffold presence is no longer required.
+    return m;
   };
 
   // A full-transcript match whose value text lives inside the correction tail
@@ -1086,6 +1295,30 @@ export function enrichIntakeFromTranscript(
   let addressMatch = tailMatches ? (tailUsable(tailMatches.serviceAddress, 'serviceAddress') || fullAddress) : fullAddress;
   let completionMatch = tailMatches ? (tailUsable(tailMatches.desiredCompletionTime, 'desiredCompletionTime') || fullCompletion) : fullCompletion;
   let callbackMatch = tailMatches ? (tailUsable(tailMatches.callbackTime, 'callbackTime') || fullCallback) : fullCallback;
+
+  // Stage-answer ownership: a bare temporal answer at a timing stage belongs
+  // to the field being asked. The sibling timing field may only be filled by
+  // an explicit scaffold — callback language ("call me", "anytime", "works
+  // best") at the completion stage, or service-intent verbs before the match
+  // ("I need it done by Monday") at the callback stage. A deliberate tail
+  // assignment is always trusted.
+  const CALLBACK_SCAFFOLD_RE = /\b(?:call|reach|contact|phone|any\s?time|whenever|available|free|best\s+time|good\s+time|works?|best|fine|easier|prefer)\b/i;
+  if (
+    currentStageField === 'callbackTime' &&
+    completionMatch &&
+    !(tailMatches && tailMatches.desiredCompletionTime === completionMatch) &&
+    !SERVICE_CONTEXT_VERBS.test(transcript.slice(0, completionMatch.startIndex))
+  ) {
+    completionMatch = null;
+  }
+  if (
+    currentStageField === 'desiredCompletionTime' &&
+    callbackMatch &&
+    !(tailMatches && tailMatches.callbackTime === callbackMatch) &&
+    !CALLBACK_SCAFFOLD_RE.test(callbackMatch.fullMatch)
+  ) {
+    callbackMatch = null;
+  }
 
   // Per-field correction flags: a tail match for the field is an explicit
   // correction, and so is any full-transcript match while the utterance carries
@@ -1152,7 +1385,7 @@ export function enrichIntakeFromTranscript(
       // A name-refusal utterance must never be reinterpreted as a service request.
       const serviceCandidate = extractServiceRequestCandidate(
         transcript,
-        intake.customerName || name || undefined
+        [intake.customerName, name]
       );
       if (serviceCandidate) {
         cleanedService = serviceCandidate;
@@ -1225,8 +1458,18 @@ export function enrichIntakeFromTranscript(
   // sentence when it is the only problem description).
   const detailParts = [detailFromService, issueDescription?.value || null, transcriptDetails]
     .filter((d): d is string => !!d && d.trim().length > 0);
+  // Drop parts whose content is already contained inside another part so a
+  // fact captured by the regex extractor ("the door is stuck halfway") is not
+  // repeated after the sentence-level detail that already includes it.
+  const normalizedPart = (s: string) => s.toLowerCase().replace(/[.,;!?\s]+$/g, '').trim();
+  const dedupedParts = detailParts.filter((part, idx) =>
+    !detailParts.some((other, otherIdx) =>
+      otherIdx !== idx && normalizedPart(other).includes(normalizedPart(part)) &&
+      normalizedPart(other) !== normalizedPart(part)
+    )
+  );
   let mergedDetailCandidate: string | null = null;
-  for (const part of detailParts) {
+  for (const part of dedupedParts) {
     mergedDetailCandidate = mergeDetails(mergedDetailCandidate || undefined, part, false) || null;
   }
 
@@ -1360,12 +1603,18 @@ export function enrichIntakeFromTranscript(
     }
     const source = (correctionTail || transcript).trim();
     const cleaned = source
-      .replace(/^[,.\s]+/, '')
+      .replace(/^[\s,.\-—–]+/, '')
       .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
       .replace(/[.,;!?\s]+$/, '');
     // Never raw-write clause-laden or negated prose ("within two weeks, not in
     // next month") — the fallback only stores clean single-value scalars.
-    if (/[,;]|\b(?:not|but|instead|and)\b/i.test(cleaned)) return;
+    // Exception: "not before noon" / "not after 5" are valid negated timing
+    // constraints, not clause-laden prose.
+    const negatedTiming = /^not\s+(?:before|after|until)\b/i.test(cleaned);
+    if (/[,;]|\b(?:but|instead|and)\b/i.test(cleaned) || (!negatedTiming && /\bnot\b/i.test(cleaned))) return;
+    // Incident-history prose must never land in a timing field ("the furnace
+    // shut off around 2 pm", "it began leaking last night").
+    if ((field === 'callbackTime' || field === 'desiredCompletionTime') && INCIDENT_ANSWER_RE.test(cleaned)) return;
     const value = normalizer ? normalizer(cleaned) : cleaned;
     if (value && validator(value) && value !== current) {
       if (alreadySet) {
