@@ -296,7 +296,7 @@ export default async function Home() {
                         </div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Get Paid</div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">Plumbing Repair</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Accept Tap to Pay on iPhone or Android, or send a branded SMS payment request</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Send the invoice, accept Tap to Pay, or text a branded payment request</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Customer paid</div>
                         </div>
@@ -405,8 +405,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Complete & Get Paid</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">Complete the job and accept payment</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Quote, Invoice & Get Paid</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">Send quotes and invoices, then accept payment</p>
               </div>
             </div>
             
@@ -500,8 +500,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Complete & Get Paid</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Complete the job and accept payment</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Quote, Invoice & Get Paid</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Send quotes and invoices, then accept payment</p>
                 </div>
               </div>
             </div>
@@ -527,8 +527,8 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
-              
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+
               {/* Customer Conversations in One Place */}
               <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
@@ -578,6 +578,32 @@ export default async function Home() {
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Get Paid Anywhere</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
                   Accept contactless payments on iPhone or Android, or send branded SMS payment requests — no extra hardware required.
+                </p>
+              </div>
+
+              {/* Quotes & Invoices */}
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Quotes & Invoices</h3>
+                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
+                  Send professional quotes, get customer approval, turn them into invoices, and keep every document tied to the job.
+                </p>
+              </div>
+
+              {/* Online Booking */}
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 bg-sky-100 dark:bg-sky-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Online Booking</h3>
+                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
+                  Share your booking link so customers can request appointments online — requests land on your schedule for review.
                 </p>
               </div>
 
