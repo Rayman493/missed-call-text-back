@@ -25,7 +25,7 @@ export default function Navigation() {
   // Don't show navigation for logged-out users, but render invisible placeholders matching exact dimensions to prevent layout shift
   if (!user) {
     return (
-      <nav className="flex items-center gap-1 opacity-0">
+      <nav className="flex items-center gap-1 opacity-0 pointer-events-none">
         <div className="h-8 w-16 md:w-20"></div>
         <div className="h-8 w-12 md:w-16"></div>
         <div className="h-8 w-16 md:w-20"></div>

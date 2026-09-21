@@ -3,7 +3,7 @@
 import React from 'react'
 import { User, Mail, Phone, MapPin, Clock, MessageSquare, FileText } from 'lucide-react'
 import { getCurrentCustomerContext } from '@/lib/customer-context'
-import { formatPhoneNumber } from '@/lib/utils'
+import { formatPhoneNumber, capitalizeFirstAlpha } from '@/lib/utils'
 
 interface CustomerDetailsProps {
   leadData: any
@@ -22,8 +22,9 @@ export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps
   const phoneNumber = context.phoneNumber
   const email = context.email
 
-  const renderField = (label: string, value: string, icon?: React.ReactNode) => {
+  const renderField = (label: string, value: string, icon?: React.ReactNode, formatValue = true) => {
     const hasValue = Boolean(value && value.trim())
+    const displayValue = hasValue && formatValue ? capitalizeFirstAlpha(value) : value
     return (
       <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-2">
         <div className="flex items-center gap-2 mb-1.5">
@@ -32,7 +33,7 @@ export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps
         </div>
         {hasValue ? (
           <p className="text-sm font-medium leading-relaxed text-foreground pl-6 break-words">
-            {value}
+            {displayValue}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground italic pl-6">
@@ -46,7 +47,7 @@ export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps
   return (
     <div className="space-y-3">
       {/* Customer Name */}
-      {renderField('Customer Name', customerName, <User className="w-4 h-4 text-muted-foreground" />)}
+      {renderField('Customer Name', customerName, <User className="w-4 h-4 text-muted-foreground" />, false)}
 
       {/* Reason for Calling */}
       {renderField('Reason for Calling', reasonForCalling, <MessageSquare className="w-4 h-4 text-muted-foreground" />)}
@@ -64,10 +65,10 @@ export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps
       {renderField('Preferred Callback Time', preferredCallbackTime, <Clock className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Phone Number */}
-      {renderField('Phone Number', formatPhoneNumber(phoneNumber), <Phone className="w-4 h-4 text-muted-foreground" />)}
+      {renderField('Phone Number', formatPhoneNumber(phoneNumber), <Phone className="w-4 h-4 text-muted-foreground" />, false)}
 
       {/* Email */}
-      {renderField('Email', email, <Mail className="w-4 h-4 text-muted-foreground" />)}
+      {renderField('Email', email, <Mail className="w-4 h-4 text-muted-foreground" />, false)}
     </div>
   )
 }

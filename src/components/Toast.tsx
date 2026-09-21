@@ -83,7 +83,7 @@ export default function Toast({
 
   return (
     <div className={`fixed left-4 right-4 top-[calc(4.5rem+env(safe-area-inset-top))] z-[100] transform transition-all duration-200 sm:left-auto sm:top-20 sm:right-4 ${
-      isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
     }`}>
       <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${getToastStyles()}`}>
         <div className="flex-shrink-0">

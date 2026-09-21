@@ -214,6 +214,7 @@ export default function LeadConversionGraph() {
                 value: stageFilter,
                 onChange: setStageFilter,
                 options: STAGE_FILTER_OPTIONS,
+                activeValue: 'all',
               },
             ]}
           />

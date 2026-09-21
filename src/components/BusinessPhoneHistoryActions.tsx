@@ -146,7 +146,7 @@ export default function BusinessPhoneHistoryActions({
   }
 
   return (
-    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
       <button
         onClick={() => setIsEditing(true)}
         className="px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"

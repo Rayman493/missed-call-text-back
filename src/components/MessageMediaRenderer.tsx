@@ -501,7 +501,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
                       hover:scale-[1.02] hover:shadow-xl
                       max-w-full md:max-w-[420px] max-h-[500px] md:max-h-[600px] object-contain w-full
                       block
-                      ${isLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'}
+                      ${isLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'}
                     `}
                     onClick={() => effectiveUrl && handleMediaClick(effectiveUrl)}
                     onLoad={() => handleImageLoad(mediaItem.id)}

@@ -50,6 +50,7 @@ import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import CustomerDetails from '@/components/CustomerDetails'
 import CustomerAttachmentsCard from '@/components/CustomerAttachmentsCard'
 import AICallDetails from '@/components/AICallDetails'
+import { CallTranscriptCard } from '@/components/CallTranscriptCard'
 import VoicemailSummary from '@/components/VoicemailSummary'
 import DesktopAISummary from '@/components/DesktopAISummary'
 import RequestHistory from '@/components/RequestHistory'
@@ -87,6 +88,7 @@ import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { getNextAction } from '@/lib/lead-next-action'
 import { hasPhoneNumber } from '@/lib/utils'
+import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { normalizeEditableContext, firstNonPlaceholder } from '@/components/payments/customer-search-helpers'
 import { getCurrentCustomerContext, getHistoricalJobRequestContext } from '@/lib/customer-context'
 import { mergeMessageWithMonotonicity } from '@/lib/message-merge'
@@ -5683,6 +5685,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       >
                         <DesktopAISummary leadId={params.id} leadData={leadData} />
                       </SidebarSection>
+
+                      {/* Call Transcript - same data and component as mobile AI Intake */}
+                      {(() => {
+                        const records = leadData?.aiCallRecords
+                        if (!Array.isArray(records) || records.length === 0) return null
+                        const latest = [...records].sort(
+                          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                        )[0]
+                        const transcript = normalizeAITranscript(latest?.transcript)
+                        if (!transcript || transcript.length === 0) return null
+                        return (
+                          <SidebarSection title="Call Transcript" className="mb-3">
+                            <CallTranscriptCard transcript={transcript} />
+                          </SidebarSection>
+                        )
+                      })()}
 
                       {/* Request History - canonical customer-level card for all origins */}
                       <SidebarSection

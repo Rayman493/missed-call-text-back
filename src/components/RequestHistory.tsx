@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime, capitalizeFirstAlpha } from '@/lib/utils'
 import { MessageCircle, ChevronDown, Calendar, Phone } from 'lucide-react'
 import {
   normalizeAICallRecord,
@@ -161,13 +161,13 @@ export default function RequestHistory({
                     {record.desiredCompletion && (
                       <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        <span className="line-clamp-1">{record.desiredCompletion}</span>
+                        <span className="line-clamp-1">{capitalizeFirstAlpha(record.desiredCompletion)}</span>
                       </div>
                     )}
                     {record.callbackTime && (
                       <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                         <Phone className="w-3 h-3" />
-                        <span className="line-clamp-1">{record.callbackTime}</span>
+                        <span className="line-clamp-1">{capitalizeFirstAlpha(record.callbackTime)}</span>
                       </div>
                     )}
                   </div>

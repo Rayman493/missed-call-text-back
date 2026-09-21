@@ -37,6 +37,43 @@ interface ChartFilterButtonProps<T extends string> {
   disabled?: boolean
 }
 
+function ResetFiltersButton({
+  groups,
+  onReset,
+}: {
+  groups: ChartFilterGroup[]
+  onReset: () => void
+}) {
+  const isAtDefaults = groups.every((g) => g.value === (g.activeValue ?? g.options[0]?.value ?? g.value))
+
+  const handleReset = () => {
+    groups.forEach((g) => {
+      const defaultValue = g.activeValue ?? g.options[0]?.value ?? g.value
+      g.onChange(defaultValue as string)
+    })
+    onReset()
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleReset}
+      disabled={isAtDefaults}
+      className={`
+        w-full flex items-center justify-between gap-2
+        px-3 py-2.5 text-xs text-left whitespace-nowrap
+        transition-all duration-150
+        ${isAtDefaults
+          ? 'text-muted-foreground/40 cursor-not-allowed'
+          : 'text-foreground hover:bg-muted/30 hover:text-foreground'
+        }
+      `}
+    >
+      <span className="truncate font-medium">Reset filters</span>
+    </button>
+  )
+}
+
 export default function ChartFilterButton<T extends string>({
   value,
   onChange,
@@ -188,6 +225,15 @@ export default function ChartFilterButton<T extends string>({
           role="listbox"
           aria-activedescendant={`chart-filter-option-${value}`}
         >
+          {groupsMode && (
+            <>
+              <ResetFiltersButton
+                groups={groups!}
+                onReset={() => setIsOpen(false)}
+              />
+              <div className="border-t border-border/20 mx-3 my-1" role="separator" />
+            </>
+          )}
           {groupsMode ? (
             groups!.map((group, groupIndex) => (
               <div key={group.label || `group-${groupIndex}`} role="group" aria-label={group.label}>

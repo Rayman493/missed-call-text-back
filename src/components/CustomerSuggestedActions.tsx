@@ -161,7 +161,7 @@ export default function CustomerSuggestedActions({ business, customerId }: Custo
                   </div>
                   <button
                     onClick={(e) => handleDismiss(action, e)}
-                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
                   >
                     <X className="w-3 h-3 text-muted-foreground/50 hover:text-muted-foreground" />
                   </button>

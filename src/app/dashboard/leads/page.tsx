@@ -32,7 +32,7 @@ import {
   formatPhoneNumber,
   formatRelativeTime,
   truncateText,
-  sentenceCase,
+  capitalizeFirstAlpha,
   getLeadDisplayName
 } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
@@ -1829,7 +1829,7 @@ export default function LeadsPage() {
                             {aiData.reason && (
                               <>
                                 <p className="line-clamp-2 text-base font-semibold text-foreground leading-relaxed mb-1">
-                                  {sentenceCase(aiData.reason)}
+                                  {capitalizeFirstAlpha(aiData.reason)}
                                 </p>
                                 {aiData.urgency && (
                                   <p className={`text-sm font-medium ${
@@ -1837,7 +1837,7 @@ export default function LeadsPage() {
                                       ? 'text-red-500 dark:text-red-400'
                                       : 'text-muted-foreground/70'
                                   }`}>
-                                    {sentenceCase(aiData.urgency)}
+                                    {capitalizeFirstAlpha(aiData.urgency)}
                                   </p>
                                 )}
                               </>
@@ -1848,7 +1848,7 @@ export default function LeadsPage() {
                                   ? 'text-red-500 dark:text-red-400'
                                   : 'text-muted-foreground/70'
                               }`}>
-                                {sentenceCase(aiData.urgency)}
+                                {capitalizeFirstAlpha(aiData.urgency)}
                               </p>
                             )}
                             {!aiData.reason && !aiData.urgency && (
@@ -1876,7 +1876,7 @@ export default function LeadsPage() {
                                 title={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
                                 aria-label={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
                               >
-                                {isNewCustomer ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
+                                {isNewCustomer ? 'New' : capitalizeFirstAlpha(getLeadLifecycleStatus(lead))}
                               </button>
                               <span className="text-xs text-muted-foreground/70">
                                 {formatRelativeTime(lead.created_at)}

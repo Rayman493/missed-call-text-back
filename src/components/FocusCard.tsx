@@ -140,7 +140,7 @@ export default function FocusCard({ item, onDismiss, onComplete, compact = false
             e.preventDefault()
             onDismiss(item)
           }}
-          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded pointer-events-none group-hover:pointer-events-auto"
         >
           <span className="text-muted-foreground/50 hover:text-muted-foreground text-xs">×</span>
         </button>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Check, Loader2, Pencil, Calendar } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { sentenceCase } from '@/lib/utils'
+import { capitalizeFirstAlpha } from '@/lib/utils'
 import { getProvenanceLabel } from '@/lib/customer-source'
 
 interface VoicemailSummaryProps {
@@ -269,7 +269,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
               />
             ) : (
               <p className="text-sm font-semibold text-foreground leading-relaxed">
-                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
+                {extractedInfo?.reasonForCalling ? capitalizeFirstAlpha(extractedInfo.reasonForCalling) : 'Not Provided'}
               </p>
             )}
           </div>
@@ -300,7 +300,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
               />
             ) : (
               <p className="text-sm text-foreground leading-relaxed">
-                {extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : 'Not Provided'}
+                {extractedInfo?.importantDetails ? capitalizeFirstAlpha(extractedInfo.importantDetails) : 'Not Provided'}
               </p>
             )}
           </div>
@@ -364,7 +364,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
                 />
               ) : (
                 <p className="text-sm text-foreground leading-snug">
-                  {extractedInfo?.preferredCallbackTime ? sentenceCase(extractedInfo.preferredCallbackTime) : 'Not Provided'}
+                  {extractedInfo?.preferredCallbackTime ? capitalizeFirstAlpha(extractedInfo.preferredCallbackTime) : 'Not Provided'}
                 </p>
               )}
             </div>

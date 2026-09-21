@@ -38,4 +38,12 @@ describe('ChartFilterButton shared component', () => {
     expect(content).toContain('role="group"')
     expect(content).toContain('g.value !== (g.activeValue')
   })
+
+  it('exposes a Reset filters action that restores group defaults and closes the popup', () => {
+    expect(content).toContain('Reset filters')
+    expect(content).toContain('ResetFiltersButton')
+    expect(content).toContain('g.onChange(defaultValue')
+    expect(content).toContain('setIsOpen(false)')
+    expect(content).toContain('isAtDefaults')
+  })
 })

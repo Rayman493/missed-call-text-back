@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
-import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, capitalizeFirstAlpha, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 import { memoryService } from '@/lib/business-memory/memory-service'
@@ -211,7 +211,7 @@ export default function LeadCard({
                 ? 'text-red-500 dark:text-red-400'
                 : 'text-muted-foreground'
             }`}>
-              {sentenceCase(aiData.urgency)}
+              {capitalizeFirstAlpha(aiData.urgency)}
             </p>
           )}
           {!aiData.reason && !aiData.urgency && (

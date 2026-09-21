@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Heart, Clock, DollarSign, MessageSquare, CreditCard, TrendingUp, Award, Activity, CheckCircle } from 'lucide-react'
 import { relationshipService } from '@/lib/relationship-memory/relationship-memory-service'
 import type { RelationshipProfile } from '@/lib/relationship-memory/relationship-memory-types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, capitalizeFirstAlpha } from '@/lib/utils'
 
 interface RelationshipProfileProps {
   businessId: string
@@ -123,7 +123,7 @@ function QualityBadge({ label, level }: QualityBadgeProps) {
           {label}
         </div>
         <div className={`text-xs font-medium ${colors.text}`}>
-          {capitalizeFirst(level)}
+          {capitalizeFirstAlpha(level)}
         </div>
       </div>
     </div>
@@ -143,8 +143,4 @@ function getQualityColors(level: string): { bg: string; text: string } {
     default:
       return { bg: 'bg-slate-500', text: 'text-slate-600 dark:text-slate-400' }
   }
-}
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1)
 }

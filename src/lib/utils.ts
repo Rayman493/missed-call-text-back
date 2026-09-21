@@ -151,6 +151,22 @@ export function sentenceCase(text: string | null | undefined): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+/**
+ * Capitalizes the first alphabetic character of a value without mutating the rest.
+ * Preserves intentional casing, acronyms, and brand names (e.g. iPhone, eBay, ASAP).
+ * Returns the original value when safe capitalization cannot be determined.
+ */
+export function capitalizeFirstAlpha(text: string | null | undefined): string {
+  if (!text || text.length === 0) return ''
+
+  const firstWord = text.split(/[\s-]/)[0] || text
+  // Preserve values that already have intentional capitalization in the first word.
+  if (/[A-Z]/.test(firstWord)) return text
+
+  // Uppercase the first alphabetic character only, leaving the rest unchanged.
+  return text.replace(/[a-z]/i, (match) => match.toUpperCase())
+}
+
 // Zod schemas for validation
 export const twilioVoiceStatusSchema = z.object({
   CallSid: z.string(),

@@ -5,7 +5,7 @@ import { Heart, ArrowRight, Star, Users, AlertCircle, Calendar } from 'lucide-re
 import { customerSuccessService } from '@/lib/customer-success/customer-success-service'
 import type { CustomerSuccessOpportunity } from '@/lib/customer-success/customer-success-types'
 import { useRouter } from 'next/navigation'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, capitalizeFirstAlpha } from '@/lib/utils'
 
 interface CustomerSuccessProps {
   business: { id: string } | null
@@ -110,7 +110,7 @@ function OpportunityItem({ opportunity, onClick }: OpportunityItemProps) {
               {opportunity.title}
             </div>
             <div className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${priorityColor}`}>
-              {capitalizeFirst(opportunity.priority)}
+              {capitalizeFirstAlpha(opportunity.priority)}
             </div>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -176,8 +176,4 @@ function getPriorityColor(priority: string): string {
     default:
       return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
   }
-}
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1)
 }

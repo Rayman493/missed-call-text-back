@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Heart, TrendingUp, Clock, DollarSign, Award, AlertCircle } from 'lucide-react'
 import { customerSuccessService } from '@/lib/customer-success/customer-success-service'
 import type { CustomerSuccessProfile } from '@/lib/customer-success/customer-success-types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, capitalizeFirstAlpha } from '@/lib/utils'
 
 interface CustomerSuccessCardProps {
   businessId: string
@@ -98,7 +98,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
     <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${colors.bg}`}>
       <div className={`w-2 h-2 rounded-full ${colors.dotBg}`} />
       <span className={`text-xs font-medium ${colors.text}`}>
-        {capitalizeFirst(health.replace('_', ' '))}
+        {capitalizeFirstAlpha(health.replace(/_/g, ' '))}
       </span>
     </div>
   )
@@ -129,8 +129,4 @@ function getHealthColors(health: string): { bg: string; text: string; dotBg: str
     default:
       return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300', dotBg: 'bg-slate-500' }
   }
-}
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1)
 }
