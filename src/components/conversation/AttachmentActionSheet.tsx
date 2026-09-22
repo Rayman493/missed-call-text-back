@@ -265,35 +265,40 @@ export default function AttachmentActionSheet({
         footer={null}
         bottomSheetOnMobile
       >
-        <div className="py-2">
-          <div className="flex items-center justify-between gap-2 mb-1 px-1">
-            <p className="text-xs text-muted-foreground font-medium">
+        <div className="pb-1 pt-0.5">
+          {/* Title row: real title + X on the same centerline */}
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-sm font-semibold text-foreground">
               Attach to message
             </p>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 -my-1.5 -mr-1 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              className="flex h-9 w-9 -mr-1 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
               aria-label="Close attachment options"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="mb-3 px-1">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70 mb-0.5">File limits</p>
+
+          {/* Compact muted limits block */}
+          <div className="mb-3 rounded-lg bg-muted/40 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80 mb-0.5">File limits</p>
             {attachmentLimitLines().map((line) => (
-              <p key={line} className="text-[11px] text-muted-foreground/70 leading-snug">
+              <p key={line} className="text-[11px] text-muted-foreground/80 leading-snug">
                 {line}
               </p>
             ))}
           </div>
+
+          {/* Actions: equal-height full-row targets, uniform muted icon wells */}
           <div className="space-y-1">
             <button
               type="button"
               onClick={handleTakePhoto}
-              className="w-full flex items-center gap-3 px-3 h-14 rounded-lg hover:bg-muted/50 active:bg-muted/70 transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              className="w-full flex items-center gap-3 px-3 h-14 rounded-xl hover:bg-muted/60 active:bg-muted transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             >
-              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex-shrink-0">
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-foreground flex-shrink-0">
                 <Camera className="w-5 h-5" />
               </span>
               <span className="flex flex-col min-w-0 leading-tight">
@@ -305,9 +310,9 @@ export default function AttachmentActionSheet({
             <button
               type="button"
               onClick={handleChoosePhoto}
-              className="w-full flex items-center gap-3 px-3 h-14 rounded-lg hover:bg-muted/50 active:bg-muted/70 transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              className="w-full flex items-center gap-3 px-3 h-14 rounded-xl hover:bg-muted/60 active:bg-muted transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             >
-              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 flex-shrink-0">
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-foreground flex-shrink-0">
                 <ImageIcon className="w-5 h-5" />
               </span>
               <span className="flex flex-col min-w-0 leading-tight">
@@ -319,9 +324,9 @@ export default function AttachmentActionSheet({
             <button
               type="button"
               onClick={handleChooseFile}
-              className="w-full flex items-center gap-3 px-3 h-14 rounded-lg hover:bg-muted/50 active:bg-muted/70 transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              className="w-full flex items-center gap-3 px-3 h-14 rounded-xl hover:bg-muted/60 active:bg-muted transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             >
-              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex-shrink-0">
+              <span className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-foreground flex-shrink-0">
                 <FileText className="w-5 h-5" />
               </span>
               <span className="flex flex-col min-w-0 leading-tight">

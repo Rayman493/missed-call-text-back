@@ -225,25 +225,31 @@ export default function BusinessActivityGraph() {
   // all visible series for the tapped date.
   const toggleDatum = (idx: number, seriesKey?: string) => {
     if (idx < 0 || idx >= data.length) return
+    // Exact-hit (a series dot): always show that series — including an honest
+    // 0 — since the user tapped a visible point. Nearest-x fallback: only
+    // series with values, and if none exist there is nothing to inspect, so
+    // no tooltip at all (never a date-only popup).
+    const payload = seriesKey
+      ? [{
+          dataKey: seriesKey,
+          color: SERIES_COLORS[seriesKey],
+          value: data[idx][seriesKey as keyof ActivityData],
+        }]
+      : visibleKeys
+          .map((key) => ({
+            dataKey: key,
+            color: SERIES_COLORS[key],
+            value: data[idx][key],
+          }))
+          .filter((entry) => typeof entry.value === 'number' && entry.value > 0)
+    if (!seriesKey && payload.length === 0) {
+      setSelectedDatum(null)
+      return
+    }
     setSelectedDatum(prev =>
       prev?.index === idx && prev?.seriesKey === seriesKey
         ? null
-        : {
-            index: idx,
-            seriesKey,
-            label: data[idx].date,
-            payload: seriesKey
-              ? [{
-                  dataKey: seriesKey,
-                  color: SERIES_COLORS[seriesKey],
-                  value: data[idx][seriesKey as keyof ActivityData],
-                }]
-              : visibleKeys.map((key) => ({
-                  dataKey: key,
-                  color: SERIES_COLORS[key],
-                  value: data[idx][key],
-                })),
-          }
+        : { index: idx, seriesKey, label: data[idx].date, payload }
     )
   }
 
@@ -368,7 +374,7 @@ export default function BusinessActivityGraph() {
                     <p className="text-muted-foreground text-[10px] mb-1 truncate">{selectedDatum.label}</p>
                     <div className="space-y-0.5">
                       {selectedDatum.payload
-                        .filter((entry: any) => entry && typeof entry.value === 'number' && entry.value > 0)
+                        .filter((entry: any) => entry && typeof entry.value === 'number')
                         .map((entry: any, i: number) => {
                           const key = entry.dataKey as string
                           const label = SERIES_LABELS[key] || key

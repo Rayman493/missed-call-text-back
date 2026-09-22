@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 import { MessageMedia } from '@/lib/types'
 import Modal from '@/components/ui/Modal'
 import { FileText, FileSpreadsheet, File, Paperclip, X } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
+import { showToast } from '@/lib/toast'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
 
@@ -179,6 +181,37 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
     return getSecureUrl(url)
   }
 
+  // Document open — mirrors MessageMediaRenderer's canonical flow. Web keeps
+  // the plain anchor (new tab). On native, signed /api/mms-media/serve URLs
+  // get a fresh token via recover-url (headerless ?token= URL works inside
+  // Capacitor Browser, which also renders PDFs the WebView cannot).
+  const handleDocumentOpen = async (e: React.MouseEvent, media: MessageMedia, fallbackUrl: string) => {
+    if (!Capacitor.isNativePlatform()) return
+    if (!media.media_url.includes('/api/mms-media/serve')) return
+    e.preventDefault()
+    try {
+      const supabase = (await import('@/lib/supabase/browser')).createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      let openUrl = media.media_url
+      const res = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(media.media_url)}`, {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
+      })
+      if (res.ok) {
+        const { validUrl } = await res.json()
+        if (validUrl) openUrl = validUrl
+      }
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url: openUrl })
+    } catch (err) {
+      console.error('[CustomerAttachmentsCard] Native attachment open failed:', err)
+      try {
+        window.open(fallbackUrl, '_blank')
+      } catch {
+        showToast("Couldn't open the attachment. Please try again.", 'error')
+      }
+    }
+  }
+
   // Mark a display URL as failed so we show a file-icon fallback.
   const handleImageError = (displayUrl: string) => {
     setFailedImages(prev => {
@@ -196,7 +229,35 @@ export default function CustomerAttachmentsCard({ messages }: CustomerAttachment
     const displayUrl = getDisplayUrl(media)
     const hasFailed = failedImages.has(displayUrl)
 
-    if (hasFailed || !isImage(media.mime_type)) {
+    if (!isImage(media.mime_type)) {
+      const Icon = getFileIcon(media.mime_type || 'application/octet-stream')
+      const typeLabel = getFileTypeLabel(media.mime_type || 'application/octet-stream')
+      return (
+        <a
+          key={media.id || media.media_url}
+          href={displayUrl || undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            if (!displayUrl) {
+              e.preventDefault()
+              showToast("Couldn't open the attachment. Please try again.", 'error')
+              return
+            }
+            void handleDocumentOpen(e, media, displayUrl)
+          }}
+          className="aspect-square rounded-lg border border-border/40 bg-slate-50 dark:bg-slate-800/60 flex flex-col items-center justify-center p-2 hover:bg-slate-100 dark:hover:bg-slate-800 active:opacity-80 transition-colors"
+          aria-label={`Open ${typeLabel} attachment`}
+        >
+          <Icon className="w-6 h-6 text-muted-foreground mb-1" />
+          <span className="text-[10px] text-muted-foreground font-medium">
+            {typeLabel}
+          </span>
+        </a>
+      )
+    }
+
+    if (hasFailed) {
       const Icon = getFileIcon(media.mime_type || 'application/octet-stream')
       return (
         <div

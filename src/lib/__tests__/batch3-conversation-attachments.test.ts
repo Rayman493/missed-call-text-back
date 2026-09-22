@@ -120,9 +120,9 @@ describe('Batch 3 — Attachment Sheet', () => {
     expect(iconCircleCount).toBe(3)
   })
 
-  it('sheet has consistent pressed state (active:bg-muted/70)', () => {
+  it('sheet has consistent restrained pressed state (active:bg-muted)', () => {
     const content = readContent('src/components/conversation/AttachmentActionSheet.tsx')
-    const activeCount = (content.match(/active:bg-muted\/70/g) || []).length
+    const activeCount = (content.match(/active:bg-muted\b/g) || []).length
     expect(activeCount).toBe(3)
   })
 })

@@ -666,8 +666,10 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               )
             }
 
+            // Non-linked rows get the same -mx-2 as linked rows so the icon
+            // box and text axis line up regardless of customerId presence.
             return (
-              <div key={activity.id} className={baseClasses}>
+              <div key={activity.id} className={`${baseClasses} -mx-2`}>
                 <div className="flex-shrink-0">
                   <div className={`w-9 h-9 rounded-lg ${activity.iconBgColor} ${activity.iconTextColor} flex items-center justify-center`}>
                     {activity.icon}

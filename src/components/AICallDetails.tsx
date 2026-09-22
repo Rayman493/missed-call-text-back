@@ -278,8 +278,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {!isEditMode && conciseTitle && (
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
-                <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
+                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-0.5">Request</p>
