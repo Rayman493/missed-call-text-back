@@ -347,6 +347,12 @@ export default function JobComposer({
               </p>
             )}
 
+            {/* Section: Basics */}
+            <div className="space-y-3">
+              <div className="pb-1.5 border-b border-border/40">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Basics</p>
+              </div>
+
             {/* Title */}
             <div>
               <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
@@ -427,6 +433,13 @@ export default function JobComposer({
                 )}
               </div>
             )}
+            </div>
+
+            {/* Section: Timing */}
+            <div className="space-y-3">
+              <div className="pb-1.5 border-b border-border/40">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
+              </div>
 
             {/* Date + Start/End Time */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -450,9 +463,20 @@ export default function JobComposer({
               Optional. Add a date and time to place this job on your schedule. End time defaults to start + 1 hour.
             </p>
 
-            {/* Recurrence — create mode only; edit mode uses scope picker */}
-            {!editJob && scheduledDate && (
-              <RepeatControls value={repeat} onChange={setRepeat} />
+            {/* Recurrence — create mode only; requires a scheduled date */}
+            {!editJob && (
+              scheduledDate ? (
+                <RepeatControls value={repeat} onChange={setRepeat} />
+              ) : (
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+                    Repeat
+                  </label>
+                  <p className="text-xs text-muted-foreground/80 px-3 py-2.5 bg-muted/20 dark:bg-slate-900/40 border border-dashed border-border/50 dark:border-slate-700/60 rounded-lg">
+                    Set a date above to schedule a repeating job.
+                  </p>
+                </div>
+              )
             )}
 
             {isRecurring && (
@@ -468,6 +492,13 @@ export default function JobComposer({
                 placeholder="This occurrence only"
               />
             )}
+            </div>
+
+            {/* Section: Details */}
+            <div className="space-y-3">
+              <div className="pb-1.5 border-b border-border/40">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
+              </div>
 
             {/* Status */}
             <div>
@@ -515,6 +546,7 @@ export default function JobComposer({
             {error && (
               <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
             )}
+            </div>
         </div>
       </Modal>
     </>

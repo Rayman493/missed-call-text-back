@@ -651,7 +651,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
           <div className="space-y-3">
             <div>
               <p className="text-xs text-muted-foreground font-medium mb-1">Title</p>
-              <p className="text-sm font-medium text-foreground">{viewingTask.title}</p>
+              <p className="text-sm font-medium text-foreground break-words">{viewingTask.title}</p>
             </div>
             <div className="flex items-start gap-3">
               <div className="flex-1">
@@ -673,25 +673,36 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                 </p>
               </div>
             </div>
-            {viewingTask.notes && (
-              <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">Notes</p>
-                <p className="text-sm text-foreground whitespace-pre-line">{viewingTask.notes}</p>
-              </div>
-            )}
             {viewingTask.lead_id && (
               <div>
                 <p className="text-xs text-muted-foreground font-medium mb-1">Customer</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewingTask(null)
-                    router.push(`/dashboard/leads/${viewingTask.lead_id}`)
-                  }}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                >
-                  {getLeadName(viewingTask)}
-                </button>
+                <div className="flex items-center gap-2 flex-wrap text-sm">
+                  <span className="text-foreground font-medium min-w-0 break-words">{getLeadName(viewingTask)}</span>
+                  {viewingTask.leads?.caller_phone && (
+                    <a
+                      href={`tel:${viewingTask.leads.caller_phone}`}
+                      className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors break-all"
+                    >
+                      {viewingTask.leads.caller_phone}
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewingTask(null)
+                      router.push(`/dashboard/leads/${viewingTask.lead_id}`)
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 ml-auto"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            )}
+            {viewingTask.notes && (
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-1">Notes</p>
+                <p className="text-sm text-foreground whitespace-pre-line break-words">{viewingTask.notes}</p>
               </div>
             )}
             {viewingTask.job_id && viewingTask.jobs && (

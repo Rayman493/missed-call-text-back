@@ -141,13 +141,14 @@ interface EventDetailsModalProps {
   onRefresh?: () => void
   job?: { id: string; title?: string | null; lead_id?: string | null; customer_name?: string | null; customer_phone?: string | null } | null
   lead?: { id: string; name?: string | null; caller_phone?: string | null } | null
+  customerResolving?: boolean
   businessName?: string | null
   onViewCustomer?: (leadId: string) => void
   onViewJob?: (jobId: string) => void
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
-export default function EventDetailsModal({ isOpen, onClose, event, mode = 'details', onDelete, onRefresh, job, lead, businessName, onViewCustomer, onViewJob, onShowToast }: EventDetailsModalProps) {
+export default function EventDetailsModal({ isOpen, onClose, event, mode = 'details', onDelete, onRefresh, job, lead, customerResolving = false, businessName, onViewCustomer, onViewJob, onShowToast }: EventDetailsModalProps) {
   const { business } = useBusiness()
   const timezone = business?.business_hours_timezone
   const [isDeleting, setIsDeleting] = useState(false)
@@ -1114,6 +1115,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Customer</label>
               <div className="flex items-center gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
+                  {customerResolving ? (
+                    <div
+                      className="h-10 rounded-lg bg-muted/50 dark:bg-slate-800/60 border border-border/40 dark:border-border/30 animate-pulse"
+                      aria-label="Loading customer"
+                    />
+                  ) : (
                   <SearchableCustomerSelect
                     value={currentLeadId}
                     onChange={() => {}} // No-op - persistence handled in onCustomerSelect
@@ -1121,6 +1128,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     placeholder="No customer"
                     allowClear={true}
                   />
+                  )}
                 </div>
                 {currentLeadId && (
                   <button

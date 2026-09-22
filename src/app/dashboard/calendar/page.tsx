@@ -637,6 +637,7 @@ export default function SchedulePage() {
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
   const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
+  const [selectedEventLeadResolving, setSelectedEventLeadResolving] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [scheduleTab, setScheduleTab] = useState<'agenda' | 'reminders' | 'jobs' | 'appointments' | 'calendar' | 'map'>(() => {
     const tabParam = searchParams.get('tab')
@@ -945,12 +946,16 @@ export default function SchedulePage() {
   
   // Resolve job and customer for selected event
   useEffect(() => {
+    let cancelled = false
     const resolve = async () => {
       if (!selectedEvent) {
         setSelectedEventJob(null)
         setSelectedEventLead(null)
+        setSelectedEventLeadResolving(false)
         return
       }
+      // Clear previous event's lead immediately — never flash a stale customer
+      setSelectedEventLead(null)
       // Job by google_calendar_event_id
       const job = jobs.find(j => j.google_calendar_event_id === selectedEvent.id) || null
       setSelectedEventJob(job)
@@ -959,15 +964,17 @@ export default function SchedulePage() {
       const replyLeadId = (selectedEvent?.extendedProperties?.private?.replyflow_lead_id as string) || null
       const leadId = job?.lead_id || replyLeadId || null
       if (!leadId) {
-        setSelectedEventLead(null)
+        setSelectedEventLeadResolving(false)
         return
       }
+      setSelectedEventLeadResolving(true)
       try {
         const { data, error } = await supabase
           .from('leads')
           .select('id, caller_phone, raw_metadata')
           .eq('id', leadId)
           .single()
+        if (cancelled) return
         if (!error && data) {
           const meta = data.raw_metadata || {}
           const name = meta.customerName || meta.callerName || meta.name || null
@@ -976,10 +983,13 @@ export default function SchedulePage() {
           setSelectedEventLead({ id: leadId, name: null, caller_phone: null })
         }
       } catch {
-        setSelectedEventLead({ id: leadId, name: null, caller_phone: null })
+        if (!cancelled) setSelectedEventLead({ id: leadId, name: null, caller_phone: null })
+      } finally {
+        if (!cancelled) setSelectedEventLeadResolving(false)
       }
     }
     resolve()
+    return () => { cancelled = true }
   }, [selectedEvent, jobs])
 
   // Close overflow menu on outside click or Escape key
@@ -2955,6 +2965,7 @@ export default function SchedulePage() {
                       mode={eventDetailsMode}
                       job={selectedEventJob}
                       lead={selectedEventLead}
+                      customerResolving={selectedEventLeadResolving}
                       businessName={business?.name || null}
                       onViewCustomer={(leadId: string) => window.location.assign(`/dashboard/leads/${leadId}`)}
                       onViewJob={(jobId: string) => {

@@ -387,7 +387,7 @@ export default function JobDetailsModal({
               </div>
               <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-foreground leading-snug break-words">{capitalizeFirstAlpha(displayTitle)}</h2>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[job.status]}`}>
                     {currentStatusOption?.label}
                   </span>
@@ -409,16 +409,16 @@ export default function JobDetailsModal({
           <div data-scroll-lock-allow className="p-5 space-y-6 overflow-y-auto shrink min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Customer - using EventDetailsModal pattern */}
             {(job.customer_name || job.customer_phone || lead?.id) && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-x-2 gap-y-1.5 flex-wrap text-sm">
                 <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-foreground font-medium">{job.customer_name || lead?.name || 'Customer'}</span>
+                <span className="text-foreground font-medium min-w-0 break-words">{job.customer_name || lead?.name || 'Customer'}</span>
                 {job.customer_phone && (
-                  <a href={`tel:${job.customer_phone}`} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  <a href={`tel:${job.customer_phone}`} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors break-all">
                     {job.customer_phone}
                   </a>
                 )}
                 {lead?.id && (
-                  <div className="flex gap-1 ml-auto">
+                  <div className="flex gap-1 ml-auto flex-wrap">
                     <button
                       onClick={() => window.location.assign(`/dashboard/leads/${lead.id}`)}
                       className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
@@ -448,10 +448,10 @@ export default function JobDetailsModal({
 
             {/* Location - using EventDetailsModal pattern */}
             {job.service_address && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 flex-wrap text-sm">
                 <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-foreground break-words flex-1">{job.service_address}</span>
-                <div className="flex gap-1 flex-shrink-0">
+                <span className="text-foreground break-words flex-1 min-w-0">{job.service_address}</span>
+                <div className="flex gap-1 flex-shrink-0 flex-wrap">
                   <button
                     onClick={() => openInMaps(job.service_address!)}
                     className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1"
@@ -485,7 +485,7 @@ export default function JobDetailsModal({
             {job.notes && (
               <div className="flex items-start gap-3 text-sm">
                 <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                <span className="text-foreground whitespace-pre-line">{job.notes}</span>
+                <span className="text-foreground whitespace-pre-line break-words min-w-0">{job.notes}</span>
               </div>
             )}
 
