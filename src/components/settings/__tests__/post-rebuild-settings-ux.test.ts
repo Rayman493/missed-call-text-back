@@ -118,7 +118,7 @@ describe('B — Team Access identity handling', () => {
   })
 })
 
-describe('C — pending email change (audit: no safe cancel API)', () => {
+describe('C — pending email change (server-backed cancel on GoTrue v2.197+)', () => {
   const pendingBlock = slice(settings, '{/* Pending Email Confirmation */}', '{/* Status */}')
 
   it('pending state derives from authoritative user.new_email, not local UI', () => {
@@ -130,8 +130,10 @@ describe('C — pending email change (audit: no safe cancel API)', () => {
     expect(pendingBlock).toContain('Resend Confirmation')
   })
 
-  it('no speculative cancel button or auth-schema write exists', () => {
-    expect(pendingBlock).not.toMatch(/cancel/i)
+  it('cancel goes through the server route and a confirmation modal — no direct auth-schema write', () => {
+    expect(pendingBlock).toContain('setShowCancelEmailConfirm(true)')
+    expect(settings).toContain("fetch('/api/account/cancel-email-change'")
+    expect(settings).toContain('Cancel email change?')
     expect(settings).not.toMatch(/auth\.users|email_change\s*=\s*null|new_email\s*=\s*null/i)
   })
 })

@@ -733,6 +733,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const [emailError, setEmailError] = useState('')
   const [emailSuccess, setEmailSuccess] = useState(false)
   const [pendingNewEmail, setPendingNewEmail] = useState<string | null>(null)
+  const [showCancelEmailConfirm, setShowCancelEmailConfirm] = useState(false)
+  const [isCancellingEmailChange, setIsCancellingEmailChange] = useState(false)
 
   // Handle Sending Number change with Business Number confirmation
   const handleSendingSourceChange = async (source: SendingSource) => {
@@ -807,7 +809,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     setPendingNewEmail(((user as any)?.new_email as string | undefined) || null)
   }, [user])
 
-  useBodyScrollLock(showAddModal || showDeleteModal || showChangeEmailModal, 'settings-modal')
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangeEmailModal || showCancelEmailConfirm, 'settings-modal')
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
@@ -2592,6 +2594,32 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       showToast('Failed to resend confirmation. Please try again.', 'error')
     } finally {
       setIsResendingConfirmation(false)
+    }
+  }
+
+  // Revokes the pending Supabase Auth email change server-side and refreshes
+  // from authoritative auth state — never clears the banner optimistically.
+  const handleCancelEmailChange = async () => {
+    if (!pendingNewEmail || isCancellingEmailChange) return
+    setIsCancellingEmailChange(true)
+    try {
+      const response = await fetch('/api/account/cancel-email-change', { method: 'POST' })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.ok) {
+        showToast(data.error || 'Failed to cancel the email change. Please try again.', 'error')
+        return // confirm modal stays open; pending banner stays intact
+      }
+      // Refresh authoritative user state before clearing the banner
+      await supabase.auth.refreshSession()
+      const { data: { user: freshUser } } = await supabase.auth.getUser()
+      setPendingNewEmail(((freshUser as any)?.new_email as string | undefined) || null)
+      setShowCancelEmailConfirm(false)
+      showToast('Email change cancelled. ' + (user?.email || 'Your current email') + ' remains your login email.', 'success')
+    } catch (error) {
+      console.error('[Settings] Cancel email change error:', error)
+      showToast('Failed to cancel the email change. Please try again.', 'error')
+    } finally {
+      setIsCancellingEmailChange(false)
     }
   }
 
@@ -5273,13 +5301,22 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           Follow the confirmation instructions sent by your account provider for {pendingNewEmail}. Your current login remains active until verification completes.
                         </span>
                       </div>
-                      <button
-                        onClick={handleResendConfirmation}
-                        disabled={isResendingConfirmation}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300 whitespace-nowrap disabled:opacity-50"
-                      >
-                        {isResendingConfirmation ? 'Sending…' : 'Resend Confirmation'}
-                      </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={handleResendConfirmation}
+                          disabled={isResendingConfirmation || isCancellingEmailChange}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300 whitespace-nowrap disabled:opacity-50"
+                        >
+                          {isResendingConfirmation ? 'Sending…' : 'Resend Confirmation'}
+                        </button>
+                        <button
+                          onClick={() => setShowCancelEmailConfirm(true)}
+                          disabled={isCancellingEmailChange}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800/50 whitespace-nowrap disabled:opacity-50"
+                        >
+                          {isCancellingEmailChange ? 'Cancelling…' : 'Cancel'}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -5973,6 +6010,24 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
             confirmText="Remove"
             isDestructive
             isLoading={isRemovingContact}
+          />
+
+          {/* Cancel pending email change */}
+          <ConfirmModal
+            isOpen={showCancelEmailConfirm}
+            onClose={() => {
+              if (!isCancellingEmailChange) setShowCancelEmailConfirm(false)
+            }}
+            onConfirm={handleCancelEmailChange}
+            title="Cancel email change?"
+            description={
+              pendingNewEmail
+                ? `The pending change to ${pendingNewEmail} will be cancelled and its confirmation links will stop working (any other outstanding sign-in or recovery links for your account are also invalidated). ${user?.email || 'Your current email'} remains your login email.`
+                : ''
+            }
+            confirmText="Cancel Change"
+            isDestructive
+            isLoading={isCancellingEmailChange}
           />
 
           {/* Change Password Modal */}
