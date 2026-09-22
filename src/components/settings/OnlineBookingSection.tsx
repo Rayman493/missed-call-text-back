@@ -4,6 +4,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useSt
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 import { showToast } from '@/lib/toast'
 import { bookingPagePath, bookingPageUrl } from '@/lib/booking/url'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
@@ -80,6 +81,8 @@ export default forwardRef<OnlineBookingSectionHandle, {
   const [exEnd, setExEnd] = useState('')
   const [exLabel, setExLabel] = useState('')
   const [exSaving, setExSaving] = useState(false)
+  const [exceptionPendingDelete, setExceptionPendingDelete] = useState<BookingException | null>(null)
+  const [deletingException, setDeletingException] = useState(false)
 
   // Live preview of the Settings draft business hours. When "Use my business
   // hours" is enabled and the parent passes a draft start/end, the preview reads
@@ -308,9 +311,25 @@ export default forwardRef<OnlineBookingSectionHandle, {
     }
   }
 
+  // Runs only after the user confirms in the shared ConfirmModal. On failure
+  // the blocked range stays listed and the confirmation stays open for retry.
   const handleDeleteException = async (id: string) => {
-    const res = await authFetch(`/api/booking/exceptions?id=${id}`, { method: 'DELETE' })
-    if (res.ok) setExceptions(prev => prev.filter(e => e.id !== id))
+    if (deletingException) return
+    setDeletingException(true)
+    try {
+      const res = await authFetch(`/api/booking/exceptions?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        showToast("Couldn't remove those dates. Please try again.", 'error')
+        return
+      }
+      setExceptions(prev => prev.filter(e => e.id !== id))
+      setExceptionPendingDelete(null)
+      showToast('Blocked dates removed', 'success')
+    } catch {
+      showToast("Couldn't remove those dates. Please try again.", 'error')
+    } finally {
+      setDeletingException(false)
+    }
   }
 
   if (loading) {
@@ -535,8 +554,9 @@ export default forwardRef<OnlineBookingSectionHandle, {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleDeleteException(e.id)}
-                      className="inline-flex min-h-[36px] items-center rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 hover:text-red-700 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                      onClick={() => setExceptionPendingDelete(e)}
+                      disabled={deletingException}
+                      className="inline-flex min-h-[36px] items-center rounded-full bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 hover:text-red-700 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
                     >
                       Remove
                     </button>
@@ -548,11 +568,11 @@ export default forwardRef<OnlineBookingSectionHandle, {
             <div className="flex flex-col sm:flex-row sm:items-end gap-2">
               <label className="block w-full sm:w-auto">
                 <span className="mb-1 block text-xs text-muted-foreground">From</span>
-                <input type="date" value={exStart} onChange={e => setExStart(e.target.value)} className={`${inputCls} w-full sm:w-auto`} />
+                <input type="date" value={exStart} onChange={e => setExStart(e.target.value)} className={`${inputCls} booking-exception-date w-full sm:w-auto`} />
               </label>
               <label className="block w-full sm:w-auto">
                 <span className="mb-1 block text-xs text-muted-foreground">To</span>
-                <input type="date" value={exEnd} onChange={e => setExEnd(e.target.value)} className={`${inputCls} w-full sm:w-auto`} />
+                <input type="date" value={exEnd} onChange={e => setExEnd(e.target.value)} className={`${inputCls} booking-exception-date w-full sm:w-auto`} />
               </label>
               <label className="block flex-1">
                 <span className="mb-1 block text-xs text-muted-foreground">Note (private)</span>
@@ -581,6 +601,27 @@ export default forwardRef<OnlineBookingSectionHandle, {
           </div>
         </>
       )}
+
+      {/* Blocked-dates removal confirmation — the DELETE call runs only from
+          onConfirm; Cancel/backdrop/Android Back close without removing. */}
+      <ConfirmModal
+        isOpen={!!exceptionPendingDelete}
+        onClose={() => {
+          if (!deletingException) setExceptionPendingDelete(null)
+        }}
+        onConfirm={() => {
+          if (exceptionPendingDelete) handleDeleteException(exceptionPendingDelete.id)
+        }}
+        title="Remove blocked dates?"
+        description={
+          exceptionPendingDelete
+            ? `${fmtException(exceptionPendingDelete)}. These dates will become available for online booking again.`
+            : ''
+        }
+        confirmText="Remove"
+        isDestructive
+        isLoading={deletingException}
+      />
     </div>
   )
 }

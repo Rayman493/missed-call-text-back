@@ -199,7 +199,20 @@ export default function TeamAccessSection() {
     (i) => i.status === 'pending' && new Date(i.expires_at) > new Date()
   )
   const pendingLimitReached = pendingInvites.length >= MAX_PENDING_TEAM_INVITES_PER_BUSINESS
-  const pastInvites = (team?.invites || []).filter((i) => i.status !== 'pending')
+  // An 'accepted' invite was consumed by the membership it created
+  // (accept_team_invite writes both atomically), so when a member row exists
+  // for the same phone it IS the same person — keep the member card, drop the
+  // duplicate context row. Accepted invites with no matching member (member
+  // later removed, phone changed) stay listed as history.
+  const memberPhones = new Set(
+    [team?.owner, ...(team?.members || [])]
+      .filter((m): m is MemberEntry => Boolean(m?.phone))
+      .map((m) => (m.phone as string).replace(/\D/g, ''))
+  )
+  const pastInvites = (team?.invites || []).filter(
+    (i) => i.status !== 'pending' &&
+      !(i.status === 'accepted' && memberPhones.has(i.phone.replace(/\D/g, '')))
+  )
 
   return (
     <div id="team" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[140px]">
@@ -262,12 +275,17 @@ export default function TeamAccessSection() {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-foreground truncate">
-                    {m.email || m.phone || 'Member'}
+                    {m.email || (m.phone ? formatPhoneNumber(m.phone) : 'Member')}
                   </span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
                     Member
                   </span>
                 </div>
+                {m.email && m.phone && (
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {formatPhoneNumber(m.phone)}
+                  </p>
+                )}
               </div>
               {confirmRemoveId === m.membership_id ? (
                 <div className="flex items-center gap-2 flex-shrink-0">

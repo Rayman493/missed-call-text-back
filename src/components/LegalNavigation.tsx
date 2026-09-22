@@ -12,10 +12,10 @@ export default function LegalNavigation({ activePage }: LegalNavigationProps) {
   const searchParams = useSearchParams()
   const fromApp = searchParams?.get('from') === 'more'
   const pages = [
-    { href: fromApp ? '/faq?from=more' : '/faq', label: 'FAQ' },
-    { href: fromApp ? '/privacy?from=more' : '/privacy', label: 'Privacy Policy' },
-    { href: fromApp ? '/terms?from=more' : '/terms', label: 'Terms of Service' },
-    { href: fromApp ? '/compliance?from=more' : '/compliance', label: 'Compliance' },
+    { id: 'faq' as const, href: fromApp ? '/faq?from=more' : '/faq', label: 'FAQ' },
+    { id: 'privacy' as const, href: fromApp ? '/privacy?from=more' : '/privacy', label: 'Privacy Policy' },
+    { id: 'terms' as const, href: fromApp ? '/terms?from=more' : '/terms', label: 'Terms of Service' },
+    { id: 'compliance' as const, href: fromApp ? '/compliance?from=more' : '/compliance', label: 'Compliance' },
   ]
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -54,7 +54,9 @@ export default function LegalNavigation({ activePage }: LegalNavigationProps) {
       aria-label="Legal documents"
     >
       {pages.map((page) => {
-        const isActive = page.href === `/${activePage}`
+        // Active state derives from the page id (the same value the route
+        // passes in), never from the href — so ?from=more links still match.
+        const isActive = page.id === activePage
         return (
           <Link
             key={page.href}

@@ -217,6 +217,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const [editLabel, setEditLabel] = useState('')
   const [isSavingContactEdit, setIsSavingContactEdit] = useState(false)
   const [editContactError, setEditContactError] = useState('')
+  // Contact awaiting delete confirmation — opened from the list trash icon or
+  // the Edit Personal Contact modal; both share one confirmation flow.
+  const [contactPendingDelete, setContactPendingDelete] = useState<any | null>(null)
+  const [isRemovingContact, setIsRemovingContact] = useState(false)
 
   // Track visualViewport height for the Add Personal Contact modal so it
   // adapts when the on-screen keyboard opens on mobile.
@@ -1431,7 +1435,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   }, []) // Empty deps - function doesn't depend on user/business, only on runtime session
 
   // Remove ignored contact
-  const removeIgnoredContact = async (contactId: string) => {
+  const removeIgnoredContact = async (contactId: string): Promise<boolean> => {
+    if (isRemovingContact) return false
+    setIsRemovingContact(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -1454,9 +1460,30 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       // Update local state
       setIgnoredContacts(prev => prev.filter(contact => contact.id !== contactId))
       showToast('Contact removed', 'success')
+      return true
     } catch (error) {
       console.error('Error removing personal contact:', error)
       showToast('Couldn\'t remove contact. Please try again.', 'error')
+      return false
+    } finally {
+      setIsRemovingContact(false)
+    }
+  }
+
+  // Confirmed deletion from the shared Remove Contact confirmation. On success
+  // the confirmation closes — and the edit modal too when it was the source —
+  // so the list, modal state and toast all reflect the deleted record. On
+  // failure the confirmation stays open for retry (the error toast is visible
+  // above it) and the contact remains in the list.
+  const handleConfirmRemoveContact = async () => {
+    if (!contactPendingDelete) return
+    const removed = await removeIgnoredContact(contactPendingDelete.id)
+    if (!removed) return
+    setContactPendingDelete(null)
+    if (editingContact?.id === contactPendingDelete.id) {
+      setEditingContact(null)
+      setEditLabel('')
+      setEditContactError('')
     }
   }
 
@@ -5152,10 +5179,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => removeIgnoredContact(contact.id)}
-                              className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors duration-150"
+                              onClick={() => setContactPendingDelete(contact)}
+                              disabled={isRemovingContact}
+                              className="inline-flex items-center justify-center h-11 w-11 -my-2 p-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors duration-150 disabled:opacity-50"
+                              aria-label="Remove contact"
+                              title="Remove contact"
                             >
-                              Remove
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -5849,7 +5879,16 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
             }}
             title="Edit Personal Contact"
             footer={
-              <div className="flex justify-end gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  onClick={() => setContactPendingDelete(editingContact)}
+                  disabled={isSavingContactEdit || isRemovingContact}
+                  className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 inline-flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Remove
+                </button>
+                <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setEditingContact(null)
@@ -5875,6 +5914,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     'Save Changes'
                   )}
                 </button>
+                </div>
               </div>
             }
           >
@@ -5913,6 +5953,27 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   )}
                 </div>
           </Modal>
+
+          {/* Remove Personal Contact confirmation — shared by the list trash
+              icon and the Edit Personal Contact footer. Back/outside close
+              cancels without deleting; the record is removed only after the
+              server confirms. */}
+          <ConfirmModal
+            isOpen={!!contactPendingDelete}
+            onClose={() => {
+              if (!isRemovingContact) setContactPendingDelete(null)
+            }}
+            onConfirm={handleConfirmRemoveContact}
+            title="Remove contact?"
+            description={
+              contactPendingDelete
+                ? `${contactPendingDelete.label || formatPhoneNumber(contactPendingDelete.phone_number)} (${formatPhoneNumber(contactPendingDelete.phone_number)}) will return to your customer workflow — missed calls and voicemails from this number will be handled like any other customer.`
+                : ''
+            }
+            confirmText="Remove"
+            isDestructive
+            isLoading={isRemovingContact}
+          />
 
           {/* Change Password Modal */}
           <Modal

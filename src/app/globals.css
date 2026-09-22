@@ -891,6 +891,16 @@ body[data-chrome-covered='true'] {
   -moz-appearance: textfield;
 }
 
+/* Online Booking "Blocked dates" From/To inputs use the native picker
+ * indicator (no custom icon). The indicator hugs the field's right edge by
+ * default; a small inline-end margin nudges it inward while keeping it
+ * vertically centered inside the existing padding. */
+.booking-exception-date::-webkit-calendar-picker-indicator {
+  margin-inline-end: 4px;
+  margin-inline-start: 4px;
+  cursor: pointer;
+}
+
 /* Ensure native date/time text fills the available input width without
  * clipping. The fields-wrapper should not impose its own min-width that
  * exceeds the input's content box.

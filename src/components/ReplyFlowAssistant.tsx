@@ -319,24 +319,28 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
     <div data-rf-assistant-root className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full flex flex-col overflow-hidden max-h-full ${className}`}>
       {/* Fixed header */}
       <div className="flex-shrink-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-4">
-        {/* Header */}
-        <div className="relative mb-3">
-          <div className="text-center">
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Help</h3>
-            {!showResults && (
-              <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                Search documentation for answers about customers, appointments, payments, and more.
-              </p>
+        {/* Header — title and close button share one flex row so the X sits
+            on the title's visual centerline regardless of subtitle wrap. */}
+        <div className="mb-3">
+          <div className="flex items-center">
+            <div className="w-8 flex-shrink-0" aria-hidden="true" />
+            <h3 className="flex-1 min-w-0 text-center text-sm sm:text-base font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Help</h3>
+            {onClose ? (
+              <button
+                onClick={onClose}
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                aria-label="Close ReplyFlow Assistant"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : (
+              <div className="w-8 flex-shrink-0" aria-hidden="true" />
             )}
           </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0"
-              aria-label="Close ReplyFlow Assistant"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          {!showResults && (
+            <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed text-center">
+              Search documentation for answers about customers, appointments, payments, and more.
+            </p>
           )}
         </div>
 
