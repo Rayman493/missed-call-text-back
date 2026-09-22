@@ -17,6 +17,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 
 const supabase = createBrowserClient()
 
@@ -140,7 +141,7 @@ interface EventDetailsModalProps {
   onDelete?: () => void
   onRefresh?: () => void
   job?: { id: string; title?: string | null; lead_id?: string | null; customer_name?: string | null; customer_phone?: string | null } | null
-  lead?: { id: string; name?: string | null; caller_phone?: string | null } | null
+  lead?: { id: string; name?: string | null; caller_phone?: string | null; raw_metadata?: any } | null
   customerResolving?: boolean
   businessName?: string | null
   onViewCustomer?: (leadId: string) => void
@@ -208,6 +209,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [isSavingCustomer, setIsSavingCustomer] = useState(false)
   const [currentLeadId, setCurrentLeadId] = useState<string | null>(lead?.id || null)
   const [currentLeadName, setCurrentLeadName] = useState<string | null>(lead?.name || job?.customer_name || null)
+  const [currentLeadData, setCurrentLeadData] = useState<any>(lead || null)
   // Gate chrome/scroll ownership on actual visibility: the render guard below
   // returns null when `event` is null, so locking on `isOpen` alone could hold
   // an invisible lock (chrome hidden, body frozen) if a parent ever keeps
@@ -254,6 +256,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   useEffect(() => {
     setCurrentLeadId(lead?.id || null)
     setCurrentLeadName(lead?.name || job?.customer_name || null)
+    setCurrentLeadData(lead || null)
   }, [lead, job])
 
   // Handle Escape key to close modal
@@ -593,6 +596,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       // Update local state only after successful persistence
       setCurrentLeadId(customerId)
       setCurrentLeadName(customer?.name || customer?.caller_phone || 'Customer')
+      setCurrentLeadData(customer || null)
 
       // Refresh to update calendar/map displays
       onRefresh?.()
@@ -646,6 +650,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       // Update local state
       setCurrentLeadId(null)
       setCurrentLeadName(null)
+      setCurrentLeadData(null)
 
       // Refresh to update calendar/map displays
       onRefresh?.()
@@ -1141,6 +1146,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   </button>
                 )}
               </div>
+              <CustomerContextDisclosure leadData={currentLeadData} />
             </div>
 
             {/* Related Job */}

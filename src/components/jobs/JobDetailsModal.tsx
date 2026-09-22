@@ -8,6 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency, capitalizeFirstAlpha } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import JobTimer from '@/components/jobs/JobTimer'
+import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
@@ -445,6 +446,7 @@ export default function JobDetailsModal({
                 )}
               </div>
             )}
+            {lead && <CustomerContextDisclosure leadData={lead} />}
 
             {/* Location - using EventDetailsModal pattern */}
             {job.service_address && (

@@ -10,6 +10,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
@@ -50,6 +51,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Customer linking (optional)
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   // Meeting type
   const [meetingType, setMeetingType] = useState<'in_person' | 'google_meet' | 'custom'>('in_person')
@@ -73,6 +75,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   // Configure customer preselection and context behavior on open
   useEffect(() => {
     if (!isOpen) return
+    setSelectedCustomer(preselectedLeadCustomer || null)
     // Initialize lead from preselected when provided
     if (preselectedLeadId) {
       setLeadId(preselectedLeadId)
@@ -82,7 +85,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
       setLeadId(null)
       setLeadDisplay(null)
     }
-  }, [isOpen, preselectedLeadId, preselectedLeadDisplay, context])
+  }, [isOpen, preselectedLeadId, preselectedLeadDisplay, preselectedLeadCustomer, context])
 
   // Reset submission guards every time the modal opens so a new logical
   // appointment creation gets a fresh request_id and is not blocked by a
@@ -109,6 +112,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
 
   // Handle customer selection - update display name
   const handleCustomerSelect = (customer: Customer | null) => {
+    setSelectedCustomer(customer)
     if (customer) {
       setLeadDisplay(getCustomerDisplayName(customer) || 'Selected customer')
     } else {
@@ -213,7 +217,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           custom_meeting_url: meetingType === 'custom' && customMeetingUrl.trim() ? customMeetingUrl.trim() : undefined,
           lead_id: leadId || undefined,
           request_id: requestId,
-          recurrence: repeatPayload(repeat) || undefined,
+          recurrence: date ? (repeatPayload(repeat) || undefined) : undefined,
         })
       })
 
@@ -367,6 +371,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 placeholder="Search or select a customer..."
                 prefillCustomer={preselectedLeadCustomer}
               />
+              {selectedCustomer && (
+                <CustomerContextDisclosure key={selectedCustomer.id} leadData={selectedCustomer} className="mt-2" />
+              )}
             </div>
 
             {/* Section: Timing */}
@@ -415,15 +422,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 </label>
               </div>
 
-              {date && (
-                <RepeatControls value={repeat} onChange={setRepeat} />
-              )}
+              {/* Recurrence — the API drops it without a date */}
+              <RepeatControls
+                value={repeat}
+                onChange={setRepeat}
+                prerequisiteHint={date ? undefined : 'Set a date above to schedule a repeating appointment.'}
+              />
             </div>
 
-            {/* Section: Appointment Details */}
+            {/* Section: Details */}
             <div className="space-y-3">
               <div className="pb-1.5 border-b border-border/40">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Appointment Details</p>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
               </div>
 
               <div>

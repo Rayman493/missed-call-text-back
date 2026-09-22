@@ -7,6 +7,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
+import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import JobTimer from '@/components/jobs/JobTimer'
@@ -118,6 +119,7 @@ export default function JobComposer({
   // Customer selector state
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   const locationInputRef = useRef<HTMLInputElement>(null)
 
@@ -132,6 +134,7 @@ export default function JobComposer({
   // customer metadata. Customer Name and Phone are identity fields and are
   // always refreshed from the selected customer.
   const handleCustomerSelect = (customer: Customer | null) => {
+    setSelectedCustomer(customer)
     if (customer) {
       setLeadDisplay(getCustomerDisplayName(customer) || 'Customer')
       // Extract canonical AI intake fields from raw_metadata
@@ -180,6 +183,7 @@ export default function JobComposer({
   useEffect(() => {
     if (!isOpen) return
     setError('')
+    setSelectedCustomer(null)
 
     if (editJob) {
       setTitle(editJob.title)
@@ -267,7 +271,7 @@ export default function JobComposer({
         source: leadId ? 'replyflow' : 'manual',
         lead_id: leadId || editJob?.lead_id || null,
         conversation_id: prefill?.conversation_id || editJob?.conversation_id || null,
-        ...(!editJob ? { recurrence: repeatPayload(repeat) } : {}),
+        ...(!editJob ? { recurrence: scheduledDate ? repeatPayload(repeat) : null } : {}),
         ...(editJob && isRecurring ? { scope: editScope, occurrence_date: editJob.scheduled_date } : {}),
       }
 
@@ -379,6 +383,9 @@ export default function JobComposer({
                 placeholder="Search or select a customer..."
                 prefillCustomer={prefill?.prefillCustomer}
               />
+              {selectedCustomer && (
+                <CustomerContextDisclosure key={selectedCustomer.id} leadData={selectedCustomer} className="mt-2" />
+              )}
             </div>
 
             {/* Customer Phone (read-only when linked customer selected; name shown in picker) */}
@@ -465,18 +472,11 @@ export default function JobComposer({
 
             {/* Recurrence — create mode only; requires a scheduled date */}
             {!editJob && (
-              scheduledDate ? (
-                <RepeatControls value={repeat} onChange={setRepeat} />
-              ) : (
-                <div>
-                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
-                    Repeat
-                  </label>
-                  <p className="text-xs text-muted-foreground/80 px-3 py-2.5 bg-muted/20 dark:bg-slate-900/40 border border-dashed border-border/50 dark:border-slate-700/60 rounded-lg">
-                    Set a date above to schedule a repeating job.
-                  </p>
-                </div>
-              )
+              <RepeatControls
+                value={repeat}
+                onChange={setRepeat}
+                prerequisiteHint={scheduledDate ? undefined : 'Set a date above to schedule a repeating job.'}
+              />
             )}
 
             {isRecurring && (

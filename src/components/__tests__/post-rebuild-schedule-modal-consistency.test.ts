@@ -106,24 +106,28 @@ describe('post-rebuild batch 1 — View Job horizontal overflow', () => {
 })
 
 describe('post-rebuild batch 1 — New Job Repeat prerequisite', () => {
-  it('RepeatControls renders only when a scheduled date exists', () => {
+  it('RepeatControls stays inoperable until a scheduled date exists', () => {
     const timing = slice(jobComposer, '{/* Section: Timing', '{/* Section: Details')
-    expect(timing).toMatch(/scheduledDate \?\s*\(\s*<RepeatControls/)
+    expect(timing).toContain('<RepeatControls')
+    expect(timing).toContain('prerequisiteHint={scheduledDate ? undefined')
     expect(timing).not.toMatch(/scheduledDate[\s\S]*?<RepeatControls[\s\S]*disabledRepeat/)
   })
 
   it('shows a visible prerequisite hint instead of hiding Repeat entirely', () => {
-    expect(jobComposer).toMatch(/>\s*Repeat\s*<\/label>/)
     expect(jobComposer).toContain('Set a date above to schedule a repeating job.')
-    // hint must be non-operable (no picker rendered without a date)
-    const hint = slice(jobComposer, 'Set a date above', '</p>')
-    expect(hint).not.toContain('RepeatControls')
+    // shared hint treatment lives in RepeatControls (label + dashed, non-operable)
+    const repeatControls = readFileSync('src/components/ui/RepeatControls.tsx', 'utf8')
+    expect(repeatControls).toMatch(/>\s*Repeat\s*<\/label>/)
+    expect(repeatControls).toContain('border-dashed')
+    const hint = slice(repeatControls, 'if (prerequisiteHint)', 'return (')
+    expect(hint).not.toContain('SelectPicker')
   })
 
   it('repeat stays inoperable without a date — no enabled picker', () => {
     const timing = slice(jobComposer, '{/* Recurrence', '{isRecurring && (')
-    expect(timing).toContain('scheduledDate ?')
-    expect(timing).toContain('border-dashed')
+    expect(timing).toContain('prerequisiteHint={scheduledDate ? undefined')
+    const repeatControls = readFileSync('src/components/ui/RepeatControls.tsx', 'utf8')
+    expect(repeatControls).toContain('if (prerequisiteHint)')
   })
 
   it('edit-mode scope picker is unchanged', () => {

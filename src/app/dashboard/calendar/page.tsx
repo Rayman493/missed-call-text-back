@@ -636,7 +636,7 @@ export default function SchedulePage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
-  const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
+  const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null; raw_metadata?: any } | null>(null)
   const [selectedEventLeadResolving, setSelectedEventLeadResolving] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [scheduleTab, setScheduleTab] = useState<'agenda' | 'reminders' | 'jobs' | 'appointments' | 'calendar' | 'map'>(() => {
@@ -978,7 +978,7 @@ export default function SchedulePage() {
         if (!error && data) {
           const meta = data.raw_metadata || {}
           const name = meta.customerName || meta.callerName || meta.name || null
-          setSelectedEventLead({ id: data.id, name, caller_phone: data.caller_phone })
+          setSelectedEventLead({ id: data.id, name, caller_phone: data.caller_phone, raw_metadata: data.raw_metadata })
         } else {
           setSelectedEventLead({ id: leadId, name: null, caller_phone: null })
         }

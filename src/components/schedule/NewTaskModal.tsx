@@ -9,6 +9,7 @@ import SelectPicker from '@/components/ui/SelectPicker'
 import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import Modal from '@/components/ui/Modal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 
 interface Task {
@@ -148,7 +149,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           lead_id: selectedLeadId || null,
           job_id: selectedJobId || null,
           reminder_offset_minutes: reminderOffsetMinutes,
-          ...(!taskToEdit ? { recurrence: repeatPayload(repeat) } : {}),
+          ...(!taskToEdit ? { recurrence: dueDate ? repeatPayload(repeat) : null } : {}),
           ...(taskToEdit && isRecurring ? { scope: editScope, occurrence_date: taskToEdit.due_date } : {}),
         }),
       })
@@ -324,10 +325,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           </p>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Section: Details */}
+          {/* Section: Basics */}
           <div className="space-y-3">
             <div className="pb-1.5 border-b border-border/40">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Basics</p>
             </div>
 
             <div>
@@ -352,6 +353,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               allowClear={true}
               prefillCustomer={preselectedLeadCustomer}
             />
+            {selectedCustomer && (
+              <CustomerContextDisclosure key={selectedCustomer.id} leadData={selectedCustomer} />
+            )}
 
             <SelectPicker
               value={selectedJobId}
@@ -432,8 +436,13 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               emptyMessage="No reminder"
             />
 
+            {/* Recurrence — create mode only; the API drops it without a due date */}
             {!taskToEdit && (
-              <RepeatControls value={repeat} onChange={setRepeat} />
+              <RepeatControls
+                value={repeat}
+                onChange={setRepeat}
+                prerequisiteHint={dueDate ? undefined : 'Set a due date above to schedule a repeating reminder.'}
+              />
             )}
 
             {isRecurring && (

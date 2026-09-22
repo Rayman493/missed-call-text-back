@@ -5,6 +5,7 @@ import { CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2, Calendar } fr
 import Modal from '@/components/ui/Modal'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import NewTaskModal from './NewTaskModal'
+import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import Toast from '@/components/Toast'
 import { useRouter } from 'next/navigation'
 import { getLeadDisplayName, formatPhoneNumber } from '@/lib/utils'
@@ -650,16 +651,16 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
         >
           <div className="space-y-3">
             <div>
-              <p className="text-xs text-muted-foreground font-medium mb-1">Title</p>
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Title</p>
               <p className="text-sm font-medium text-foreground break-words">{viewingTask.title}</p>
             </div>
             <div className="flex items-start gap-3">
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground font-medium mb-1">Status</p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Status</p>
                 {getTaskStatusBadge(viewingTask)}
               </div>
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground font-medium mb-1">Scheduled</p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Scheduled</p>
                 <p className="text-sm text-foreground">
                   {viewingTask.due_date ? (
                     <span className="flex items-center gap-1">
@@ -675,7 +676,7 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
             </div>
             {viewingTask.lead_id && (
               <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">Customer</p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer</p>
                 <div className="flex items-center gap-2 flex-wrap text-sm">
                   <span className="text-foreground font-medium min-w-0 break-words">{getLeadName(viewingTask)}</span>
                   {viewingTask.leads?.caller_phone && (
@@ -697,17 +698,18 @@ export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEd
                     View
                   </button>
                 </div>
+                <CustomerContextDisclosure leadData={viewingTask.leads} className="mt-2" />
               </div>
             )}
             {viewingTask.notes && (
               <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">Notes</p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Notes</p>
                 <p className="text-sm text-foreground whitespace-pre-line break-words">{viewingTask.notes}</p>
               </div>
             )}
             {viewingTask.job_id && viewingTask.jobs && (
               <div>
-                <p className="text-xs text-muted-foreground font-medium mb-1">Job</p>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Job</p>
                 <p className="text-sm text-foreground">{viewingTask.jobs.title}</p>
               </div>
             )}

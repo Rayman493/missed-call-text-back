@@ -39,6 +39,9 @@ const END_OPTIONS = [
 interface RepeatControlsProps {
   value: RepeatValue
   onChange: (value: RepeatValue) => void
+  /** When set, recurrence can't be persisted yet (e.g. no date chosen) — the
+      picker is replaced by a non-operable prerequisite hint instead of hiding. */
+  prerequisiteHint?: string
 }
 
 /** Serialize to the API recurrence payload, or null when it does not repeat. */
@@ -67,8 +70,21 @@ export function repeatLabel(recurrence: { frequency?: string; interval?: number 
   }
 }
 
-export default function RepeatControls({ value, onChange }: RepeatControlsProps) {
+export default function RepeatControls({ value, onChange, prerequisiteHint }: RepeatControlsProps) {
   const repeats = value.frequency !== 'none'
+
+  if (prerequisiteHint) {
+    return (
+      <div>
+        <label className="text-xs text-muted-foreground font-medium mb-1.5 block">
+          Repeat
+        </label>
+        <p className="text-xs text-muted-foreground/80 px-3 py-2.5 bg-muted/20 dark:bg-slate-900/40 border border-dashed border-border/50 dark:border-slate-700/60 rounded-lg">
+          {prerequisiteHint}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
