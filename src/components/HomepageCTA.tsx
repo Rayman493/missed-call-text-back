@@ -8,13 +8,15 @@ interface HomepageCTAProps {
   showSecondaryButton?: boolean
   secondaryButtonHref?: string
   secondaryButtonText?: string
+  showPricing?: boolean
 }
 
 export default function HomepageCTA({
   variant = 'hero',
   showSecondaryButton = false,
   secondaryButtonHref = '#interactive-demo',
-  secondaryButtonText = 'See How It Works'
+  secondaryButtonText = 'See How It Works',
+  showPricing = true
 }: HomepageCTAProps) {
   const { user, loading } = useAuth()
   const isLoggedIn = !!user && !loading
@@ -49,9 +51,11 @@ export default function HomepageCTA({
             Start Your 14-Day Free Trial
           </Link>
         )}
-        <div className="text-base text-slate-400 dark:text-slate-300">
-          14-day free trial • $59/month after • Cancel anytime
-        </div>
+        {showPricing && (
+          <div className="text-base text-slate-400 dark:text-slate-300">
+            14-day free trial • $59/month after • Cancel anytime
+          </div>
+        )}
       </div>
     )
   }

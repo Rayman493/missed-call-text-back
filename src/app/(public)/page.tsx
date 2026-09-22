@@ -138,12 +138,13 @@ export default async function Home() {
                   From First Call to Final Payment.
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                  Capture customer details from missed calls. Manage conversations, schedule work, send quotes & invoices, follow up automatically, and get paid — all in one place.
+                  Capture customer details from missed calls, accept online bookings, manage conversations, schedule work, send quotes and invoices, and get paid — all in one place.
                 </p>
 
                 <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
-                  {/* Primary CTA */}
-                  <HomepageCTA variant="hero" />
+                  <div className="text-base text-slate-500 dark:text-slate-300">
+                    14-day free trial • $59/month after • Cancel anytime
+                  </div>
 
                   {/* Trust Indicators - Desktop */}
                   <div className="hidden sm:block">
@@ -192,6 +193,8 @@ export default async function Home() {
                       </div>
                     </div>
                   </div>
+
+                  <HomepageCTA variant="hero" showPricing={false} />
                 </div>
               </div>
             </div>
@@ -387,8 +390,8 @@ export default async function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Schedule the Work</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">Schedule appointments and see your day's stops</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Scheduling &amp; Online Booking</h3>
+                <p className="text-xs text-slate-700 dark:text-slate-400">Let customers book online or schedule appointments yourself</p>
               </div>
               
               {/* Arrow */}
@@ -480,8 +483,8 @@ export default async function Home() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Schedule the Work</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Schedule appointments and see your day's stops</p>
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Scheduling &amp; Online Booking</h3>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">Customers book online, or you schedule it</p>
                 </div>
               </div>
               

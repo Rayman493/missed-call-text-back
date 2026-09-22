@@ -22,7 +22,7 @@ import CustomerContextDisclosure from '@/components/customers/CustomerContextDis
 
 const supabase = createBrowserClient()
 
-type EventDetailsModalMode = 'details' | 'add-location'
+type EventDetailsModalMode = 'details' | 'add-location' | 'edit'
 
 // Helper to filter out placeholder values
 const isPlaceholderValue = (text: string | null | undefined): boolean => {
@@ -168,6 +168,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   useEffect(() => {
     if (!business?.id || !event?.id) return
     let cancelled = false
+    setMeetingRecord(null)
     supabase
       .from('meeting_records')
       .select('id, google_calendar_event_id')
@@ -236,8 +237,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       setEditedSummary(event.summary)
       setEditedDescription(event.description || '')
       setEditedLocation(event.location || '')
-      setEditedNotes(notes)
+      setEditedNotes('')
+      setEditedStartDate('')
+      setEditedStartTime('')
+      setEditedEndTime('')
       setIsAllDay(!!event.start.date)
+      setEditScope('occurrence')
+      setRepeat(NO_REPEAT)
+      setError(null)
       
       if (event.start.dateTime) {
         const start = new Date(event.start.dateTime)
@@ -253,6 +260,20 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       }
     }
   }, [event, timezone])
+
+  // Enter edit mode when opened via the pencil; a card/details open always
+  // lands on the summary (and clears any stale edit state left by closing
+  // the modal mid-edit).
+  useEffect(() => {
+    if (!isOpen) return
+    if (mode === 'edit') {
+      setIsEditing(true)
+      setError(null)
+      setRepeat(NO_REPEAT)
+    } else {
+      setIsEditing(false)
+    }
+  }, [isOpen, mode])
 
   // Update lead state when lead prop changes
   useEffect(() => {
@@ -277,21 +298,24 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
   // Load meeting metadata on open
   useEffect(() => {
+    let cancelled = false
     const load = async () => {
       if (!isOpen || !event?.id) {
         return
       }
       try {
         const res = await fetch(`/api/meetings/${encodeURIComponent(event.id)}`)
-        if (!res.ok) {
+        if (!res.ok || cancelled) {
           return
         }
         const data = await res.json().catch(() => ({} as any))
+        if (cancelled) return
         const rec = data?.record
         if (rec) {
           setMeetingStatus(rec.status === 'completed' ? 'completed' : 'upcoming')
           setCompletedAt(rec.completed_at || null)
           setNotes(rec.notes || '')
+          setEditedNotes(rec.notes || '')
           setAiSummary(rec.ai_summary || null)
           setAiSummaryStructured(rec.ai_summary_structured || null)
           setActualStart(rec.actual_start || null)
@@ -300,6 +324,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         } else {
           setMeetingStatus('upcoming')
           setCompletedAt(null)
+          setNotes('')
+          setEditedNotes('')
+          setAiSummary(null)
+          setAiSummaryStructured(null)
+          setActualStart(null)
+          setActualEnd(null)
+          setTranscriptStatus(null)
         }
         const cap = data?.meetCapability === 'available' ? 'available' : (data?.meetCapability === 'reauthorization_required' ? 'reauthorization_required' : null)
         setMeetCapability(cap)
@@ -308,6 +339,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       }
     }
     load()
+    return () => { cancelled = true }
   }, [isOpen, event?.id])
 
   if (!isOpen || !event) return null

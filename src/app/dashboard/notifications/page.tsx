@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { notificationService, Notification, NotificationCount, getNotificationCustomerContext, resolveNotificationSubject } from '@/lib/notifications'
-import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
+import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X, ArrowUp } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
 import AppBackButton from '@/components/AppBackButton'
@@ -17,6 +17,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ total: 0, unread: 0 })
   const [loading, setLoading] = useState(true)
+  const [showBackToTop, setShowBackToTop] = useState(false)
   
   // Track press state per notification to prevent visual feedback during scroll
   const [pressedNotificationId, setPressedNotificationId] = useState<string | null>(null)
@@ -29,6 +30,13 @@ export default function NotificationsPage() {
     isTap: boolean
   } | null>(null)
   const MOVE_THRESHOLD = 10 // pixels (increased for better scroll detection)
+
+  useEffect(() => {
+    const handleScroll = () => setShowBackToTop(window.scrollY > 480)
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     if (!business?.id) return
@@ -219,7 +227,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-hidden overscroll-x-none bg-background">
       <AppHeader showNavigation={true} />
       <div className="max-w-5xl mx-auto px-4 py-4">
         {/* Header — flush-left stack sharing the notification cards' left
@@ -393,6 +401,18 @@ export default function NotificationsPage() {
           )}
         </div>
       </div>
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground shadow-lg transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
+          aria-label="Back to top"
+        >
+          <ArrowUp className="h-4 w-4" />
+          <span className="hidden sm:inline">Back to top</span>
+        </button>
+      )}
     </div>
   )
 }

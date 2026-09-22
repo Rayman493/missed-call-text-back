@@ -2531,9 +2531,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       }
 
       // Update email using Supabase Auth
-      const { error: updateError } = await supabase.auth.updateUser({
-        email: newEmail,
-      })
+      const { error: updateError } = await supabase.auth.updateUser(
+        { email: newEmail },
+        { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/email-change` }
+      )
 
       if (updateError) {
         console.error('[Settings] Email update error:', updateError)
@@ -2580,9 +2581,10 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     resendConfirmationCooldownUntilRef.current = Date.now() + 60_000
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        email: pendingNewEmail,
-      })
+      const { error } = await supabase.auth.updateUser(
+        { email: pendingNewEmail },
+        { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/email-change` }
+      )
 
       if (error) {
         showToast('Failed to resend confirmation. Please try again.', 'error')

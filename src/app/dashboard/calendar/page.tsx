@@ -328,6 +328,7 @@ function MeetingsTab({
   events,
   jobs,
   onOpenEvent,
+  onEditEvent,
   onViewCustomer,
   onNewMeeting,
   completedMap,
@@ -339,6 +340,7 @@ function MeetingsTab({
   events: CalendarEvent[]
   jobs: any[]
   onOpenEvent: (event: CalendarEvent) => void
+  onEditEvent: (event: CalendarEvent) => void
   onViewCustomer: (leadId: string) => void
   onNewMeeting: () => void
   completedMap: Map<string, { completed_at: string }>
@@ -492,8 +494,8 @@ function MeetingsTab({
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {isEditable && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); onOpenEvent(ev) }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenEvent(ev) } }}
+                      onClick={(e) => { e.stopPropagation(); onEditEvent(ev) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEditEvent(ev) } }}
                       className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
                       aria-label="Edit appointment"
                     >
@@ -661,7 +663,7 @@ export default function SchedulePage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
-  const [eventDetailsMode, setEventDetailsMode] = useState<'details' | 'add-location'>('details')
+  const [eventDetailsMode, setEventDetailsMode] = useState<'details' | 'add-location' | 'edit'>('details')
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
   const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
@@ -1541,7 +1543,7 @@ export default function SchedulePage() {
     return tasks.filter(t => t.due_date === dayKey && !t.completed)
   }
 
-  const handleCalendarItemClick = (item: { id: string; type: 'appointment' | 'job' | 'task' }) => {
+  const handleCalendarItemClick = (item: { id: string; type: 'appointment' | 'job' | 'task' }, appointmentMode: 'details' | 'edit' = 'details') => {
     if (item.type === 'job') {
       const job = jobs.find(j => j.id === item.id)
       if (job) {
@@ -1572,7 +1574,7 @@ export default function SchedulePage() {
     }
 
     setSelectedEvent(event)
-    setEventDetailsMode('details')
+    setEventDetailsMode(appointmentMode)
     setIsEventDetailsOpen(true)
   }
 
@@ -2158,6 +2160,11 @@ export default function SchedulePage() {
                         setEventDetailsMode('details')
                         setIsEventDetailsOpen(true)
                       }}
+                      onEditEvent={(event) => {
+                        setSelectedEvent(event)
+                        setEventDetailsMode('edit')
+                        setIsEventDetailsOpen(true)
+                      }}
                       onViewCustomer={handleMapViewCustomer}
                       onNewMeeting={handleNewAppointment}
                       completedMap={appointmentCompletedMap}
@@ -2563,7 +2570,7 @@ export default function SchedulePage() {
                                               <button
                                                 onClick={(e) => {
                                                   e.stopPropagation()
-                                                  handleCalendarItemClick({ id: event.id, type: 'appointment' })
+                                                  handleCalendarItemClick({ id: event.id, type: 'appointment' }, 'edit')
                                                 }}
                                                 aria-label={`Edit appointment: ${event.summary}`}
                                                 className="w-8 h-8 flex items-center justify-center text-slate-400 [@media(hover:hover)]:hover:text-blue-600 dark:[@media(hover:hover)]:hover:text-blue-400 [@media(hover:hover)]:hover:bg-slate-100 dark:[@media(hover:hover)]:hover:bg-slate-800 transition-colors rounded flex-shrink-0"
@@ -2947,7 +2954,7 @@ export default function SchedulePage() {
                       isOpen={isJobDetailsOpen}
                       onClose={() => setIsJobDetailsOpen(false)}
                       job={selectedJob}
-                      onEdit={(job) => { setEditingJob(job); setJobPrefill(undefined); setNewJobDefaultDate(undefined); setIsJobComposerOpen(true) }}
+                      onEdit={(job) => { setIsJobDetailsOpen(false); setEditingJob(job); setJobPrefill(undefined); setNewJobDefaultDate(undefined); setIsJobComposerOpen(true) }}
                       onStatusChange={handleJobStatusChange}
                       onDelete={handleJobDeleted}
                     />
