@@ -404,6 +404,16 @@ export default function PremiumAudioPlayer({
               style={{ width: `${progressPercent}%` }}
             />
           </div>
+          {/* Scrubber thumb — visible circular handle that tracks playback
+              position. pointer-events-none keeps the 32px parent hit area as
+              the single canonical drag/click surface (pointer capture is on
+              the parent); aria-hidden because the parent owns the slider
+              role and keyboard seeking. */}
+          <div
+            aria-hidden="true"
+            className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-blue-600 border-2 border-white dark:border-slate-900 shadow-md pointer-events-none transition-all duration-100 ease-out ${isDragging ? 'scale-125' : 'scale-100'}`}
+            style={{ left: `${progressPercent}%` }}
+          />
         </div>
       </div>
     </div>

@@ -24,12 +24,14 @@ describe('Appointment recurrence edit scopes', () => {
   })
 
   it('edit scope offers only occurrence and series — no future option', () => {
-    const selectMatch = eventModalSrc.match(/aria-label="Apply changes to"[\s\S]*?<\/select>/)
-    expect(selectMatch).not.toBeNull()
-    const block = selectMatch![0]
-    expect(block).toContain('value="occurrence"')
-    expect(block).toContain('value="series"')
-    expect(block).not.toContain('value="future"')
+    // The dedicated edit form renders the scope choice via SelectPicker with
+    // an options array (same control used by JobComposer's scope picker).
+    const pickerMatch = eventModalSrc.match(/<SelectPicker[\s\S]*?label="Apply changes to"[\s\S]*?\/>/)
+    expect(pickerMatch).not.toBeNull()
+    const block = pickerMatch![0]
+    expect(block).toContain("value: 'occurrence'")
+    expect(block).toContain("value: 'series'")
+    expect(block).not.toContain("value: 'future'")
   })
 
   it('edit PATCH sends scope only for recurring events', () => {

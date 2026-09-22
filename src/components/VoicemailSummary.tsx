@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Check, Loader2, Pencil, Calendar } from 'lucide-react'
+import { Phone, User, MessageCircle, MapPin, AlertCircle, Check, Loader2, Pencil, Calendar, PhoneCall } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { capitalizeFirstAlpha } from '@/lib/utils'
 import { getProvenanceLabel } from '@/lib/customer-source'
@@ -146,7 +146,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
     importantDetails: MessageCircle,
     urgencyLevel: AlertCircle,
     addressOrLocation: MapPin,
-    preferredCallbackTime: Clock,
+    preferredCallbackTime: PhoneCall,
     callbackNumber: Phone
   }
 

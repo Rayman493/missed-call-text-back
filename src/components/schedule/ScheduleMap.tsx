@@ -189,6 +189,11 @@ function ScheduleMapComponent({
   // on a second `click` event (which Google Maps `gestureHandling: 'greedy'`
   // consumes on Android).
   const markerItemsRef = useRef<Map<string, MapItem>>(new Map())
+  // Stores the full MarkerInfo per marker key, refreshed on every marker
+  // reconciliation, so click/dblclick/hover listeners (which are attached
+  // once at marker creation) always act on current item data — never on a
+  // stale closure from the run that created the marker.
+  const markerInfosRef = useRef<Map<string, MarkerInfo>>(new Map())
   const suppressMapClickRef = useRef(false) // Prevents marker click from bubbling into map click
   // Touch-based double-tap detection: tracks the last touchend timestamp
   // and container-relative pixel position so we can detect a double-tap
@@ -726,26 +731,6 @@ useEffect(() => {
 
     const padding = getResponsivePadding()
     fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'show_all_markers')
-  }, [fitBoundsWithMaxZoom, getResponsivePadding])
-
-  // Camera-only unfocus — used by double-tap on the currently focused marker.
-  // Clears focusedMarkerId and restores the canonical fit-all camera, but
-  // PRESERVES selectedMapItemId (details card stays open if the selected
-  // marker still exists). This enforces the independence contract:
-  // single tap controls details only, double tap controls camera only.
-  const unfocusMarker = useCallback(() => {
-    setFocusedMarkerId(null)
-    setShowAllMode(true)
-
-    if (!googleMapRef.current || markersRef.current.size === 0) return
-
-    const bounds = new (window as any).google.maps.LatLngBounds()
-    markersRef.current.forEach(marker => {
-      bounds.extend(marker.getPosition()!)
-    })
-
-    const padding = getResponsivePadding()
-    fitBoundsWithMaxZoom(bounds, MULTI_MARKER_MAX_ZOOM, padding, 'unfocus_marker')
   }, [fitBoundsWithMaxZoom, getResponsivePadding])
 
   // Explicit All filter click: changing filter works as before; tapping already-selected
@@ -1786,18 +1771,12 @@ useEffect(() => {
         const currentFocusedId = focusedMarkerIdRef.current
 
         if (item.type !== 'business') {
-          if (currentFocusedId === item.id) {
-            // Already focused: double-tap unfocuses + fit-all.
-            console.log('[ScheduleMap] marker_unfocus', { source: 'touch_double_tap', stopId: item.id })
-            toggleMapItemDetails(item.id)
-            setFocusedMarkerId(null)
-            unfocusMarker()
-          } else {
-            // Not focused: double-tap selects + focuses.
-            console.log('[ScheduleMap] marker_focus_requested', { source: 'touch_double_tap', stopId: item.id })
-            focusStopOnMap(item.id, item.latitude, item.longitude)
-            setFocusedMarkerId(item.id)
-          }
+          // Double-tap always explicitly refocuses — selection state and
+          // camera focus are independent concerns, and an explicit gesture
+          // must produce the focus action every time.
+          console.log('[ScheduleMap] marker_focus_requested', { source: 'touch_double_tap', stopId: item.id, alreadyFocused: currentFocusedId === item.id })
+          focusStopOnMap(item.id, item.latitude, item.longitude)
+          setFocusedMarkerId(item.id)
         } else {
           // Business marker: toggle details only, no camera.
           toggleMapItemDetails(item.id)
@@ -2102,15 +2081,24 @@ useEffect(() => {
       const stopNumber = stopNumberLookup.get(primaryItem.id) || 1
       const isBusinessMarker = primaryItem.type === 'business'
 
+      // Refresh the per-marker data registries for BOTH create and update
+      // paths — listeners and the touch hit-test resolve items through these
+      // refs at event time, so they always see the latest markerInfo.
+      markerInfosRef.current.set(markerKey, markerInfo)
+      markerItemsRef.current.set(markerKey, primaryItem)
+
       // Check if marker already exists
       const existingMarker = markersRef.current.get(markerKey)
 
       if (existingMarker) {
-        // Update existing marker
+        // Update existing marker in place — icon, z-index, and position.
+        // Keeping the marker alive across day/data changes avoids the
+        // clear-and-recreate flash; setPosition is a no-op when unchanged.
         existingMarker.setIcon(createNumberedMarkerIcon(isBusinessMarker ? 0 : stopNumber, primaryItem.type, isSelected))
         opCountersRef.current.markerSetIcon++
         logOperation('markerSetIcon')
         existingMarker.setZIndex(isSelected ? 1000 : 1)
+        existingMarker.setPosition(markerInfo.position)
       } else {
         // Create new marker
         const marker = new (window as any).google.maps.Marker({
@@ -2139,8 +2127,13 @@ useEffect(() => {
 
           const platform = Capacitor.getPlatform()
 
+          // Resolve fresh markerInfo at event time — the marker (and this
+          // listener) may outlive the reconciliation run that created it,
+          // so the creation-time closure can be stale.
+          const currentMarkerInfo = markerInfosRef.current.get(markerKey) ?? markerInfo
+
           // Resolve which item to act on; for grouped markers use the earliest scheduled item.
-          const sortedItems = [...markerInfo.items].sort((a, b) => {
+          const sortedItems = [...currentMarkerInfo.items].sort((a, b) => {
             const timeA = a.scheduledTime || '00:00'
             const timeB = b.scheduledTime || '00:00'
             const timeCompare = timeA.localeCompare(timeB)
@@ -2149,9 +2142,9 @@ useEffect(() => {
             return a.id.localeCompare(b.id)
           })
           const item = sortedItems[0]
-          const isSingle = markerInfo.items.length === 1
+          const isSingle = currentMarkerInfo.items.length === 1
 
-          console.log('[ScheduleMap] marker_interaction', { platform, stopId: item.id, itemCount: markerInfo.items.length, isSingle })
+          console.log('[ScheduleMap] marker_interaction', { platform, stopId: item.id, itemCount: currentMarkerInfo.items.length, isSingle })
 
           // CANONICAL SINGLE-TAP / DOUBLE-TAP CONTRACT:
           // SINGLE TAP: toggle info/selection only. NO camera command.
@@ -2193,22 +2186,18 @@ useEffect(() => {
               lastFocusActionRef.current.set(item.id, now)
               const currentFocusedId = focusedMarkerIdRef.current
               if (item.type !== 'business') {
-                if (currentFocusedId === item.id) {
-                  console.log('[ScheduleMap] marker_unfocus', { source: 'marker_click_pair', stopId: item.id, platform })
-                  toggleMapItemDetails(item.id)
-                  setFocusedMarkerId(null)
-                  unfocusMarker()
-                } else {
-                  console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_click_pair', stopId: item.id, platform })
-                  focusStopOnMap(item.id, item.latitude, item.longitude)
-                  setFocusedMarkerId(item.id)
-                }
+                // Double-tap always explicitly refocuses — even on the
+                // already-focused stop — because the gesture is an explicit
+                // camera request, not a focus toggle.
+                console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_click_pair', stopId: item.id, platform, alreadyFocused: currentFocusedId === item.id })
+                focusStopOnMap(item.id, item.latitude, item.longitude)
+                setFocusedMarkerId(item.id)
               } else {
                 toggleMapItemDetails(item.id)
               }
             }
             if (!isSingle) {
-              setSelectedMarker(markerInfo)
+              setSelectedMarker(currentMarkerInfo)
             }
           } else {
             // SINGLE TAP: delay the info toggle so a second tap (double-tap)
@@ -2218,7 +2207,7 @@ useEffect(() => {
               console.log('[ScheduleMap] marker_details_toggled', { source: 'marker_tap', stopId: item.id, platform })
               toggleMapItemDetails(item.id)
               if (!isSingle) {
-                setSelectedMarker(markerInfo)
+                setSelectedMarker(markerInfosRef.current.get(markerKey) ?? currentMarkerInfo)
               }
               singleTapTimerRef.current.delete(item.id)
             }, DOUBLE_TAP_DELAY_MS)
@@ -2243,7 +2232,10 @@ useEffect(() => {
 
           const platform = Capacitor.getPlatform()
 
-          const sortedItems = [...markerInfo.items].sort((a, b) => {
+          // Resolve fresh markerInfo at event time (see click listener).
+          const currentMarkerInfo = markerInfosRef.current.get(markerKey) ?? markerInfo
+
+          const sortedItems = [...currentMarkerInfo.items].sort((a, b) => {
             const timeA = a.scheduledTime || '00:00'
             const timeB = b.scheduledTime || '00:00'
             const timeCompare = timeA.localeCompare(timeB)
@@ -2251,7 +2243,7 @@ useEffect(() => {
             return a.id.localeCompare(b.id)
           })
           const item = sortedItems[0]
-          const isSingle = markerInfo.items.length === 1
+          const isSingle = currentMarkerInfo.items.length === 1
 
           // Cancel any pending single-tap timer so the details toggle
           // does NOT fire after the double-tap focus.
@@ -2266,7 +2258,7 @@ useEffect(() => {
           // this action for the same physical double-tap, skip it.
           const lastDblAction = lastFocusActionRef.current.get(item.id) ?? 0
           if (Date.now() - lastDblAction < DOUBLE_TAP_DELAY_MS * 2) {
-            if (!isSingle) setSelectedMarker(markerInfo)
+            if (!isSingle) setSelectedMarker(currentMarkerInfo)
             return
           }
           lastFocusActionRef.current.set(item.id, Date.now())
@@ -2274,32 +2266,27 @@ useEffect(() => {
           const currentFocusedId = focusedMarkerIdRef.current
 
           if (item.type !== 'business') {
-            if (currentFocusedId === item.id) {
-              // Already focused: double-tap unfocuses + unselects + fit-all.
-              console.log('[ScheduleMap] marker_unfocus', { source: 'marker_dblclick', stopId: item.id, platform })
-              toggleMapItemDetails(item.id)
-              setFocusedMarkerId(null)
-              unfocusMarker()
-            } else {
-              // Not focused: double-tap selects + focuses.
-              console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_dblclick', stopId: item.id, platform })
-              focusStopOnMap(item.id, item.latitude, item.longitude)
-              setFocusedMarkerId(item.id)
-            }
+            // Double-tap always explicitly refocuses — including repeated
+            // double-taps on the already-focused stop.
+            console.log('[ScheduleMap] marker_focus_requested', { source: 'marker_dblclick', stopId: item.id, platform, alreadyFocused: currentFocusedId === item.id })
+            focusStopOnMap(item.id, item.latitude, item.longitude)
+            setFocusedMarkerId(item.id)
           } else {
             // Business marker: toggle details only, no camera.
             toggleMapItemDetails(item.id)
           }
 
           if (!isSingle) {
-            setSelectedMarker(markerInfo)
+            setSelectedMarker(currentMarkerInfo)
           }
         })
 
         // Add hover feedback for desktop discoverability
         marker.addListener('mouseenter', () => {
-          // Only apply hover effect to unselected markers
-          const isMarkerSelected = selectedMapItemId !== null && markerInfo.items.some(item => item.id === selectedMapItemId)
+          // Only apply hover effect to unselected markers — resolve fresh
+          // markerInfo at event time in case the marker outlived its run.
+          const hoverInfo = markerInfosRef.current.get(markerKey) ?? markerInfo
+          const isMarkerSelected = selectedMapItemId !== null && hoverInfo.items.some(item => item.id === selectedMapItemId)
           if (!isMarkerSelected) {
             marker.setOpacity(0.8)
           }
@@ -2311,9 +2298,6 @@ useEffect(() => {
         })
 
         markersRef.current.set(markerKey, marker)
-        // Store the primary MapItem so the touch-based double-tap
-        // detector can resolve which item was tapped.
-        markerItemsRef.current.set(markerKey, primaryItem)
       }
     })
 
@@ -2324,6 +2308,7 @@ useEffect(() => {
         opCountersRef.current.markerSetMap++
         markersRef.current.delete(key)
         markerItemsRef.current.delete(key)
+        markerInfosRef.current.delete(key)
         opCountersRef.current.markerCleanup++
       }
     })
@@ -2413,14 +2398,6 @@ useEffect(() => {
       // Corrective frame already used, skip framing
     }
 
-    return () => {
-      // Clean up all markers on unmount
-      markersRef.current.forEach(marker => {
-        marker.setMap(null)
-        opCountersRef.current.markerSetMap++
-      })
-      markersRef.current.clear()
-    }
     // NOTE: selectedMapItemId and showAllMode are intentionally excluded from
     // the dependency array. They are SELECTION state, not DATA state. The
     // auto-frame effect should only re-run when data/context changes, not
@@ -2430,6 +2407,22 @@ useEffect(() => {
     // a marker is tapped, which would fight the focusStopOnMap camera move.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, fitBoundsWithMaxZoom, selectedDate, mapFilter, getResponsivePadding, assignStopNumbers, getSortedMappedItems, mapType])
+
+  // Remove all markers ONLY on component unmount. Day/filter/data changes must
+  // go through the incremental reconciliation above (update icons in place,
+  // create new, remove stale) — clearing every marker on each effect re-run
+  // made the map visibly flash empty between day changes.
+  useEffect(() => {
+    return () => {
+      markersRef.current.forEach(marker => {
+        marker.setMap(null)
+        opCountersRef.current.markerSetMap++
+      })
+      markersRef.current.clear()
+      markerItemsRef.current.clear()
+      markerInfosRef.current.clear()
+    }
+  }, [])
 
   // Expose performance counters to browser console for gesture performance measurement
   useEffect(() => {
@@ -2814,18 +2807,11 @@ useEffect(() => {
       }
 
       if (item.type !== 'business') {
-        if (focusedMarkerId === item.id) {
-          // Already focused: double-tap unfocuses + unselects + fit-all.
-          console.log('[ScheduleMap] marker_unfocus', { source: 'card_double_tap', stopId: item.id, platform })
-          toggleMapItemDetails(item.id)
-          setFocusedMarkerId(null)
-          unfocusMarker()
-        } else {
-          // Not focused: double-tap selects + focuses.
-          console.log('[ScheduleMap] marker_focus_requested', { source: 'card_double_tap', stopId: item.id, platform })
-          focusStopOnMap(item.id, item.latitude, item.longitude)
-          setFocusedMarkerId(item.id)
-        }
+        // Double-tap always explicitly refocuses — including repeated
+        // double-taps on the already-focused stop.
+        console.log('[ScheduleMap] marker_focus_requested', { source: 'card_double_tap', stopId: item.id, platform, alreadyFocused: focusedMarkerId === item.id })
+        focusStopOnMap(item.id, item.latitude, item.longitude)
+        setFocusedMarkerId(item.id)
       } else {
         // Business item: toggle details only, no camera.
         toggleMapItemDetails(item.id)

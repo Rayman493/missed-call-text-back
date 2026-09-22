@@ -523,7 +523,7 @@ export default function ConversationComposer({
               autoCapitalize="sentences"
               autoComplete="on"
               spellCheck={true}
-              className={`flex-1 pl-2 pr-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-12 min-h-[48px] placeholder:text-muted-foreground/40 ${
+              className={`flex-1 pl-2 pr-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-12 min-h-[48px] placeholder:text-muted-foreground dark:placeholder:text-muted-foreground/40 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}

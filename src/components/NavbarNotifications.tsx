@@ -8,7 +8,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Notification, resolveNotificationSubject } from '@/lib/notifications'
 import { generateCanonicalRequestTitle, validateRequestTitle } from '@/lib/ai-intake-formatter'
-import { isDomNode } from '@/lib/utils'
+import { isDomNode, capitalizeFirstAlpha } from '@/lib/utils'
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 import { getNotificationIcon, getNotificationColor, getNotificationDotColor } from '@/lib/notification-icons'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -304,9 +304,10 @@ export default function NavbarNotifications() {
       }
 
       // Fallback to message if no service request in data
-      return notification.message || 'No message'
+      return capitalizeFirstAlpha(notification.message) || 'No message'
     }
-    return notification.message || 'No message'
+    // Display-only sentence casing — the stored message is never mutated.
+    return capitalizeFirstAlpha(notification.message) || 'No message'
   }
 
   // UI polish: Get display name with phone masking for SMS failures
@@ -440,7 +441,7 @@ export default function NavbarNotifications() {
                   <button
                     onClick={handleMarkAllAsRead}
                     disabled={isMarkingAllRead}
-                    className="px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-all duration-200"
+                    className="px-2.5 py-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-all duration-200"
                   >
                     {isMarkingAllRead ? 'Marking...' : 'Mark all as read'}
                   </button>

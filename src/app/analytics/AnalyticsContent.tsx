@@ -627,6 +627,9 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
     ? 'bg-blue-500 dark:bg-blue-400'
     : 'bg-green-500 dark:bg-green-400'
 
+  // Selection popup accent must match the rendered bar color (blue/green 500).
+  const selectionColor = color === 'blue' ? '#3b82f6' : '#22c55e'
+
   return (
     <ChartPassiveTouchSurface className="h-32 sm:h-40">
       <div
@@ -660,7 +663,7 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
         {selectedDatum && (
           <ChartSelectionPopup
             label={selectedDatum.date}
-            values={[{ label: label || 'Value', value: selectedDatum.value }]}
+            values={[{ label: label || 'Value', value: selectedDatum.value, color: selectionColor }]}
             onDismiss={() => setSelectedDatum(null)}
           />
         )}

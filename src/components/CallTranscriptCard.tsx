@@ -5,6 +5,7 @@ import { MessageCircle, ChevronDown, User, Sparkles } from 'lucide-react'
 import { normalizeBusinessTimezone } from '@/lib/business-date-utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import type { TranscriptMessage } from '@/lib/transcript-normalization'
+import { ensureTerminalPunctuation } from '@/lib/transcript-normalization'
 
 /**
  * Canonical Call Transcript card — shared by the mobile AI Intake section
@@ -102,7 +103,7 @@ export function CallTranscriptCard({ transcript }: { transcript: TranscriptMessa
                         }`}
                       >
                         <p className="leading-snug whitespace-pre-wrap break-words min-w-[4rem]">
-                          {turn.content}
+                          {ensureTerminalPunctuation(turn.content)}
                         </p>
                         {turn.timestamp && (
                           <p className="text-[10px] text-muted-foreground mt-1">

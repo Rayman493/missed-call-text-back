@@ -99,7 +99,7 @@ export function PremiumTooltip({ active, payload, label }: PremiumTooltipProps) 
             <div className="flex items-center gap-1.5 min-w-0">
               <div
                 className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: entry.color || entry.payload?.fill || 'hsl(var(--primary))' }}
+                style={{ backgroundColor: entry.color || entry.payload?.color || entry.payload?.fill || 'hsl(var(--primary))' }}
               />
               <span className="text-muted-foreground truncate max-w-[120px]" title={entry.name || entry.dataKey}>{entry.name || entry.dataKey}</span>
             </div>

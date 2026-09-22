@@ -166,6 +166,24 @@ function isValidMessage(message: TranscriptMessage | null): message is Transcrip
 }
 
 /**
+ * Display-only terminal punctuation normalization for transcript turns.
+ *
+ * Applies ONLY at render time — raw ASR transcript content is never mutated.
+ * Rules:
+ * - If the trimmed utterance already ends in ".", "?", "!", "…", or terminal
+ *   punctuation followed by a closing quote/bracket, it is left unchanged.
+ * - Otherwise a single "." is appended (no double-punctuation, no internal
+ *   rewrites).
+ */
+export function ensureTerminalPunctuation(text: string): string {
+  if (!text || typeof text !== 'string') return text ?? ''
+  const trimmed = text.trim()
+  if (trimmed === '') return trimmed
+  if (/[.!?…]['’"”)\]]*$/.test(trimmed)) return trimmed
+  return `${trimmed}.`
+}
+
+/**
  * Cleans and formats transcript text for display
  * Transforms raw speech-to-text into clean, readable English
  * 

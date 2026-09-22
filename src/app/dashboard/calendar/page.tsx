@@ -628,7 +628,11 @@ export default function SchedulePage() {
     return `${now.getFullYear()}-${now.getMonth()}`
   })
   const [monthLoadError, setMonthLoadError] = useState<string | null>(null)
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  // Default selection: today, so the day-details panel is populated on first render
+  const [selectedDay, setSelectedDay] = useState<Date>(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  })
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
@@ -1199,6 +1203,8 @@ export default function SchedulePage() {
     const newMonthKey = `${businessNow.getFullYear()}-${businessNow.getMonth()}`
     setCurrentMonth(newMonth)
     setCurrentMonthKey(newMonthKey)
+    // Align the default day selection to business-local today
+    setSelectedDay(new Date(businessNow.getFullYear(), businessNow.getMonth(), businessNow.getDate()))
   }, [business?.id])
 
   const getTodayKey = getTodayLocalDateKey
@@ -1663,15 +1669,28 @@ export default function SchedulePage() {
     setIsNewAppointmentModalOpen(true)
   }
 
+  // Resolve the day to select when a new month becomes visible:
+  // business-local today when the shown month is the current month,
+  // otherwise the 1st of that month — never a stale prior-month day.
+  const resolveDayForMonth = (month: Date): Date => {
+    const businessTimezone = normalizeBusinessTimezone(business?.business_hours_timezone || 'UTC')
+    const businessNow = toZonedTime(new Date(), businessTimezone)
+    if (month.getFullYear() === businessNow.getFullYear() && month.getMonth() === businessNow.getMonth()) {
+      return new Date(businessNow.getFullYear(), businessNow.getMonth(), businessNow.getDate())
+    }
+    return new Date(month.getFullYear(), month.getMonth(), 1)
+  }
+
   const goToPreviousMonth = () => {
     if (isChangingMonth) return
-    
+
     setIsChangingMonth(true)
     setCurrentMonth(prev => {
       const newMonth = new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
       const newMonthKey = `${newMonth.getFullYear()}-${newMonth.getMonth()}`
       setCurrentMonthKey(newMonthKey)
-      
+      setSelectedDay(resolveDayForMonth(newMonth))
+
       // Check if events are cached
       const cachedEvents = eventsCache.get(newMonthKey)
       if (cachedEvents) {
@@ -1680,20 +1699,21 @@ export default function SchedulePage() {
       } else {
         fetchEvents(newMonthKey).finally(() => setIsChangingMonth(false))
       }
-      
+
       return newMonth
     })
   }
 
   const goToNextMonth = () => {
     if (isChangingMonth) return
-    
+
     setIsChangingMonth(true)
     setCurrentMonth(prev => {
       const newMonth = new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
       const newMonthKey = `${newMonth.getFullYear()}-${newMonth.getMonth()}`
       setCurrentMonthKey(newMonthKey)
-      
+      setSelectedDay(resolveDayForMonth(newMonth))
+
       // Check if events are cached
       const cachedEvents = eventsCache.get(newMonthKey)
       if (cachedEvents) {
@@ -1702,7 +1722,7 @@ export default function SchedulePage() {
       } else {
         fetchEvents(newMonthKey).finally(() => setIsChangingMonth(false))
       }
-      
+
       return newMonth
     })
   }
@@ -2428,9 +2448,8 @@ export default function SchedulePage() {
                           onEventClick={handleCalendarItemClick}
                         />
 
-                        {/* Selected Day Events - shown inline below calendar */}
-                        {selectedDay && (
-                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-6">
+                        {/* Selected Day Events - always visible below calendar (defaults to today) */}
+                        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6 sm:p-6">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                               <h3 className="text-lg font-semibold text-foreground">
                                 {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -2448,12 +2467,6 @@ export default function SchedulePage() {
                                     <ExternalLink className="w-3.5 h-3.5" />
                                   </a>
                                 )}
-                                <button
-                                  onClick={() => setSelectedDay(null)}
-                                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                  Close
-                                </button>
                               </div>
                             </div>
 
@@ -2712,8 +2725,7 @@ export default function SchedulePage() {
                                 </div>
                               )
                             })()}
-                          </div>
-                        )}
+                        </div>
                       </div>
 
                       <div className="md:hidden mt-4 pb-2">
@@ -2967,9 +2979,9 @@ export default function SchedulePage() {
                       onDelete={async () => {
                         // Remove the deleted event from local state
                         setEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
-                        // Clear selected event and day to prevent add event modal from opening
+                        // Clear selected event; keep selectedDay so the
+                        // day-details panel stays populated after refresh.
                         setSelectedEvent(null)
-                        setSelectedDay(null)
                         // Refresh events from Google Calendar
                         await fetchEvents()
                         // Show success message

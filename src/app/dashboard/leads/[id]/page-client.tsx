@@ -88,7 +88,7 @@ import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { getNextAction } from '@/lib/lead-next-action'
 import { hasPhoneNumber } from '@/lib/utils'
-import { normalizeAITranscript } from '@/lib/transcript-normalization'
+import { normalizeAITranscript, ensureTerminalPunctuation } from '@/lib/transcript-normalization'
 import { normalizeEditableContext, firstNonPlaceholder } from '@/components/payments/customer-search-helpers'
 import { getCurrentCustomerContext, getHistoricalJobRequestContext } from '@/lib/customer-context'
 import { mergeMessageWithMonotonicity } from '@/lib/message-merge'
@@ -5384,8 +5384,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block flex-shrink-0">
-            {/* Workspace Header Surface */}
-            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
+            {/* Workspace Header Surface — inherits the canonical outer gutter
+                from the identity-header wrapper above, so the header shares
+                the exact left edge with the main content grid. */}
+            <div className="py-3">
                 {/* Back Link Row */}
                 <div className="mb-1">
                   <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
@@ -5460,9 +5462,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Primary Action Bar - Desktop Only */}
+          {/* Primary Action Bar - Desktop Only — same canonical outer gutter
+              as the identity header and main content column. */}
           <div className="hidden md:block">
-            <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
+            <div className="py-3">
               <div className="flex items-start gap-4">
                 {/* Left: Primary Actions */}
                 <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
@@ -5895,7 +5898,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 : `${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0) - (pr.status === 'paid' ? pr.amount_cents || 0 : 0), 0), true)} outstanding`
                               }
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            {/* Same canonical flow as mobile: each request row opens
+                                the existing PaymentOverviewModal via
+                                handleOpenPaymentOverview(pr). */}
+                            <div className="space-y-1">
+                              {displayPaymentRequests.slice(0, 3).map((pr: any) => (
+                                <CustomerDetailPreviewCard
+                                  key={pr.id}
+                                  title={formatCurrency(pr.amount_cents, true)}
+                                  subtitle={formatRelativeTime(pr.created_at)}
+                                  onClick={() => handleOpenPaymentOverview(pr)}
+                                  ariaLabel="View payment details"
+                                  badge={
+                                    <StatusPill variant={pr.status === 'paid' ? 'green' : pr.status === 'pending' ? 'amber' : 'gray'}>
+                                      {formatPaymentStatus(pr.status).text}
+                                    </StatusPill>
+                                  }
+                                />
+                              ))}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-2">
                               {paymentRequests.length} request{paymentRequests.length !== 1 ? 's' : ''}
                             </div>
                           </div>
@@ -7791,7 +7813,7 @@ If you have questions, reply to this message.`
                     {transcript.map((entry: any, idx: number) => (
                       <div key={idx} className="text-sm">
                         <span className="font-medium text-muted-foreground capitalize">{entry.role ? `${entry.role}: ` : ''}</span>
-                        <span className="text-foreground break-words">{entry.text || ''}</span>
+                        <span className="text-foreground break-words">{ensureTerminalPunctuation(entry.text || '')}</span>
                       </div>
                     ))}
                   </div>

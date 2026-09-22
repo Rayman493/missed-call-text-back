@@ -46,10 +46,16 @@ describe('RC Batch 3 — Schedule Map Double-Tap Autofocus', () => {
       expect(dblclickBlock![0]).toContain('focusStopOnMap')
     })
 
-    it('dblclick listener calls unfocusMarker when already focused', () => {
+    it('dblclick listener explicitly refocuses even when already focused', () => {
+      // Selection and camera focus are independent concerns: an explicit
+      // double-tap must issue the focus action every time, including on the
+      // already-focused stop (no focus/unfocus toggle).
       const dblclickBlock = source.match(/marker\.addListener\('dblclick'[\s\S]*?\}\s*\)\s*\n\s*\/\/ Add hover/)
       expect(dblclickBlock).toBeTruthy()
-      expect(dblclickBlock![0]).toContain('unfocusMarker')
+      expect(dblclickBlock![0]).toContain('focusStopOnMap')
+      expect(dblclickBlock![0]).toContain('marker_focus_requested')
+      expect(dblclickBlock![0]).toContain('alreadyFocused')
+      expect(dblclickBlock![0]).not.toContain('unfocusMarker')
     })
   })
 
@@ -103,9 +109,11 @@ describe('RC Batch 3 — Schedule Map Double-Tap Autofocus', () => {
       expect(clickBlock).toBeTruthy()
       // On iOS the marker `dblclick` event is unreliable, so the click pair
       // itself is the authoritative double-tap detector — it must run the
-      // focus/unfocus action, deduped against the other detectors.
+      // explicit focus action (always refocus, never a toggle), deduped
+      // against the other detectors.
       expect(clickBlock![0]).toContain('focusStopOnMap')
-      expect(clickBlock![0]).toContain('unfocusMarker')
+      expect(clickBlock![0]).toContain('marker_focus_requested')
+      expect(clickBlock![0]).not.toContain('unfocusMarker')
       expect(clickBlock![0]).toContain('lastFocusActionRef')
     })
   })

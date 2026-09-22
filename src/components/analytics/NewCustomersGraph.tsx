@@ -227,7 +227,7 @@ export default function NewCustomersGraph() {
             {selectedDatum && (
               <ChartSelectionPopup
                 label={selectedDatum.date}
-                values={[{ label: 'New Customers', value: formatInteger(selectedDatum.customers) }]}
+                values={[{ label: 'New Customers', value: formatInteger(selectedDatum.customers), color: 'hsl(var(--primary))' }]}
                 onDismiss={() => setSelectedDatum(null)}
               />
             )}

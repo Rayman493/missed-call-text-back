@@ -13,6 +13,9 @@ import { openExternalLink } from '@/lib/external-link'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Modal from '@/components/ui/Modal'
+import DatePicker from '@/components/ui/DatePicker'
+import TimePicker from '@/components/ui/TimePicker'
+import SelectPicker from '@/components/ui/SelectPicker'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 
 const supabase = createBrowserClient()
@@ -813,16 +816,27 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
       <div className="bg-card rounded-2xl border border-border/60 shadow-2xl shadow-black/10 dark:shadow-black/40 w-full max-w-2xl flex max-h-[var(--details-modal-max-height)] flex-col overflow-hidden animate-in zoom-in-95 duration-200"
            data-scroll-lock-allow>
         {/* Visually hidden title for accessibility */}
-        <h2 id="event-title" className="sr-only">{event.summary}</h2>
-        
+        <h2 id="event-title" className="sr-only">{isEditing ? 'Edit Appointment' : event.summary}</h2>
+
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60 dark:border-border/50 flex-shrink-0 bg-muted/30">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
-              <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
+              {isEditing ? (
+                <Pencil className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
+              ) : (
+                <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
+              )}
             </div>
             <div className="min-w-0 flex-1">
-              {lead?.name || job?.customer_name ? (
+              {isEditing ? (
+                <>
+                  <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight line-clamp-1">
+                    Edit Appointment
+                  </h2>
+                  <p className="text-xs md:text-sm text-muted-foreground truncate">{lead?.name || job?.customer_name || event.summary}</p>
+                </>
+              ) : lead?.name || job?.customer_name ? (
                 <>
                   <h2 className="text-base md:text-lg font-semibold text-foreground tracking-tight line-clamp-1">
                     {lead?.name || job?.customer_name}
@@ -847,7 +861,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
 
         {/* Event Details */}
         <div className="min-h-0 shrink min-w-0 overflow-y-auto overscroll-contain px-5 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {mode === 'add-location' ? (
+          {mode === 'add-location' && !isEditing ? (
             // Add-location mode: focused location input
             <div className="space-y-4">
               {/* Compact event context */}
@@ -889,8 +903,154 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 </button>
               </div>
             </div>
+          ) : isEditing ? (
+            // Dedicated Edit Appointment form — same section hierarchy as New Appointment / Edit Job
+            <div className="space-y-4">
+              {/* Section: Basics */}
+              <div className="space-y-3">
+                <div className="pb-1.5 border-b border-border/40">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Basics</p>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Title *</label>
+                  <input
+                    type="text"
+                    value={editedSummary}
+                    onChange={(e) => setEditedSummary(e.target.value)}
+                    placeholder="Appointment title"
+                    autoCapitalize="sentences"
+                    className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Customer</label>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <SearchableCustomerSelect
+                        value={currentLeadId}
+                        onChange={() => {}} // No-op - persistence handled in onCustomerSelect
+                        onCustomerSelect={handleCustomerSelect}
+                        placeholder="No customer"
+                        allowClear={true}
+                      />
+                    </div>
+                    {currentLeadId && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(currentLeadId) : window.location.assign(`/dashboard/leads/${currentLeadId}`)) }}
+                        className="h-10 w-10 flex items-center justify-center rounded-lg text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:bg-muted/50 border border-border/50 transition-colors flex-shrink-0"
+                        aria-label="Open customer details"
+                        title="Open customer details"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Timing */}
+              <div className="space-y-3">
+                <div className="pb-1.5 border-b border-border/40">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Timing</p>
+                </div>
+
+                <DatePicker
+                  value={editedStartDate}
+                  onChange={setEditedStartDate}
+                  label="Date"
+                  required
+                />
+
+                {!isAllDay && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <TimePicker
+                      value={editedStartTime}
+                      onChange={setEditedStartTime}
+                      label="Start Time"
+                      required
+                    />
+                    <TimePicker
+                      value={editedEndTime}
+                      onChange={setEditedEndTime}
+                      label="End Time"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isAllDay}
+                      onChange={(e) => setIsAllDay(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 dark:focus:ring-offset-slate-900"
+                    />
+                    <span className="text-sm text-foreground">All day event</span>
+                  </label>
+                </div>
+
+                {isRecurringEvent && (
+                  <SelectPicker
+                    value={editScope}
+                    onChange={(v) => setEditScope((v || 'occurrence') as typeof editScope)}
+                    options={[
+                      { value: 'occurrence', label: 'This occurrence only' },
+                      { value: 'series', label: 'Entire series' },
+                    ]}
+                    label="Apply changes to"
+                    placeholder="This occurrence only"
+                  />
+                )}
+              </div>
+
+              {/* Section: Details */}
+              <div className="space-y-3">
+                <div className="pb-1.5 border-b border-border/40">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Location (optional)</label>
+                  <input
+                    type="text"
+                    value={editedLocation}
+                    onChange={(e) => setEditedLocation(e.target.value)}
+                    placeholder="Add location"
+                    autoCapitalize="sentences"
+                    className="w-full px-3 py-2.5 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Description (optional)</label>
+                  <textarea
+                    value={editedDescription}
+                    onChange={(e) => setEditedDescription(e.target.value)}
+                    placeholder="Add description"
+                    rows={3}
+                    className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
+                  />
+                </div>
+
+                {!event.isHoliday && (
+                  <div>
+                    <label className="text-xs text-muted-foreground font-medium mb-1.5 block">Meeting Notes (private)</label>
+                    <textarea
+                      value={editedNotes}
+                      onChange={(e) => setEditedNotes(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
+                      placeholder="Private notes for your team. Not sent to customer."
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
-            // Normal details/edit mode
+            // View-only appointment details
             <div className="space-y-3.5">
             {/* Summary grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
@@ -899,40 +1059,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Date & Time</label>
                 <div className="flex items-center gap-2 text-sm text-foreground font-medium min-w-0">
                   <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  {isEditing ? (
-                    <div className="flex gap-2 flex-1 min-w-0 flex-wrap">
-                      <input
-                        type="date"
-                        value={editedStartDate}
-                        onChange={(e) => setEditedStartDate(e.target.value)}
-                        className="flex-1 min-w-[120px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-base sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
-                      />
-                      {!isAllDay && (
-                        <>
-                          <input
-                            type="time"
-                            value={editedStartTime}
-                            onChange={(e) => setEditedStartTime(e.target.value)}
-                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-base sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
-                          />
-                          <span className="text-muted-foreground self-center flex-shrink-0">to</span>
-                          <input
-                            type="time"
-                            value={editedEndTime}
-                            onChange={(e) => setEditedEndTime(e.target.value)}
-                            className="flex-1 min-w-[80px] px-2 py-1 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded text-base sm:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
-                          />
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="min-w-0">{formatDate(event.start.dateTime, event.start.date)}{!isAllDay && ` • ${formatTimeRange()}`}</span>
-                  )}
+                  <span className="min-w-0">{formatDate(event.start.dateTime, event.start.date)}{!isAllDay && ` • ${formatTimeRange()}`}</span>
                 </div>
               </div>
 
               {/* Duration */}
-              {!isEditing && calculateDuration() && (
+              {calculateDuration() && (
                 <div className="space-y-1 min-w-0">
                   <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Duration</label>
                   <div className="flex items-center gap-2 text-sm text-foreground font-medium min-w-0">
@@ -948,17 +1080,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 <div className="flex items-start gap-2 text-sm min-w-0">
                   <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0 text-foreground font-medium">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedLocation}
-                        onChange={(e) => setEditedLocation(e.target.value)}
-                        placeholder="Add location"
-                        className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60"
-                      />
-                    ) : (
-                      <span className="block break-words">{event.location || 'No location added'}</span>
-                    )}
+                    <span className="block break-words">{event.location || 'No location added'}</span>
                   </div>
                 </div>
               </div>
@@ -986,21 +1108,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                 </div>
               </div>
             </div>
-
-            {/* All Day Toggle (editing only) */}
-            {isEditing && (
-              <div className="flex items-center gap-2 text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isAllDay}
-                    onChange={(e) => setIsAllDay(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-blue-600 focus:ring-blue-500 dark:focus:ring-offset-slate-900"
-                  />
-                  <span className="text-sm text-foreground">All day event</span>
-                </label>
-              </div>
-            )}
 
             {/* Customer */}
             <div className="space-y-1.5 min-w-0">
@@ -1048,28 +1155,15 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </div>
             )}
 
-            {/* Description / Google Calendar Notes
-             * Google sends the same text in event.description. When read-only we label it
-             * "Google Calendar Notes" to clarify provenance; when editing we use "Description".
-             * The two previous sections rendered identical content twice — this consolidates them. */}
-            {(normalizeDisplayText(event.description) || isEditing) && (
+            {/* Google Calendar Notes — read-only view of event.description */}
+            {normalizeDisplayText(event.description) && (
               <div className="pt-3 border-t border-border/40 space-y-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {isEditing ? 'Description' : 'Google Calendar Notes'}
+                  Google Calendar Notes
                 </label>
-                {isEditing ? (
-                  <textarea
-                    value={editedDescription}
-                    onChange={(e) => setEditedDescription(e.target.value)}
-                    placeholder="Add description"
-                    rows={3}
-                    className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
-                  />
-                ) : (
-                  <div className="space-y-2">
-                    {renderDescription(normalizeDisplayText(event.description))}
-                  </div>
-                )}
+                <div className="space-y-2">
+                  {renderDescription(normalizeDisplayText(event.description))}
+                </div>
               </div>
             )}
 
@@ -1078,19 +1172,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               <div className="pt-3 border-t border-border/40 space-y-1.5">
                 <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Meeting Notes</label>
                 <div className="mt-1.5">
-                  {isEditing ? (
-                    <textarea
-                      value={editedNotes}
-                      onChange={(e) => setEditedNotes(e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 bg-muted/30 dark:bg-slate-900/55 border border-border/50 dark:border-slate-700/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/60 resize-none"
-                      placeholder="Private notes for your team. Not sent to customer."
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground whitespace-pre-wrap min-h-[2.5rem]">
-                      {notes || <span className="text-muted-foreground italic">No meeting notes</span>}
-                    </p>
-                  )}
+                  <p className="text-sm text-foreground whitespace-pre-wrap min-h-[2.5rem]">
+                    {notes || <span className="text-muted-foreground italic">No meeting notes</span>}
+                  </p>
                 </div>
               </div>
             )}
@@ -1242,7 +1326,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             </div>
           )}
 
-          {mode === 'add-location' ? (
+          {mode === 'add-location' && !isEditing ? (
             <div className="flex gap-2">
               <button
                 onClick={onClose}
@@ -1271,17 +1355,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
             </div>
           ) : isEditing ? (
             <div className="flex flex-col gap-2">
-              {isRecurringEvent && (
-                <select
-                  value={editScope}
-                  onChange={(e) => setEditScope(e.target.value as typeof editScope)}
-                  className="w-full h-10 px-3 text-sm bg-muted border border-border/50 rounded-lg text-foreground"
-                  aria-label="Apply changes to"
-                >
-                  <option value="occurrence">This occurrence only</option>
-                  <option value="series">Entire series</option>
-                </select>
-              )}
               <div className="flex gap-2">
               <button
                 onClick={handleCancelEdit}

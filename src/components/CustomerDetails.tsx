@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { User, Mail, Phone, MapPin, Clock, MessageSquare, FileText } from 'lucide-react'
+import { User, Mail, Phone, MapPin, MessageSquare, FileText, CalendarDays, PhoneCall } from 'lucide-react'
 import { getCurrentCustomerContext } from '@/lib/customer-context'
 import { formatPhoneNumber, capitalizeFirstAlpha } from '@/lib/utils'
 
@@ -59,10 +59,10 @@ export default function CustomerDetails({ leadData, lead }: CustomerDetailsProps
       {renderField('Location', location, <MapPin className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Desired Completion Time */}
-      {renderField('Desired Completion Time', desiredCompletionTime, <Clock className="w-4 h-4 text-muted-foreground" />)}
+      {renderField('Desired Completion Time', desiredCompletionTime, <CalendarDays className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Preferred Callback Time */}
-      {renderField('Preferred Callback Time', preferredCallbackTime, <Clock className="w-4 h-4 text-muted-foreground" />)}
+      {renderField('Preferred Callback Time', preferredCallbackTime, <PhoneCall className="w-4 h-4 text-muted-foreground" />)}
 
       {/* Phone Number */}
       {renderField('Phone Number', formatPhoneNumber(phoneNumber), <Phone className="w-4 h-4 text-muted-foreground" />, false)}

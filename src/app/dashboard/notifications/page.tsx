@@ -9,6 +9,7 @@ import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
 import AppBackButton from '@/components/AppBackButton'
 import { getNotificationIcon, getNotificationColor } from '@/lib/notification-icons'
+import { capitalizeFirstAlpha } from '@/lib/utils'
 
 export default function NotificationsPage() {
   const { business } = useBusiness()
@@ -105,17 +106,19 @@ export default function NotificationsPage() {
   // Strip duplicate name prefix from customer_reply notifications
   // The message is stored as "Ryan: Hello" but customer context is also displayed separately
   // This prevents the duplicate "Ryan" from appearing in the UI
+  // capitalizeFirstAlpha is display-only sentence casing — the stored
+  // notification message is never mutated.
   const getDisplayMessage = (notification: Notification) => {
     if (notification.type === 'customer_reply') {
       const subject = resolveNotificationSubject(notification)
       if (subject && subject !== 'Unknown Caller') {
         const prefix = `${subject}: `
         if (notification.message.startsWith(prefix)) {
-          return notification.message.substring(prefix.length)
+          return capitalizeFirstAlpha(notification.message.substring(prefix.length))
         }
       }
     }
-    return notification.message
+    return capitalizeFirstAlpha(notification.message)
   }
 
   const formatTime = (timestamp: string) => {
@@ -235,14 +238,14 @@ export default function NotificationsPage() {
                 <button
                   onClick={handleMarkAllAsRead}
                   disabled={notificationCount.unread === 0}
-                  className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
                 >
                   Mark all as read
                 </button>
                 <button
                   onClick={handleClearAll}
                   disabled={notifications.length === 0}
-                  className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
                 >
                   Clear all
                 </button>
@@ -261,14 +264,14 @@ export default function NotificationsPage() {
               <button
                 onClick={handleMarkAllAsRead}
                 disabled={notificationCount.unread === 0}
-                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
               >
                 Mark all as read
               </button>
               <button
                 onClick={handleClearAll}
                 disabled={notifications.length === 0}
-                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-full text-xs font-medium border transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
               >
                 Clear all
               </button>

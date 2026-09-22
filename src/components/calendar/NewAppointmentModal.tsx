@@ -404,7 +404,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
               )}
 
               <div>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={isAllDay}

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { X, Mail, MessageCircle } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
+import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 
 interface ContactSupportModalProps {
   isOpen: boolean
@@ -51,6 +52,21 @@ export default function ContactSupportModal({ isOpen, onClose, onOpenAssistant }
   }
 
   const handleOpenAssistant = () => {
+    // Modal→modal handoff: this modal's useModalBackButton pushed a synthetic
+    // history entry on open and its effect cleanup would normally call
+    // history.back() to remove it. That stale cleanup fires its popstate
+    // AFTER the Assistant has already registered as the topmost modal, so the
+    // Assistant's popstate handler would consume it and close immediately.
+    //
+    // Setting the canonical one-shot suppression flag BEFORE onClose() makes
+    // the outgoing cleanup skip history.back(). The leftover synthetic entry
+    // shares the current URL, so it is invisible to the user; the Assistant's
+    // own pushed entry becomes the single active modal history entry and
+    // browser/Android Back closes it exactly once.
+    //
+    // This is the same deterministic handoff contract used by "View Customer"
+    // in the payment modals — no timers, no ordering assumptions.
+    suppressNextHistoryBackCleanup()
     onClose()
     onOpenAssistant()
   }

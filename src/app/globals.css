@@ -408,8 +408,8 @@ html.light::-webkit-scrollbar-thumb:hover {
   }
 
   body::-webkit-scrollbar {
-    width: 11px;
-    height: 11px;
+    width: 20px;
+    height: 20px;
   }
 
   body::-webkit-scrollbar-track {
@@ -418,7 +418,7 @@ html.light::-webkit-scrollbar-thumb:hover {
 
   body::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(96, 165, 250, 0.6), rgba(34, 211, 238, 0.45));
-    border: 1px solid rgba(15, 23, 42, 0.9);
+    border: 3px solid rgba(15, 23, 42, 0.9);
     border-radius: 999px;
   }
 
@@ -433,8 +433,8 @@ html.light::-webkit-scrollbar-thumb:hover {
   }
 
   html.light body::-webkit-scrollbar {
-    width: 11px;
-    height: 11px;
+    width: 20px;
+    height: 20px;
   }
 
   html.light body::-webkit-scrollbar-track {
@@ -443,7 +443,7 @@ html.light::-webkit-scrollbar-thumb:hover {
 
   html.light body::-webkit-scrollbar-thumb {
     background: rgba(148, 163, 184, 1);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    border: 3px solid rgba(226, 232, 240, 0.8);
     border-radius: 999px;
   }
 

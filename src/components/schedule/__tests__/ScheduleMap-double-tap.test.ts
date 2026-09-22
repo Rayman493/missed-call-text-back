@@ -58,20 +58,22 @@ describe('ScheduleMap — double-tap marker behavior', () => {
     expect(mapContent).toContain('setFocusedMarkerId(item.id)')
   })
 
-  it('double-tap on focused marker unfocuses (unfocusMarker)', () => {
-    expect(mapContent).toContain('unfocusMarker')
-    expect(mapContent).toContain('focusedMarkerId === item.id')
+  it('double-tap on focused marker explicitly refocuses (no unfocus toggle)', () => {
+    // Selection and camera focus are independent concerns — an explicit
+    // double-tap issues the focus action every time, including repeated
+    // double-taps on the already-focused stop.
+    expect(mapContent).not.toContain('unfocusMarker')
+    expect(mapContent).not.toContain('marker_unfocus')
+    // The dblclick handler calls focusStopOnMap unconditionally for
+    // non-business items and tracks alreadyFocused for logging.
+    expect(mapContent).toContain('alreadyFocused: currentFocusedId === item.id')
   })
 
-  it('unfocusMarker clears focusedMarkerId but preserves selectedMapItemId', () => {
-    // The unfocusMarker function must NOT clear selectedMapItemId
-    const unfocusMatch = mapContent.match(/const unfocusMarker = useCallback\(\(\) => \{[\s\S]*?\}, \[/)
-    expect(unfocusMatch).toBeTruthy()
-    if (unfocusMatch) {
-      expect(unfocusMatch[0]).toContain('setFocusedMarkerId(null)')
-      expect(unfocusMatch[0]).not.toContain('setSelectedMapItemId(null)')
-      expect(unfocusMatch[0]).toContain('setShowAllMode(true)')
-    }
+  it('repeated double-taps emit marker_focus_requested every time', () => {
+    // Every detector source logs marker_focus_requested on each double-tap.
+    const requests = mapContent.match(/marker_focus_requested/g) || []
+    expect(requests.length).toBeGreaterThanOrEqual(4)
+    expect(mapContent).toContain('setFocusedMarkerId(item.id)')
   })
 
   it('selectedMapItemId and focusedMarkerId are separate state', () => {
