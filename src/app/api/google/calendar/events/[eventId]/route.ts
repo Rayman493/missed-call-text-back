@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { resolveBusinessForUser } from '@/lib/team-access'
+import { toGoogleRRules } from '@/lib/recurrence/rule'
 
 // Retry function for Google Calendar API calls with exponential backoff
 async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
@@ -190,6 +191,23 @@ export async function PATCH(
       } else {
         googleEvent.end = body.end
       }
+    }
+
+    // One-time → recurring conversion: a Google-native RRULE set on the event
+    // converts it to a recurring master in place — same event id, no duplicate,
+    // and Calendar sync stays consistent (Google expands instances itself).
+    if (body.recurrence && body.recurrence.frequency && body.recurrence.frequency !== 'none') {
+      const anchorDate = (body.start?.date || body.start?.dateTime || '').slice(0, 10)
+      googleEvent.recurrence = toGoogleRRules({
+        frequency: body.recurrence.frequency,
+        anchorDate,
+        anchorDay: Number(String(anchorDate).split('-')[2]),
+        endType: body.recurrence.end_type || 'never',
+        endDate: body.recurrence.end_type === 'on_date' ? body.recurrence.end_date : null,
+        maxOccurrences: body.recurrence.end_type === 'after_occurrences'
+          ? Math.min(Math.max(parseInt(body.recurrence.max_occurrences, 10) || 0, 2), 500)
+          : null,
+      })
     }
 
     // Handle customer reassignment through replyflow_lead_id

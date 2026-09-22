@@ -147,6 +147,65 @@ export async function createSeries(
   return { series: data as RecurrenceSeriesRow }
 }
 
+/**
+ * Idempotent createSeries for one-time → recurring conversion.
+ *
+ * recurrence_series has no unique constraint on template_id, so two
+ * concurrent conversions of the same row could both insert. After inserting,
+ * re-list all active series for the template: if another request won, this
+ * request deactivates the duplicate it just created and adopts the winner —
+ * so both callers converge on a single series. Winner is the earliest
+ * created row (id tiebreak), which every concurrent caller computes
+ * identically.
+ */
+export async function createSeriesOnce(
+  supabase: SupabaseClient,
+  businessId: string,
+  entityType: 'task' | 'job',
+  templateId: string,
+  templateSnapshot: Record<string, any>,
+  anchorDate: string,
+  timezone: string,
+  recurrence: RecurrenceInput,
+): Promise<{ series?: RecurrenceSeriesRow; error?: string }> {
+  const existing = await getSeriesForTemplate(supabase, businessId, entityType, templateId)
+  if (existing) return { series: existing }
+
+  const { series: created, error } = await createSeries(
+    supabase, businessId, entityType, templateId, templateSnapshot, anchorDate, timezone, recurrence,
+  )
+  if (error || !created) return { error: error || 'Failed to create series' }
+
+  const { data: all, error: listError } = await supabase
+    .from('recurrence_series')
+    .select('id, created_at')
+    .eq('business_id', businessId)
+    .eq('entity_type', entityType)
+    .eq('template_id', templateId)
+    .eq('active', true)
+
+  if (listError) {
+    // Cannot verify uniqueness — deactivate the row we just inserted rather
+    // than risk leaving a silent duplicate; the caller can retry.
+    await supabase.from('recurrence_series').update({ active: false }).eq('id', created.id)
+    return { error: 'Could not verify the repeat schedule. Please try again.' }
+  }
+
+  const winner = (all || []).sort((a, b) =>
+    a.created_at === b.created_at ? a.id.localeCompare(b.id) : a.created_at.localeCompare(b.created_at),
+  )[0]
+
+  if (winner && winner.id !== created.id) {
+    // A concurrent conversion beat us — retire our duplicate and adopt theirs.
+    await supabase.from('recurrence_series').update({ active: false }).eq('id', created.id)
+    const adopted = await getSeriesById(supabase, businessId, winner.id)
+    if (adopted) return { series: adopted }
+    return { error: 'Could not verify the repeat schedule. Please try again.' }
+  }
+
+  return { series: created }
+}
+
 // ---------------------------------------------------------------------------
 // Range expansion — merges virtual occurrences into a real-row result set
 // ---------------------------------------------------------------------------

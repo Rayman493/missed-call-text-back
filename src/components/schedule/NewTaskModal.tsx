@@ -149,13 +149,19 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           lead_id: selectedLeadId || null,
           job_id: selectedJobId || null,
           reminder_offset_minutes: reminderOffsetMinutes,
-          ...(!taskToEdit ? { recurrence: dueDate ? repeatPayload(repeat) : null } : {}),
+          ...(!isRecurring ? { recurrence: dueDate ? repeatPayload(repeat) : null } : {}),
           ...(taskToEdit && isRecurring ? { scope: editScope, occurrence_date: taskToEdit.due_date } : {}),
         }),
       })
 
       if (!response.ok) {
         const error = await response.json()
+        // Partial save: the field edits persisted but the repeat schedule
+        // failed — reconcile the list with the authoritative row and keep
+        // the modal open so the user can retry (idempotent).
+        if (error.recurrenceFailed && error.task) {
+          onTaskCreated(false, error.task)
+        }
         throw new Error(error.error || 'Failed to save reminder')
       }
 
@@ -436,8 +442,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               emptyMessage="No reminder"
             />
 
-            {/* Recurrence — create mode only; the API drops it without a due date */}
-            {!taskToEdit && (
+            {/* Recurrence — available whenever this reminder is not already
+                part of a series; the API drops it without a due date (series
+                members use the scope picker below instead). */}
+            {!isRecurring && (
               <RepeatControls
                 value={repeat}
                 onChange={setRepeat}

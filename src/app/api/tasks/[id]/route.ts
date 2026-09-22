@@ -11,7 +11,8 @@ import {
   splitSeriesAt,
   endSeriesBefore,
   deleteSeries,
-  createSeries,
+  createSeriesOnce,
+  recurrenceMetaForRow,
 } from '@/lib/recurrence/service'
 
 export async function PATCH(
@@ -247,7 +248,43 @@ export async function PATCH(
       await supabase.from('recurrence_series').update(seriesUpdate).eq('id', series.id)
     }
 
-    return NextResponse.json({ task: updatedTask })
+    // One-time → recurring conversion: the existing row becomes the series
+    // template/anchor occurrence — its date, identity and associations are
+    // preserved; expansion never duplicates the anchor date. Re-check for an
+    // existing template series so a repeated Save can't create a second one.
+    let createdSeries = null
+    if (!series && recurrence?.frequency && updatedTask.due_date) {
+      const businessTimezone = business.business_hours_timezone || 'America/New_York'
+      const snapshot = {
+        title: updatedTask.title,
+        notes: updatedTask.notes,
+        due_time: updatedTask.due_time,
+        lead_id: updatedTask.lead_id,
+        job_id: updatedTask.job_id,
+        completed: false,
+        reminder_offset_minutes: updatedTask.reminder_offset_minutes,
+      }
+      const { series: ns, error: seriesError } = await createSeriesOnce(
+        supabase, business.id!, 'task', id, snapshot, updatedTask.due_date, businessTimezone, recurrence,
+      )
+      if (seriesError) {
+        console.error('[Tasks API] conversion series creation failed:', seriesError)
+        // The row update above already persisted — report an honest partial
+        // save, include the updated row so the client can reconcile, and
+        // stay retryable (createSeriesOnce is idempotent).
+        return NextResponse.json({
+          error: 'Your changes were saved, but the repeat schedule could not be applied. Tap Save again to retry.',
+          recurrenceFailed: true,
+          task: updatedTask,
+        }, { status: 400 })
+      }
+      createdSeries = ns ?? null
+    }
+
+    return NextResponse.json({
+      task: { ...updatedTask, ...recurrenceMetaForRow(createdSeries ?? series ?? undefined) },
+      ...(createdSeries ? { series: createdSeries } : {}),
+    })
   } catch (error) {
     console.error('[Tasks API] PATCH unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

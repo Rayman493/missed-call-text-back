@@ -11,6 +11,8 @@ import {
   splitSeriesAt,
   endSeriesBefore,
   deleteSeries,
+  createSeriesOnce,
+  recurrenceMetaForRow,
 } from '@/lib/recurrence/service'
 
 async function getBusinessId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string) {
@@ -209,8 +211,54 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       await supabase.from('recurrence_series').update(seriesUpdate).eq('id', series.id)
     }
 
+    // One-time → recurring conversion: the existing row becomes the series
+    // template/anchor occurrence — its date, identity and associations are
+    // preserved; expansion never duplicates the anchor date. Re-check for an
+    // existing template series so a repeated Save can't create a second one.
+    let createdSeries = null
+    if (!series && recurrence?.frequency && job.scheduled_date) {
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('business_hours_timezone')
+        .eq('id', businessId)
+        .single()
+      const businessTimezone = biz?.business_hours_timezone || 'America/New_York'
+      const snapshot = {
+        title: job.title,
+        customer_name: job.customer_name,
+        customer_phone: job.customer_phone,
+        service_address: job.service_address,
+        notes: job.notes,
+        scheduled_time: job.scheduled_time,
+        scheduled_end_time: job.scheduled_end_time,
+        status: 'scheduled',
+        lead_id: job.lead_id,
+        conversation_id: job.conversation_id,
+        source: job.source,
+        payment_status: 'none',
+      }
+      const { series: ns, error: seriesError } = await createSeriesOnce(
+        supabase, businessId, 'job', id, snapshot, job.scheduled_date, businessTimezone, recurrence,
+      )
+      if (seriesError) {
+        console.error('[Jobs API] conversion series creation failed:', seriesError)
+        // The row update above already persisted — report an honest partial
+        // save, include the updated row so the client can reconcile, and
+        // stay retryable (createSeriesOnce is idempotent).
+        return NextResponse.json({
+          error: 'Your changes were saved, but the repeat schedule could not be applied. Tap Save again to retry.',
+          recurrenceFailed: true,
+          job,
+        }, { status: 400 })
+      }
+      createdSeries = ns ?? null
+    }
+
     console.log('[job_updated]', { jobId: job.id, fields: Object.keys(updates) })
-    return NextResponse.json({ job })
+    return NextResponse.json({
+      job: { ...job, ...recurrenceMetaForRow(createdSeries ?? series ?? undefined) },
+      ...(createdSeries ? { series: createdSeries } : {}),
+    })
   } catch (error) {
     console.error('[Jobs API] PATCH unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

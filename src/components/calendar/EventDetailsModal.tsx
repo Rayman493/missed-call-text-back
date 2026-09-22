@@ -15,6 +15,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import Modal from '@/components/ui/Modal'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
+import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import SelectPicker from '@/components/ui/SelectPicker'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
 import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
@@ -157,6 +158,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editScope, setEditScope] = useState<'occurrence' | 'series'>('occurrence')
+  const [repeat, setRepeat] = useState<RepeatValue>(NO_REPEAT)
   const [error, setError] = useState<string | null>(null)
   const [isSmsOpen, setIsSmsOpen] = useState(false)
   const mutationInFlightRef = useRef(false)
@@ -527,10 +529,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
   const handleEditClick = () => {
     setIsEditing(true)
     setError(null)
+    setRepeat(NO_REPEAT)
   }
 
   const handleCancelEdit = () => {
     setIsEditing(false)
+    setRepeat(NO_REPEAT)
     // Reset form to original values
     setEditedSummary(event.summary)
     setEditedDescription(event.description || '')
@@ -708,6 +712,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
           start,
           end,
           scope: isRecurringEvent ? editScope : 'occurrence',
+          // Only sent when converting a standalone event to a series — the API
+          // maps it to a Google-native RRULE on the same event (in place).
+          ...(!isRecurringEvent && repeat.frequency !== 'none' && editedStartDate
+            ? { recurrence: repeatPayload(repeat) }
+            : {}),
         })
       })
 
@@ -1008,6 +1017,16 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     ]}
                     label="Apply changes to"
                     placeholder="This occurrence only"
+                  />
+                )}
+
+                {/* One-time → recurring conversion: series members keep the
+                    scope picker; standalone events can adopt a pattern. */}
+                {!isRecurringEvent && (
+                  <RepeatControls
+                    value={repeat}
+                    onChange={setRepeat}
+                    prerequisiteHint={editedStartDate ? undefined : 'Set a date above to schedule a repeating appointment.'}
                   />
                 )}
               </div>

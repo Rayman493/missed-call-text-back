@@ -271,7 +271,7 @@ export default function JobComposer({
         source: leadId ? 'replyflow' : 'manual',
         lead_id: leadId || editJob?.lead_id || null,
         conversation_id: prefill?.conversation_id || editJob?.conversation_id || null,
-        ...(!editJob ? { recurrence: scheduledDate ? repeatPayload(repeat) : null } : {}),
+        ...(!isRecurring ? { recurrence: scheduledDate ? repeatPayload(repeat) : null } : {}),
         ...(editJob && isRecurring ? { scope: editScope, occurrence_date: editJob.scheduled_date } : {}),
       }
 
@@ -286,6 +286,10 @@ export default function JobComposer({
 
       if (!response.ok) {
         const data = await response.json()
+        // Partial save (recurrenceFailed): field edits persisted server-side.
+        // Keep the composer open — the error message tells the user their
+        // edits saved and to retry; calling onSave here would clear editJob
+        // and flip the still-open composer into create mode.
         throw new Error(data.error || 'Failed to save job')
       }
 
@@ -470,8 +474,10 @@ export default function JobComposer({
               Optional. Add a date and time to place this job on your schedule. End time defaults to start + 1 hour.
             </p>
 
-            {/* Recurrence — create mode only; requires a scheduled date */}
-            {!editJob && (
+            {/* Recurrence — available whenever this item is not already part
+                of a series; requires a scheduled date (series members use the
+                scope picker below instead). */}
+            {!isRecurring && (
               <RepeatControls
                 value={repeat}
                 onChange={setRepeat}
