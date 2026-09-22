@@ -204,17 +204,19 @@ export default function Modal({
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={`
-          relative w-full max-w-lg max-h-[var(--modal-max-height)]
-          overflow-hidden rounded-2xl border border-border/50
+          relative w-full
+          ${fullScreen
+            ? 'h-[100dvh] max-h-none max-w-none rounded-none border-0 shadow-none'
+            : 'max-w-lg max-h-[var(--modal-max-height)] rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30'}
+          overflow-hidden
           bg-card
-          shadow-2xl shadow-black/10 dark:shadow-black/30
           flex flex-col min-h-0 min-w-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
           ${className}
         `}
         onClick={(e) => e.stopPropagation()}
       >
           {title && (
-            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/50 shrink-0 bg-muted/30" style={fullScreen ? { paddingTop: 'env(safe-area-inset-top)' } : undefined}>
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border/50 shrink-0 bg-muted/30" style={fullScreen ? { paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' } : undefined}>
               <h2 id={titleId} className="text-base font-semibold text-foreground min-w-0 truncate">{title}</h2>
               <button
                 onClick={onClose}

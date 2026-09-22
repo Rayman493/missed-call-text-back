@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Download, Send, ArrowRight, Edit, RefreshCw } from 'lucide-react'
+import { Loader2, Download, Send, ArrowRight, Edit, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import DocumentRenderer from './DocumentRenderer'
 import { DocumentPresentation, effectiveStatus } from '@/lib/billing/document-presentation'
@@ -17,6 +17,8 @@ interface BillingViewerModalProps {
   onConvert?: () => void
   isSending?: boolean
   isDownloading?: boolean
+  // Modal-local download feedback — visible inside the modal without scrolling.
+  downloadFeedback?: { type: 'success' | 'error'; message: string } | null
 }
 
 export default function BillingViewerModal({
@@ -29,6 +31,7 @@ export default function BillingViewerModal({
   onConvert,
   isSending = false,
   isDownloading = false,
+  downloadFeedback = null,
 }: BillingViewerModalProps) {
   const [doc, setDoc] = useState<DocumentPresentation | null>(null)
   const [loading, setLoading] = useState(false)
@@ -166,6 +169,22 @@ export default function BillingViewerModal({
 
   const footer = (
     <div className="flex flex-col gap-2 w-full">
+      {/* Modal-local download feedback — always visible above actions */}
+      {downloadFeedback && (
+        <div
+          role="status"
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+            downloadFeedback.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-900/25 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
+              : 'bg-red-50 dark:bg-red-900/25 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-300'
+          }`}
+        >
+          {downloadFeedback.type === 'success'
+            ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+            : <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />}
+          <span className="min-w-0 break-words">{downloadFeedback.message}</span>
+        </div>
+      )}
       <div className="flex gap-2 w-full">
         {showEdit && onEdit && (
           <button
@@ -180,6 +199,7 @@ export default function BillingViewerModal({
           <button
             onClick={onDownload}
             disabled={isDownloading}
+            onTouchEnd={(e) => e.currentTarget.blur()}
             className="flex-1 min-h-11 justify-center px-3 py-2 text-sm font-medium text-foreground border border-border/60 hover:bg-muted/50 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 flex items-center gap-1.5 disabled:opacity-50"
           >
             {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

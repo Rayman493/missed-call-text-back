@@ -507,54 +507,49 @@ export default function BillingEditorModal({
   }
 
   const footer = (
-    <div className="flex flex-col gap-2 px-1 pb-[env(safe-area-inset-bottom)]">
-      {/* Mobile: primary actions on top; desktop: primary right, secondary left */}
-      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
-        {/* Secondary row */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+    <div className="px-1 pb-[env(safe-area-inset-bottom)]">
+      {/* Single row on all widths: [Preview icon] [Cancel] [Create Draft] [Create & Send] */}
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+        <button
+          onClick={handlePreview}
+          disabled={pendingAction !== null}
+          aria-label="Preview"
+          title="Preview"
+          className="h-11 w-11 flex-shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
+        >
+          <Eye className="w-4 h-4" />
+        </button>
+        <button
+          onClick={handleAttemptClose}
+          disabled={pendingAction !== null}
+          className="flex-shrink-0 h-11 px-3 sm:px-5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() => handleSaveDraft(false)}
+          disabled={pendingAction !== null}
+          className="flex-1 min-w-0 h-11 px-2.5 sm:px-5 text-xs sm:text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
+        >
+          {pendingAction === 'draft' && <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />}
+          <span className="truncate">{existingDocument ? 'Save Changes' : 'Create Draft'}</span>
+        </button>
+        {!existingDocument && (
           <button
-            onClick={handlePreview}
+            onClick={() => {
+              if (!customerId || !customerPhone) {
+                setSaveError('Select a customer with a valid phone number before creating and sending.')
+                return
+              }
+              setShowCreateAndSendConfirm(true)
+            }}
             disabled={pendingAction !== null}
-            className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="flex-1 min-w-0 h-11 px-2.5 sm:px-5 text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
           >
-            <Eye className="w-4 h-4" />
-            Preview
+            {pendingAction === 'send' && <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />}
+            <span className="truncate">Create & Send</span>
           </button>
-          <button
-            onClick={handleAttemptClose}
-            disabled={pendingAction !== null}
-            className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
-        {/* Primary row */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => handleSaveDraft(false)}
-            disabled={pendingAction !== null}
-            className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {pendingAction === 'draft' && <Loader2 className="w-4 h-4 animate-spin" />}
-            {existingDocument ? 'Save Changes' : 'Create Draft'}
-          </button>
-          {!existingDocument && (
-            <button
-              onClick={() => {
-                if (!customerId || !customerPhone) {
-                  setSaveError('Select a customer with a valid phone number before creating and sending.')
-                  return
-                }
-                setShowCreateAndSendConfirm(true)
-              }}
-              disabled={pendingAction !== null}
-              className="flex-1 sm:flex-none h-11 px-5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {pendingAction === 'send' && <Loader2 className="w-4 h-4 animate-spin" />}
-              Create & Send
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )

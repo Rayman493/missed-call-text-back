@@ -160,6 +160,9 @@ export default function PaymentsPage() {
   const [billingSendError, setBillingSendError] = useState('')
   const [billingConvertTarget, setBillingConvertTarget] = useState<BillingDocumentListItem | null>(null)
   const [viewingBillingDoc, setViewingBillingDoc] = useState<BillingDocumentListItem | null>(null)
+  // Modal-local feedback for PDF download results while the viewer is open —
+  // the page-level success banner is behind the modal and invisible to the user.
+  const [billingViewerFeedback, setBillingViewerFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [showBillingViewer, setShowBillingViewer] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
 
@@ -619,16 +622,24 @@ export default function PaymentsPage() {
   }
 
   const handleDownloadBillingDoc = async (doc: BillingDocumentListItem) => {
+    // When the document viewer modal is open for this doc, route feedback into
+    // the modal so the result is visible; otherwise use the page banner.
+    const viewerOpenForDoc = viewingBillingDoc?.id === doc.id
     await deliverBillingPdf({
       documentId: doc.id,
       documentNumber: doc.document_number,
       documentType: doc.document_type === 'quote' ? 'quote' : 'invoice',
-      onStart: () => setBillingDownloadingId(doc.id),
+      onStart: () => {
+        setBillingDownloadingId(doc.id)
+        if (viewerOpenForDoc) setBillingViewerFeedback(null)
+      },
       onSuccess: (message) => {
-        setSuccessMessage(message)
+        if (viewerOpenForDoc) setBillingViewerFeedback({ type: 'success', message })
+        else setSuccessMessage(message)
       },
       onError: (message) => {
-        setError(message)
+        if (viewerOpenForDoc) setBillingViewerFeedback({ type: 'error', message })
+        else setError(message)
       },
       onFinally: () => setBillingDownloadingId(null),
     })
@@ -742,6 +753,7 @@ export default function PaymentsPage() {
 
   const handleViewBillingDoc = (doc: BillingDocumentListItem) => {
     setViewingBillingDoc(doc)
+    setBillingViewerFeedback(null)
     setShowBillingViewer(true)
   }
 
@@ -2339,8 +2351,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           onClose={() => {
             setShowBillingViewer(false)
             setViewingBillingDoc(null)
+            setBillingViewerFeedback(null)
           }}
           documentId={viewingBillingDoc?.id || null}
+          downloadFeedback={billingViewerFeedback}
           onDownload={() => viewingBillingDoc && handleDownloadBillingDoc(viewingBillingDoc)}
           onSend={() => viewingBillingDoc && setBillingSendTarget(viewingBillingDoc)}
           onEdit={() => {
@@ -2412,6 +2426,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                     // Open the exact created/existing invoice in the viewer —
                     // success is never silent and the user lands on the result.
                     setViewingBillingDoc(invoice)
+                    setBillingViewerFeedback(null)
                     setShowBillingViewer(true)
                   }
                 }}

@@ -66,28 +66,27 @@ export default function DocumentRenderer({ doc, showStatusBadge = false, isPrevi
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
             {isQuote ? 'Quote To' : 'Bill To'}
           </p>
-          <p className="text-sm font-medium text-slate-900">{doc.customer_name || 'No customer specified'}</p>
-          {doc.customer_phone && <p className="text-sm text-slate-500 mt-0.5">{doc.customer_phone}</p>}
-          {doc.customer_email && <p className="text-sm text-slate-500">{doc.customer_email}</p>}
-          {doc.customer_address && <p className="text-sm text-slate-500">{doc.customer_address}</p>}
+          <p className="text-sm font-medium text-slate-900 break-words">{doc.customer_name || 'No customer specified'}</p>
+          {doc.customer_phone && <p className="text-sm text-slate-500 mt-0.5 break-words">{doc.customer_phone}</p>}
+          {doc.customer_email && <p className="text-sm text-slate-500 break-words">{doc.customer_email}</p>}
+          {doc.customer_address && <p className="text-sm text-slate-500 break-words">{doc.customer_address}</p>}
         </div>
-        <div className="sm:text-right">
-          <div className="inline-block sm:block text-left sm:text-right space-y-1 min-w-[180px]">
-            <div className="flex sm:justify-end gap-3">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Issue Date</span>
-              <span className="text-sm text-slate-700 whitespace-nowrap">{formatDate(doc.issue_date)}</span>
-            </div>
+        <div className="sm:text-right min-w-0">
+          {/* Deliberate 2-column metadata grid: labels left, values right-aligned */}
+          <div className="grid grid-cols-[auto_minmax(0,auto)] justify-between sm:justify-end gap-x-6 gap-y-1 items-baseline">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Issue Date</span>
+            <span className="text-sm text-slate-700 text-right break-words min-w-0">{formatDate(doc.issue_date)}</span>
             {isQuote && doc.valid_until && (
-              <div className="flex sm:justify-end gap-3">
+              <>
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Valid Until</span>
-                <span className="text-sm text-slate-700 whitespace-nowrap">{formatDate(doc.valid_until)}</span>
-              </div>
+                <span className="text-sm text-slate-700 text-right break-words min-w-0">{formatDate(doc.valid_until)}</span>
+              </>
             )}
             {!isQuote && doc.due_date && (
-              <div className="flex sm:justify-end gap-3">
+              <>
                 <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Due Date</span>
-                <span className="text-sm text-slate-700 whitespace-nowrap">{formatDate(doc.due_date)}</span>
-              </div>
+                <span className="text-sm text-slate-700 text-right break-words min-w-0">{formatDate(doc.due_date)}</span>
+              </>
             )}
           </div>
         </div>
