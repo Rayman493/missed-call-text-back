@@ -365,7 +365,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       {!hideNav && (
         <>
           {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
-          <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
+          <nav data-bottom-nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
         <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
           <div className="flex h-16 items-center justify-around rounded-3xl border border-border bg-slate-50/95 dark:bg-card/95 px-1 shadow-md backdrop-blur-xl dark:shadow-[0_1px_0_rgba(255,255,255,0.04),0_-20px_70px_rgba(2,6,23,0.62)]">
             {primaryNavItems.map((item) => {

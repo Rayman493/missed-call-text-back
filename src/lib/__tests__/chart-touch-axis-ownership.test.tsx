@@ -345,7 +345,11 @@ describe('ChartTouchWrapper — axis ownership', () => {
 describe('ChartTouchWrapper — structural contract', () => {
   it('no document-level gesture listeners', () => {
     expect(chartUtilsSrc).not.toContain('document.addEventListener')
-    expect(chartUtilsSrc).not.toContain('window.addEventListener')
+    // The only permitted window listener is the passive pointerdown used by
+    // ChartSelectionPopup for outside-dismissal. No gesture/scroll listeners
+    // may be registered globally.
+    const windowListeners = chartUtilsSrc.match(/window\.addEventListener\('([^']+)'/g) || []
+    expect(windowListeners.every((l) => l.includes("'pointerdown'"))).toBe(true)
   })
 
   it('no pointer capture APIs are used', () => {

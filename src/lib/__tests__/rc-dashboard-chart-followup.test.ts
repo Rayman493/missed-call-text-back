@@ -207,10 +207,15 @@ describe('RC Dashboard Chart Follow-up — Loading (16-26)', () => {
     expect(activityGraph).toContain('pointer-events-none')
   })
 
-  // 22. no heavy blur is applied
+  // 22. no heavy blur is applied to the updating indicator
+  // (backdrop-blur-sm on the small selection popup is allowed)
   it('22. no backdrop-blur on updating indicator', () => {
-    expect(revenueGraph).not.toContain('backdrop-blur')
-    expect(activityGraph).not.toContain('backdrop-blur')
+    for (const graph of [revenueGraph, activityGraph]) {
+      const badgeIdx = graph.indexOf('Updating…')
+      const badgeBlock = graph.substring(badgeIdx - 500, badgeIdx)
+      expect(badgeBlock).not.toContain('backdrop-blur')
+      expect(graph).not.toMatch(/inset-0[^}]*backdrop-blur/)
+    }
   })
 
   // 23. selected range changes immediately

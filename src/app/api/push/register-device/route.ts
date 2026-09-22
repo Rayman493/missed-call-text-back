@@ -70,6 +70,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { pushToken, platform, deviceIdentifier, businessId: requestedBusinessId } = body
+    // Safe diagnostic prefix — never log the full provider token.
+    const tokenPrefix = typeof pushToken === 'string' ? pushToken.substring(0, 8) : null
 
     if (!pushToken || !platform) {
       console.error('[PUSH DEVICE REGISTRATION] Missing required fields')
@@ -81,7 +83,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid platform. Must be android or ios' }, { status: 400 })
     }
 
-    console.log('[PUSH DEVICE REGISTRATION] Looking up business for user:', user.id, 'requested business:', requestedBusinessId)
+    console.log('[PUSH DEVICE REGISTRATION] Request validated', {
+      userId: user.id,
+      platform,
+      tokenPrefix,
+      hasDeviceIdentifier: !!deviceIdentifier,
+      requestedBusinessId: requestedBusinessId ?? null
+    })
 
     // Team Access V1: resolve via membership. Use the active business provided
     // by the native client when the user has membership in it; otherwise fall
@@ -116,7 +124,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    console.log('[PUSH DEVICE REGISTRATION] Business resolved:', business.id)
+    console.log('[PUSH DEVICE REGISTRATION] Business resolved:', {
+      businessId: business.id,
+      source: requestedBusinessId ? 'requested' : 'resolved_fallback',
+      platform,
+      tokenPrefix
+    })
 
     // Upsert the device token (insert or update if exists).
     //
@@ -159,7 +172,7 @@ export async function POST(request: NextRequest) {
       // device identifier we cannot safely distinguish a token rotation on the
       // current device from a new separate device, so we leave other rows alone.
       if (deviceIdentifier) {
-        const { error: disableError } = await supabaseAdmin
+        const { data: disabledRows, error: disableError } = await supabaseAdmin
           .from('push_devices')
           .update({ enabled: false, updated_at: new Date().toISOString() })
           .eq('user_id', user.id)
@@ -168,14 +181,23 @@ export async function POST(request: NextRequest) {
           .eq('device_identifier', deviceIdentifier)
           .eq('enabled', true)
           .neq('push_token', pushToken)
+          .select('id')
 
         if (disableError) {
           console.error('[PUSH DEVICE REGISTRATION] Failed to disable stale tokens:', disableError)
         } else {
-          console.log('[PUSH DEVICE REGISTRATION] Disabled older tokens for this device')
+          console.log('[PUSH DEVICE REGISTRATION] Stale-token cleanup', {
+            platform,
+            tokenPrefix,
+            disabledCount: disabledRows?.length ?? 0,
+            excludedToken: tokenPrefix
+          })
         }
       } else {
-        console.log('[PUSH DEVICE REGISTRATION] No device identifier; skipping stale-token cleanup')
+        console.log('[PUSH DEVICE REGISTRATION] No device identifier; skipping stale-token cleanup', {
+          platform,
+          tokenPrefix
+        })
       }
     }
 
@@ -189,7 +211,9 @@ export async function POST(request: NextRequest) {
       businessId: business.id,
       platform,
       deviceId: device.id,
-      hasDeviceIdentifier: !!deviceIdentifier
+      enabled: device.enabled,
+      hasDeviceIdentifier: !!deviceIdentifier,
+      tokenPrefix
     })
 
     return NextResponse.json({ success: true, device })

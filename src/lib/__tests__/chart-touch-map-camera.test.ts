@@ -84,7 +84,10 @@ describe('Part A: Dashboard Chart Touch', () => {
     })
 
     it('resets justDraggedRef on new gesture start (pointerdown)', () => {
-      const pdIdx = chartUtils.indexOf('handlePointerDown')
+      // The gesture handler is handlePointerDown(e: React.PointerEvent);
+      // an earlier handlePointerDown(e: Event) in the file belongs to the
+      // popup outside-dismissal listener, not the gesture machine.
+      const pdIdx = chartUtils.indexOf('handlePointerDown = (e: React.PointerEvent')
       const pdBlock = chartUtils.substring(pdIdx, pdIdx + 600)
       expect(pdBlock).toContain('justDraggedRef.current = false')
     })
@@ -148,7 +151,7 @@ describe('Part A: Dashboard Chart Touch', () => {
     })
   })
 
-  describe('All chart components use ChartTouchWrapper', () => {
+  describe('All chart components use a shared touch surface', () => {
     const graphs = [
       'components/analytics/RevenueGraph.tsx',
       'components/analytics/BusinessActivityGraph.tsx',
@@ -160,9 +163,9 @@ describe('Part A: Dashboard Chart Touch', () => {
     ]
 
     for (const graph of graphs) {
-      it(`${path.basename(graph)} uses ChartTouchWrapper`, () => {
+      it(`${path.basename(graph)} uses ChartPassiveTouchSurface or ChartPieTouchSurface`, () => {
         const content = readSrc(graph)
-        expect(content).toContain('ChartTouchWrapper')
+        expect(content).toMatch(/ChartPassiveTouchSurface|ChartPieTouchSurface/)
       })
     }
   })
@@ -225,13 +228,13 @@ describe('Part B: Schedule Map Camera Ownership', () => {
     it('single tap calls toggleMapItemDetails (info toggle)', () => {
       // The single-tap timer path calls toggleMapItemDetails
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 3000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('toggleMapItemDetails(item.id)')
     })
 
     it('single tap is delayed by DOUBLE_TAP_DELAY_MS for double-tap detection', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 3000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('setTimeout')
       expect(block).toContain('DOUBLE_TAP_DELAY_MS')
     })
@@ -239,7 +242,7 @@ describe('Part B: Schedule Map Camera Ownership', () => {
     it('single tap does NOT call focusStopOnMap or panToMarker', () => {
       // The single-tap timer block should only call toggleMapItemDetails
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 3000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       // Find the single-tap timer block
       const singleTapIdx = block.indexOf('// SINGLE TAP:')
       if (singleTapIdx === -1) {
@@ -256,19 +259,19 @@ describe('Part B: Schedule Map Camera Ownership', () => {
   describe('2. Marker DOUBLE TAP -> select + focus', () => {
     it('double tap calls focusStopOnMap for non-business markers', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 4000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('focusStopOnMap(item.id, item.latitude, item.longitude)')
     })
 
     it('double tap cancels pending single-tap timer', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 4000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('clearTimeout(pendingTimer)')
     })
 
     it('double tap sets focusedMarkerId', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 4000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('setFocusedMarkerId(item.id)')
     })
   })
@@ -285,19 +288,19 @@ describe('Part B: Schedule Map Camera Ownership', () => {
   describe('4. Selected+focused marker DOUBLE TAP -> unfocus + fit-all', () => {
     it('double tap on focused marker calls unfocusMarker', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 4000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('unfocusMarker()')
     })
 
     it('double tap on focused marker clears focusedMarkerId', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 4000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('setFocusedMarkerId(null)')
     })
 
     it('double tap on focused marker toggles details (unselects)', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 4000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       expect(block).toContain('toggleMapItemDetails(item.id)')
     })
   })
@@ -305,25 +308,25 @@ describe('Part B: Schedule Map Camera Ownership', () => {
   describe('5. Stop-card parity with marker', () => {
     it('stop-card single tap calls toggleMapItemDetails (info only)', () => {
       const cardIdx = map.indexOf('handleItemClick')
-      const block = map.substring(cardIdx, cardIdx + 2000)
+      const block = map.substring(cardIdx, cardIdx + 3500)
       expect(block).toContain('toggleMapItemDetails(item.id)')
     })
 
     it('stop-card double tap calls focusStopOnMap', () => {
       const cardIdx = map.indexOf('handleItemClick')
-      const block = map.substring(cardIdx, cardIdx + 2000)
+      const block = map.substring(cardIdx, cardIdx + 3500)
       expect(block).toContain('focusStopOnMap(item.id, item.latitude, item.longitude)')
     })
 
     it('stop-card double tap on focused calls unfocusMarker', () => {
       const cardIdx = map.indexOf('handleItemClick')
-      const block = map.substring(cardIdx, cardIdx + 2000)
+      const block = map.substring(cardIdx, cardIdx + 3500)
       expect(block).toContain('unfocusMarker()')
     })
 
     it('stop-card uses same DOUBLE_TAP_DELAY_MS threshold', () => {
       const cardIdx = map.indexOf('handleItemClick')
-      const block = map.substring(cardIdx, cardIdx + 2000)
+      const block = map.substring(cardIdx, cardIdx + 3500)
       expect(block).toContain('DOUBLE_TAP_DELAY_MS')
     })
 
@@ -332,7 +335,7 @@ describe('Part B: Schedule Map Camera Ownership', () => {
       // reusing the canonical focusStopOnMap helper. This matches the user
       // expectation that tapping a stop card brings the map to that stop.
       const cardIdx = map.indexOf('handleItemClick')
-      const block = map.substring(cardIdx, cardIdx + 3000)
+      const block = map.substring(cardIdx, cardIdx + 3500)
       // Find the single-tap timer block: it contains setTimeout and
       // toggleMapItemDetails AND focusStopOnMap. The single-tap
       // timer is the LAST setTimeout in handleItemClick.
@@ -362,9 +365,9 @@ describe('Part B: Schedule Map Camera Ownership', () => {
       // The isDoubleTap branch runs focusStopOnMap/unfocusMarker
       // The single-tap timer is cancelled, so toggleMapItemDetails does NOT run
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 3000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       const doubleIdx = block.indexOf('isDoubleTap')
-      const doubleBlock = block.substring(doubleIdx, doubleIdx + 500)
+      const doubleBlock = block.substring(doubleIdx, doubleIdx + 800)
       expect(doubleBlock).toContain('clearTimeout(pendingTimer)')
     })
   })
@@ -455,9 +458,10 @@ describe('Part B: Schedule Map Camera Ownership', () => {
     it('double tap on unfocused marker focuses (no toggle back)', () => {
       // The double-tap on unfocused marker calls focusStopOnMap, not unfocusMarker
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 4000)
-      // The focusedMarkerId === item.id check determines focus vs unfocus
-      expect(block).toContain('focusedMarkerId === item.id')
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
+      // The currentFocusedId === item.id check (via focusedMarkerIdRef, to
+      // avoid stale closures) determines focus vs unfocus
+      expect(block).toContain('currentFocusedId === item.id')
       expect(block).toContain('focusStopOnMap')
       expect(block).toContain('unfocusMarker')
     })
@@ -526,14 +530,14 @@ describe('Part B: Schedule Map Camera Ownership', () => {
   describe('15. Business marker exclusion', () => {
     it('business markers toggle details only (no camera focus)', () => {
       const markerClickIdx = map.indexOf("marker.addListener('click'")
-      const block = map.substring(markerClickIdx, markerClickIdx + 3000)
+      const block = map.substring(markerClickIdx, markerClickIdx + 5000)
       // Business markers should not get focusStopOnMap
       expect(block).toContain("item.type !== 'business'")
     })
 
     it('business stop-card toggles details only', () => {
       const cardIdx = map.indexOf('handleItemClick')
-      const block = map.substring(cardIdx, cardIdx + 2000)
+      const block = map.substring(cardIdx, cardIdx + 3500)
       expect(block).toContain("item.type !== 'business'")
     })
   })

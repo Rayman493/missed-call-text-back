@@ -95,10 +95,13 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(css).toMatch(/\.recharts-surface:focus[\s\S]*?outline:\s*none/)
     })
 
-    it('globals.css suppresses :focus-visible on recharts-surface', () => {
+    it('globals.css suppresses pointer/touch focus on recharts-surface', () => {
       const css = read('src/app/globals.css')
-      expect(css).toMatch(/\.recharts-surface:focus-visible/)
-      expect(css).toMatch(/\.recharts-surface:focus-visible[\s\S]*?outline:\s*none/)
+      // Suppression targets :focus:not(:focus-visible) so keyboard focus
+      // rings remain; plus a coarse-pointer media block covers touch UAs.
+      expect(css).toMatch(/\.recharts-surface:focus:not\(:focus-visible\)/)
+      expect(css).toMatch(/\.recharts-surface:focus:not\(:focus-visible\)[\s\S]*?outline:\s*none/)
+      expect(css).toMatch(/@media \(hover: none\) and \(pointer: coarse\)[\s\S]*?\.recharts-surface:focus[\s\S]*?outline:\s*none/)
     })
 
     it('globals.css suppresses :focus on recharts-wrapper', () => {
@@ -107,16 +110,21 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(css).toMatch(/\.recharts-wrapper:focus[\s\S]*?outline:\s*none/)
     })
 
-    it('globals.css suppresses :focus-visible on recharts-wrapper', () => {
+    it('globals.css suppresses pointer/touch focus on recharts-wrapper', () => {
       const css = read('src/app/globals.css')
-      expect(css).toMatch(/\.recharts-wrapper:focus-visible/)
-      expect(css).toMatch(/\.recharts-wrapper:focus-visible[\s\S]*?outline:\s*none/)
+      expect(css).toMatch(/\.recharts-wrapper:focus:not\(:focus-visible\)/)
+      expect(css).toMatch(/\.recharts-wrapper:focus:not\(:focus-visible\)[\s\S]*?outline:\s*none/)
+      expect(css).toMatch(/@media \(hover: none\) and \(pointer: coarse\)[\s\S]*?\.recharts-wrapper:focus[\s\S]*?outline:\s*none/)
     })
 
-    it('globals.css suppresses :focus and :focus-visible on recharts-rectangle-wrapper', () => {
+    it('globals.css suppresses pointer/touch focus on recharts bar/rectangle elements', () => {
       const css = read('src/app/globals.css')
-      expect(css).toMatch(/\.recharts-rectangle-wrapper:focus/)
-      expect(css).toMatch(/\.recharts-rectangle-wrapper:focus-visible/)
+      // Bar rectangles and the cursor rectangle wrapper get their outline
+      // suppressed via :not(:focus-visible) and the coarse-pointer block;
+      // keyboard :focus-visible remains styled below.
+      expect(css).toMatch(/\.recharts-bar-rectangle:focus:not\(:focus-visible\)/)
+      expect(css).toMatch(/\.recharts-rectangle:focus:not\(:focus-visible\)/)
+      expect(css).toMatch(/@media \(hover: none\) and \(pointer: coarse\)[\s\S]*?\.recharts-bar-rectangle:focus[\s\S]*?outline:\s*none/)
     })
 
     it('globals.css does NOT globally disable all outlines (preserves data element focus)', () => {
@@ -216,9 +224,14 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(content).toContain('pointer-events-none')
     })
 
-    it('RevenueGraph does NOT use heavy blur overlay (no backdrop-blur)', () => {
+    it('RevenueGraph does NOT use heavy blur overlay on the updating indicator', () => {
       const content = read('src/components/analytics/RevenueGraph.tsx')
-      expect(content).not.toContain('backdrop-blur')
+      // The updating badge must not blur the chart; a small backdrop-blur-sm
+      // on the tap-selection popup is allowed (it does not cover the chart).
+      const badgeIdx = content.indexOf('Updating…')
+      const badgeBlock = content.substring(badgeIdx - 500, badgeIdx)
+      expect(badgeBlock).not.toContain('backdrop-blur')
+      expect(content).not.toMatch(/inset-0[^}]*backdrop-blur/)
     })
 
     it('RevenueGraph has exactly one Updating indicator (no duplicate in header)', () => {
@@ -267,9 +280,12 @@ describe('RC Batch 4 — Dashboard Chart Mobile Interaction + Loading Polish', (
       expect(content).toContain('pointer-events-none')
     })
 
-    it('BusinessActivityGraph does NOT use heavy blur overlay (no backdrop-blur)', () => {
+    it('BusinessActivityGraph does NOT use heavy blur overlay on the updating indicator', () => {
       const content = read('src/components/analytics/BusinessActivityGraph.tsx')
-      expect(content).not.toContain('backdrop-blur')
+      const badgeIdx = content.indexOf('Updating…')
+      const badgeBlock = content.substring(badgeIdx - 500, badgeIdx)
+      expect(badgeBlock).not.toContain('backdrop-blur')
+      expect(content).not.toMatch(/inset-0[^}]*backdrop-blur/)
     })
 
     it('BusinessActivityGraph has exactly one Updating indicator (no duplicate in header)', () => {

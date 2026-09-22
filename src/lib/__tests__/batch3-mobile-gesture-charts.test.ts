@@ -52,7 +52,7 @@ describe('Part A: Customers Filter Gesture Parity', () => {
 
   describe('A3. Uses the same shared gesture primitive as LeadStatusDropdown', () => {
     it('imports shouldPreventMenuOpen from lead-status-gesture', () => {
-      expect(leadsPageContent).toMatch(/import \{ shouldPreventMenuOpen \} from '@\/components\/lead-status-gesture'/)
+      expect(leadsPageContent).toMatch(/import \{[^}]*shouldPreventMenuOpen[^}]*\} from '@\/components\/lead-status-gesture'/)
     })
 
     it('shouldPreventMenuOpen is an alias of isDragGesture from tap-guard', () => {

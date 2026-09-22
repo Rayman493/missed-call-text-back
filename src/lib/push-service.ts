@@ -46,6 +46,17 @@ class PushService {
   private lastRegisteredBusinessId: string | null = null
   private registrationStatus: 'none' | 'in-flight' | 'succeeded' | 'failed' = 'none'
   private permissionUnsubscribe: (() => void) | null = null
+  private permissionGranted = false
+
+  /**
+   * iOS-only structured diagnostic log for the registration lifecycle.
+   * Each entry answers one question from the Batch D trace checklist without
+   * logging full tokens. Emitted only for iOS so Android logs are unchanged.
+   */
+  private logIosReg(event: string, data?: Record<string, any>): void {
+    if (this.currentPlatform !== 'ios') return
+    console.log('[PUSH_IOS_REG]', { event, ts: new Date().toISOString(), ...(data || {}) })
+  }
 
   /**
    * Check if registration should be attempted
@@ -75,14 +86,47 @@ class PushService {
   }
 
   /**
+   * Exact reasons a registration attempt is currently deferred. Used by the
+   * iOS diagnostic trace so a missing row can be attributed to one step.
+   */
+  private registrationDeferralReasons(): string[] {
+    const reasons: string[] = []
+    if (!this.currentToken) reasons.push('no_native_token')
+    if (!this.accessToken) reasons.push('no_auth_token')
+    if (!this.currentPlatform) reasons.push('no_platform')
+    if (this.registrationStatus === 'in-flight') reasons.push('in_flight')
+    if (
+      this.registrationStatus === 'succeeded' &&
+      this.currentToken === this.lastRegisteredToken &&
+      this.currentBusinessId === this.lastRegisteredBusinessId
+    ) {
+      reasons.push('already_registered')
+    }
+    return reasons
+  }
+
+  /**
    * Attempt registration if conditions are met
    */
   private maybeRegisterDevice(): void {
+    // If the native token callback never fired (or the token was cleared),
+    // re-run native registration when it is safe: service initialized and
+    // notification permission already granted, so no surprise prompt appears.
+    // PushNotifications.register() is idempotent; the token event that follows
+    // feeds the normal registration path.
+    if (!this.currentToken && this.isInitialized && this.permissionGranted && this.currentPlatform) {
+      this.logIosReg('token_missing_reregister')
+      this.register().catch(() => {})
+      return
+    }
+
     if (this.shouldAttemptRegistration()) {
       console.log('[PUSH SERVICE] Conditions met, attempting registration')
+      this.logIosReg('registration_attempt')
       this.registerDeviceWithServer(this.currentToken!)
     } else {
       console.log('[PUSH SERVICE] Conditions not met for registration')
+      this.logIosReg('registration_deferred', { reasons: this.registrationDeferralReasons() })
     }
   }
 
@@ -158,10 +202,12 @@ class PushService {
         this.deviceId = null
       }
 
-      // Set up listeners only once
+      // Set up listeners only once. Awaited so the native registration event
+      // listener is attached before PushNotifications.register() can deliver
+      // a token — an un-awaited listener could miss a fast APNs callback.
       if (!this.listenersSetup) {
         console.log('[PUSH SERVICE] Setting up listeners')
-        this.setupListeners()
+        await this.setupListeners()
         this.listenersSetup = true
       }
 
@@ -171,6 +217,8 @@ class PushService {
         console.log('[PUSH SERVICE] Subscribing to permission state changes')
         this.permissionUnsubscribe = nativePermissionsStore.subscribe((state) => {
           console.log('[PUSH SERVICE] Permission state changed:', state.notifications.status)
+          this.permissionGranted = state.notifications.status === 'granted'
+          this.logIosReg('permission_change', { status: state.notifications.status })
 
           // If permission becomes granted and we have access token, register for push
           if (state.notifications.status === 'granted' && this.accessToken) {
@@ -185,14 +233,18 @@ class PushService {
       // Check current permission state without requesting
       console.log('[PUSH SERVICE] Checking permission state')
       const currentPermissions = await PushNotifications.checkPermissions()
+      this.permissionGranted = currentPermissions.receive === 'granted'
       console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', currentPermissions.receive)
+      this.logIosReg('permission_state', { receive: currentPermissions.receive })
 
       // Only register if permission is already granted
       if (currentPermissions.receive === 'granted') {
         console.log('[PUSH SERVICE] Permission already granted, registering')
+        this.logIosReg('startup_register')
         await this.register()
       } else {
         console.log('[PUSH SERVICE] Permission not granted, skipping registration')
+        this.logIosReg('startup_register_skipped', { receive: currentPermissions.receive })
       }
 
       this.isInitialized = true
@@ -222,21 +274,28 @@ class PushService {
       // If already granted, just return true
       if (state.notifications.status === 'granted') {
         console.log('[NOTIFICATION_PERMISSION_CHECK] Already granted, skipping request')
+        this.permissionGranted = true
+        this.logIosReg('permission_granted_cached')
         return true
       }
 
       // If denied or blocked, don't request again (user would need to go to settings)
       if (state.notifications.status === 'denied' || state.notifications.status === 'blocked') {
         console.log('[NOTIFICATION_PERMISSION_CHECK] Previously denied/blocked, not requesting again')
+        this.permissionGranted = false
+        this.logIosReg('permission_denied', { status: state.notifications.status })
         return false
       }
 
       // Request permission via shared store
       console.log('[NOTIFICATION_PERMISSION_REQUESTED] Requesting permission via shared store')
+      this.logIosReg('permission_request')
       await nativePermissionsStore.requestNotificationPermission()
       
       const newState = nativePermissionsStore.getState()
       console.log('[NOTIFICATION_PERMISSION_RESULT] Result:', newState.notifications.status)
+      this.permissionGranted = newState.notifications.status === 'granted'
+      this.logIosReg('permission_result', { status: newState.notifications.status })
       
       if (newState.notifications.status === 'granted') {
         console.log('[NOTIFICATION_PERMISSION_RESULT] Permission granted, registering for push')
@@ -263,17 +322,25 @@ class PushService {
 
     try {
       console.log('[PUSH_REGISTRATION_STARTED] Registering for push notifications')
+      this.logIosReg('native_register_invoke')
       await PushNotifications.register()
       console.log('[PUSH_REGISTRATION_COMPLETED] Registration successful')
+      this.logIosReg('native_register_invoked')
     } catch (error) {
       console.error('[PUSH_REGISTRATION_FAILED] Registration failed:', error)
+      this.logIosReg('native_register_error', {
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
   }
 
   /**
-   * Set up push notification event listeners
+   * Set up push notification event listeners.
+   * Awaited: in Capacitor, addListener resolves a native listener handle, and
+   * the 'registration' listener must be attached before register() delivers
+   * the APNs/FCM token or the callback can be missed entirely.
    */
-  private setupListeners(): void {
+  private async setupListeners(): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
       return
     }
@@ -295,14 +362,24 @@ class PushService {
     }
 
     // Listen for token registration
-    PushNotifications.addListener('registration', (token) => {
+    await PushNotifications.addListener('registration', (token) => {
       console.log('[PUSH SERVICE] FCM/APNs registration event received', {
         platform: this.currentPlatform,
         tokenPrefix: token.value.substring(0, 8) + '...',
         tokenLength: token.value.length,
         businessId: this.currentBusinessId
       })
+      this.logIosReg('token_received', {
+        tokenPrefix: token.value.substring(0, 8) + '…',
+        tokenLength: token.value.length,
+        hasAccessToken: !!this.accessToken,
+        businessId: this.currentBusinessId,
+        deviceId: this.deviceId ? this.deviceId.slice(-8) : null,
+        registrationStatus: this.registrationStatus
+      })
       this.currentToken = token.value
+      // A delivered APNs token proves registration is permitted at the OS level.
+      this.permissionGranted = true
       console.log('[PUSH SERVICE] Access token cached:', this.accessToken ? 'yes' : 'no')
       console.log('[PUSH SERVICE] Business cached:', this.currentBusinessId ? 'yes' : 'no')
       console.log('[PUSH SERVICE] Current registration status:', this.registrationStatus)
@@ -314,30 +391,35 @@ class PushService {
     // Listen for registration errors — log the full Capacitor error object
     // (platform + code + message), not just error.error, so iOS APNs failures
     // (e.g. missing aps-environment) are distinguishable in diagnostics.
-    PushNotifications.addListener('registrationError', (error) => {
+    await PushNotifications.addListener('registrationError', (error) => {
       console.error('[PUSH SERVICE] Push registration error:', {
         platform: this.currentPlatform,
+        error: error.error,
+        message: (error as any)?.message ?? null
+      })
+      this.logIosReg('token_error', {
         error: error.error,
         message: (error as any)?.message ?? null
       })
     })
 
     // Listen for incoming push notifications (app in foreground)
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+    await PushNotifications.addListener('pushNotificationReceived', (notification) => {
       console.log('[PUSH SERVICE] Push notification received:', notification)
       this.handleNotificationReceived(notification)
     })
 
     // Listen for push notification tap (app in background or terminated)
-    PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+    await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
       console.log('[PUSH SERVICE] Push notification action performed:', notification)
       this.handleNotificationActionPerformed(notification)
     })
 
     // Handle app state changes to manage token refresh
-    App.addListener('appStateChange', ({ isActive }) => {
+    await App.addListener('appStateChange', ({ isActive }) => {
       if (isActive && this.isInitialized) {
         console.log('[PUSH SERVICE] App became active, refreshing token')
+        this.logIosReg('resume_register')
         this.register()
       }
     })
@@ -360,12 +442,26 @@ class PushService {
 
     this.registrationStatus = 'in-flight'
 
+    // Capture the business id at request time. If the active business changes
+    // while the request is in flight, lastRegisteredBusinessId must still record
+    // what the server was actually told — the trailing maybeRegisterDevice()
+    // then reconciles the new business into a follow-up registration.
+    const businessIdAtRequest = this.currentBusinessId
+    const attemptId = Math.random().toString(36).slice(2, 8)
+
     try {
       console.log('[PUSH SERVICE] Server registration started', {
         platform: this.currentPlatform,
-        businessId: this.currentBusinessId,
+        businessId: businessIdAtRequest,
         deviceIdentifier: this.getDeviceIdentifier(),
         tokenPrefix: token.substring(0, 8) + '...'
+      })
+      this.logIosReg('request_sent', {
+        attemptId,
+        platform: this.currentPlatform,
+        businessId: businessIdAtRequest,
+        deviceIdentifier: this.getDeviceIdentifier()?.slice(-8) ?? null,
+        tokenPrefix: token.substring(0, 8) + '…'
       })
 
       // Use cached access token from AuthContext
@@ -392,15 +488,21 @@ class PushService {
           pushToken: token,
           platform: this.currentPlatform,
           deviceIdentifier: this.getDeviceIdentifier(),
-          businessId: this.currentBusinessId
+          businessId: businessIdAtRequest
         })
       })
 
       console.log('[PUSH SERVICE] Server response status:', response.status)
+      this.logIosReg('server_response', { attemptId, status: response.status })
 
       if (!response.ok) {
         const error = await response.json()
         console.error('[PUSH SERVICE] Server registration failed:', {
+          status: response.status,
+          error: error.error || 'Unknown error'
+        })
+        this.logIosReg('server_error', {
+          attemptId,
           status: response.status,
           error: error.error || 'Unknown error'
         })
@@ -420,12 +522,27 @@ class PushService {
           businessId: result.device?.business_id,
           enabled: result.device?.enabled
         })
+        this.logIosReg('registration_success', {
+          attemptId,
+          rowId: result.device?.id,
+          enabled: result.device?.enabled,
+          businessId: result.device?.business_id
+        })
         this.registrationStatus = 'succeeded'
         this.lastRegisteredToken = token
-        this.lastRegisteredBusinessId = this.currentBusinessId
+        this.lastRegisteredBusinessId = businessIdAtRequest
+
+        // If the active business changed while this request was in flight,
+        // reconcile immediately — the re-check detects the mismatch and
+        // re-registers the same token against the new business.
+        this.maybeRegisterDevice()
       }
     } catch (error) {
       console.error('[PUSH SERVICE] Server registration error:', error)
+      this.logIosReg('request_error', {
+        attemptId,
+        error: error instanceof Error ? error.message : String(error)
+      })
       this.registrationStatus = 'failed' // Allow retry on error
     }
   }
@@ -515,7 +632,11 @@ class PushService {
         })
       } else {
         console.log('[PUSH SERVICE] Device unregistered successfully')
-        this.currentToken = null
+        this.logIosReg('unregistered')
+        // Keep the native token. The provider token is still valid for this
+        // installation — unregister only disables the server row. Retaining it
+        // lets the next authenticated session re-register (re-enable) without
+        // waiting for the OS to deliver a new token.
       }
     } catch (error) {
       console.error('[PUSH SERVICE] Device unregistration error:', error)

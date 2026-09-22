@@ -50,7 +50,7 @@ export default function BusinessActivityGraph() {
   const [updating, setUpdating] = useState(false)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const [seriesFilter, setSeriesFilter] = useState<string>('all')
-  const [selectedDatum, setSelectedDatum] = useState<{ index: number; label: string; payload: any[] } | null>(null)
+  const [selectedDatum, setSelectedDatum] = useState<{ index: number; seriesKey?: string; label: string; payload: any[] } | null>(null)
   const chartWrapperRef = useRef<HTMLDivElement>(null)
   const isTouchDevice = useTouchDevice()
 
@@ -220,51 +220,86 @@ export default function BusinessActivityGraph() {
   const yTicks = getIntegerTicks(maxValue)
 
   // Tap-to-inspect: per-datum SVG hit targets (ChartHitDot) call this directly.
-  // The popup synthesizes a tooltip-shaped payload from the tapped datum's
-  // visible series. Tapping the same point again dismisses the popup.
-  const toggleDatum = (idx: number) => {
+  // When a seriesKey is provided (multi-series line chart) the popup shows
+  // only that exact series. Without a seriesKey the nearest-x fallback shows
+  // all visible series for the tapped date.
+  const toggleDatum = (idx: number, seriesKey?: string) => {
     if (idx < 0 || idx >= data.length) return
     setSelectedDatum(prev =>
-      prev?.index === idx
+      prev?.index === idx && prev?.seriesKey === seriesKey
         ? null
         : {
             index: idx,
+            seriesKey,
             label: data[idx].date,
-            payload: visibleKeys.map((key) => ({
-              dataKey: key,
-              color: SERIES_COLORS[key],
-              value: data[idx][key],
-            })),
+            payload: seriesKey
+              ? [{
+                  dataKey: seriesKey,
+                  color: SERIES_COLORS[seriesKey],
+                  value: data[idx][seriesKey as keyof ActivityData],
+                }]
+              : visibleKeys.map((key) => ({
+                  dataKey: key,
+                  color: SERIES_COLORS[key],
+                  value: data[idx][key],
+                })),
           }
     )
   }
 
-  // Nearest-x fallback: a tap anywhere on the chart area resolves to the
-  // closest datum index using the plot-area bounds — covers taps between
-  // the 18px hit circles.
+  // Nearest-x fallback: a tap on the chart surface resolves to the closest
+  // datum only when it is inside the plottable area and within the explicit
+  // tap hit tolerance. Taps outside the plot, on axes/whitespace, or beyond
+  // the tolerance clear the current selection.
   const handleChartAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const surface = (e.currentTarget as HTMLElement).querySelector('.recharts-surface') as SVGElement | null
-    if (!surface || data.length === 0) return
+    if (!surface || data.length === 0) {
+      setSelectedDatum(null)
+      return
+    }
     const rect = surface.getBoundingClientRect()
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+      setSelectedDatum(null)
+      return
+    }
     const marginLeft = CHART_STYLES.margin.left
     const marginRight = CHART_STYLES.margin.right
     const plotWidth = rect.width - marginLeft - marginRight
-    if (plotWidth <= 0) return
-    const relativeX = Math.max(0, Math.min(plotWidth, e.clientX - rect.left - marginLeft))
+    if (plotWidth <= 0) {
+      setSelectedDatum(null)
+      return
+    }
+    const relativeX = e.clientX - rect.left - marginLeft
+    if (relativeX < 0 || relativeX > plotWidth) {
+      setSelectedDatum(null)
+      return
+    }
+    if (data.length === 1) {
+      toggleDatum(0)
+      return
+    }
     const index = Math.round((relativeX / plotWidth) * (data.length - 1))
-    toggleDatum(Math.max(0, Math.min(data.length - 1, index)))
+    const clampedIndex = Math.max(0, Math.min(data.length - 1, index))
+    const nearestX = (clampedIndex / (data.length - 1)) * plotWidth
+    const halfStep = plotWidth / (data.length - 1) / 2
+    const tolerance = Math.min(CHART_STYLES.tapHitTolerance, halfStep)
+    if (Math.abs(relativeX - nearestX) > tolerance) {
+      setSelectedDatum(null)
+      return
+    }
+    toggleDatum(clampedIndex)
   }
 
   // Per-datum invisible SVG hit targets — ChartPassiveTouchSurface blocks
   // Recharts' own touch tracking, so each point owns its synthesized click.
-  const renderHitDot = (color: string) => (dotProps: any) => (
+  const renderHitDot = (color: string, seriesKey: string) => (dotProps: any) => (
     <ChartHitDot
       key={dotProps.key}
       cx={dotProps.cx}
       cy={dotProps.cy}
       index={dotProps.index}
       fill={color}
-      onSelect={toggleDatum}
+      onSelect={(idx) => toggleDatum(idx, seriesKey)}
     />
   )
 
@@ -460,7 +495,7 @@ export default function BusinessActivityGraph() {
                     dataKey="conversations"
                     stroke="#3b82f6"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={renderHitDot('#3b82f6')}
+                    dot={renderHitDot('#3b82f6', 'conversations')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#3b82f6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Conversations"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'conversations'}
@@ -470,7 +505,7 @@ export default function BusinessActivityGraph() {
                     dataKey="appointments"
                     stroke="#22c55e"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={renderHitDot('#22c55e')}
+                    dot={renderHitDot('#22c55e', 'appointments')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#22c55e', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Appointments"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'appointments'}
@@ -480,7 +515,7 @@ export default function BusinessActivityGraph() {
                     dataKey="paymentRequests"
                     stroke="#f59e0b"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={renderHitDot('#f59e0b')}
+                    dot={renderHitDot('#f59e0b', 'paymentRequests')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#f59e0b', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Payment Requests"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'paymentRequests'}
@@ -490,7 +525,7 @@ export default function BusinessActivityGraph() {
                     dataKey="completedJobs"
                     stroke="#8b5cf6"
                     strokeWidth={CHART_STYLES.lineStrokeWidth}
-                    dot={renderHitDot('#8b5cf6')}
+                    dot={renderHitDot('#8b5cf6', 'completedJobs')}
                     activeDot={{ r: CHART_STYLES.activeDotRadius, fill: '#8b5cf6', strokeWidth: CHART_STYLES.lineStrokeWidth }}
                     name="Completed Jobs"
                     hide={seriesFilter !== 'all' && seriesFilter !== 'completedJobs'}

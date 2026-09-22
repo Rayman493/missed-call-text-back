@@ -47,7 +47,9 @@ describe('Batch 3 — customer pickers / modal safety / remove nested customer c
   describe('B. Customer picker geometry and scroll protection', () => {
     it('8. SearchableCustomerSelect dropdown has bounded max height', () => {
       expect(searchableCustomerSelect).toContain('max-h-[300px]')
-      expect(searchableCustomerSelect).toMatch(/setMaxDropdownHeight\(Math\.min\(desiredMax, Math\.max\(available, 160\)\)\)/)
+      // Batch C: mobile below-only positioning clamps to the real available
+      // space below the trigger (min 0 — the list shrinks instead of flipping).
+      expect(searchableCustomerSelect).toMatch(/setMaxDropdownHeight\(Math\.min\(desiredMax, Math\.max\(available, 0\)\)\)/)
     })
 
     it('9. SearchableCustomerSelect results area is scrollable with min-h-0', () => {
@@ -74,8 +76,13 @@ describe('Batch 3 — customer pickers / modal safety / remove nested customer c
   })
 
   describe('C. Tap / click bleed-through protection', () => {
-    it('13. customer row selection uses onClick with stopPropagation and preventDefault', () => {
-      expect(searchableCustomerSelect).toMatch(/onClick=\{\(e\) => \{ e\.preventDefault\(\); e\.stopPropagation\(\); handleSelect\(customer\.id\) \}\}/)
+    it('13. customer row selection uses onClick via shared PickerListRow', () => {
+      // Rows are the shared PickerListRow primitive; click-bleed protection
+      // lives in the markDropdownDismissed / pointerDownInsideRef infra rather
+      // than inline e.preventDefault on each row.
+      expect(searchableCustomerSelect).toMatch(/<PickerListRow[\s\S]*?onClick=\{\(\) => handleSelect\(customer\.id\)\}/)
+      expect(searchableCustomerSelect).toContain('markDropdownDismissed')
+      expect(searchableCustomerSelect).toContain('pointerDownInsideRef')
     })
 
     it('14. No customer row uses onClick with stopPropagation and preventDefault', () => {
@@ -92,7 +99,9 @@ describe('Batch 3 — customer pickers / modal safety / remove nested customer c
     })
 
     it('17. desktop mouse selection still works via onClick', () => {
-      expect(searchableCustomerSelect).toContain('onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelect(customer.id) }}')
+      // PickerListRow renders a <button onClick> — mouse and keyboard select
+      // both reach handleSelect.
+      expect(searchableCustomerSelect).toContain('onClick={() => handleSelect(customer.id)}')
     })
   })
 

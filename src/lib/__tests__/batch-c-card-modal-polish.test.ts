@@ -305,18 +305,17 @@ describe('Batch C — Part 4: Delete Account', () => {
   })
 
   it('28. keyboard does not hide action buttons (footer is shrink-0, body scrolls)', () => {
-    // The footer is flex-shrink-0 so it stays visible above keyboard
-    const footerSection = settingsSrc.substring(
-      settingsSrc.indexOf('Fixed Footer'),
-      settingsSrc.indexOf('Fixed Footer') + 200
-    )
-    expect(footerSection).toContain('flex-shrink-0')
-    // The body is scrollable
-    const bodySection = settingsSrc.substring(
-      settingsSrc.indexOf('Scrollable Body'),
-      settingsSrc.indexOf('Scrollable Body') + 200
-    )
-    expect(bodySection).toContain('overflow-y-scroll')
-    expect(bodySection).toContain('data-scroll-lock-allow')
+    // The delete-account modal renders its action buttons via the shared
+    // Modal `footer` prop; Modal.tsx owns the shrink-0 footer contract
+    // (asserted above), so buttons stay visible above the keyboard.
+    const deleteModalIdx = settingsSrc.indexOf('Delete Account Modal')
+    const deleteModalBlock = settingsSrc.substring(deleteModalIdx, deleteModalIdx + 2500)
+    expect(deleteModalBlock).toContain('footer={')
+    expect(modalSrc).toContain('shrink-0')
+    // The body is scrollable — owned by the shared Modal contract
+    // (flex-1 min-h-0 overflow-y-auto + data-scroll-lock-allow).
+    expect(modalSrc).toContain('overflow-y-auto')
+    expect(modalSrc).toContain('data-scroll-lock-allow')
+    expect(modalSrc).toContain('flex-1 min-h-0')
   })
 })

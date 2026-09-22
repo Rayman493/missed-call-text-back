@@ -816,6 +816,23 @@ html.light select:-moz-autofill:focus {
 }
 
 /*
+ * When a blocking modal covers the app chrome, immediately hide the mobile
+ * bottom nav and zero its reserved height. This is the synchronous CSS half
+ * of the shared data-chrome-covered / data-modal-open shell contract;
+ * BottomNavigation.tsx also removes the nav in React once it observes the
+ * attribute. The CSS rule prevents any one-frame flash where the nav would
+ * still paint underneath a modal backdrop. Chrome-owned overlays (More menu)
+ * do NOT set data-chrome-covered, so the nav stays visible while they are open.
+ */
+body[data-chrome-covered='true'] nav[data-bottom-nav] {
+  display: none !important;
+}
+
+body[data-chrome-covered='true'] {
+  --bottom-nav-height: 0px !important;
+}
+
+/*
  * Modal bottom reservation
  * Mobile: safe-area inset + 16px breathing room (modal backdrop covers bottom nav,
  *   which hides via data-modal-open observer — no need to reserve nav space)

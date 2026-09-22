@@ -161,10 +161,9 @@ export default function NewCustomersGraph() {
           <div
             className="h-[260px] relative"
             onClick={(e) => {
-              // The chart owns selection via activeTooltipIndex (full-column
-              // hit area — thin bars stay tappable). Clicks on the plot
-              // surface are handled there; only clicks outside it dismiss.
-              if ((e.target as HTMLElement).closest?.('.recharts-surface')) return
+              // The Bar's own onClick handles actual bar taps. Clicks outside
+              // a rendered bar rectangle (axis, grid, whitespace) clear.
+              if ((e.target as HTMLElement).closest?.('.recharts-bar-rectangle')) return
               setSelectedDatum(null)
             }}
           >
@@ -175,10 +174,6 @@ export default function NewCustomersGraph() {
                     margin={CHART_STYLES.margin}
                     barGap={CHART_STYLES.barGap}
                     barCategoryGap={barCategoryGap}
-                    onClick={(state: any) => {
-                      const index = typeof state?.activeTooltipIndex === 'number' ? state.activeTooltipIndex : -1
-                      if (index >= 0 && index < data.length) toggleDatum(index)
-                    }}
                   >
                     <CartesianGrid
                       strokeDasharray={CHART_STYLES.gridStrokeDasharray}
@@ -215,6 +210,7 @@ export default function NewCustomersGraph() {
                       barSize={barSize}
                       minPointSize={3}
                       activeBar={false}
+                      onClick={(_, index) => toggleDatum(index)}
                     >
                       {data.map((entry, index) => (
                         <Cell

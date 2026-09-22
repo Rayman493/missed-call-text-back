@@ -14,9 +14,9 @@ describe('Batch 5 — Chart tooltip, dismissal, and touch polish', () => {
   const businessGraph = readSrc('components/analytics/BusinessActivityGraph.tsx')
 
   it('A. PremiumTooltip is compact and sized to content', () => {
-    expect(chartUtils).toContain('px-2 py-1.5')
+    expect(chartUtils).toContain('px-3 py-2.5')
     expect(chartUtils).toContain('w-fit')
-    expect(chartUtils).toContain('max-w-[min(70vw,220px)]')
+    expect(chartUtils).toContain('max-w-[min(70vw,240px)]')
     expect(chartUtils).not.toContain('min-w-[140px]')
   })
 
@@ -59,6 +59,11 @@ describe('Batch 5 — Chart tooltip, dismissal, and touch polish', () => {
   it('C. ChartTouchWrapper has no tabIndex and removes focus ring on surface/wrapper', () => {
     expect(chartUtils).toContain('[&_.recharts-surface]:outline-none')
     expect(chartUtils).toContain('[&_.recharts-wrapper]:outline-none')
-    expect(chartUtils).toContain('[&_.recharts-rectangle-wrapper]:outline-none')
+    // Rectangle-wrapper/bar focus suppression lives in globals.css
+    // (:focus:not(:focus-visible) + coarse-pointer :focus rules) so keyboard
+    // focus stays accessible while pointer/touch focus draws no outline.
+    const globalsCss = readSrc('app/globals.css')
+    expect(globalsCss).toContain('.recharts-bar-rectangle:focus:not(:focus-visible)')
+    expect(globalsCss).toContain('.recharts-surface *:focus:not(:focus-visible)')
   })
 })

@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
   console.log('[PUSH DEVICE UNREGISTER] Success', {
     userId: user.id,
     platform,
-    pushToken,
+    tokenPrefix: pushToken.substring(0, 8),
     authMethod
   })
 

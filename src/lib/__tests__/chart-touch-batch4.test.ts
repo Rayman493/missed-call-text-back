@@ -190,12 +190,14 @@ describe('Batch 4 — Desktop/Accessibility Preservation', () => {
     expect(newCustomersContent).toContain('!isTouchDevice')
   })
 
-  it('donut charts no longer use onClick segment selection', () => {
+  it('donut charts use exact-slice onClick selection', () => {
+    // Donut slices are selected via Pie's onClick, which receives the exact
+    // slice index — intentional exact-datum selection (Batch B contract).
     const paymentContent = readContent('src/components/analytics/PaymentCollectionGraph.tsx')
-    expect(paymentContent).not.toContain('onClick')
+    expect(paymentContent).toMatch(/<Pie[\s\S]*?onClick=\{\(_, index\)/)
 
     const leadsContent = readContent('src/components/analytics/LeadsSourceGraph.tsx')
-    expect(leadsContent).not.toContain('onClick')
+    expect(leadsContent).toMatch(/<Pie[\s\S]*?onClick=\{\(_, index\)/)
   })
 
   it('BusinessActivityGraph legend is informational only (no interactive buttons)', () => {

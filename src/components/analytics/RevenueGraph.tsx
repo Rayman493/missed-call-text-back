@@ -154,20 +154,47 @@ export default function RevenueGraph() {
     )
   }
 
-  // Nearest-x fallback: a tap anywhere on the chart area resolves to the
-  // closest datum index using the plot-area bounds — covers taps between
-  // the 18px hit circles.
+  // Nearest-x fallback: a tap on the chart surface resolves to the closest
+  // datum only when it is inside the plottable area and within the explicit
+  // tap hit tolerance. Taps outside the plot, on axes/whitespace, or beyond
+  // the tolerance clear the current selection.
   const handleChartAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const surface = (e.currentTarget as HTMLElement).querySelector('.recharts-surface') as SVGElement | null
-    if (!surface || data.length === 0) return
+    if (!surface || data.length === 0) {
+      setSelectedDatum(null)
+      return
+    }
     const rect = surface.getBoundingClientRect()
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+      setSelectedDatum(null)
+      return
+    }
     const marginLeft = CHART_STYLES.margin.left
     const marginRight = CHART_STYLES.margin.right
     const plotWidth = rect.width - marginLeft - marginRight
-    if (plotWidth <= 0) return
-    const relativeX = Math.max(0, Math.min(plotWidth, e.clientX - rect.left - marginLeft))
+    if (plotWidth <= 0) {
+      setSelectedDatum(null)
+      return
+    }
+    const relativeX = e.clientX - rect.left - marginLeft
+    if (relativeX < 0 || relativeX > plotWidth) {
+      setSelectedDatum(null)
+      return
+    }
+    if (data.length === 1) {
+      toggleDatum(0)
+      return
+    }
     const index = Math.round((relativeX / plotWidth) * (data.length - 1))
-    toggleDatum(Math.max(0, Math.min(data.length - 1, index)))
+    const clampedIndex = Math.max(0, Math.min(data.length - 1, index))
+    const nearestX = (clampedIndex / (data.length - 1)) * plotWidth
+    const halfStep = plotWidth / (data.length - 1) / 2
+    const tolerance = Math.min(CHART_STYLES.tapHitTolerance, halfStep)
+    if (Math.abs(relativeX - nearestX) > tolerance) {
+      setSelectedDatum(null)
+      return
+    }
+    toggleDatum(clampedIndex)
   }
 
   return (

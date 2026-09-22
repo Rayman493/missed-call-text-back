@@ -208,11 +208,27 @@ export default function SearchableCustomerSelect({
       const safeGap = 16
       const desiredMax = 300
 
-      // Determine direction based on available space, but never shrink below 160px
-      const useDropup = spaceAbove > spaceBelow && (spaceAbove - safeGap) >= 160
+      // Mobile (coarse-pointer) WebView: always render below the trigger.
+      // Spatial consistency beats the desktop adaptive flip, and the results
+      // list is internally scrollable so a short visible area still works.
+      // Uses pointer: coarse so a Windows touchscreen laptop (pointer: fine)
+      // still gets desktop behavior.
+      const isCoarsePointer = typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(pointer: coarse)').matches
+      const isTouchFallback = typeof window !== 'undefined' &&
+        ('ontouchstart' in window || (navigator.maxTouchPoints ?? 0) > 0)
+      const forceBelow = isCoarsePointer || isTouchFallback
+
+      // Desktop may still flip upward if there is genuinely more room above.
+      const useDropup = !forceBelow && spaceAbove > spaceBelow && (spaceAbove - safeGap) >= 160
       const available = useDropup ? spaceAbove - safeGap : spaceBelow - safeGap
       setDropup(useDropup)
-      setMaxDropdownHeight(Math.min(desiredMax, Math.max(available, 160)))
+      // Never allocate more height than the visible viewport below the trigger;
+      // the results list will scroll inside the shorter container. If there is
+      // no visible space, the dropdown still keeps its fixed search and becomes
+      // as short as the available area allows.
+      setMaxDropdownHeight(Math.min(desiredMax, Math.max(available, 0)))
     }
 
     measure()

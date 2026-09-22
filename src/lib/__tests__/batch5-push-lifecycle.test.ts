@@ -23,7 +23,10 @@ describe('Batch 5 — push registration lifecycle', () => {
   })
 
   it('sends the exact native platform and active business to the server', () => {
-    expect(pushServiceSrc).toMatch(/businessId:\s*this\.currentBusinessId/)
+    // businessIdAtRequest is captured synchronously from currentBusinessId
+    // immediately before fetch, so it is exactly what the server is told.
+    expect(pushServiceSrc).toMatch(/const businessIdAtRequest\s*=\s*this\.currentBusinessId/)
+    expect(pushServiceSrc).toMatch(/businessId:\s*businessIdAtRequest/)
     expect(pushServiceSrc).toMatch(/platform:\s*this\.currentPlatform/)
     expect(pushServiceSrc).toMatch(/deviceIdentifier:\s*this\.getDeviceIdentifier\(\)/)
   })
@@ -49,7 +52,9 @@ describe('Batch 5 — push registration lifecycle', () => {
   it('registers the route accepts and validates the client business id', () => {
     expect(registerRouteSrc).toMatch(/businessId:\s*requestedBusinessId/)
     expect(registerRouteSrc).toMatch(/requestedBusinessId/)
-    expect(registerRouteSrc).toMatch(/\.eq\(['"]id['"],\s*requestedBusinessId\)/)
+    // Team Access V1: membership in the requested business is verified via
+    // getUserRoleForBusiness before the row is written.
+    expect(registerRouteSrc).toMatch(/getUserRoleForBusiness\(supabaseAdmin,\s*user\.id,\s*requestedBusinessId\)/)
     expect(registerRouteSrc).toMatch(/user_id/)
   })
 

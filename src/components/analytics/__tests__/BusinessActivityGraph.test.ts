@@ -42,8 +42,8 @@ describe('BusinessActivityGraph', () => {
   it('renders per-datum touch targets on every series and tracks the selected datum', () => {
     expect(content).toContain('const [selectedDatum, setSelectedDatum]')
     expect(content).toContain('ChartHitDot')
-    expect(content).toMatch(/dot=\{renderHitDot\('#3b82f6'\)\}/)
-    expect(content).toMatch(/dot=\{renderHitDot\('#8b5cf6'\)\}/)
+    expect(content).toMatch(/dot=\{renderHitDot\('#3b82f6', 'conversations'\)\}/)
+    expect(content).toMatch(/dot=\{renderHitDot\('#8b5cf6', 'completedJobs'\)\}/)
   })
 
   it('falls back to nearest-x datum selection on chart-area tap', () => {

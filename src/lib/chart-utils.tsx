@@ -209,6 +209,12 @@ export function ChartSelectionPopup({
     return () => window.removeEventListener('pointerdown', handlePointerDown)
   }, [onDismiss])
 
+  // Never render a blank/white box. Require a label and at least one
+  // meaningful value. A 0 value is valid; null/undefined/empty is not.
+  if (!label || !values.some((v) => v.label && v.value != null)) {
+    return null
+  }
+
   return (
     <div
       ref={popupRef}
@@ -284,6 +290,10 @@ export const CHART_STYLES = {
   lineStrokeWidth: 2,
   activeDotRadius: 4,
 
+  // Touch: maximum distance (px) a tap may be from a rendered datum's X
+  // coordinate before it is treated as chart whitespace and clears selection.
+  tapHitTolerance: 18,
+
   // Donut
   donutInnerRadius: 50,
   donutOuterRadius: 80,
@@ -342,8 +352,69 @@ export function ChartPassiveTouchSurface({
   className?: string
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void
 }) {
+  // Gesture state is deliberately stored in refs: touch handlers fire rapidly
+  // and we must not cause re-renders on every touchmove.
+  const startRef = useRef<{ x: number; y: number; id: number } | null>(null)
+  const isDraggingRef = useRef(false)
+  const justDraggedRef = useRef(false)
+  const lastPointerTypeRef = useRef<string>('mouse')
+
   const stopTouchPropagation = useCallback((e: React.TouchEvent) => {
-    e.stopPropagation()
+    const type = e.type
+
+    if (type === 'touchstart') {
+      const t = e.touches[0]
+      if (t) {
+        startRef.current = { x: t.clientX, y: t.clientY, id: t.identifier }
+        isDraggingRef.current = false
+        justDraggedRef.current = false
+        lastPointerTypeRef.current = 'touch'
+      }
+      return
+    }
+
+    if (type === 'touchmove') {
+      const t = e.touches[0]
+      const s = startRef.current
+      if (t && s && t.identifier === s.id) {
+        const dx = Math.abs(t.clientX - s.x)
+        const dy = Math.abs(t.clientY - s.y)
+        // Any movement over the canonical 10px threshold means this is not a
+        // clean tap. Vertical-dominant movement is classified as a page scroll.
+        if (dx > GESTURE_MOVEMENT_THRESHOLD || dy > GESTURE_MOVEMENT_THRESHOLD) {
+          isDraggingRef.current = true
+        }
+      }
+      if (isDraggingRef.current) {
+        // Stop Recharts' touch middleware from claiming the scroll gesture.
+        e.stopPropagation()
+      }
+      return
+    }
+
+    if (type === 'touchend' || type === 'touchcancel') {
+      const t = e.changedTouches[0]
+      const s = startRef.current
+      if (t && s && t.identifier === s.id) {
+        // deliberate no-op
+      }
+      if (isDraggingRef.current) {
+        // A drag (vertical scroll) just finished. Mark the gesture so the
+        // trailing synthetic click can be suppressed before it reaches the
+        // chart's onClick handlers.
+        justDraggedRef.current = true
+        e.stopPropagation()
+      }
+      startRef.current = null
+      isDraggingRef.current = false
+    }
+  }, [])
+
+  const handleClickCapture = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (lastPointerTypeRef.current === 'touch' && justDraggedRef.current) {
+      justDraggedRef.current = false
+      e.stopPropagation()
+    }
   }, [])
 
   return (
@@ -353,6 +424,7 @@ export function ChartPassiveTouchSurface({
       onTouchStartCapture={stopTouchPropagation}
       onTouchMoveCapture={stopTouchPropagation}
       onTouchEndCapture={stopTouchPropagation}
+      onClickCapture={handleClickCapture}
       onClick={onClick}
     >
       {children}

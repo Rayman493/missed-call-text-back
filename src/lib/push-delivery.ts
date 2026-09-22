@@ -141,20 +141,24 @@ export async function sendPushForNotification(notification: {
     return { android: { attempted: 0, successful: 0, failed: 0 }, ios: { attempted: 0, successful: 0, failed: 0 } }
   }
 
-  console.log('[PUSH DELIVERY] Eligible tokens selected', {
-    notificationId: notification.id,
-    businessId: notification.business_id,
-    selectedTokens: devices.length,
-    exclusion,
-    correlationId
-  })
-
   const androidTokens = new Set<string>()
   const iosTokens = new Set<string>()
   for (const d of devices || []) {
     if (d.platform === 'android') androidTokens.add(d.push_token)
     else if (d.platform === 'ios') iosTokens.add(d.push_token)
   }
+
+  console.log('[PUSH DELIVERY] Eligible tokens selected', {
+    notificationId: notification.id,
+    businessId: notification.business_id,
+    selectedTokens: devices.length,
+    exclusion,
+    // Safe truncated prefixes — enough to correlate a specific device in
+    // provider logs without writing full tokens to production logs.
+    androidTokenPrefixes: Array.from(androidTokens).map(t => t.substring(0, 8) + '…'),
+    iosTokenPrefixes: Array.from(iosTokens).map(t => t.substring(0, 8) + '…'),
+    correlationId
+  })
 
   const payload: ApnsPayload = {
     notificationId: notification.id,

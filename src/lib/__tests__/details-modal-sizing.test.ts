@@ -157,7 +157,10 @@ describe('AI SUMMARY expand/collapse', () => {
     )
     expect(aiSection).not.toMatch(/min-h-\[(?!2\.5rem)/)
     expect(aiSection).not.toContain('h-full')
-    expect(aiSection).not.toContain('flex-1')
+    // flex-1 on fixed-height (h-10) action buttons is horizontal width
+    // distribution, not a height-forcing wrapper. Forbid vertical growth:
+    expect(aiSection).not.toContain('grow')
+    expect(aiSection).not.toMatch(/flex-1\s+min-h/)
   })
 })
 

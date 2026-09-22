@@ -10,7 +10,7 @@ import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative } from '@/lib/business-date-utils'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { ChartSelectionPopup, formatInteger } from '@/lib/chart-utils'
+import { ChartSelectionPopup, formatInteger, ChartPassiveTouchSurface } from '@/lib/chart-utils'
 
 interface ConversionStage {
   name: string
@@ -253,7 +253,7 @@ export default function LeadConversionGraph() {
               setSelectedDatum(null)
             }}
           >
-            <div className="space-y-4 pt-1">
+            <ChartPassiveTouchSurface className="space-y-4 pt-1">
               {displayData.map((stage) => (
                 <div
                   key={stage.name}
@@ -288,7 +288,7 @@ export default function LeadConversionGraph() {
                   </div>
                 </div>
               ))}
-            </div>
+            </ChartPassiveTouchSurface>
             {selectedDatum && (
               <ChartSelectionPopup
                 label={selectedDatum.name}
