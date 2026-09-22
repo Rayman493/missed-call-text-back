@@ -77,6 +77,35 @@ describe('buildCanonicalExtractedInfo correction precedence', () => {
     expect(result.callbackTime).to.equal('Anytime');
   });
 
+  it('persists the corrected leaking-pipe request for the Jason Williams call', async () => {
+    // AI-INTAKE-014: the explicit service correction must survive completion
+    // persistence — extracted_info, summaries, and summary SMS all read from
+    // this output. The original raw faucet wording must not win.
+    const fields = {
+      customerName: 'Jason Williams',
+      serviceRequested: 'leaking pipe under the sink',
+      request: 'leaking pipe under the sink',
+      issueDescription: '',
+      serviceAddress: '1632 South Pine Drive',
+      desiredCompletionTime: "By Thursday, if that's possible",
+      callbackTime: 'anytime, around noon',
+    };
+
+    const result = await buildCanonicalExtractedInfo(
+      fields,
+      '+15551234567',
+      'onsite',
+      'CA_jason_williams',
+      'I need someone to fix a broken bathroom faucet.'
+    );
+
+    expect(result.serviceRequested).to.equal('leaking pipe under the sink');
+    expect(result.serviceRequested.toLowerCase()).to.not.include('faucet');
+    expect(result.serviceAddress).to.equal('1632 South Pine Drive');
+    expect(result.desiredCompletionTime).to.equal("By Thursday, if that's possible");
+    expect(result.callbackTime).to.equal('anytime, around noon');
+  });
+
   it('does not call the model when explicit service and details are absent', async () => {
     const fields = {
       customerName: '',

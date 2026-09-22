@@ -131,7 +131,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
-import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isValidCustomerName as isCanonicalCustomerName, isUsableServiceAddress, isMetaUtterance, isValidCompletionTime, isValidCallbackTime, isValidServiceRequest, isValidServiceAddress } from './intake-validation';
+import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isValidCustomerName as isCanonicalCustomerName, isUsableServiceAddress, isMetaUtterance, isValidCompletionTime, isValidCallbackTime, isValidServiceRequest, isValidServiceAddress, cleanDisplayIntakeText } from './intake-validation';
 
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
@@ -1385,6 +1385,8 @@ interface IntakeData {
   skipNextStage?: boolean; // Flag to skip next stage (used when both name and reason captured in ask_name)
   needsNameReprompt?: boolean; // Flag to trigger targeted name-only reprompt (used when only reason given in ask_name)
   needsServiceReprompt?: boolean; // Flag to trigger targeted service-only reprompt (used when only name given in ask_name_reason)
+  nameMissCount?: number; // Consecutive name-stage utterances that produced no usable name
+  nameUnclear?: boolean; // Name genuinely unknown after repeated implausible answers — never fabricate
 }
 
 interface LeadSummary {
@@ -4507,8 +4509,16 @@ function normalizeExtractedFields(extractedFields: any): any {
 type ScriptCategory = 'empty' | 'english_latin' | 'mixed_non_english' | 'garbled';
 
 function sanitizeEnglishIntakeField(fieldName: string, value: string): string {
-  const trimmed = (value || '').trim();
+  let trimmed = (value || '').trim();
   if (!trimmed) return '';
+
+  // Display-level cleanup for free-text fields: remove verbal filler and
+  // stutter without altering facts. Scalar fields (name/address/timing) are
+  // left to their own extractors so nothing meaningful is stripped.
+  if (fieldName === 'serviceRequested' || fieldName === 'importantDetails' || fieldName === 'additionalDetails' || fieldName === 'issueDescription') {
+    trimmed = cleanDisplayIntakeText(trimmed);
+    if (!trimmed) return '';
+  }
 
   const letters = Array.from(trimmed.matchAll(/\p{L}/gu)).map(match => match[0]);
   const nonLatinLetters = letters.filter(char => !/\p{Script=Latin}/u.test(char));
@@ -7728,6 +7738,16 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[ASK_NAME FALLBACK: NO VALID DATA] action: stay_in_name_stage');
           console.log('[ASK_NAME FALLBACK: NO VALID DATA] Timestamp:', new Date().toISOString());
           console.log('[ASK_NAME FALLBACK: NO VALID DATA] =========================================');
+          // Count implausible/unusable name answers; after two misses the
+          // name is genuinely unknown — satisfy the requirement so the call
+          // proceeds without a name rather than stalling or fabricating one.
+          if (!isNameRefusal(rawTranscript)) {
+            state.intakeData.nameMissCount = (state.intakeData.nameMissCount || 0) + 1;
+            if (state.intakeData.nameMissCount >= 2) {
+              state.intakeData.nameUnclear = true;
+              console.log('[NAME UNCLEAR] misses:', state.intakeData.nameMissCount, '| action: proceed_without_name');
+            }
+          }
           state.answerAcceptedForStage = null; // Force re-prompt
           return null;
         }
@@ -8483,6 +8503,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       } else {
         capturedAnswer = parseResult.customerName;
         extractedField = 'customerName';
+      }
+
+      // Repeated implausible/unusable name answers: after two misses the name
+      // is genuinely unknown — satisfy the requirement so the call proceeds
+      // without a name rather than stalling or storing ASR garbage.
+      if (!isNameRefused && !isNameRequirementSatisfied(state.intakeData)) {
+        state.intakeData.nameMissCount = (state.intakeData.nameMissCount || 0) + 1;
+        if (state.intakeData.nameMissCount >= 2) {
+          state.intakeData.nameUnclear = true;
+          console.log('[NAME UNCLEAR] misses:', state.intakeData.nameMissCount, '| action: proceed_without_name');
+        }
       }
     }
 

@@ -15,6 +15,7 @@ import {
   isValidCallbackTime,
   isValidCustomerName,
   isMetaUtterance,
+  cleanDisplayIntakeText,
 } from './intake-validation';
 import {
   EARLY_COMPLETION_PATTERNS,
@@ -199,7 +200,88 @@ function extractCustomerName(transcript: string): string | null {
   return null;
 }
 
-const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean }[] = [
+// ---------------------------------------------------------------------------
+// Spoken house-number normalization
+// "sixteen thirty-two" -> 1632, "one six three two" -> 1632,
+// "one thousand six hundred thirty-two" -> 1632, "1632" -> 1632
+// ---------------------------------------------------------------------------
+const SPOKEN_UNITS: Record<string, number> = {
+  zero: 0, oh: 0, o: 0, one: 1, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9,
+};
+const SPOKEN_TEENS: Record<string, number> = {
+  ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14,
+  fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+};
+const SPOKEN_TENS: Record<string, number> = {
+  twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+  seventy: 70, eighty: 80, ninety: 90,
+};
+const SPOKEN_NUMBER_WORD =
+  '(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|' +
+  'thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|' +
+  'forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|\\d+)';
+
+/**
+ * Convert a spoken house-number phrase to digits. Returns null when the
+ * phrase is not a coherent number (the caller then keeps the raw text rather
+ * than a fabricated number — ambiguous ASR must not invent digits).
+ */
+export function spokenHouseNumberToDigits(phrase: string): string | null {
+  const tokens = phrase.toLowerCase().replace(/[^a-z0-9\s-]/g, '').split(/[\s-]+/).filter(Boolean);
+  if (tokens.length === 0 || tokens.length > 8) return null;
+  // Already-digit phrases ("28 47", "1632") pass through verbatim — never
+  // rewrite the caller's literal digit grouping.
+  if (tokens.every(t => /^\d+$/.test(t))) return phrase.trim().replace(/[.,;:!?]+$/, '');
+
+  // Digit-by-digit dictation: "one six three two", "1 6 3 2".
+  const singleDigit = (t: string): number | null =>
+    /^\d$/.test(t) ? Number(t) : (SPOKEN_UNITS[t] !== undefined ? SPOKEN_UNITS[t] : null);
+  if (tokens.every(t => singleDigit(t) !== null)) {
+    if (tokens.length < 2) return null;
+    return tokens.map(t => String(singleDigit(t))).join('');
+  }
+
+  // Arithmetic form: "one thousand six hundred thirty-two" -> 1632.
+  if (tokens.some(t => t === 'hundred' || t === 'thousand')) {
+    let total = 0, current = 0, ok = true;
+    for (const t of tokens) {
+      if (/^\d+$/.test(t)) { current += Number(t); continue; }
+      if (SPOKEN_UNITS[t] !== undefined && t !== 'oh' && t !== 'o') { current += SPOKEN_UNITS[t]; continue; }
+      if (SPOKEN_TEENS[t] !== undefined) { current += SPOKEN_TEENS[t]; continue; }
+      if (SPOKEN_TENS[t] !== undefined) { current += SPOKEN_TENS[t]; continue; }
+      if (t === 'hundred') { current = (current || 1) * 100; continue; }
+      if (t === 'thousand') { total += (current || 1) * 1000; current = 0; continue; }
+      ok = false; break;
+    }
+    const n = total + current;
+    return ok && n > 0 && n <= 99999 ? String(n) : null;
+  }
+
+  // Concatenated <=99 groups: "sixteen thirty-two" -> "16"+"32" = 1632.
+  const groups: number[] = [];
+  let i = 0;
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (/^\d+$/.test(t)) { groups.push(Number(t)); i++; continue; }
+    if (SPOKEN_TEENS[t] !== undefined) { groups.push(SPOKEN_TEENS[t]); i++; continue; }
+    if (SPOKEN_TENS[t] !== undefined) {
+      let v = SPOKEN_TENS[t]; i++;
+      if (i < tokens.length && SPOKEN_UNITS[tokens[i]] !== undefined && !['oh', 'o', 'zero'].includes(tokens[i])) {
+        v += SPOKEN_UNITS[tokens[i]]; i++;
+      }
+      groups.push(v); continue;
+    }
+    if (SPOKEN_UNITS[t] !== undefined) { groups.push(SPOKEN_UNITS[t]); i++; continue; }
+    return null;
+  }
+  if (groups.length === 0) return null;
+  if (groups.length === 1) return String(groups[0]);
+  if (groups.some(g => g > 99)) return null;
+  return groups.map(g => String(g)).join('');
+}
+
+const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean | 'spoken-number' }[] = [
   {
     // Numbered-street correction: "it's 937, not 931, Pine Hollow Road" /
     // "it's 937 Pine Hollow Road". The corrected house number is captured
@@ -213,6 +295,17 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean }[] =
     pattern:
       /\b(?:address is|located at|it's at|its at|job is at|job's at|service is at|service location is|the address is|the property is at|my address is)\s+([^.!?\n]+?)(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
     type: 'explicit',
+  },
+  {
+    // Spoken house number: "sixteen thirty-two South Pine Drive" /
+    // "one thousand six hundred thirty-two South Pine Drive" — converts the
+    // spoken number to digits and keeps the full street phrase.
+    pattern: new RegExp(
+      `\\b(${SPOKEN_NUMBER_WORD}(?:[\\s-]+${SPOKEN_NUMBER_WORD}){0,7})\\s+((?:[a-z0-9'-]+\\s+){0,6}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\\b[^.!?\\n]*?)(?=\\s*(?:,?\\s*\\band\\b|[.!?](?:\\s|$)|;|$))`,
+      'i',
+    ),
+    type: 'street-address',
+    combine: 'spoken-number',
   },
   {
     pattern:
@@ -265,11 +358,28 @@ function findAddressMatch(transcript: string): ExtractedMatch | null {
   for (const { pattern, type, combine } of ADDRESS_PATTERNS) {
     const match = transcript.match(pattern);
     if (match && match[1]) {
-      let candidate = combine && match[2]
-        ? `${match[1].trim()} ${match[2].trim()}`
-        : match[1]
-          .replace(/,\s*(?:i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b).*$/i, '')
-          .trim();
+      let candidate: string;
+      if (combine === 'spoken-number') {
+        // Number-word capture followed by street words — convert to digits.
+        // A street phrase containing "not" belongs to the explicit-correction
+        // pattern above; never build a number+street candidate from it.
+        if (/\bnot\b/i.test(match[2] || '')) continue;
+        const digits = spokenHouseNumberToDigits(match[1]);
+        if (!digits) continue;
+        candidate = `${digits} ${match[2].trim()}`;
+      } else {
+        candidate = combine && match[2]
+          ? `${match[1].trim()} ${match[2].trim()}`
+          : match[1]
+            .replace(/,\s*(?:i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b).*$/i, '')
+            .trim();
+      }
+      // Normalize any remaining spoken house number embedded in the candidate
+      // (e.g. "my address is sixteen thirty-two ..." captured by 'explicit').
+      candidate = candidate.replace(
+        new RegExp(`\\b(${SPOKEN_NUMBER_WORD}(?:[\\s-]+${SPOKEN_NUMBER_WORD}){1,7})(?=\\s+(?:[a-z0-9'-]+\\s+){0,6}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\\b)`, 'gi'),
+        (m) => spokenHouseNumberToDigits(m) ?? m,
+      );
       candidate = candidate.trim();
       if (isConfidentEarlyServiceAddress(candidate, type)) {
         const value = candidate
@@ -865,23 +975,44 @@ function extractCorrectionServiceRequest(transcript: string, existingService?: s
     if (isValidServiceRequest(candidate)) return candidate;
   }
 
+  // Candidate terminator: an explicit correction clause ends at a clause
+  // boundary, a negated/instead tail, a field switch, or end-of-utterance.
+  const clauseEnd = /(?:,|;|\.\s|\s+not\b|\s+instead\b|\s+and\s+(?:the\s+)?(?:address|call|phone)|[.!?]?\s*$)/.source;
   const explicitPatterns = [
-    // "Actually it's the shower, not the toilet"
-    /\b(?:actually,?\s*it's|actually,?\s*it is|it's|it is|it was|sorry,?\s*it's)\s+(?:a\s+|the\s+)?([a-z][a-z\s\-]+?)(?:,|;|\.\s|\s+not\b|\s+instead\b|\s+and\s+(?:the\s+)?(?:address|call|phone))/i,
+    // "Actually it's the shower, not the toilet" /
+    // "It's not the faucet. It's a leaking pipe under the sink."
+    new RegExp(`\\b(?:actually,?\\s*it's|actually,?\\s*it is|it's|it is|it was|sorry,?\\s*it's)\\s+(?:a\\s+|the\\s+)?([a-z][a-z\\s\\-]+?)${clauseEnd}`, 'i'),
     // "Change it to a sink repair", "Make it a shower", "Use 500 Pine Street" (last is caught by address)
-    /\b(?:change that to|change it to|make it|make that|use)\s+(?:a\s+|the\s+)?([a-z][a-z\s\-]+?)(?:,|;|\.\s|\s+not\b|\s+instead\b|\s+and\s+(?:the\s+)?(?:address|call|phone))/i,
+    new RegExp(`\\b(?:change that to|change it to|make it|make that|use)\\s+(?:a\\s+|the\\s+)?([a-z][a-z\\s\\-]+?)${clauseEnd}`, 'i'),
+    // "Sorry, I meant the backyard gate." / "Actually, I misspoke, it's the gate."
+    new RegExp(`\\b(?:i\\s+meant|i\\s+misspoke|sorry,?\\s+i\\s+meant)\\s+(?:the\\s+|a\\s+|an\\s+|my\\s+)?([a-z][a-z\\s\\-]+?)${clauseEnd}`, 'i'),
+    // "Actually, don't replace it. I just need the existing sink unclogged."
+    new RegExp(`\\bi\\s+(?:just\\s+)?need\\s+(?:the\\s+|a\\s+|an\\s+|my\\s+)?([a-z][a-z\\s\\-]+?)${clauseEnd}`, 'i'),
   ];
 
+  const serviceNouns = /\b(shower|toilet|sink|tub|faucet|roof|fence|gate|lock|door|window|pipe|gutter|floor|wall|ceiling|ac|heater|furnace|boiler|garage|light|outlet|switch|wire|appliance|machine|device|lawn|grass|yard)\b/i;
+  const actionWords = /\b(repair|repaired|fix|fixed|leak|leaking|broken|broke|stopped|cut|mowed|cleaned|painted|replaced|removed|trimmed|serviced|installed|unclog|unclogged|clogged)\b/i;
+  // A clause that only relocates the problem ("it's under the sink, not
+  // behind the wall") refines details — it is not a service replacement.
+  const spatialLead = /^(?:under|underneath|behind|inside|outside|below|above|next\s+to|near|in|on|at|around|by)\b/i;
+
   for (const pattern of explicitPatterns) {
-    const match = transcript.match(pattern);
-    if (match && match[1]) {
+    // Walk every match in the utterance: an explicit correction may negate the
+    // old service first ("It's not the faucet.") before stating the
+    // replacement ("It's a leaking pipe under the sink."), so a stripped or
+    // empty first match must not stop the search.
+    let rest = transcript;
+    while (rest) {
+      const match = rest.match(pattern);
+      if (!match || !match[1]) break;
       let candidate = match[1].trim().replace(/[.,;]$/, '');
       // Strip trailing negated phrase if any leaked in (e.g., "shower, not the toilet").
       candidate = candidate.replace(/\s*,?\s*not\s+.*$/i, '').trim();
       candidate = candidate.replace(/\s*,?\s*instead(?:\s+of\s+.*)?$/i, '').trim();
+      rest = rest.slice((match.index || 0) + match[0].length);
+      if (!candidate) continue;
+      if (spatialLead.test(candidate)) continue;
 
-      const serviceNouns = /\b(shower|toilet|sink|tub|faucet|roof|fence|gate|lock|door|window|pipe|gutter|floor|wall|ceiling|ac|heater|furnace|boiler|garage|light|outlet|switch|wire|appliance|machine|device|lawn|grass|yard)\b/i;
-      const actionWords = /\b(repair|repaired|fix|fixed|leak|leaking|broken|broke|stopped|cut|mowed|cleaned|painted|replaced|removed|trimmed|serviced|installed)\b/i;
       const hasServiceNoun = serviceNouns.test(candidate);
       const hasActionWord = actionWords.test(candidate);
 
@@ -1033,11 +1164,11 @@ export function splitServiceAndDetails(serviceText: string): { reason: string; d
 // into Details. These markers identify clause ownership, not problem context.
 const CALLBACK_OWNED_CLAUSE_RE = /\b(?:don'?t|do\s+not|didn'?t|please\s+don'?t|never)\s+call\b|\bcall\s*back\b|\bcallback\b|\bcall\s+me\b|\byou\s+can\s+call\b|\breach\s+me\b|\bcontact\s+me\b|\bphone\s+me\b|\btext\s+me\b/i;
 const ADDRESS_OWNED_CLAUSE_RE = /\b(?:my\s+address\s+is|the\s+address\s+is|address\s+is|i'?m\s+at\b|i\s+am\s+at\b|we'?re\s+at\b|we\s+are\s+at\b|located\s+at|live\s+at|i\s+live\s+at|the\s+property\s+is\s+at|it'?s\s+at)\b/i;
-const CORRECTION_SCAFFOLD_CLAUSE_RE = /\b(?:i\s+(?:gave|told)\s+you\s+the\s+wrong|the\s+wrong\s+(?:address|name|number|time|day)|i\s+meant?\b|i\s+said\b|make\s+(?:that|it|the)\b|change\s+(?:that|it|the)\b|scratch\s+that\b|\binstead\b|let\s+me\s+(?:correct|fix)\b)/i;
+const CORRECTION_SCAFFOLD_CLAUSE_RE = /\b(?:i\s+(?:gave|told)\s+you\s+the\s+wrong|the\s+wrong\s+(?:address|name|number|time|day)|i\s+meant?\b|i\s+misspoke\b|i\s+said\b|it'?s\s+not\s+(?:the|a|an)\b|it'?s\s+(?:the\s+|a\s+|an\s+)?[a-z][a-z\s\-']*,\s*not\b|make\s+(?:that|it|the)\b|change\s+(?:that|it|the)\b|scratch\s+that\b|\binstead\b|let\s+me\s+(?:correct|fix)\b)/i;
 // A clause that is ONLY a timing expression (no problem/incident content) is a
 // timing-field answer, not a detail. Incident-history wording ("it shut off
 // around 2 pm yesterday") stays eligible as a detail.
-const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:the\s+)?(?:sometime|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|no\s+rush|as\s+soon\s+as\s+(?:possible|you\s+can)|asap)\b[^.!?]*$/i;
+const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:the\s+)?(?:sometime|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|in\s+(?:the\s+)?next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend)|in\s+(?:(?:a|an|the)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?|years?)|within\s+(?:the\s+)?(?:next\s+)?(?:(?:a|an)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?)|by\s+(?:the\s+end\s+of\s+(?:the\s+)?(?:week|month|year)|end\s+of\s+(?:the\s+)?(?:week|month|year)|next\s+(?:week|month|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(?:week|weekend|month)|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|as\s+soon\s+as\s+(?:possible|you\s+can|he\s+can|she\s+can|they\s+can|convenient)|before\s+(?:the\s+)?(?:weekend|next\s+week|the\s+end\s+of\s+(?:the\s+)?(?:week|month)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|not\s+(?:before|until)\b[^.!?]*|(?:early|late|later)\s+(?:next|this)\s+(?:week|month|weekend)|the\s+sooner\s+the\s+better|sooner\s+the\s+better|no\s+rush|no\s+hurry|when\s+it'?s\s+convenient|at\s+your\s+(?:earliest\s+)?convenience|asap)\b[^.!?]*$/i;
 
 // A clause that is ONLY a callback scalar answer — "after 3 PM", "anytime",
 // "around noon" — is callback field content, not a supporting detail.
@@ -1122,7 +1253,11 @@ function extractDetailSentences(
     // loose"), which is real supporting context even at 2 words.
     const detailWordCount = (sentence.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
     if (detailWordCount < 3 && !/\b(?:rattl\w*|leak\w*|drip\w*|squeak\w*|grind\w*|vibrat\w*|smell\w*|spark\w*|loose|stuck|broken|crack\w*|pool\w*|swell\w*|snap(?:ped)?|clog\w*|overflow\w*|soaked|frozen|flicker\w*|noisy|loud)\b/i.test(sentence)) continue;
-    details.push(sentence.replace(/[.,;!?\s]+$/, ''));
+    // Display-level cleanup: strip verbal filler/stutter from structured
+    // Details without deleting facts or rewriting the caller's meaning.
+    const cleaned = cleanDisplayIntakeText(sentence).replace(/[.,;!?\s]+$/, '');
+    if (!cleaned) continue;
+    details.push(cleaned);
   }
   if (details.length === 0) return null;
   // Dedupe while preserving order
@@ -1141,6 +1276,11 @@ function extractDetailSentences(
  * sentences. An explicit correction replaces the details entirely.
  */
 function mergeDetails(existing: string | undefined, incoming: string | null, isCorrection: boolean): string | undefined {
+  if (!incoming) return existing;
+  // Display-level cleanup at the single merge point so filler cannot reach
+  // issueDescription via any detail path (sentence extractor, issue splitter,
+  // regex parts).
+  incoming = cleanDisplayIntakeText(incoming);
   if (!incoming) return existing;
   if (isCorrection) return incoming;
   const oldText = (existing || '').trim();
@@ -1451,8 +1591,9 @@ export function enrichIntakeFromTranscript(
   const isServiceStage = ['ask_name', 'ask_name_reason', 'ask_request'].includes(currentStage);
   let cleanedService: string | null = null;
 
+  let correctedService: string | null = null;
   if (isCorrection && existingService) {
-    const correctedService = extractCorrectionServiceRequest(transcript, existingService);
+    correctedService = extractCorrectionServiceRequest(transcript, existingService);
     if (correctedService) {
       cleanedService = correctedService;
       detected.push('serviceRequested');
@@ -1511,7 +1652,11 @@ export function enrichIntakeFromTranscript(
   // details "underneath the cabinet").
   // Only split on spatial/positional detail phrases (under, behind, next to, etc.)
   // to avoid stripping work verbs or address text from the request.
-  const issueDescription = validCleanedService
+  // When an explicit service correction supplied the new canonical service,
+  // its own clause is the service — sub-phrases inside it ("under the sink"
+  // in "leaking pipe under the sink") must not be split off into
+  // issueDescription or trimmed out of the corrected request.
+  const issueDescription = validCleanedService && !correctedService
     ? findIssueDescription(transcript, validCleanedService)
     : null;
   const SPATIAL_PREFIX = /^(?:under|underneath|behind|inside|outside|below|above|next to|near)\b/i;

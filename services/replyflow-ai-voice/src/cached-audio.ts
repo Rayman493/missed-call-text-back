@@ -30,7 +30,7 @@ export const cachedAudioChecksums = {
   ask_completion_time: "e4dda3552d0215544ef1cb2fead67c7a394aea481d1625a2da9543c27bb25827",
   ask_callback_time: "45f084f37b5915c56aa20df50a2a239ffd0a2b609c976e21dfa1b927a620ccce",
   complete: "5ac32617ec19daeb1b3630d4dc99df86f3dc2b8763c74eb6f39e7f57b9d9a322",
-  ask_name: "e0e45f1d5e09181c5cc29f9972984160676d0b0bdf370c3f29e4219d7159404d",
+  ask_name: "96fa4d4a466e3746dfd48db03d1b4e5fa189b4f4677adfc940b4d37fc0aee9a7",
   ask_request: "a96363768e0bcbf61630f6c5a6989a8f516644344348d947e0b535dfa76ec5e7",
 } as const;
 

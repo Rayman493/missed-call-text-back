@@ -222,7 +222,7 @@ function runTests() {
   const cachedAudio = require('../src/cached-audio.ts');
 
   test('All required prompt keys present', () => {
-    const requiredKeys = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time', 'complete'];
+    const requiredKeys = ['ask_name', 'ask_request', 'ask_name_reason', 'ask_name_reason_service_only', 'ask_name_reason_name_only', 'ask_location', 'ask_completion_time', 'ask_callback_time', 'complete'];
     for (const key of requiredKeys) {
       if (!cachedAudio.cachedPromptAudio[key]) return false;
     }
@@ -247,7 +247,7 @@ function runTests() {
   });
 
   test('Generation version current', () => {
-    return cachedAudio.CACHED_AUDIO_GENERATION_VERSION === 'resampler-v2';
+    return cachedAudio.CACHED_AUDIO_GENERATION_VERSION === 'realtime-pcmu-marin-canonical';
   });
 
   test('Checksums present (optional until assets regenerated)', () => {

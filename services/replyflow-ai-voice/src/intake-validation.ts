@@ -137,6 +137,75 @@ const NON_NAME_WORDS = new Set([
 ]);
 
 /**
+ * Tokens that are essentially never part of a person's name. Rejected
+ * per-token: a candidate containing ANY of these is not a name.
+ * This is a rejection list for ASR mistranscriptions ("Buying Band-Aid" for
+ * "Ryan Bandi"), NOT a hardcoded dictionary of allowed names — legitimate
+ * uncommon names are unaffected because none of these are name tokens.
+ */
+const INVALID_NAME_TOKENS = new Set([
+  // ASR-frequent non-name vocabulary (products, objects, actions)
+  'buying', 'selling', 'calling', 'testing', 'texting', 'typing', 'dialing',
+  'ringing', 'ordering', 'shipping', 'delivering', 'billing', 'paying',
+  'booking', 'scheduling', 'confirming', 'cancelling', 'canceling',
+  'checking', 'clicking', 'scrolling', 'swiping', 'tapping',
+  'bandaid', 'bandaids', 'band', 'aid', 'aids', 'bandage', 'tape', 'glue',
+  'stapler', 'scissors', 'razor', 'shampoo', 'soap', 'lotion', 'detergent',
+  'bleach', 'warranty', 'guarantee', 'insurance', 'invoice', 'receipt',
+  'payment', 'subscription', 'membership', 'appointment', 'reservation',
+  'booking', 'password', 'username', 'account', 'profile', 'device',
+  'router', 'modem', 'network', 'cable', 'charger', 'battery', 'screen',
+  'keyboard', 'laptop', 'computer', 'tablet', 'cellphone', 'smartphone',
+  'camera', 'speaker', 'microphone', 'headphone', 'earbuds', 'television',
+  'remote', 'channel', 'internet', 'website', 'email', 'notification',
+  'confirmation', 'verification',
+]);
+
+/**
+ * Common English content words that are very unlikely (but not impossible)
+ * name tokens. Used ONLY by the all-tokens rule in isValidCustomerName: a
+ * multi-token candidate is rejected when EVERY token is common non-name
+ * vocabulary ("Buying Band-Aid", "Dog Grooming"). A single uncommon token
+ * ("Bandi", "Turner") keeps the candidate alive, so legitimate names like
+ * "Loving Turner" or "Violet Rose" survive.
+ */
+const COMMON_NON_NAME_WORDS = new Set([
+  'buying', 'selling', 'calling', 'testing', 'texting', 'typing', 'talking',
+  'speaking', 'listening', 'hearing', 'waiting', 'watching', 'looking',
+  'trying', 'asking', 'telling', 'saying', 'going', 'coming', 'doing',
+  'making', 'taking', 'getting', 'putting', 'cutting', 'hanging', 'holding',
+  'keeping', 'letting', 'using', 'finding', 'giving', 'bringing', 'building',
+  'breaking', 'cleaning', 'painting', 'fixing', 'driving', 'running',
+  'walking', 'playing', 'picking', 'pulling', 'pushing', 'reading',
+  'sending', 'serving', 'sharing', 'shooting', 'showing', 'sitting',
+  'smiling', 'spelling', 'spending', 'standing', 'sticking', 'studying',
+  'swimming', 'swinging', 'teaching', 'thinking', 'throwing', 'touching',
+  'turning', 'visiting', 'voting', 'washing', 'waving', 'wearing',
+  'wishing', 'wondering', 'working', 'writing', 'yelling', 'feeling',
+  'falling', 'filling', 'flying', 'crying', 'drying', 'frying', 'lying',
+  'tying', 'signing', 'dining', 'eating', 'drinking', 'sleeping', 'cooking',
+  'fishing', 'hunting', 'digging', 'riding', 'hiking', 'camping', 'dancing',
+  'singing', 'drawing', 'growing', 'knowing', 'meaning', 'meeting',
+  'moving', 'opening', 'closing', 'seeming', 'living', 'loving', 'hoping',
+  'helping', 'needing', 'wanting', 'winning', 'losing', 'missing',
+  'passing', 'pressing', 'crossing', 'leading', 'landing', 'striking',
+  'saving', 'checking', 'lifting', 'lowering', 'raising', 'carrying',
+  'catching', 'reaching', 'stretching', 'bending', 'leaning', 'climbing',
+  'jumping', 'slipping', 'tripping', 'sinking', 'floating',
+  // product/object/service nouns (same set as INVALID_NAME_TOKENS)
+  'bandaid', 'bandaids', 'band', 'aid', 'aids', 'bandage', 'tape', 'glue',
+  'stapler', 'scissors', 'razor', 'shampoo', 'soap', 'lotion', 'detergent',
+  'bleach', 'warranty', 'guarantee', 'insurance', 'invoice', 'receipt',
+  'payment', 'subscription', 'membership', 'appointment', 'reservation',
+  'booking', 'password', 'username', 'account', 'profile', 'device',
+  'router', 'modem', 'network', 'cable', 'charger', 'battery', 'screen',
+  'keyboard', 'laptop', 'computer', 'tablet', 'cellphone', 'smartphone',
+  'camera', 'speaker', 'microphone', 'headphone', 'earbuds', 'television',
+  'remote', 'channel', 'internet', 'website', 'email', 'notification',
+  'confirmation', 'verification',
+]);
+
+/**
  * True when the text is composed entirely of conversational/function words
  * ("like old times", "that's fine", "can you hear me") — i.e. it carries no
  * substantive field content. Requires >=2 words so terse single-word answers
@@ -405,7 +474,11 @@ export function isValidCustomerName(name: string): boolean {
   // "Mary Ann Smith" and "Siobhan O'Connor"), each token letters/apostrophes/
   // hyphens only, and no conversational/function words ("like old times",
   // "can you hear me", "that's fine" are rejected here, not by a name list).
-  const words = trimmed.split(/\s+/);
+  // Edge punctuation per token ("Williams." -> "Williams") is stripped so
+  // sentence punctuation from ASR does not reject an otherwise well-formed name.
+  const words = trimmed
+    .split(/\s+/)
+    .map(w => w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, ''));
   if (words.length > 4) {
     return false;
   }
@@ -413,7 +486,19 @@ export function isValidCustomerName(name: string): boolean {
   if (!words.every(w => nameTokenRe.test(w))) {
     return false;
   }
-  if (words.some(w => NON_NAME_WORDS.has(w.toLowerCase().replace(/['’\-]/g, '')))) {
+  const normWords = words.map(w => w.toLowerCase().replace(/['’\-]/g, ''));
+  if (normWords.some(w => NON_NAME_WORDS.has(w))) {
+    return false;
+  }
+  // ASR-garbage guard: any never-a-name token rejects the candidate outright
+  // ("Buying Band-Aid" for "Ryan Bandi").
+  if (normWords.some(w => INVALID_NAME_TOKENS.has(w))) {
+    return false;
+  }
+  // All-common-vocabulary guard: a multi-token candidate composed entirely of
+  // common non-name words is almost certainly a mistranscription, not a name.
+  // Single-token candidates are exempt so uncommon legitimate names survive.
+  if (normWords.length >= 2 && normWords.every(w => NON_NAME_WORDS.has(w) || COMMON_NON_NAME_WORDS.has(w))) {
     return false;
   }
 
@@ -451,10 +536,13 @@ export interface IntakeData {
  */
 export function isNameRequirementSatisfied(intake: IntakeData): boolean {
   const hasValidCustomerName = !!intake.customerName && isValidCustomerName(intake.customerName);
-  const satisfied = hasValidCustomerName || !!intake.nameRefused;
+  // nameUnclear: the caller answered but recognition stayed implausible after
+  // repeated attempts — the name is genuinely unknown, never fabricated.
+  const satisfied = hasValidCustomerName || !!intake.nameRefused || !!(intake as any).nameUnclear;
   console.log('[name_requirement_satisfied]', {
     customerName: intake.customerName,
     nameRefused: intake.nameRefused,
+    nameUnclear: (intake as any).nameUnclear,
     satisfied,
     hasValidCustomerName
   });
@@ -702,4 +790,44 @@ export function normalizeStructuredFieldValue(
   }
 
   return s;
+}
+/**
+ * Display-level cleanup for structured intake text (Details, summaries,
+ * canonical field values). Removes verbal filler and stutter WITHOUT deleting
+ * meaningful information, altering the raw transcript, or rewriting the
+ * caller's words in stored source data.
+ *
+ * What it removes: standalone fillers ("um", "uh", "erm"), discourse markers
+ * ("you know", "i mean", "like i said"), immediate word stutters ("the the"),
+ * and leading connectors ("so", "well", "and", "but"). Explicit uncertainties
+ * and qualifications ("if that's possible", "I think") are preserved.
+ */
+export function cleanDisplayIntakeText(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  let s = text;
+
+  // Standalone verbal fillers with optional following punctuation.
+  s = s.replace(/\b(?:um+|uh+|erm+|hmm+|mm+|mhm)\b[,.;]?\s*/gi, ' ');
+
+  // Discourse markers that carry no factual content. "I guess"/"I suppose"/
+  // "I think" are deliberately kept — they express caller uncertainty, which
+  // must survive into structured output.
+  s = s.replace(/\b(?:you know|i mean|like i said)\b[,.;]?\s*/gi, ' ');
+
+  // Immediate word stutters: "the the pipe" -> "the pipe".
+  s = s.replace(/\b([\p{L}]+)[,\s]+\1\b/giu, '$1');
+
+  // Collapse runs of whitespace and orphaned punctuation.
+  s = s.replace(/\s{2,}/g, ' ').replace(/\s+([,.;!?])/g, '$1');
+
+  // Per-sentence: strip leading discourse connectors. Existing convention
+  // preserves the caller's casing verbatim — no capitalization rewrite.
+  s = s.split(/(?<=[.!?])\s+/).map(sentence =>
+    sentence
+      .replace(/^[,\s]+/, '')
+      .replace(/^(?:(?:so|well|and|but|like|okay|ok|yeah|yes|right|basically|actually|literally)[,\s]+)+/i, '')
+      .trim()
+  ).filter(Boolean).join(' ');
+
+  return s.trim();
 }
