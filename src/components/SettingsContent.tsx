@@ -4994,6 +4994,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             {!business.stripe_payouts_enabled && <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400"><span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span><span>Payouts require verification</span></div>}
                           </div>
                         )}
+                        {stripeStatus === 'connected' && (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Stripe processes customer card payments. Bank payouts run on a manual schedule — transfer available funds from the Stripe dashboard via Manage Stripe.
+                          </div>
+                        )}
                         {isStripeConnectUnavailable && (
                           <div className="text-xs text-slate-500 dark:text-slate-400">
                             Card payments unavailable. Use Venmo or PayPal.
