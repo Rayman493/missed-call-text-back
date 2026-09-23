@@ -38,14 +38,25 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { amountCents, currency = 'usd', leadId, jobId, description, terminalAttemptId } = body
 
-    // Validate required fields
-    if (!amountCents || typeof amountCents !== 'number') {
-      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
+    // CRITICAL: Validate amount type and range to prevent money corruption
+    // Must match the validation used by /api/payments/create
+    if (!amountCents || typeof amountCents !== 'number' || !Number.isSafeInteger(amountCents)) {
+      return NextResponse.json({ error: 'Amount must be a valid integer in cents' }, { status: 400 })
     }
 
     if (amountCents <= 0) {
       return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 })
     }
+
+    if (amountCents > 100000000) { // Max $1,000,000 to prevent absurd amounts
+      return NextResponse.json({ error: 'Amount exceeds maximum allowed' }, { status: 400 })
+    }
+
+    // Terminal payments are USD-only
+    if (typeof currency !== 'string' || currency.toLowerCase() !== 'usd') {
+      return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 })
+    }
+    const validatedCurrency = 'usd'
 
     // Authenticate user (supports both bearer token and cookie auth)
     const user = await getAuthenticatedUser(request)
@@ -339,7 +350,7 @@ export async function POST(request: NextRequest) {
         lead_id: leadId || null,
         conversation_id: null, // Terminal payments don't require a conversation
         amount_cents: amountCents,
-        currency: currency,
+        currency: validatedCurrency,
         description: description || 'Terminal payment',
         status: 'pending',
         payment_method_type: 'card_present',
@@ -447,7 +458,7 @@ export async function POST(request: NextRequest) {
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount: amountCents,
-        currency: currency,
+        currency: validatedCurrency,
         payment_method_types: ['card_present'],
         capture_method: 'automatic', // Terminal payments are captured automatically
         metadata: {
