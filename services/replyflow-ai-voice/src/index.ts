@@ -12416,6 +12416,110 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION WATCHDOG] =========================================');
             }
 
+            // SPEECH SEGMENT STALL WATCHDOG: speech_started just cancelled the
+            // stage timeout, and the transcription watchdog only arms on
+            // speech_stopped. If speech_stopped never arrives (e.g. inbound
+            // caller media stalls mid-segment so the VAD never sees an end of
+            // speech), no recovery path exists and the intake deadlocks until
+            // the caller hangs up. Arm a watchdog over the open speech segment:
+            // if inbound audio is still flowing when it fires, re-arm rather
+            // than interrupting a legitimately long answer — but only until
+            // SPEECH_SEGMENT_MAX_OPEN_MS after speech start, so a permanently
+            // lost speech_stopped with a live media stream cannot re-arm
+            // forever. Tradeoff: a single continuous speech segment longer
+            // than the max-open bound gets reprompted; intake answers do not
+            // legitimately run that long.
+            const SPEECH_SEGMENT_STALL_MS = 15000;
+            const SPEECH_SEGMENT_MAX_OPEN_MS = 60000;
+            const SPEECH_STALL_RECENT_AUDIO_MS = 4000;
+            const stallGeneration = state.speechGeneration;
+            const stallStage = state.currentStage;
+            const stallTurnId = state.currentTurnId;
+            const stallDeadlineAt = speechStartedAt + SPEECH_SEGMENT_MAX_OPEN_MS;
+            const armStallWatchdog = () => {
+              state.transcriptionWatchdogTimeout = setTimeout(() => {
+                state.transcriptionWatchdogTimeout = null;
+
+                if (!state.inSpeechSegment ||
+                    state.speechGeneration !== stallGeneration ||
+                    state.currentStage !== stallStage ||
+                    state.currentTurnId !== stallTurnId) {
+                  console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                  console.log('[TRANSCRIPTION WATCHDOG] event: stall_watchdog_superseded');
+                  console.log('[TRANSCRIPTION WATCHDOG] stallGeneration:', stallGeneration);
+                  console.log('[TRANSCRIPTION WATCHDOG] currentSpeechGeneration:', state.speechGeneration);
+                  console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                  console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                  return;
+                }
+
+                const segmentOpenTooLong = Date.now() >= stallDeadlineAt;
+                const audioStillArriving = !!state.lastInboundAudioAt &&
+                  (Date.now() - state.lastInboundAudioAt) < SPEECH_STALL_RECENT_AUDIO_MS;
+                if (audioStillArriving && !segmentOpenTooLong) {
+                  console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                  console.log('[TRANSCRIPTION WATCHDOG] event: stall_watchdog_rearmed');
+                  console.log('[TRANSCRIPTION WATCHDOG] reason: caller_audio_still_flowing');
+                  console.log('[TRANSCRIPTION WATCHDOG] stallGeneration:', stallGeneration);
+                  console.log('[TRANSCRIPTION WATCHDOG] stallDeadlineAt:', stallDeadlineAt);
+                  console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                  console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                  armStallWatchdog();
+                  return;
+                }
+
+                if (state.answerAcceptedForStage === stallStage ||
+                    state.assistantSpeaking ||
+                    (state.settleWindowTimeout && state.pendingAnswerStage)) {
+                  console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                  console.log('[TRANSCRIPTION WATCHDOG] event: stall_watchdog_prevented');
+                  console.log('[TRANSCRIPTION WATCHDOG] reason: terminal_or_busy_state');
+                  console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                  console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                  return;
+                }
+
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: speech_segment_stall_timeout');
+                console.log('[TRANSCRIPTION WATCHDOG] callSid:', state.callSid);
+                console.log('[TRANSCRIPTION WATCHDOG] stage:', stallStage);
+                console.log('[TRANSCRIPTION WATCHDOG] turnId:', stallTurnId);
+                console.log('[TRANSCRIPTION WATCHDOG] stallGeneration:', stallGeneration);
+                console.log('[TRANSCRIPTION WATCHDOG] lastInboundAudioAt:', state.lastInboundAudioAt);
+                console.log('[TRANSCRIPTION WATCHDOG] stallDeadlineAt:', stallDeadlineAt);
+                console.log('[TRANSCRIPTION WATCHDOG] action: reprompting');
+                console.log('[TRANSCRIPTION WATCHDOG] reason:', segmentOpenTooLong
+                  ? 'speech_segment_max_open_exceeded'
+                  : 'speech_started_no_stop_or_transcription');
+                console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', SPEECH_SEGMENT_STALL_MS);
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+
+                // Close the orphaned segment so subsequent gates see it as ended
+                state.inSpeechSegment = false;
+
+                const stallRepromptAttempt = nextRepromptDeliveryAttempt(
+                  state,
+                  stallTurnId,
+                  stallStage,
+                  'speech_stall_watchdog'
+                );
+                if (stallRepromptAttempt !== null) {
+                  sendPrompt(stallStage, undefined, 'speech_stall_watchdog', stallTurnId, stallRepromptAttempt);
+                }
+              }, SPEECH_SEGMENT_STALL_MS);
+            };
+            armStallWatchdog();
+            console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+            console.log('[TRANSCRIPTION WATCHDOG] event: stall_watchdog_started');
+            console.log('[TRANSCRIPTION WATCHDOG] trigger: speech_started');
+            console.log('[TRANSCRIPTION WATCHDOG] stage:', stallStage);
+            console.log('[TRANSCRIPTION WATCHDOG] turnId:', stallTurnId);
+            console.log('[TRANSCRIPTION WATCHDOG] generation:', stallGeneration);
+            console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', SPEECH_SEGMENT_STALL_MS);
+            console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+            console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+
             if (state.assistantSpeaking) {
               console.log('[SIMPLE MODE] =========================================');
               console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
