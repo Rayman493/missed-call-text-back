@@ -11,6 +11,7 @@ import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
 import { reconcileBillingInvoiceCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
+import { verifyStripeWebhookEvent } from '@/lib/stripe/webhook-signature'
 
 /**
  * Determine canonical Stripe Connect status from a Stripe account object
@@ -625,13 +626,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
     }
     
-    // Check if STRIPE_WEBHOOK_SECRET is configured
+    // Check if webhook secrets are configured
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-    const webhookSecretExists = !!webhookSecret
-    console.log('[STRIPE WEBHOOK] STRIPE_WEBHOOK_SECRET configured:', webhookSecretExists);
+    const connectWebhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET
+    console.log('[STRIPE WEBHOOK] STRIPE_WEBHOOK_SECRET configured:', !!webhookSecret);
+    console.log('[STRIPE WEBHOOK] STRIPE_CONNECT_WEBHOOK_SECRET configured:', !!connectWebhookSecret);
     
     if (!webhookSecret) {
-      console.error('[STRIPE WEBHOOK] Webhook secret not configured');
+      console.error('[STRIPE WEBHOOK] Platform webhook secret not configured');
       return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 })
     }
     
@@ -653,14 +655,21 @@ export async function POST(request: Request) {
     // Verify signature and construct event
     let event: Stripe.Event
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-      console.log('[STRIPE WEBHOOK] Signature verification succeeded');
+      const verified = verifyStripeWebhookEvent(
+        stripe.webhooks,
+        body,
+        signature,
+        webhookSecret,
+        connectWebhookSecret,
+      )
+      event = verified.event
+      console.log('[STRIPE WEBHOOK] Signature verification succeeded for destination:', verified.destination);
       console.log('[STRIPE WEBHOOK] Event type:', event.type);
       console.log('[STRIPE WEBHOOK] Event id:', event.id);
     } catch (error) {
       console.error('[STRIPE WEBHOOK] Signature verification failed:', error instanceof Error ? error.message : String(error));
-      console.error('[STRIPE WEBHOOK] This usually means STRIPE_WEBHOOK_SECRET does not match the Stripe webhook endpoint secret');
-      console.error('[STRIPE WEBHOOK] Check Stripe Dashboard → Developers → Webhooks to confirm the correct secret');
+      console.error('[STRIPE WEBHOOK] Signature did not match any configured Stripe webhook destination');
+      console.error('[STRIPE WEBHOOK] Check Stripe Dashboard → Developers → Webhooks to confirm the endpoint secrets');
       return NextResponse.json({ error: 'Invalid Stripe signature - webhook secret mismatch' }, { status: 400 })
     }
 
