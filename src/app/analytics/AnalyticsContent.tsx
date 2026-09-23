@@ -635,7 +635,7 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
       <div
         className="flex items-end gap-2 h-full relative"
         onClick={(e) => {
-          if ((e.target as HTMLElement).closest?.('[data-trend-bar]')) return
+          if ((e.target as HTMLElement).closest?.('[data-trend-col]')) return
           setSelectedDatum(null)
         }}
       >
@@ -643,16 +643,22 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
         {data.map((item: TrendData, index: number) => {
           const height = (item.value / maxValue) * 100
           return (
-            <div key={index} className="flex-1 flex flex-col items-center gap-1 relative z-10">
+            // The whole column band is the tap target — a tap anywhere in the
+            // band selects, so short bars are as easy to hit as tall ones.
+            <div
+              key={index}
+              data-trend-col
+              className="flex-1 self-stretch flex flex-col items-center justify-end gap-1 relative z-10 cursor-pointer"
+              onClick={() =>
+                setSelectedDatum(prev =>
+                  prev?.date === item.date ? null : item
+                )
+              }
+            >
               <div
                 data-trend-bar
-                className={`w-full rounded-t-sm ${colorClass} transition-all duration-300 shadow-sm cursor-pointer ${selectedDatum?.date === item.date ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500' : ''}`}
+                className={`w-full rounded-t-sm ${colorClass} transition-all duration-300 shadow-sm ${selectedDatum?.date === item.date ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500' : ''}`}
                 style={{ height: `${Math.max(height, 5)}%` }}
-                onClick={() =>
-                  setSelectedDatum(prev =>
-                    prev?.date === item.date ? null : item
-                  )
-                }
               />
               <span className="text-[9px] sm:text-[10px] text-slate-600 dark:text-muted-foreground text-center">
                 {item.date}

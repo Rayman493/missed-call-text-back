@@ -9,7 +9,7 @@ import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartSelectionPopup } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartSelectionPopup, getChartPlotRect, nearestBandIndex } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS, getDaysInTimeframe } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -161,10 +161,18 @@ export default function NewCustomersGraph() {
           <div
             className="h-[260px] relative"
             onClick={(e) => {
-              // The Bar's own onClick handles actual bar taps. Clicks outside
-              // a rendered bar rectangle (axis, grid, whitespace) clear.
+              // The Bar's own onClick handles actual bar taps. Taps elsewhere
+              // in the plot resolve to the nearest column band so narrow or
+              // zero-height bars still select on a single tap; taps outside
+              // the plot clear the selection.
               if ((e.target as HTMLElement).closest?.('.recharts-bar-rectangle')) return
-              setSelectedDatum(null)
+              const plot = getChartPlotRect(e.currentTarget as HTMLElement)
+              const idx = plot ? nearestBandIndex(e.clientX, e.clientY, plot, data.length, 'x') : null
+              if (idx == null) {
+                setSelectedDatum(null)
+                return
+              }
+              toggleDatum(idx)
             }}
           >
             <ChartPassiveTouchSurface className="w-full h-full">
@@ -228,6 +236,7 @@ export default function NewCustomersGraph() {
               <ChartSelectionPopup
                 label={selectedDatum.date}
                 values={[{ label: 'New Customers', value: formatInteger(selectedDatum.customers), color: 'hsl(var(--primary))' }]}
+                anchorX={(data.indexOf(selectedDatum) + 0.5) / data.length}
                 onDismiss={() => setSelectedDatum(null)}
               />
             )}

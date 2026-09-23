@@ -8,9 +8,8 @@ import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
-import { isDomNode } from '@/lib/utils'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot, ChartSelectionPopup, getChartPlotRect, nearestPointIndex } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
 
@@ -51,28 +50,11 @@ export default function BusinessActivityGraph() {
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const [seriesFilter, setSeriesFilter] = useState<string>('all')
   const [selectedDatum, setSelectedDatum] = useState<{ index: number; seriesKey?: string; label: string; payload: any[] } | null>(null)
-  const chartWrapperRef = useRef<HTMLDivElement>(null)
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     setSelectedDatum(null)
   }, [timeRange, seriesFilter])
-
-  // Dismiss the tap-inspect popup when tapping outside the chart wrapper.
-  // The chart itself and the popup live inside the wrapper, so taps there
-  // keep the popup open and let the chart onClick update/close it.
-  useEffect(() => {
-    if (!selectedDatum) return
-    const handlePointerDown = (e: PointerEvent) => {
-      const target = e.target
-      if (!isDomNode(target)) return
-      if (chartWrapperRef.current && !chartWrapperRef.current.contains(target)) {
-        setSelectedDatum(null)
-      }
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [selectedDatum])
   // Tracks whether the initial load has completed. Distinguishes the
   // first fetch (full "Loading..." state) from subsequent range changes
   // (subtle "Updating..." indicator that keeps the previous chart visible).
@@ -219,32 +201,20 @@ export default function BusinessActivityGraph() {
   const maxValue = data.length > 0 ? Math.max(...data.map(getDayTotal)) : 0
   const yTicks = getIntegerTicks(maxValue)
 
-  // Tap-to-inspect: per-datum SVG hit targets (ChartHitDot) call this directly.
-  // When a seriesKey is provided (multi-series line chart) the popup shows
-  // only that exact series. Without a seriesKey the nearest-x fallback shows
-  // all visible series for the tapped date.
+  // Tap-to-inspect: per-datum SVG hit targets (ChartHitDot) call this directly
+  // with the tapped series, the chart-area fallback without one. Either way the
+  // popup shows EVERY visible series for that date — including honest zeros —
+  // because the selected unit is the date, not an isolated point. When a
+  // specific series was tapped it is listed first for context.
   const toggleDatum = (idx: number, seriesKey?: string) => {
     if (idx < 0 || idx >= data.length) return
-    // Exact-hit (a series dot): always show that series — including an honest
-    // 0 — since the user tapped a visible point. Nearest-x fallback: only
-    // series with values, and if none exist there is nothing to inspect, so
-    // no tooltip at all (never a date-only popup).
-    const payload = seriesKey
-      ? [{
-          dataKey: seriesKey,
-          color: SERIES_COLORS[seriesKey],
-          value: data[idx][seriesKey as keyof ActivityData],
-        }]
-      : visibleKeys
-          .map((key) => ({
-            dataKey: key,
-            color: SERIES_COLORS[key],
-            value: data[idx][key],
-          }))
-          .filter((entry) => typeof entry.value === 'number' && entry.value > 0)
-    if (!seriesKey && payload.length === 0) {
-      setSelectedDatum(null)
-      return
+    const payload = visibleKeys.map((key) => ({
+      dataKey: key,
+      color: SERIES_COLORS[key],
+      value: data[idx][key],
+    }))
+    if (seriesKey) {
+      payload.sort((a, b) => (a.dataKey === seriesKey ? -1 : b.dataKey === seriesKey ? 1 : 0))
     }
     setSelectedDatum(prev =>
       prev?.index === idx && prev?.seriesKey === seriesKey
@@ -253,47 +223,20 @@ export default function BusinessActivityGraph() {
     )
   }
 
-  // Nearest-x fallback: a tap on the chart surface resolves to the closest
-  // datum only when it is inside the plottable area and within the explicit
-  // tap hit tolerance. Taps outside the plot, on axes/whitespace, or beyond
-  // the tolerance clear the current selection.
+  // Nearest-x fallback: any tap inside the measured plot area resolves to the
+  // closest datum — no hit tolerance — so a single tap always selects and a
+  // second tap elsewhere immediately replaces the selection. Taps outside the
+  // plot (axes, legend, whitespace) clear the selection.
   const handleChartAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const surface = (e.currentTarget as HTMLElement).querySelector('.recharts-surface') as SVGElement | null
-    if (!surface || data.length === 0) {
+    // Legend taps are informational only — never a datum selection.
+    if ((e.target as HTMLElement).closest?.('.recharts-legend-wrapper')) return
+    const plot = getChartPlotRect(e.currentTarget as HTMLElement)
+    const idx = plot ? nearestPointIndex(e.clientX, e.clientY, plot, data.length) : null
+    if (idx == null) {
       setSelectedDatum(null)
       return
     }
-    const rect = surface.getBoundingClientRect()
-    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-      setSelectedDatum(null)
-      return
-    }
-    const marginLeft = CHART_STYLES.margin.left
-    const marginRight = CHART_STYLES.margin.right
-    const plotWidth = rect.width - marginLeft - marginRight
-    if (plotWidth <= 0) {
-      setSelectedDatum(null)
-      return
-    }
-    const relativeX = e.clientX - rect.left - marginLeft
-    if (relativeX < 0 || relativeX > plotWidth) {
-      setSelectedDatum(null)
-      return
-    }
-    if (data.length === 1) {
-      toggleDatum(0)
-      return
-    }
-    const index = Math.round((relativeX / plotWidth) * (data.length - 1))
-    const clampedIndex = Math.max(0, Math.min(data.length - 1, index))
-    const nearestX = (clampedIndex / (data.length - 1)) * plotWidth
-    const halfStep = plotWidth / (data.length - 1) / 2
-    const tolerance = Math.min(CHART_STYLES.tapHitTolerance, halfStep)
-    if (Math.abs(relativeX - nearestX) > tolerance) {
-      setSelectedDatum(null)
-      return
-    }
-    toggleDatum(clampedIndex)
+    toggleDatum(idx)
   }
 
   // Per-datum invisible SVG hit targets — ChartPassiveTouchSurface blocks
@@ -357,7 +300,7 @@ export default function BusinessActivityGraph() {
             description="Daily customer interactions will appear here as ReplyFlow captures conversations, appointments, and payments."
           />
         ) : (
-          <div ref={chartWrapperRef} className="h-[260px] relative">
+          <div className="h-[260px] relative">
             {/* Single subtle updating indicator — absolutely positioned, does
                 NOT consume flex width, does NOT shift layout, does NOT blur
                 or dim the chart. Previous chart stays fully visible. */}
@@ -368,38 +311,16 @@ export default function BusinessActivityGraph() {
               </div>
             )}
             {selectedDatum && (
-              <div className="absolute top-1 right-1 z-20 max-w-[220px] bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm px-2.5 py-2 text-xs">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-muted-foreground text-[10px] mb-1 truncate">{selectedDatum.label}</p>
-                    <div className="space-y-0.5">
-                      {selectedDatum.payload
-                        .filter((entry: any) => entry && typeof entry.value === 'number')
-                        .map((entry: any, i: number) => {
-                          const key = entry.dataKey as string
-                          const label = SERIES_LABELS[key] || key
-                          return (
-                            <div key={i} className="flex items-center justify-between gap-3 text-[11px]">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-                                <span className="text-muted-foreground truncate">{label}</span>
-                              </div>
-                              <span className="font-medium text-foreground tabular-nums">{entry.value}</span>
-                            </div>
-                          )
-                        })}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDatum(null)}
-                    className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                    aria-label="Dismiss"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
+              <ChartSelectionPopup
+                label={selectedDatum.label}
+                values={selectedDatum.payload.map((entry: any) => ({
+                  label: SERIES_LABELS[entry.dataKey as string] || entry.dataKey,
+                  value: formatInteger(entry.value),
+                  color: entry.color,
+                }))}
+                anchorX={data.length > 1 ? selectedDatum.index / (data.length - 1) : 0.5}
+                onDismiss={() => setSelectedDatum(null)}
+              />
             )}
             <ChartPassiveTouchSurface className="w-full h-full" onClick={handleChartAreaClick}>
               <ResponsiveContainer width="100%" height="100%">

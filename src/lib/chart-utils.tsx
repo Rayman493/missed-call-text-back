@@ -174,22 +174,35 @@ export function ChartDatumPopup({
 /**
  * Shared selected-datum popup for all dashboard charts.
  *
- * Compact, non-modal popup anchored to the top-right of the chart area.
- * Shows a label (date/category) and one or more value rows. Tapping the ×,
- * tapping outside the popup, scrolling the page, or selecting another chart's
- * datum dismisses it.
+ * Compact, non-modal popup inside the chart card. By default it anchors to the
+ * top-right; pass anchorX/anchorY (0-1 fractions across the measured plot area)
+ * to pin it beside the selected datum. Anchored positions are clamped so the
+ * popup always stays inside the chart card.
+ *
+ * Tapping the ×, scrolling the page, selecting another chart's datum, or a
+ * pointer down outside the hosting chart container dismisses it. Pointer downs
+ * INSIDE the chart container are left to the chart's own selection logic, so a
+ * tap on another datum replaces the selection instead of requiring a
+ * dismiss-then-select sequence.
  */
 export function ChartSelectionPopup({
   label,
   values,
   onDismiss,
+  anchorX,
+  anchorY,
 }: {
   label: string
   values: { label: string; value: string | number; color?: string }[]
   onDismiss: () => void
+  /** Datum position across the plot width (0-1). Popup centers on it, clamped inside the card. */
+  anchorX?: number
+  /** Datum position across the plot height (0-1). Popup centers on it, clamped inside the card. */
+  anchorY?: number
 }) {
   const id = React.useId()
   const popupRef = React.useRef<HTMLDivElement>(null)
+  const [anchorStyle, setAnchorStyle] = React.useState<React.CSSProperties | null>(null)
 
   React.useEffect(() => {
     openDashboardOverlay(id)
@@ -197,12 +210,53 @@ export function ChartSelectionPopup({
 
   useDashboardOverlayDismissal(id, onDismiss, { popupRef }, { closeOnScroll: true, closeOnForeignOpen: true })
 
-  // Close on pointer down outside the popup itself.
+  // Resolve the anchored position against the measured plot area. Runs on
+  // every selection change so the popup follows the tapped datum.
+  React.useLayoutEffect(() => {
+    if (anchorX == null && anchorY == null) {
+      setAnchorStyle(null)
+      return
+    }
+    const popup = popupRef.current
+    const container = popup?.parentElement
+    if (!container) return
+    const plot = getChartPlotRect(container)
+    const crect = container.getBoundingClientRect()
+    if (!plot || crect.width <= 0 || crect.height <= 0) return
+
+    const style: React.CSSProperties = {}
+    if (anchorX != null) {
+      const x = plot.left - crect.left + Math.min(Math.max(anchorX, 0), 1) * plot.width
+      const edge = Math.min(112, crect.width / 2)
+      style.left = `${Math.min(Math.max(x, edge), Math.max(edge, crect.width - edge))}px`
+      style.right = 'auto'
+    }
+    if (anchorY != null) {
+      const y = plot.top - crect.top + Math.min(Math.max(anchorY, 0), 1) * plot.height
+      const edge = Math.min(56, crect.height / 2)
+      style.top = `${Math.min(Math.max(y, edge), Math.max(edge, crect.height - edge))}px`
+    }
+    style.transform =
+      anchorX != null && anchorY != null
+        ? 'translate(-50%, -50%)'
+        : anchorX != null
+          ? 'translateX(-50%)'
+          : 'translateY(-50%)'
+    setAnchorStyle(style)
+  }, [anchorX, anchorY])
+
+  // Close on pointer down outside the chart container hosting this popup.
+  // Taps inside the container (other datums, bars, whitespace) are handled by
+  // the chart's own click logic — they must not be pre-empted here, otherwise
+  // a same-datum re-tap could never toggle off and the first tap after opening
+  // would appear to do nothing.
   React.useEffect(() => {
     const handlePointerDown = (e: Event) => {
       const target = e.target
       if (!isDomNode(target)) return
-      if (popupRef.current?.contains(target)) return
+      const popup = popupRef.current
+      if (!popup || popup.contains(target)) return
+      if (popup.parentElement?.contains(target)) return
       onDismiss()
     }
     window.addEventListener('pointerdown', handlePointerDown, { passive: true })
@@ -218,6 +272,7 @@ export function ChartSelectionPopup({
   return (
     <div
       ref={popupRef}
+      style={anchorStyle ?? undefined}
       className="absolute top-2 right-2 z-20 max-w-[min(70vw,220px)] bg-card/95 backdrop-blur-sm border border-border/40 rounded-xl shadow-lg px-3 py-2.5 text-xs pointer-events-auto"
     >
       <div className="flex items-start justify-between gap-2">
@@ -290,8 +345,9 @@ export const CHART_STYLES = {
   lineStrokeWidth: 2,
   activeDotRadius: 4,
 
-  // Touch: maximum distance (px) a tap may be from a rendered datum's X
-  // coordinate before it is treated as chart whitespace and clears selection.
+  // Touch: radius (px) of the invisible per-datum hit circle rendered by
+  // ChartHitDot. Area taps outside the circles resolve via nearestPointIndex /
+  // nearestBandIndex — no additional distance tolerance is applied.
   tapHitTolerance: 18,
 
   // Donut
@@ -302,6 +358,102 @@ export const CHART_STYLES = {
   // Legend
   legendFontSize: 11,
   legendIconSize: 10,
+}
+
+/** Client-coordinate rectangle of a rendered chart's plot area. */
+export interface ChartPlotRect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+/**
+ * Measure the rendered plot area of a Recharts chart inside `container`.
+ *
+ * Prefers the CartesianGrid bounding box: gridlines span the exact plot
+ * extent, so this already accounts for margins, axis widths and legend
+ * offsets — unlike the surface rect, whose margins do NOT include the space
+ * axes consume (a known source of off-by-axis-width mis-selection). Falls
+ * back to the surface rect minus CHART_STYLES.margin when no grid is present.
+ *
+ * Note: with `vertical={false}` only horizontal gridlines render, so the
+ * width is exact while top/height reflect the outermost tick positions.
+ * `horizontal={false}` mirrors that for the other axis. Bounds checks below
+ * therefore apply slack on the axis that is not being resolved.
+ */
+export function getChartPlotRect(container: HTMLElement): ChartPlotRect | null {
+  const grid = container.querySelector('.recharts-cartesian-grid') as SVGElement | null
+  if (grid) {
+    const r = grid.getBoundingClientRect()
+    if (r.width > 0 && r.height > 0) {
+      return { left: r.left, top: r.top, width: r.width, height: r.height }
+    }
+  }
+  const surface = container.querySelector('.recharts-surface') as SVGElement | null
+  if (!surface) return null
+  const r = surface.getBoundingClientRect()
+  const { top, right, bottom, left } = CHART_STYLES.margin
+  const width = r.width - left - right
+  const height = r.height - top - bottom
+  if (width <= 0 || height <= 0) return null
+  return { left: r.left + left, top: r.top + top, width, height }
+}
+
+/**
+ * Slack (px) applied on the axis NOT being resolved. Gridline bounds can sit
+ * a few pixels inside the true plot edge when the outermost tick is inset
+ * from the domain edge; this keeps borderline taps working without letting
+ * axis labels or legends claim taps.
+ */
+const PLOT_BOUND_SLACK = 28
+
+/**
+ * Point-scale (line charts): resolve a tap to the nearest datum index along
+ * the X axis, or null when the tap falls outside the plot. Every in-plot tap
+ * resolves — no minimum hit tolerance — so a single tap always selects the
+ * intended date and a second tap elsewhere replaces the selection.
+ */
+export function nearestPointIndex(
+  clientX: number,
+  clientY: number,
+  plot: ChartPlotRect,
+  count: number,
+): number | null {
+  if (count <= 0 || plot.width <= 0) return null
+  const rx = clientX - plot.left
+  const ry = clientY - plot.top
+  if (rx < 0 || rx > plot.width || ry < -PLOT_BOUND_SLACK || ry > plot.height + PLOT_BOUND_SLACK) {
+    return null
+  }
+  if (count === 1) return 0
+  return Math.max(0, Math.min(count - 1, Math.round((rx / plot.width) * (count - 1))))
+}
+
+/**
+ * Band-scale (bar charts): resolve a tap to the band index along `axis`
+ * ('x' for column charts, 'y' for horizontal-bar charts), or null when the
+ * tap falls outside the plot. Lets a tap anywhere in a band select the bar —
+ * zero-height and narrow bars get the same generous target as tall ones.
+ */
+export function nearestBandIndex(
+  clientX: number,
+  clientY: number,
+  plot: ChartPlotRect,
+  count: number,
+  axis: 'x' | 'y',
+): number | null {
+  if (count <= 0 || plot.width <= 0 || plot.height <= 0) return null
+  const rx = clientX - plot.left
+  const ry = clientY - plot.top
+  const inBounds =
+    axis === 'x'
+      ? rx >= 0 && rx <= plot.width && ry >= -PLOT_BOUND_SLACK && ry <= plot.height + PLOT_BOUND_SLACK
+      : ry >= 0 && ry <= plot.height && rx >= -PLOT_BOUND_SLACK && rx <= plot.width + PLOT_BOUND_SLACK
+  if (!inBounds) return null
+  const rel = axis === 'x' ? rx : ry
+  const size = axis === 'x' ? plot.width : plot.height
+  return Math.max(0, Math.min(count - 1, Math.floor(rel / (size / count))))
 }
 
 /**
@@ -466,7 +618,7 @@ export function ChartHitDot({
       }}
       style={{ cursor: 'pointer' }}
     >
-      <circle cx={cx} cy={cy} r={18} fill="transparent" />
+      <circle cx={cx} cy={cy} r={CHART_STYLES.tapHitTolerance} fill="transparent" />
       {visible && <circle cx={cx} cy={cy} r={4} fill={fill} />}
     </g>
   )

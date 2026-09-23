@@ -73,17 +73,17 @@ describe('ChartSelectionPopup white-box suppression', () => {
   })
 })
 
-describe('RevenueGraph nearest-x fallback respects tap tolerance', () => {
+describe('RevenueGraph nearest-x fallback resolves every in-plot tap', () => {
   const content = read('src/components/analytics/RevenueGraph.tsx')
 
-  it('clears selection when the tap is outside the plot bounds', () => {
-    expect(content).toContain('e.clientX < rect.left || e.clientX > rect.right')
+  it('clears selection when the tap resolves outside the plot', () => {
     expect(content).toContain('setSelectedDatum(null)')
+    expect(content).toContain('if (idx == null)')
   })
 
-  it('only selects when the tap is within the hit tolerance of a real datum', () => {
-    expect(content).toContain('Math.abs(relativeX - nearestX) > tolerance')
-    expect(content).toContain('CHART_STYLES.tapHitTolerance')
+  it('resolves taps through the shared plot-rect + nearest-point helpers', () => {
+    expect(content).toContain('getChartPlotRect')
+    expect(content).toContain('nearestPointIndex(e.clientX, e.clientY, plot, data.length)')
   })
 })
 
@@ -95,9 +95,10 @@ describe('BusinessActivityGraph exact series selection', () => {
     expect(content).toContain('prev?.index === idx && prev?.seriesKey === seriesKey')
   })
 
-  it('payload is reduced to the exact series when seriesKey is provided', () => {
-    expect(content).toContain('dataKey: seriesKey')
-    expect(content).toContain('data[idx][seriesKey as keyof ActivityData]')
+  it('payload always contains every visible series, with the tapped series first', () => {
+    expect(content).toContain('visibleKeys.map((key) => ({')
+    expect(content).toContain('payload.sort')
+    expect(content).not.toContain('value > 0')
   })
 
   it('per-series hit dots dispatch the exact series to toggleDatum', () => {
@@ -108,9 +109,10 @@ describe('BusinessActivityGraph exact series selection', () => {
     expect(content).toContain('dot={renderHitDot(\'#8b5cf6\', \'completedJobs\')}')
   })
 
-  it('nearest-x fallback uses the shared tap hit tolerance and whitespace clears', () => {
-    expect(content).toContain('Math.abs(relativeX - nearestX) > tolerance')
-    expect(content).toContain('CHART_STYLES.tapHitTolerance')
+  it('nearest-x fallback resolves every in-plot tap and whitespace clears', () => {
+    expect(content).toContain('nearestPointIndex(e.clientX, e.clientY, plot, data.length)')
+    expect(content).toContain('setSelectedDatum(null)')
+    expect(content).not.toContain('Math.abs(relativeX - nearestX) > tolerance')
   })
 })
 
@@ -139,7 +141,7 @@ describe('LeadConversionGraph and analytics trend scroll protection', () => {
     const content = read('src/app/analytics/AnalyticsContent.tsx')
     expect(content).toContain('import { ChartSelectionPopup, ChartPassiveTouchSurface } from \'@/lib/chart-utils\'')
     expect(content).toContain('<ChartPassiveTouchSurface className="h-32 sm:h-40">')
-    expect(content).toContain('[data-trend-bar]')
+    expect(content).toContain('[data-trend-col]')
   })
 })
 

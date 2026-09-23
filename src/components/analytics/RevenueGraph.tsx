@@ -9,10 +9,10 @@ import Card from '@/components/ui/Card'
 import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatCurrencyAxis, useTouchDevice, ChartPassiveTouchSurface, ChartHitDot, ChartSelectionPopup, getChartPlotRect, nearestPointIndex } from '@/lib/chart-utils'
 import { AnalyticsTimeframe, ANALYTICS_TIMEFRAME_OPTIONS } from '@/lib/analytics-timeframe'
 import { getBusinessDaysAgoRelative, formatBusinessLocalDate } from '@/lib/business-date-utils'
-import { formatCurrency, isDomNode } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 
 interface RevenueData {
   date: string
@@ -26,28 +26,11 @@ export default function RevenueGraph() {
   const [updating, setUpdating] = useState(false)
   const [timeRange, setTimeRange] = useState<AnalyticsTimeframe>('30d')
   const [selectedDatum, setSelectedDatum] = useState<{ index: number; label: string; revenue: number } | null>(null)
-  const chartWrapperRef = useRef<HTMLDivElement>(null)
   const isTouchDevice = useTouchDevice()
 
   useEffect(() => {
     setSelectedDatum(null)
   }, [timeRange])
-
-  // Dismiss the tap-inspect popup when tapping outside the chart wrapper.
-  // The chart itself and the popup live inside the wrapper, so taps there
-  // keep the popup open and let the chart onClick update/close it.
-  useEffect(() => {
-    if (!selectedDatum) return
-    const handlePointerDown = (e: PointerEvent) => {
-      const target = e.target
-      if (!isDomNode(target)) return
-      if (chartWrapperRef.current && !chartWrapperRef.current.contains(target)) {
-        setSelectedDatum(null)
-      }
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [selectedDatum])
   // Tracks whether the initial load has completed. Distinguishes the
   // first fetch (full "Loading..." state) from subsequent range changes
   // (subtle "Updating..." indicator that keeps the previous chart visible).
@@ -154,47 +137,18 @@ export default function RevenueGraph() {
     )
   }
 
-  // Nearest-x fallback: a tap on the chart surface resolves to the closest
-  // datum only when it is inside the plottable area and within the explicit
-  // tap hit tolerance. Taps outside the plot, on axes/whitespace, or beyond
-  // the tolerance clear the current selection.
+  // Nearest-x fallback: any tap inside the measured plot area resolves to the
+  // closest datum — no hit tolerance — so a single tap always selects and a
+  // second tap elsewhere immediately replaces the selection. Taps outside the
+  // plot (axes, legend, whitespace) clear the selection.
   const handleChartAreaClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const surface = (e.currentTarget as HTMLElement).querySelector('.recharts-surface') as SVGElement | null
-    if (!surface || data.length === 0) {
+    const plot = getChartPlotRect(e.currentTarget as HTMLElement)
+    const idx = plot ? nearestPointIndex(e.clientX, e.clientY, plot, data.length) : null
+    if (idx == null) {
       setSelectedDatum(null)
       return
     }
-    const rect = surface.getBoundingClientRect()
-    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-      setSelectedDatum(null)
-      return
-    }
-    const marginLeft = CHART_STYLES.margin.left
-    const marginRight = CHART_STYLES.margin.right
-    const plotWidth = rect.width - marginLeft - marginRight
-    if (plotWidth <= 0) {
-      setSelectedDatum(null)
-      return
-    }
-    const relativeX = e.clientX - rect.left - marginLeft
-    if (relativeX < 0 || relativeX > plotWidth) {
-      setSelectedDatum(null)
-      return
-    }
-    if (data.length === 1) {
-      toggleDatum(0)
-      return
-    }
-    const index = Math.round((relativeX / plotWidth) * (data.length - 1))
-    const clampedIndex = Math.max(0, Math.min(data.length - 1, index))
-    const nearestX = (clampedIndex / (data.length - 1)) * plotWidth
-    const halfStep = plotWidth / (data.length - 1) / 2
-    const tolerance = Math.min(CHART_STYLES.tapHitTolerance, halfStep)
-    if (Math.abs(relativeX - nearestX) > tolerance) {
-      setSelectedDatum(null)
-      return
-    }
-    toggleDatum(clampedIndex)
+    toggleDatum(idx)
   }
 
   return (
@@ -248,7 +202,7 @@ export default function RevenueGraph() {
             description="Completed payments will appear automatically as customers pay through ReplyFlow."
           />
         ) : (
-          <div ref={chartWrapperRef} className="h-[260px] relative">
+          <div className="h-[260px] relative">
             {/* Single subtle updating indicator — absolutely positioned, does
                 NOT consume flex width, does NOT shift layout, does NOT blur
                 or dim the chart. Previous chart stays fully visible. */}
@@ -259,22 +213,12 @@ export default function RevenueGraph() {
               </div>
             )}
             {selectedDatum && (
-              <div className="absolute top-1 right-1 z-20 max-w-[180px] bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm px-2.5 py-2 text-xs">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-muted-foreground text-[10px] mb-0.5 truncate">{selectedDatum.label}</p>
-                    <p className="font-medium text-foreground">{formatCurrency(selectedDatum.revenue)}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDatum(null)}
-                    className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                    aria-label="Dismiss"
-                  >
-                    ×
-                  </button>
-                </div>
-              </div>
+              <ChartSelectionPopup
+                label={selectedDatum.label}
+                values={[{ label: 'Revenue', value: formatCurrency(selectedDatum.revenue), color: '#16a34a' }]}
+                anchorX={data.length > 1 ? selectedDatum.index / (data.length - 1) : 0.5}
+                onDismiss={() => setSelectedDatum(null)}
+              />
             )}
             <ChartPassiveTouchSurface className="w-full h-full" onClick={handleChartAreaClick}>
               <ResponsiveContainer width="100%" height="100%">

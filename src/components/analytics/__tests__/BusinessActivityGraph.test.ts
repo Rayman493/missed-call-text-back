@@ -46,20 +46,21 @@ describe('BusinessActivityGraph', () => {
     expect(content).toMatch(/dot=\{renderHitDot\('#8b5cf6', 'completedJobs'\)\}/)
   })
 
-  it('falls back to nearest-x datum selection on chart-area tap', () => {
+  it('resolves every in-plot tap to the nearest datum via the shared helpers', () => {
     expect(content).toContain('handleChartAreaClick')
     expect(content).toContain('onClick={handleChartAreaClick}')
-    expect(content).toContain('.recharts-surface')
-    expect(content).toContain('Math.round((relativeX / plotWidth) * (data.length - 1))')
+    expect(content).toContain('getChartPlotRect')
+    expect(content).toContain('nearestPointIndex(e.clientX, e.clientY, plot, data.length)')
+    expect(content).not.toContain('tapHitTolerance')
   })
 
-  it('renders a small tap-inspect popup inside the chart wrapper', () => {
-    expect(content).toContain('chartWrapperRef')
+  it('renders the shared tap-inspect popup anchored to the selected date', () => {
+    expect(content).toContain('<ChartSelectionPopup')
     expect(content).toContain('selectedDatum.label')
+    expect(content).toContain('anchorX')
   })
 
-  it('dismisses the popup on a tap outside the chart wrapper', () => {
-    expect(content).toContain("document.addEventListener('pointerdown'")
-    expect(content).toMatch(/!chartWrapperRef\.current\.contains\(target\)[\s\S]*?setSelectedDatum\(null\)/)
+  it('dismisses the popup via the shared popup dismissal path', () => {
+    expect(content).toContain('onDismiss={() => setSelectedDatum(null)}')
   })
 })

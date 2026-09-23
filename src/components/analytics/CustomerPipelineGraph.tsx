@@ -10,7 +10,7 @@ import ChartFilterButton from '@/components/ui/ChartFilterButton'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
 import { ChartHeaderControls } from './ChartHeaderControls'
-import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartSelectionPopup } from '@/lib/chart-utils'
+import { PremiumTooltip, CHART_STYLES, formatInteger, getIntegerTicks, useTouchDevice, ChartPassiveTouchSurface, ChartSelectionPopup, getChartPlotRect, nearestBandIndex } from '@/lib/chart-utils'
 
 interface PipelineData {
   status: string
@@ -174,8 +174,17 @@ export default function CustomerPipelineGraph() {
           <div
             className="h-[260px] relative"
             onClick={(e) => {
+              // The Bar's own onClick handles actual bar taps. Taps elsewhere
+              // in the plot resolve to the nearest row band so short bars
+              // still select on a single tap; taps outside the plot clear.
               if ((e.target as HTMLElement).closest?.('.recharts-bar-rectangle')) return
-              setSelectedDatum(null)
+              const plot = getChartPlotRect(e.currentTarget as HTMLElement)
+              const idx = plot ? nearestBandIndex(e.clientX, e.clientY, plot, displayData.length, 'y') : null
+              if (idx == null) {
+                setSelectedDatum(null)
+                return
+              }
+              toggleDatum(idx)
             }}
           >
             <ChartPassiveTouchSurface className="w-full h-full">
@@ -237,6 +246,7 @@ export default function CustomerPipelineGraph() {
               <ChartSelectionPopup
                 label={selectedDatum.status}
                 values={[{ label: 'Customers', value: formatInteger(selectedDatum.count), color: selectedDatum.color }]}
+                anchorY={(displayData.indexOf(selectedDatum) + 0.5) / displayData.length}
                 onDismiss={() => setSelectedDatum(null)}
               />
             )}

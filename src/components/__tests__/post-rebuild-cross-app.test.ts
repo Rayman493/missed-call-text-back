@@ -55,42 +55,31 @@ describe('A — PDF/document attachment tiles are openable', () => {
 })
 
 describe('B — engagement chart tooltip shows values', () => {
-  it('exact-hit payload keeps the tapped series including honest zero', () => {
+  it('selected date shows every visible series, including honest zeros', () => {
     const handler = slice(chart, 'const toggleDatum', 'const handleChartAreaClick')
-    expect(handler).toContain('data[idx][seriesKey as keyof ActivityData]')
-    // Exact hit does NOT filter out 0 — the user tapped a visible point
-    const exact = slice(handler, 'const payload = seriesKey', ': visibleKeys')
-    expect(exact).not.toContain('value > 0')
+    expect(handler).toContain('visibleKeys.map((key) => ({')
+    expect(handler).toContain('value: data[idx][key]')
+    // No zero filtering anywhere — a 0 is meaningful data
+    expect(handler).not.toContain('value > 0')
   })
 
-  it('nearest-x fallback filters to nonzero series only', () => {
+  it('tapping a specific series lists it first for context', () => {
     const handler = slice(chart, 'const toggleDatum', 'const handleChartAreaClick')
-    expect(handler).toContain(".filter((entry) => typeof entry.value === 'number' && entry.value > 0)")
+    expect(handler).toContain('payload.sort')
+    expect(handler).toContain('a.dataKey === seriesKey ? -1')
   })
 
-  it('a date with no nonzero values never opens a date-only popup', () => {
-    const handler = slice(chart, 'const toggleDatum', 'const handleChartAreaClick')
-    expect(handler).toContain('if (!seriesKey && payload.length === 0)')
-    expect(handler).toContain('setSelectedDatum(null)')
+  it('series labels and colors come from the canonical maps', () => {
+    const popup = slice(chart, '<ChartSelectionPopup', 'onDismiss')
+    expect(popup).toContain('SERIES_LABELS[entry.dataKey as string] || entry.dataKey')
+    expect(popup).toContain('color: entry.color')
   })
 
-  it('renderer no longer re-filters zeros out of the curated payload', () => {
-    const popup = slice(chart, 'selectedDatum.payload', 'Dismiss')
-    expect(popup).toContain("typeof entry.value === 'number'")
-    expect(popup).not.toContain('entry.value > 0')
-  })
-
-  it('series colors and labels come from the canonical maps', () => {
-    const popup = slice(chart, 'selectedDatum.payload', 'Dismiss')
-    expect(popup).toContain('SERIES_LABELS[key]')
-    expect(popup).toContain('backgroundColor: entry.color')
-  })
-
-  it('dismissal paths (outside tap, ×, whitespace tolerance) preserved', () => {
-    expect(chart).toContain("document.addEventListener('pointerdown', handlePointerDown)")
+  it('dismissal paths (×, outside tap, scroll) preserved via the shared popup', () => {
+    expect(chart).toContain('<ChartSelectionPopup')
     expect(chart).toContain('setSelectedDatum(null)')
-    expect(chart).toContain('CHART_STYLES.tapHitTolerance')
-    expect(chart).toContain('aria-label="Dismiss"')
+    expect(chart).toContain('onDismiss={() => setSelectedDatum(null)}')
+    expect(chart).toContain('anchorX')
   })
 })
 
