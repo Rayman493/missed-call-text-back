@@ -354,6 +354,34 @@ function isConfidentEarlyServiceAddress(
   return false;
 }
 
+// A clause that is ONLY a unit descriptor — "five two nine apartment number
+// seven", "apartment seven", "unit 4B" — is address-field content, never a
+// supporting detail. Anchored to the whole sentence so genuine job facts that
+// merely mention an apartment ("the apartment door is stuck") stay eligible.
+const ADDRESS_UNIT_WORD = '(?:apartment|apt|unit|suite|ste|room|rm)';
+const ADDRESS_UNIT_SEQ = `(?:${SPOKEN_NUMBER_WORD}(?:[\\s-]+${SPOKEN_NUMBER_WORD}){0,7}|\\d[\\d\\s-]*)`;
+const ADDRESS_UNIT_CLAUSE_RE = new RegExp(
+  `^\\s*(?:the\\s+)?(?:${ADDRESS_UNIT_SEQ}\\s+)?${ADDRESS_UNIT_WORD}\\s*(?:number|no\\.?|#)?\\s*[a-z0-9#-]+\\s*$`,
+  'i',
+);
+// Suffix of the text before a street match: optional spoken/digit house
+// number, a unit word, an optional "number"/"no"/"#" marker, the unit value,
+// then an optional punctuation + at/on/@ connector into the street phrase.
+const PRECEDING_UNIT_RE = new RegExp(
+  `\\b(${ADDRESS_UNIT_SEQ}\\s+)?(${ADDRESS_UNIT_WORD})\\s*(number|no\\.?|#)?\\s*([a-z0-9#-]+)\\s*[.,;]?\\s*(at|on|@)?\\s*$`,
+  'i',
+);
+// Start of the text after a street match: a trailing unit clause such as
+// ", apartment 7" in "529 South Pine Drive, apartment 7".
+const FOLLOWING_UNIT_RE = new RegExp(
+  `^\\s*[.,;]?\\s*(?:at\\s+)?\\b(${ADDRESS_UNIT_WORD})\\s*(number|no\\.?|#)?\\s*(${ADDRESS_UNIT_SEQ}|[a-z0-9#-]+)\\b`,
+  'i',
+);
+
+function normalizeUnitPart(word: string): string {
+  return spokenHouseNumberToDigits(word) ?? word;
+}
+
 function findAddressMatch(transcript: string): ExtractedMatch | null {
   for (const { pattern, type, combine } of ADDRESS_PATTERNS) {
     const match = transcript.match(pattern);
@@ -382,16 +410,45 @@ function findAddressMatch(transcript: string): ExtractedMatch | null {
       );
       candidate = candidate.trim();
       if (isConfidentEarlyServiceAddress(candidate, type)) {
-        const value = candidate
+        let value = candidate
           .replace(/[.,;]\s*$/, '')
           .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
           .replace(/[\s,]+(?:and|in|at|on|for)\s*$/i, '')
           .replace(/[.,;]\s*$/, '')
           .trim();
+        let fullMatch = (match[0] || candidate).trim();
+        let startIndex = match.index || 0;
+        // Unit clauses ("five two nine apartment number seven", "apartment
+        // seven") spoken before or after the street belong to the same
+        // address. Extend the span so house number, unit and street stay
+        // together in serviceAddress and the unit clause is owned.
+        const before = transcript.slice(0, startIndex);
+        const pm = before.match(PRECEDING_UNIT_RE);
+        if (pm && pm[0].trim().length > 0) {
+          const house = pm[1] ? `${normalizeUnitPart(pm[1].trim())} ` : '';
+          const marker = pm[3] ? ` ${pm[3]}` : '';
+          const unit = `${house}${pm[2]}${marker} ${normalizeUnitPart(pm[4])}`;
+          const connector = pm[5]
+            ? ` ${pm[5].toLowerCase()} `
+            : /^\s*(?:at|on|@)\s+/i.test(match[0])
+              ? ' at '
+              : ' ';
+          value = `${unit}${connector}${value}`;
+          fullMatch = `${pm[0]}${match[0]}`;
+          startIndex -= pm[0].length;
+        } else {
+          const after = transcript.slice(startIndex + match[0].length);
+          const fm = after.match(FOLLOWING_UNIT_RE);
+          if (fm) {
+            const marker = fm[2] ? ` ${fm[2]}` : '';
+            value = `${value} ${fm[1]}${marker} ${normalizeUnitPart(fm[3])}`;
+            fullMatch = `${match[0]}${fm[0]}`;
+          }
+        }
         return {
           value,
-          fullMatch: (match[0] || candidate).trim(),
-          startIndex: match.index || 0,
+          fullMatch: fullMatch.trim(),
+          startIndex,
         };
       }
     }
@@ -1230,6 +1287,10 @@ function extractDetailSentences(
     // are field content, not supporting details.
     if (CALLBACK_OWNED_CLAUSE_RE.test(sentence)) continue;
     if (ADDRESS_OWNED_CLAUSE_RE.test(sentence)) continue;
+    // A sentence that is ONLY a unit clause ("five two nine apartment number
+    // seven", "apartment seven") is address-field content — never a detail,
+    // even when it was spoken in its own sentence.
+    if (ADDRESS_UNIT_CLAUSE_RE.test(sentence)) continue;
     if (CORRECTION_SCAFFOLD_CLAUSE_RE.test(sentence)) continue;
     if (TIMING_OWNED_CLAUSE_RE.test(sentence)) continue;
     // A sentence that IS a completion/callback scalar answer ("Next couple
@@ -1245,6 +1306,11 @@ function extractDetailSentences(
     if (sCompletion && finderOwnsSentence(sCompletion.value, sentence)) continue;
     const sCallback = findCallbackMatch(sentence);
     if (sCallback && finderOwnsSentence(sCallback.value, sentence)) continue;
+    // Same for an address match dominating the sentence — covers a street
+    // clause split into its own sentence ("at South Pine Drive.") after the
+    // leading unit clause was consumed by the combined address match.
+    const sAddress = findAddressMatch(sentence);
+    if (sAddress && finderOwnsSentence(sAddress.value, sentence)) continue;
     // First sentence carrying service intent is the reason carrier, not a detail
     if (!serviceSentenceConsumed && SERVICE_INTENT_RE.test(sentence)) {
       serviceSentenceConsumed = true;

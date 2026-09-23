@@ -152,3 +152,68 @@ describe('timing phrase fidelity — no substring truncation', () => {
     expect((intake.serviceRequested || intake.request || '').toLowerCase()).to.include('leaking sink');
   });
 });
+
+describe('address unit-clause fidelity (CAc44c75ff888139d9966a6b6b70f4c6bf)', () => {
+  // Root cause: "Five two nine apartment number seven" was a standalone
+  // sentence owned by no field, so it merged into issueDescription while the
+  // street clause alone satisfied serviceAddress. Unit clauses must stay with
+  // the street and must never leak into Details.
+
+  it('spoken house number + unit in a leading sentence joins the street', () => {
+    const intake = { stage: 'ask_location', customerName: 'Ryan' } as IntakeData;
+    enrichIntakeFromTranscript(
+      'Five two nine apartment number seven. at South Pine Drive.',
+      intake,
+      'ask_location'
+    );
+    expect(intake.serviceAddress).to.equal('529 apartment number seven at South Pine Drive');
+    expect(intake.issueDescription || '').to.equal('');
+  });
+
+  it('trailing unit clause after the street stays in serviceAddress', () => {
+    const intake = { stage: 'ask_location', customerName: 'Ryan' } as IntakeData;
+    enrichIntakeFromTranscript('529 South Pine Drive apartment seven', intake, 'ask_location');
+    expect(intake.serviceAddress).to.equal('529 South Pine Drive apartment seven');
+    expect(intake.issueDescription || '').to.equal('');
+  });
+
+  it('leading unit clause before a numbered street is preserved', () => {
+    const intake = { stage: 'ask_location', customerName: 'Ryan' } as IntakeData;
+    enrichIntakeFromTranscript('Apartment seven at 529 South Pine Drive', intake, 'ask_location');
+    expect((intake.serviceAddress || '').toLowerCase()).to.include('apartment');
+    expect((intake.serviceAddress || '').toLowerCase()).to.include('529 south pine drive');
+    expect(intake.issueDescription || '').to.equal('');
+  });
+
+  it('genuine job details survive while the volunteered address owns its clauses', () => {
+    const intake = { stage: 'ask_request', customerName: 'Ryan' } as IntakeData;
+    enrichIntakeFromTranscript(
+      'I need a toilet installed. I already have the new toilet, but the old one needs to be removed. Five two nine apartment number seven at South Pine Drive.',
+      intake,
+      'ask_request'
+    );
+    expect(intake.serviceAddress).to.equal('529 apartment number seven at South Pine Drive');
+    expect((intake.issueDescription || '').toLowerCase()).to.include('new toilet');
+    expect((intake.issueDescription || '').toLowerCase()).to.not.include('south pine');
+    expect((intake.issueDescription || '').toLowerCase()).to.not.include('apartment number');
+  });
+
+  it('an address volunteered during ask_request satisfies the location stage', () => {
+    const intake = { stage: 'ask_request', customerName: 'Ryan' } as IntakeData;
+    enrichIntakeFromTranscript(
+      'I need someone to fix a leaking sink at 529 South Pine Drive apartment seven',
+      intake,
+      'ask_request'
+    );
+    expect(intake.serviceAddress).to.equal('529 South Pine Drive apartment seven');
+    expect((intake.serviceRequested || intake.request || '').toLowerCase()).to.include('leaking sink');
+    expect(intake.issueDescription || '').to.equal('');
+  });
+
+  it('a unit mention inside real job information is not swallowed', () => {
+    const intake = { stage: 'ask_location', customerName: 'Ryan' } as IntakeData;
+    enrichIntakeFromTranscript('the apartment door is stuck. 529 South Pine Drive', intake, 'ask_location');
+    expect(intake.serviceAddress).to.equal('529 South Pine Drive');
+    expect((intake.issueDescription || '').toLowerCase()).to.include('door is stuck');
+  });
+});
