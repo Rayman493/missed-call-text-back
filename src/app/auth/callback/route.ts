@@ -193,8 +193,12 @@ export async function GET(request: Request) {
             return NextResponse.redirect(new URL(redirectTarget, requestUrl.origin))
           }
 
-          const redirectTarget = isPGRST116 ? '/onboarding' : '/dashboard'
-          const reason = isPGRST116 ? 'No business row (PGRST116 confirmed)' : 'Business query error (non-PGRST116)'
+          // A user created via team invite who no longer has a membership was
+          // removed by the owner — send them to a clear explanation instead of
+          // silently dropping them into onboarding.
+          const isRemovedMember = isPGRST116 && user.user_metadata?.invited_member === true
+          const redirectTarget = isRemovedMember ? '/auth?mode=signin&reason=access_removed' : isPGRST116 ? '/onboarding' : '/dashboard'
+          const reason = isRemovedMember ? 'Removed member (invited_member, no membership)' : isPGRST116 ? 'No business row (PGRST116 confirmed)' : 'Business query error (non-PGRST116)'
           
           console.log('[POST LOGIN BUSINESS QUERY]', {
             location: 'src/app/auth/callback/route.ts',
@@ -245,8 +249,9 @@ export async function GET(request: Request) {
           return NextResponse.redirect(new URL(redirectTarget, requestUrl.origin))
         }
         
-        const redirectTarget = business ? '/dashboard' : '/onboarding'
-        const reason = business ? 'Business row exists' : 'No business row exists'
+        const isRemovedMember = !business && user.user_metadata?.invited_member === true
+        const redirectTarget = business ? '/dashboard' : isRemovedMember ? '/auth?mode=signin&reason=access_removed' : '/onboarding'
+        const reason = business ? 'Business row exists' : isRemovedMember ? 'Removed member (invited_member, no membership)' : 'No business row exists'
         
         console.log('[ONBOARDING REDIRECT SOURCE]', {
           file: 'src/app/auth/callback/route.ts',

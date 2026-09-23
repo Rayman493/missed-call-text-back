@@ -106,7 +106,14 @@ function AuthContent() {
   
   // Handle Stripe cancel message
   const checkoutCancelled = searchParams?.get('checkout') === 'cancelled'
+  // Removed team members land here with a clear explanation instead of a
+  // silent redirect into onboarding.
+  const accessRemoved = searchParams?.get('reason') === 'access_removed'
   useEffect(() => {
+    if (accessRemoved) {
+      setIsSignIn(true)
+      setError('Your access to that business is no longer active. Contact the business owner for a new invite, or create your own account below.')
+    }
     if (checkoutCancelled) {
       setError('Your free trial setup isn\'t complete yet. Complete Stripe Checkout to activate your ReplyFlow account.')
       // Force business data refresh to clear any stale cached subscription status
@@ -123,7 +130,7 @@ function AuthContent() {
       setError(oauthError)
       sessionStorage.removeItem('oauth_error')
     }
-  }, [checkoutCancelled])
+  }, [checkoutCancelled, accessRemoved])
 
   // Password requirements validation
   const [passwordRequirements, setPasswordRequirements] = useState({
