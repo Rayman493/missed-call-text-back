@@ -16,9 +16,12 @@ const slice = (src: string, from: string, to: string) => {
 describe('A — quote/invoice create footer single row', () => {
   const footer = slice(editor, 'const footer = (', 'const return')
 
-  it('renders all four actions in one flex row', () => {
+  it('renders all four actions in one flex row (wraps, not truncates, on narrow mobile)', () => {
     const f = slice(editor, 'const footer = (', 'return (')
-    expect(f).toContain('flex items-center gap-1.5')
+    expect(f).toContain('flex flex-wrap items-center gap-1.5')
+    // Primary buttons carry a min-width floor so they wrap to full-width
+    // lines on narrow screens instead of truncating their labels.
+    expect(f).toContain('flex-1 min-w-[7.5rem]')
     expect(f).not.toContain('flex-col-reverse')
     expect(f).not.toContain('flex-col gap-2')
   })
@@ -98,9 +101,10 @@ describe('B — document modal download feedback', () => {
     expect(handler).toContain('viewerOpenForDoc')
     expect(handler).toContain("setBillingViewerFeedback({ type: 'success', message })")
     expect(handler).toContain("setBillingViewerFeedback({ type: 'error', message })")
-    // page banner still used when viewer is closed
-    expect(handler).toContain('setSuccessMessage(message)')
-    expect(handler).toContain('setError(message)')
+    // viewport-anchored toast used when viewer is closed (the in-flow page
+    // banner was invisible when scrolled and behind modals)
+    expect(handler).toContain("showToast(message, 'success')")
+    expect(handler).toContain("showToast(message, 'error')")
     // spinner always resets
     expect(handler).toContain('setBillingDownloadingId(null)')
   })
@@ -182,7 +186,7 @@ describe('D — quote/invoice action feedback', () => {
 
   it('save surfaces feedback via handleBillingSaved after confirmed save', () => {
     const saved = slice(paymentsPage, 'const handleBillingSaved', 'const showToast')
-    expect(saved).toContain('setSuccessMessage')
+    expect(saved).toContain('showToast(')
     expect(saved).toContain("savedDoc.status === 'sent'")
   })
 

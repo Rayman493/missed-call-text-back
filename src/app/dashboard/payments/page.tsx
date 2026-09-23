@@ -35,7 +35,6 @@ import PaymentsNewRequestModal from '@/components/payments/PaymentsNewRequestMod
 import PaymentActionBar from '@/components/payments/PaymentActionBar'
 import { openStripeDashboardHandoff } from '@/lib/stripe-dashboard-handoff'
 import Modal from '@/components/ui/Modal'
-import SuccessBanner from '@/components/SuccessBanner'
 import BillingChooserModal from '@/components/billing/BillingChooserModal'
 import BillingEditorModal, { BillingDocumentType, BillingDocumentData } from '@/components/billing/BillingEditorModal'
 import BillingDocumentList, { BillingDocumentListItem } from '@/components/billing/BillingDocumentList'
@@ -130,7 +129,6 @@ export default function PaymentsPage() {
   const [paymentDescription, setPaymentDescription] = useState('')
   const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
   const [isMarkingPaid, setIsMarkingPaid] = useState(false)
   const [isMarkingUnpaid, setIsMarkingUnpaid] = useState(false)
@@ -544,9 +542,9 @@ export default function PaymentsPage() {
       const name = savedDoc.display_name?.trim()
       const identity = name || (savedDoc.document_number || 'draft')
       const quoted = name ? `“${identity}”` : identity
-      setSuccessMessage(savedDoc.status === 'sent'
+      showToast(savedDoc.status === 'sent'
         ? `${label} ${quoted} sent to customer.`
-        : `${label} ${quoted} created\nReady to review and send.`)
+        : `${label} ${quoted} created — ready to review and send.`, 'success')
     }
     if (savedDoc?.id) {
       const savedId = savedDoc.id
@@ -596,7 +594,9 @@ export default function PaymentsPage() {
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     const id = Date.now().toString()
-    setToasts(prev => [...prev, { id, message, type }])
+    // Replace an identical live toast instead of stacking duplicates from
+    // rapid repeated actions.
+    setToasts(prev => [...prev.filter(t => !(t.message === message && t.type === type)), { id, message, type }])
   }
 
   const removeToast = (id: string) => {
@@ -642,11 +642,11 @@ export default function PaymentsPage() {
       },
       onSuccess: (message) => {
         if (viewerOpenForDoc) setBillingViewerFeedback({ type: 'success', message })
-        else setSuccessMessage(message)
+        else showToast(message, 'success')
       },
       onError: (message) => {
         if (viewerOpenForDoc) setBillingViewerFeedback({ type: 'error', message })
-        else setError(message)
+        else showToast(message, 'error')
       },
       onFinally: () => setBillingDownloadingId(null),
     })
@@ -810,7 +810,7 @@ export default function PaymentsPage() {
       setShowPaymentModal(true)
     } catch (error) {
       console.error('Error loading lead details after creation:', error)
-      setError('Failed to load customer details. Please try again.')
+      showToast('Failed to load customer details. Please try again.', 'error')
     }
   }
 
@@ -825,34 +825,33 @@ export default function PaymentsPage() {
     const provider = values?.paymentProvider ?? paymentProvider
 
     if (!amount || parseFloat(amount) <= 0) {
-      setError('Please enter a valid amount')
+      showToast('Please enter a valid amount', 'error')
       return
     }
 
     if (!paymentPrefill?.lead_id) {
-      setError('Please select a customer')
+      showToast('Please select a customer', 'error')
       return
     }
 
     // Client-side validation for payment method configuration
     if (provider === 'venmo' && !business?.venmo_username) {
-      setError('Venmo hasn\'t been connected yet. Connect Venmo in Settings → Payments before sending Venmo payment requests.')
+      showToast('Venmo hasn\'t been connected yet. Connect Venmo in Settings → Payments before sending Venmo payment requests.', 'error')
       return
     }
 
     if (provider === 'paypal' && !business?.paypal_payment_link) {
-      setError('PayPal hasn\'t been connected yet. Connect PayPal in Settings → Payments before sending PayPal payment requests.')
+      showToast('PayPal hasn\'t been connected yet. Connect PayPal in Settings → Payments before sending PayPal payment requests.', 'error')
       return
     }
 
     if (provider === 'stripe' && (!business?.stripe_connect_account_id || business.stripe_connect_status !== 'connected' || !business.stripe_charges_enabled)) {
-      setError('Stripe hasn\'t been connected yet. Connect Stripe in Settings → Payments before sending Stripe payment requests.')
+      showToast('Stripe hasn\'t been connected yet. Connect Stripe in Settings → Payments before sending Stripe payment requests.', 'error')
       return
     }
 
     setIsCreatingPayment(true)
     setError('')
-    setSuccessMessage('')
 
     try {
       const supabase = createBrowserClient()
@@ -894,7 +893,7 @@ export default function PaymentsPage() {
       setPaymentAmount('')
       setPaymentDescription('')
       setPaymentProvider('stripe')
-      setSuccessMessage('Payment request sent')
+      showToast('Payment request sent', 'success')
 
       // Track payment requested event
       if (business?.id) {
@@ -921,7 +920,7 @@ export default function PaymentsPage() {
       await fetchPayments()
     } catch (err) {
       console.error('Error creating payment request:', err)
-      setError(err instanceof Error ? err.message : 'Failed to create payment request')
+      showToast(err instanceof Error ? err.message : 'Failed to create payment request', 'error')
     } finally {
       setIsCreatingPayment(false)
     }
@@ -965,8 +964,10 @@ const getPaymentDescription = (payment: PaymentRequest) => {
   const copyPaymentLink = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url)
+      showToast('Payment link copied.', 'success')
     } catch (err) {
       console.error('Failed to copy link:', err)
+      showToast('Couldn\'t copy the link. Please try again.', 'error')
     }
   }
 
@@ -996,13 +997,19 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         throw new Error(error.error || 'Failed to cancel payment request')
       }
 
-      setSuccessMessage('Payment request canceled successfully')
-      
-      // Refresh payments
+      // Confirmed cancellation: close the confirm dialog AND the parent edit
+      // modal, refresh the list, and confirm in the current viewport.
+      setShowCancelConfirm(false)
+      setPaymentToCancel(null)
+      handleCloseEditModal()
+      showToast('Payment request cancelled.', 'success')
+
+      // Refresh payments (silent refetch — no loading flash, no scroll jump)
       await fetchPayments()
     } catch (err) {
       console.error('Error canceling payment request:', err)
-      setError(err instanceof Error ? err.message : 'Failed to cancel payment request')
+      // Modals stay open so the user can retry; surface the real error in-view.
+      showToast(err instanceof Error ? err.message : 'Failed to cancel payment request', 'error')
     } finally {
       setIsCancelling(false)
     }
@@ -1036,7 +1043,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         throw new Error(error.error || 'Failed to mark payment as paid')
       }
 
-      setSuccessMessage('Payment marked as paid successfully')
+      showToast('Payment marked as paid', 'success')
 
       // Invalidate intelligence after successful payment received
       if (business?.id && payment.leads?.id) {
@@ -1053,7 +1060,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
       await fetchPayments()
     } catch (err) {
       console.error('Error marking payment as paid:', err)
-      setError(err instanceof Error ? err.message : 'Failed to mark payment as paid')
+      showToast(err instanceof Error ? err.message : 'Failed to mark payment as paid', 'error')
     } finally {
       setIsMarkingPaid(false)
     }
@@ -1095,11 +1102,11 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         throw new Error(error.error || 'Failed to mark payment as unpaid')
       }
 
-      setSuccessMessage('Payment marked as unpaid')
+      showToast('Payment marked as unpaid', 'success')
       await fetchPayments()
     } catch (err) {
       console.error('Error marking payment as unpaid:', err)
-      setError(err instanceof Error ? err.message : 'Failed to mark payment as unpaid')
+      showToast(err instanceof Error ? err.message : 'Failed to mark payment as unpaid', 'error')
     } finally {
       setIsMarkingUnpaid(false)
     }
@@ -1185,7 +1192,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         p.id === paymentToEdit.id ? { ...p, display_name: label } : p
       ))
 
-      setSuccessMessage('Payment label updated successfully')
+      showToast('Payment label updated', 'success')
     } catch (err) {
       console.error('Error updating payment label:', err)
       setEditError(err instanceof Error ? err.message : 'Failed to update payment label')
@@ -1224,13 +1231,13 @@ const getPaymentDescription = (payment: PaymentRequest) => {
       const result = await response.json()
       console.log('[Payments] Reconciliation result:', result)
 
-      setSuccessMessage('Payment status updated')
+      showToast('Payment status updated', 'success')
 
       // Refresh payments to show updated status
       await fetchPayments()
     } catch (err) {
       console.error('Error checking payment status:', err)
-      setError(err instanceof Error ? err.message : 'Failed to check payment status')
+      showToast(err instanceof Error ? err.message : 'Failed to check payment status', 'error')
     } finally {
       setIsReconciling(false)
     }
@@ -1248,15 +1255,8 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           description="Request and track customer payments."
         />
 
-        {/* Success Banner - renders when successMessage is set */}
-        {successMessage && (
-          <SuccessBanner
-            message={successMessage}
-            onComplete={() => setSuccessMessage('')}
-          />
-        )}
-
-        {/* Error Banner - renders when error is set */}
+        {/* Error Banner - renders when error is set (page-load failures only;
+            action feedback goes through the viewport-anchored toast system) */}
         {error && (
           <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-4 py-2 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />

@@ -4,9 +4,12 @@ import { readFileSync } from 'fs'
 const content = readFileSync('src/components/billing/BillingEditorModal.tsx', 'utf8')
 
 describe('Billing editor footer family', () => {
-  it('keeps all four actions in a single row', () => {
-    // One-row contract: [Preview icon] [Cancel] [Create Draft] [Create & Send]
-    expect(content).toContain('flex items-center gap-1.5 sm:gap-2')
+  it('keeps all four actions in a single row that wraps instead of truncating on narrow screens', () => {
+    // Row contract: [Preview icon] [Cancel] [Create Draft] [Create & Send]
+    // flex-wrap + min-width floors let the primary buttons wrap to full-width
+    // lines on narrow mobile instead of truncating their labels.
+    expect(content).toContain('flex flex-wrap items-center gap-1.5 sm:gap-2')
+    expect(content).toContain('flex-1 min-w-[7.5rem]')
     expect(content).not.toContain('flex-col-reverse')
     const footer = content.slice(content.indexOf('const footer = ('))
     expect(footer.indexOf('handlePreview')).toBeLessThan(footer.indexOf('handleAttemptClose'))

@@ -508,8 +508,10 @@ export default function BillingEditorModal({
 
   const footer = (
     <div className="px-1 pb-[env(safe-area-inset-bottom)]">
-      {/* Single row on all widths: [Preview icon] [Cancel] [Create Draft] [Create & Send] */}
-      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+      {/* Single row when space allows; wraps to a second line on narrow
+          mobile so full labels stay readable instead of truncating:
+          [Preview icon] [Cancel] [Create Draft] [Create & Send] */}
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
         <button
           onClick={handlePreview}
           disabled={pendingAction !== null}
@@ -529,7 +531,7 @@ export default function BillingEditorModal({
         <button
           onClick={() => handleSaveDraft(false)}
           disabled={pendingAction !== null}
-          className="flex-1 min-w-0 h-11 px-2.5 sm:px-5 text-xs sm:text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
+          className="flex-1 min-w-[7.5rem] h-11 px-2.5 sm:px-5 text-xs sm:text-sm font-medium text-foreground border border-border/50 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
         >
           {pendingAction === 'draft' && <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />}
           <span className="truncate">{existingDocument ? 'Save Changes' : 'Create Draft'}</span>
@@ -544,7 +546,7 @@ export default function BillingEditorModal({
               setShowCreateAndSendConfirm(true)
             }}
             disabled={pendingAction !== null}
-            className="flex-1 min-w-0 h-11 px-2.5 sm:px-5 text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
+            className="flex-1 min-w-[7.5rem] h-11 px-2.5 sm:px-5 text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap"
           >
             {pendingAction === 'send' && <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />}
             <span className="truncate">Create & Send</span>

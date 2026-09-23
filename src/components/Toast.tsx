@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ToastProps {
   message: string
@@ -81,7 +82,7 @@ export default function Toast({
     }
   }
 
-  return (
+  const toastContent = (
     <div className={`fixed left-4 right-4 top-[calc(4.5rem+env(safe-area-inset-top))] z-[100] transform transition-all duration-200 sm:left-auto sm:top-20 sm:right-4 ${
       isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
     }`}>
@@ -104,6 +105,11 @@ export default function Toast({
       </div>
     </div>
   )
+
+  // Portal to body: page containers establish their own stacking contexts
+  // (e.g. dashboard main is relative z-10), which would cap the toast below
+  // portal-mounted modals (z-60) no matter how large this z-index is.
+  return typeof document !== 'undefined' ? createPortal(toastContent, document.body) : null
 }
 
 // Toast container for managing multiple toasts
@@ -119,7 +125,7 @@ interface ToastContainerProps {
 }
 
 export function ToastContainer({ toasts, onRemoveToast }: ToastContainerProps) {
-  return (
+  const container = (
     <div className="fixed left-4 right-4 top-[calc(4.5rem+env(safe-area-inset-top))] z-[100] space-y-2 sm:left-auto sm:top-20 sm:right-4">
       {toasts.map((toast) => (
         <Toast
@@ -132,4 +138,6 @@ export function ToastContainer({ toasts, onRemoveToast }: ToastContainerProps) {
       ))}
     </div>
   )
+  // Portal for the same stacking-context reason as Toast above.
+  return typeof document !== 'undefined' ? createPortal(container, document.body) : null
 }

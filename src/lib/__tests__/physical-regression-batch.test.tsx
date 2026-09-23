@@ -802,7 +802,7 @@ describe('Payment Link Success — visible feedback', () => {
     vi.unstubAllGlobals()
   })
 
-  it('payments page imports and renders SuccessBanner', async () => {
+  it('payments page routes action feedback through the viewport-anchored toast system', async () => {
     const fs = await import('fs')
     const path = await import('path')
     const content = fs.readFileSync(
@@ -810,12 +810,15 @@ describe('Payment Link Success — visible feedback', () => {
       'utf-8'
     )
 
-    expect(content).toMatch(/import SuccessBanner/)
-    expect(content).toMatch(/\{successMessage && \(/)
-    expect(content).toMatch(/<SuccessBanner/)
+    // Action feedback must be visible in the current viewport regardless of
+    // scroll position and above portal-mounted modals — the in-flow top-of-page
+    // SuccessBanner failed both requirements and was removed.
+    expect(content).toMatch(/import Toast, \{ ToastContainer \} from '@\/components\/Toast'/)
+    expect(content).toMatch(/<ToastContainer/)
+    expect(content).not.toMatch(/<SuccessBanner/)
   })
 
-  it('payments page sets successMessage("Payment request sent") on success', async () => {
+  it('payments page shows a "Payment request sent" toast on success', async () => {
     const fs = await import('fs')
     const path = await import('path')
     const content = fs.readFileSync(
@@ -823,7 +826,7 @@ describe('Payment Link Success — visible feedback', () => {
       'utf-8'
     )
 
-    expect(content).toMatch(/setSuccessMessage\('Payment request sent'\)/)
+    expect(content).toMatch(/showToast\('Payment request sent', 'success'\)/)
   })
 
   it('payments page action cards ordered: Quote/Invoice, Request Payment, Tap to Pay', async () => {
@@ -1530,7 +1533,7 @@ describe('Payments page success flow — rendered banner', () => {
     }
   })
 
-  it('payments page wires successMessage to SuccessBanner with onComplete clearing it', async () => {
+  it('payments page wires action feedback to the toast system (viewport-anchored, above modals)', async () => {
     const fs = await import('fs')
     const path = await import('path')
     const content = fs.readFileSync(
@@ -1538,12 +1541,12 @@ describe('Payments page success flow — rendered banner', () => {
       'utf-8'
     )
 
-    // The page sets successMessage on success
-    expect(content).toMatch(/setSuccessMessage\('Payment request sent'\)/)
-    // The page renders SuccessBanner conditionally on successMessage
-    expect(content).toMatch(/\{successMessage && \(/)
-    expect(content).toMatch(/<SuccessBanner/)
-    // The page clears successMessage via onComplete
-    expect(content).toMatch(/onComplete=\{\(\) => setSuccessMessage\(''\)\}/)
+    // The in-flow SuccessBanner was removed — it rendered at the top of the
+    // scroll container (invisible when scrolled) and behind portal-mounted
+    // modals. Action feedback now goes through the existing toast system.
+    expect(content).toMatch(/showToast\('Payment request sent', 'success'\)/)
+    expect(content).toMatch(/<ToastContainer/)
+    expect(content).not.toMatch(/<SuccessBanner/)
+    expect(content).not.toMatch(/successMessage/)
   })
 })
