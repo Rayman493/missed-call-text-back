@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
@@ -59,7 +60,7 @@ export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMe
     }
   }
 
-  return (
+  const overlay = (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-card rounded-2xl border border-border/50 shadow-2xl w-full max-w-md flex flex-col max-h-[80vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
@@ -86,4 +87,6 @@ export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMe
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

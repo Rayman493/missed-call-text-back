@@ -891,6 +891,21 @@ body[data-chrome-covered='true'] {
   -moz-appearance: textfield;
 }
 
+/* iOS WebKit enforces an intrinsic minimum width on native date/time inputs
+ * (Business Hours, Out of Office, Blocked dates, booking hours), so the field
+ * overflows its styled box inside narrow settings cards. appearance:none makes
+ * the control honor the Tailwind box (the native wheel picker still opens on
+ * tap). The @supports guard matches WebKit only — Android keeps its native
+ * field look and picker indicator affordance. */
+@supports (-webkit-touch-callout: inherit) {
+  input[type='date'],
+  input[type='time'],
+  input[type='datetime-local'] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
 /* Online Booking "Blocked dates" From/To inputs use the native picker
  * indicator (no custom icon). The indicator hugs the field's right edge by
  * default; a small inline-end margin nudges it inward while keeping it

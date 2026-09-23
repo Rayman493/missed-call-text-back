@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Business } from '@/lib/types'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
@@ -56,7 +57,7 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
     }
   }
 
-  return (
+  const overlay = (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
@@ -156,4 +157,6 @@ export default function TestCallFlowModal({ isOpen, onClose, business, onTestCom
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

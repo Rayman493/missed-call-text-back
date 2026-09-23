@@ -160,6 +160,9 @@ export default function PaymentActionBar({
           enabled: true,
           reason: '',
           loading: false,
+          // External-context slots: blur on click so Android doesn't keep the
+          // button highlighted after returning from the external browser.
+          blurAfterClick: true,
           onClick: () => checkoutUrl && window.open(checkoutUrl, '_blank', 'noopener,noreferrer'),
         }
       : {
@@ -170,6 +173,7 @@ export default function PaymentActionBar({
           enabled: canManageInStripe,
           reason: canManageInStripe ? '' : 'No active payment link to open.',
           loading: false,
+          blurAfterClick: true,
           onClick: onManageInStripe,
         },
     { key: 'status', ...statusSlot },
@@ -215,7 +219,10 @@ export default function PaymentActionBar({
           <button
             key={slot.key}
             type="button"
-            onClick={slot.onClick}
+            onClick={(e) => {
+              if ((slot as { blurAfterClick?: boolean }).blurAfterClick) e.currentTarget.blur()
+              slot.onClick?.()
+            }}
             disabled={slot.loading}
             aria-label={slot.title}
             title={slot.title}

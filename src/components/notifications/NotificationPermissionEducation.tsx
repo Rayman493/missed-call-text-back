@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Bell } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { permissionLock } from '@/lib/permission-lock'
@@ -132,7 +133,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     return null
   }
 
-  return (
+  const overlay = (
     <div 
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-inset-bottom"
       onClick={handleDismiss}
@@ -184,4 +185,6 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

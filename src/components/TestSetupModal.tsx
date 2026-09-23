@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, getReplyFlowPhoneNumberDisplay } from '@/lib/utils'
 import { hasActiveAccess } from '@/lib/subscription-utils'
@@ -137,7 +138,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
 
   const checklistItems = getSetupChecklist()
 
-  return (
+  const overlay = (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
@@ -257,4 +258,6 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

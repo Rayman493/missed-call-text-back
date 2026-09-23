@@ -59,7 +59,7 @@ describe('BillingDocumentList six-slot action row', () => {
     expect(src).toContain('text-[9px] leading-none')
     expect(src).toContain("label: 'Edit'")
     expect(src).toContain("label: isSent ? 'Resend' : 'Send'")
-    expect(src).toContain("label: doc.derived_invoice ? 'Invoice' : 'Convert'")
+    expect(src).toContain("label: doc.derived_invoice ? 'View Inv.' : 'New Inv.'")
     expect(src).toContain("label: 'Download'")
     expect(src).toContain("label: 'View'")
     expect(src).toContain("label: 'Delete'")

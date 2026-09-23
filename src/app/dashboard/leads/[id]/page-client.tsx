@@ -905,8 +905,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Settle re-anchor: the Android keyboard animation can keep shrinking the
   // visual viewport (and the measured card/container) for a few hundred ms
   // after the last resize event, so the bounded rAF reconcile window can end
-  // before the final geometry exists. This single delayed pass re-pins to
-  // true bottom once everything settles. The write is absolute
+  // before the final geometry exists. This delayed pass re-pins to true
+  // bottom once everything settles, then runs ONE late verification pass —
+  // iOS's keyboard animation is slower than Android's, so a single mid-
+  // animation pin can land before the final geometry and strand the view
+  // above the newest message. The write is absolute
   // (scrollHeight - clientHeight), so repeated open/close cycles cannot
   // accumulate offset drift. Gated on followLatestRef — users reading
   // history keep their position.
@@ -919,9 +922,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       keyboardSettleTimerRef.current = null
       const container = getScrollContainer()
       if (!container || !followLatestRef.current) return
-      if (isContainerNearBottom(container)) return
+      // No near-bottom early-out: mid-animation the gap can be <150px and
+      // still grow past the threshold before the animation ends — an early
+      // return stranded iOS above the newest message. The absolute write is
+      // idempotent when already at bottom.
       logConversationScroll('keyboard-settle-pin', { reason })
       scrollToTrueBottom(container)
+      // One bounded late pass covers iOS animation tails longer than
+      // KEYBOARD_SETTLE_DELAY_MS (no continuous timer — at most one extra
+      // timeout per keyboard event).
+      window.setTimeout(() => {
+        const c = getScrollContainer()
+        if (!c || !followLatestRef.current) return
+        if (isContainerNearBottom(c)) return
+        logConversationScroll('keyboard-settle-pin-late', { reason })
+        scrollToTrueBottom(c)
+      }, KEYBOARD_SETTLE_DELAY_MS)
     }, KEYBOARD_SETTLE_DELAY_MS)
   }, [getScrollContainer, isContainerNearBottom, scrollToTrueBottom, logConversationScroll])
 
@@ -2157,7 +2173,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // visibleBottom converts the visual viewport into the same space.
       const cardTop = card.getBoundingClientRect().top
       const available = visibleBottom - cardTop - navHeight - 8
-      card.style.height = `${Math.max(220, available)}px`
+      // Floor must stay below the smallest usable space: iOS keyboards (with
+      // the predictive bar) can leave <220px between the customer header and
+      // the keyboard on small devices. A 220px floor pushed the composer under
+      // the keyboard; ~160px keeps header (~44px) + composer (~80px) + a few
+      // message rows visible instead.
+      card.style.height = `${Math.max(160, available)}px`
     }
     // Defer one frame so layout settles after vv changes, plus a second pass
     // covering the native bottom-nav hide/show var update that races the
@@ -2171,8 +2192,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     // The native keyboard-open path hides the bottom nav by mutating
     // --bottom-nav-height on <body> — re-measure when that inline style changes.
+    // The same class mutation is also the only guaranteed keyboard signal on
+    // iOS (Capacitor keyboardWillShow/Hide toggles body.keyboard-open even when
+    // visualViewport events don't fire in WKWebView), so it also drives the
+    // canonical bottom reconciler + settle pin, gated on followLatestRef.
     const navVarObserver = typeof MutationObserver !== 'undefined'
-      ? new MutationObserver(scheduleMobileCardHeight)
+      ? new MutationObserver(() => {
+          scheduleMobileCardHeight()
+          reconcileConversationBottom('keyboard-class-change')
+          scheduleKeyboardSettlePin('keyboard-class-change')
+        })
       : null
     navVarObserver?.observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] })
 

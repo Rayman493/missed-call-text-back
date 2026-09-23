@@ -380,7 +380,12 @@ export default function SearchableCustomerSelect({
             }`}
           >
             <span className={selectedCustomer ? 'text-foreground truncate flex-1 min-w-0' : 'text-muted-foreground truncate flex-1 min-w-0'}>
-              {getDisplayText(selectedCustomer)}
+              {/* While a selection exists but the customer list is still
+                  loading, show a loading label — never flash the empty-state
+                  placeholder ("No customer") for a record that is linked. */}
+              {hasValue && !selectedCustomer && isLoading
+                ? 'Loading…'
+                : getDisplayText(selectedCustomer)}
             </span>
           </button>
         )}

@@ -1509,6 +1509,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               </div>
 
               {/* Secondary/destructive row */}
+              <div className="space-y-1.5">
               <div className="flex gap-2">
                 <button
                   onClick={openGoogleCalendar}
@@ -1516,8 +1517,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                   className="h-10 flex-1 px-3 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/50 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                 >
                   <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate hidden sm:inline">Google Calendar</span>
-                  <span className="truncate sm:hidden">Calendar</span>
+                  {/* For externally managed events this link is the editing
+                      path — name it accordingly instead of a bare "Calendar". */}
+                  <span className="truncate hidden sm:inline">
+                    {!isReplyFlowOwned && !isJobEvent ? 'Manage in Google Calendar' : 'Google Calendar'}
+                  </span>
+                  <span className="truncate sm:hidden">
+                    {!isReplyFlowOwned && !isJobEvent ? 'Google Calendar' : 'Calendar'}
+                  </span>
                 </button>
                 {!event.isHoliday && isReplyFlowOwned && !isJobEvent && (
                   <button
@@ -1538,6 +1545,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                     <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
                   </button>
                 )}
+              </div>
+              {!event.isHoliday && !isReplyFlowOwned && !isJobEvent && (
+                <p className="text-[11px] text-muted-foreground/80 leading-snug">
+                  This event is managed in Google Calendar — edit or delete it there.
+                </p>
+              )}
               </div>
             </div>
           )}

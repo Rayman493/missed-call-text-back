@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Calendar, FileText, Tag, MapPin } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
@@ -128,7 +129,7 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
 
   if (!isOpen) return null
 
-  return (
+  const overlay = (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-slate-900 dark:bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md max-h-[85dvh] flex flex-col animate-in zoom-in-95 duration-200 pt-[calc(1rem+env(safe-area-inset-top))]" onKeyDown={handleKeyDown}>
         {/* Header */}
@@ -336,4 +337,6 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

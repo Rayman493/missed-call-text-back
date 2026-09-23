@@ -287,9 +287,12 @@ export default function BillingDocumentList({
                 {
                   col: 3,
                   key: 'convert',
-                  icon: ArrowRight,
-                  label: doc.derived_invoice ? 'Invoice' : 'Convert',
-                  title: doc.derived_invoice ? 'View Invoice' : 'Create Invoice',
+                  // A quote with a derived invoice opens that invoice (view),
+                  // while an unconverted quote creates one — name each action
+                  // explicitly so "View" and "Create" are never ambiguous.
+                  icon: doc.derived_invoice ? FileSpreadsheet : ArrowRight,
+                  label: doc.derived_invoice ? 'View Inv.' : 'New Inv.',
+                  title: doc.derived_invoice ? 'View invoice created from this quote' : 'Create invoice from this quote',
                   enabled: isAccepted,
                   disabledReason: doc.derived_invoice
                     ? 'This quote already has an invoice.'

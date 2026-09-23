@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Search, Loader2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import PickerListRow from '@/components/ui/PickerListRow'
@@ -158,11 +159,11 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
 
   if (!isOpen) return null
 
-  return (
+  const overlay = (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={onClose} />
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-4">
-        <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md flex flex-col max-h-[var(--modal-max-height)] sm:max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md flex flex-col max-h-[var(--details-modal-max-height)] sm:max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
 
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
@@ -275,4 +276,9 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
       </div>
     </>
   )
+
+  // Portal to document.body: inside dashboard <main> (relative z-10) an inline
+  // fixed overlay loses stacking to root-level chrome, leaving the status-bar /
+  // header / bottom-nav bands uncovered and clipping the card under the nav.
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

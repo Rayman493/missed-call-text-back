@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, MessageCircle, CheckCircle } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
@@ -116,7 +117,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
 
   if (!isOpen) return null
 
-  return (
+  const overlay = (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6">
       {/* Backdrop */}
       <div
@@ -267,4 +268,6 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

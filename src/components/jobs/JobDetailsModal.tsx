@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink, Smartphone, MessageSquareText, Navigation, Share2 } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
@@ -386,7 +387,7 @@ export default function JobDetailsModal({
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank')
   }
 
-  return (
+  const overlay = (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={onClose} />
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-4">
@@ -419,18 +420,22 @@ export default function JobDetailsModal({
 
           {/* Details */}
           <div data-scroll-lock-allow className="p-5 space-y-6 overflow-y-auto shrink min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {/* Customer - using EventDetailsModal pattern */}
+            {/* Customer - identity on the left, actions on the right. The
+                phone renders once as a tel: link — a separate "Call" chip would
+                duplicate the same number/action in the same row. */}
             {(job.customer_name || job.customer_phone || lead?.id) && (
-              <div className="flex items-center gap-x-2 gap-y-1.5 flex-wrap text-sm">
+              <div className="flex items-center gap-2 text-sm">
                 <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-foreground font-medium min-w-0 break-words">{job.customer_name || lead?.name || 'Customer'}</span>
-                {job.customer_phone && (
-                  <a href={`tel:${job.customer_phone}`} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors break-all">
-                    {job.customer_phone}
-                  </a>
-                )}
+                <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap min-w-0 flex-1">
+                  <span className="text-foreground font-medium min-w-0 break-words">{job.customer_name || lead?.name || 'Customer'}</span>
+                  {job.customer_phone && (
+                    <a href={`tel:${job.customer_phone}`} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors break-all">
+                      {job.customer_phone}
+                    </a>
+                  )}
+                </div>
                 {lead?.id && (
-                  <div className="flex gap-1 ml-auto flex-wrap">
+                  <div className="flex gap-1 flex-shrink-0">
                     <button
                       onClick={() => window.location.assign(`/dashboard/leads/${lead.id}`)}
                       className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
@@ -444,15 +449,6 @@ export default function JobDetailsModal({
                       <MessageSquareText className="w-3 h-3" />
                       Conversation
                     </button>
-                    {job.customer_phone && (
-                      <a
-                        href={`tel:${job.customer_phone}`}
-                        className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 flex items-center gap-1"
-                      >
-                        <Phone className="w-3 h-3" />
-                        Call
-                      </a>
-                    )}
                   </div>
                 )}
               </div>
@@ -632,4 +628,8 @@ export default function JobDetailsModal({
 
     </>
   )
+
+  // Portal to document.body so the backdrop/panel cover the full viewport
+  // (including the status-bar band) instead of stacking under root chrome.
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

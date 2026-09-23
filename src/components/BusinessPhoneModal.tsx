@@ -1,5 +1,6 @@
 'use client'
 
+import { createPortal } from 'react-dom'
 import { Smartphone, X } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -62,7 +63,7 @@ export default function BusinessPhoneModal({
     }
   }
 
-  return (
+  const overlay = (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={(e) => {
@@ -119,4 +120,6 @@ export default function BusinessPhoneModal({
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

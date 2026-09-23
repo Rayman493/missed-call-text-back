@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { X, Copy, CheckCircle2, Phone, AlertCircle, HelpCircle } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useModalBackButton } from '@/hooks/useModalBackButton'
@@ -31,7 +32,7 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
 
   if (!isOpen) return null
 
-  return (
+  const overlay = (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6"
       role="dialog"
@@ -211,4 +212,6 @@ export default function HelpTroubleshootingModal({ isOpen, onClose, twilioPhoneN
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

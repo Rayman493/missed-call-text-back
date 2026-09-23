@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import { CreditCard, CheckCircle, X } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
@@ -26,7 +27,7 @@ export default function TapToPaySetupModal({
 
   if (!isOpen) return null
 
-  return (
+  const overlay = (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
         {/* Header */}
@@ -155,4 +156,6 @@ export default function TapToPaySetupModal({
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

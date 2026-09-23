@@ -106,7 +106,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     if (!sectionIds.includes(section)) {
       const element = document.getElementById(section)
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        scrollElementBelowTabsRef.current(element)
         element.focus({ preventScroll: true })
       }
       return
@@ -307,7 +307,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         setTimeout(() => {
           const element = document.getElementById(hash)
           if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            scrollElementBelowTabsRef.current(element)
             console.log('[SETTINGS] Scrolled to payment provider:', hash)
           }
         }, 100)
@@ -322,7 +322,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         setTimeout(() => {
           const element = document.getElementById('out-of-office')
           if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            scrollElementBelowTabsRef.current(element)
             console.log('[SETTINGS] Scrolled to out-of-office card')
           }
         }, 100)
@@ -389,7 +389,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       requestAnimationFrame(() => {
         const element = document.getElementById(hash)
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          scrollElementBelowTabsRef.current(element)
           console.log('[SETTINGS] Scrolled to section:', hash)
         } else {
           console.warn('[SETTINGS] Section not found for hash:', hash)
@@ -3037,12 +3037,41 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     }
   }, [scrollOffset])
 
+  // Scroll an arbitrary element to just below the sticky settings tabs.
+  // scrollIntoView({ block: 'start' }) lands targets at viewport y=0 — hidden
+  // under the sticky bar; this applies the same measured offset as
+  // scrollToSection so deep-linked sub-cards stay fully visible.
+  const scrollElementBelowTabs = useCallback((element: HTMLElement) => {
+    const measuredNavHeight = settingsTabsContainerRef.current?.offsetHeight ?? 0
+    const offset = (measuredNavHeight || scrollOffset) + BREATHING_ROOM_GAP
+    const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    programmaticScrollInProgressRef.current = true
+    window.scrollTo({
+      top: elementPosition,
+      behavior: prefersReducedMotion ? 'auto' : 'smooth'
+    })
+    const clearFlag = () => {
+      programmaticScrollInProgressRef.current = false
+      window.removeEventListener('scrollend', clearFlag)
+    }
+    if ('onscrollend' in window) {
+      window.addEventListener('scrollend', clearFlag, { once: true })
+    }
+    setTimeout(clearFlag, prefersReducedMotion ? 0 : 1000)
+  }, [scrollOffset])
+
   // Ref to hold the latest scrollToSection for use in mount-only effects
   // without adding it to their dependency arrays (prevents re-registration)
   const scrollToSectionRef = useRef(scrollToSection)
   useEffect(() => {
     scrollToSectionRef.current = scrollToSection
   }, [scrollToSection])
+
+  const scrollElementBelowTabsRef = useRef(scrollElementBelowTabs)
+  useEffect(() => {
+    scrollElementBelowTabsRef.current = scrollElementBelowTabs
+  }, [scrollElementBelowTabs])
 
   const stopDeepLinkWatch = useCallback(() => {
     deepLinkAnchorTopRef.current = null

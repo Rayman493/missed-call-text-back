@@ -299,7 +299,12 @@ export default function PaymentEditModal({
 
             {canManageInStripe && (
               <button
-                onClick={onManageInStripe}
+                onClick={(e) => {
+                  // Clear the retained tap highlight before the external
+                  // browser handoff — Android keeps :focus on return.
+                  e.currentTarget.blur()
+                  onManageInStripe?.()
+                }}
                 className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2 text-sm font-medium rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
               >
                 <ExternalLink className="h-4 w-4" />

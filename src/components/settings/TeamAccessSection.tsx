@@ -352,7 +352,14 @@ export default function TeamAccessSection() {
             </div>
           ))}
 
-          {/* Recently closed invites (context only, no actions) */}
+          {/* Recently closed invites (context only, no actions).
+              "Access removed" means that person's member sign-in was revoked —
+              the historical invite row is kept for context, not as a member. */}
+          {pastInvites.length > 0 && (
+            <p className="text-[11px] text-muted-foreground/80 leading-snug pt-1">
+              Invite history — <span className="font-medium">Access removed</span> means that person's sign-in was revoked.
+            </p>
+          )}
           {pastInvites.slice(0, 3).map((inv) => (
             <div
               key={inv.id}
@@ -361,7 +368,7 @@ export default function TeamAccessSection() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">{formatPhoneNumber(inv.phone)}</span>
                 <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 capitalize">
-                  {inv.status === 'accepted' ? 'removed' : inv.status}
+                  {inv.status === 'accepted' ? 'Access removed' : inv.status}
                 </span>
               </div>
             </div>

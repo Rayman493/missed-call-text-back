@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Calendar, Clock, Plus } from 'lucide-react'
 import { openExternalLink } from '@/lib/external-link'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -51,7 +52,7 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
     setIsAdding(false)
   }
 
-  return (
+  const overlay = (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[var(--modal-max-height)] sm:max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
@@ -124,4 +125,6 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(overlay, document.body) : null
 }

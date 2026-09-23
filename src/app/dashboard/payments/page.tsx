@@ -1405,20 +1405,25 @@ const getPaymentDescription = (payment: PaymentRequest) => {
         {/* Stripe processing fee notice — shown only when Stripe is set up;
             never for purely manual/non-Stripe payment setups */}
         {business?.stripe_connect_account_id && (
-          <p className="text-xs text-muted-foreground mt-3">
-            Stripe charges processing fees on applicable payments. Fees vary by payment method and account.{' '}
-            {role === 'owner' ? (
-              <button
-                type="button"
-                onClick={() => handleManageStripeDashboard()}
-                className="underline underline-offset-2 hover:text-foreground transition-colors"
-              >
-                View your exact fees and net earnings in your Stripe Dashboard.
-              </button>
-            ) : (
-              'View your exact fees and net earnings in your Stripe Dashboard.'
-            )}
-          </p>
+          <div className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 dark:bg-slate-800/50 px-3 py-1.5">
+            <svg className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Stripe processing fees apply and vary by payment method.{' '}
+              {role === 'owner' ? (
+                <button
+                  type="button"
+                  onClick={(e) => { e.currentTarget.blur(); handleManageStripeDashboard() }}
+                  className="underline underline-offset-2 hover:text-foreground transition-colors"
+                >
+                  See exact fees in Stripe
+                </button>
+              ) : (
+                'See exact fees in your Stripe Dashboard.'
+              )}
+            </p>
+          </div>
         )}
 
         {/* Segment control: Payments | Quotes & Invoices */}
