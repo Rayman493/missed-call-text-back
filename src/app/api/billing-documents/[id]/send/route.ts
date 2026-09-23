@@ -162,6 +162,7 @@ export async function POST(
         id: doc.id,
         document_number: doc.document_number,
         total_cents: doc.total_cents,
+        currency: doc.currency,
         customer_id: doc.customer_id,
         status: doc.status,
         payment_request_id: doc.payment_request_id,

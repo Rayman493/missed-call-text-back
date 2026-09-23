@@ -60,10 +60,10 @@ export async function GET(
     if (doc.document_type === 'invoice' && doc.payment_request_id) {
       const { data: paymentRequest } = await supabase
         .from('payment_requests')
-        .select('checkout_url, status')
+        .select('checkout_url, status, stripe_connect_account_id')
         .eq('id', doc.payment_request_id)
         .maybeSingle()
-      if (paymentRequest?.checkout_url && paymentRequest.status === 'pending') {
+      if (paymentRequest?.checkout_url && paymentRequest.status === 'pending' && paymentRequest.stripe_connect_account_id) {
         paymentUrl = paymentRequest.checkout_url
       }
     }

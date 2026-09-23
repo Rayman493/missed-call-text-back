@@ -66,6 +66,7 @@ export async function prepareInvoicePayment(
     id: string
     document_number: string
     total_cents: number
+    currency?: string | null
     customer_id: string | null
     status: string
     payment_request_id: string | null
@@ -87,9 +88,29 @@ export async function prepareInvoicePayment(
   }
 
   // Zero-dollar invoices cannot enter the payment lifecycle.
-  if (invoice.total_cents <= 0) {
+  if (!Number.isSafeInteger(invoice.total_cents) || invoice.total_cents <= 0) {
     return { ok: false, error: 'Add an amount greater than $0 before sending this invoice.', status: 400 }
   }
+  if (invoice.total_cents > 100000000) {
+    return { ok: false, error: 'Invoice amount exceeds maximum allowed', status: 400 }
+  }
+  const currency = (invoice.currency || 'usd').toLowerCase()
+  if (currency !== 'usd') {
+    return { ok: false, error: 'Invoice currency is not supported', status: 400 }
+  }
+
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id, stripe_connect_account_id, stripe_connect_status, stripe_charges_enabled')
+    .eq('id', businessId)
+    .maybeSingle()
+  if (businessError || !business || business.id !== businessId) {
+    return { ok: false, error: 'Business not found', status: 404 }
+  }
+  if (!business.stripe_connect_account_id || business.stripe_connect_status !== 'connected' || business.stripe_charges_enabled !== true) {
+    return { ok: false, error: 'Stripe Connect is not ready to accept invoice payments', status: 400 }
+  }
+  const stripeAccountId = business.stripe_connect_account_id
 
   // ── Step 1: resolve or resume the canonical payment_request anchor ─────
   // If the invoice already links to a usable pending request, return it.
@@ -97,23 +118,21 @@ export async function prepareInvoicePayment(
   // If it links to a paid request, reconcile the invoice.
   // Otherwise create a fresh 'draft' row BEFORE any external Stripe state is
   // created, so a retry always has a persisted idempotency anchor to follow.
-  let paymentRequest: { id: string; status?: string; checkout_url?: string | null; stripe_checkout_session_id?: string | null } | null = null
+  let paymentRequest: { id: string; status?: string; amount_cents?: number; currency?: string | null; checkout_url?: string | null; stripe_checkout_session_id?: string | null; stripe_connect_account_id?: string | null } | null = null
   let isNewAnchor = true
 
   if (invoice.payment_request_id) {
     const { data: existingPr } = await supabase
       .from('payment_requests')
-      .select('id, checkout_url, status, stripe_checkout_session_id')
+      .select('id, amount_cents, currency, checkout_url, status, stripe_checkout_session_id, stripe_connect_account_id')
       .eq('id', invoice.payment_request_id)
       .maybeSingle()
     if (existingPr) {
-      if (existingPr.status === 'pending' && existingPr.checkout_url) {
-        return {
-          ok: true,
-          checkout_url: existingPr.checkout_url,
-          payment_request_id: existingPr.id,
-          idempotent: true,
-        }
+      if (existingPr.amount_cents != null && existingPr.amount_cents !== invoice.total_cents) {
+        return { ok: false, error: 'Invoice payment amount does not match the invoice', status: 409 }
+      }
+      if (existingPr.currency && existingPr.currency.toLowerCase() !== currency) {
+        return { ok: false, error: 'Invoice payment currency does not match the invoice', status: 409 }
       }
       if (existingPr.status === 'paid') {
         await supabase
@@ -121,6 +140,20 @@ export async function prepareInvoicePayment(
           .update({ status: 'paid', paid_at: new Date().toISOString() })
           .eq('id', invoice.id)
         return { ok: true, alreadyPaid: true }
+      }
+      if ((existingPr.stripe_checkout_session_id || existingPr.checkout_url) && !existingPr.stripe_connect_account_id) {
+        return { ok: false, error: 'This invoice payment link requires review before it can accept payment', status: 409 }
+      }
+      if (existingPr.stripe_connect_account_id && existingPr.stripe_connect_account_id !== stripeAccountId) {
+        return { ok: false, error: 'Invoice payment account does not match the business Stripe account', status: 409 }
+      }
+      if (existingPr.status === 'pending' && existingPr.checkout_url) {
+        return {
+          ok: true,
+          checkout_url: existingPr.checkout_url,
+          payment_request_id: existingPr.id,
+          idempotent: true,
+        }
       }
       // cancelled/expired/draft: resume the existing anchor
       paymentRequest = existingPr
@@ -147,9 +180,11 @@ export async function prepareInvoicePayment(
         lead_id: invoice.customer_id,
         conversation_id: conversationResolution.id,
         amount_cents: invoice.total_cents,
-        currency: 'usd',
+        currency,
         description: `Invoice ${invoice.document_number}`,
         status: 'draft',
+        payment_provider: 'stripe',
+        stripe_connect_account_id: stripeAccountId,
         requested_by: requestedBy ?? null,
       })
       .select('id, status, checkout_url, stripe_checkout_session_id')
@@ -221,7 +256,7 @@ export async function prepareInvoicePayment(
         line_items: [
           {
             price_data: {
-              currency: 'usd',
+              currency,
               product_data: {
                 name: `Invoice ${invoice.document_number}`,
               },
@@ -235,14 +270,27 @@ export async function prepareInvoicePayment(
         cancel_url: cancelUrl,
         client_reference_id: paymentRequest.id,
         metadata: {
+          payment_request_id: paymentRequest.id,
           business_id: String(businessId),
           lead_id: String(invoice.customer_id || ''),
           invoice_id: String(invoice.id),
           invoice_number: String(invoice.document_number),
+          stripe_connect_account_id: stripeAccountId,
           source: 'billing_invoice',
         },
+        payment_intent_data: {
+          metadata: {
+            payment_request_id: paymentRequest.id,
+            business_id: String(businessId),
+            lead_id: String(invoice.customer_id || ''),
+            invoice_id: String(invoice.id),
+            invoice_number: String(invoice.document_number),
+            stripe_connect_account_id: stripeAccountId,
+            source: 'billing_invoice',
+          },
+        },
       },
-      { idempotencyKey: stripeIdempotencyKey }
+      { stripeAccount: stripeAccountId, idempotencyKey: stripeIdempotencyKey }
     )
   } catch (stripeCreateError) {
     console.error('[PREPARE PAYMENT] Stripe Checkout Session creation failed:', stripeCreateError)
@@ -258,8 +306,11 @@ export async function prepareInvoicePayment(
     .from('payment_requests')
     .update({
       status: 'pending',
+      payment_provider: 'stripe',
+      stripe_connect_account_id: stripeAccountId,
       checkout_url: session.url,
       stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
     })
     .eq('id', paymentRequest.id)
     .select('id, checkout_url, stripe_checkout_session_id')
@@ -285,9 +336,11 @@ export async function prepareInvoicePayment(
             lead_id: String(invoice.customer_id || ''),
             invoice_id: String(invoice.id),
             invoice_number: String(invoice.document_number),
+            stripe_connect_account_id: stripeAccountId,
             source: 'billing_invoice',
           },
-        }
+        },
+        { stripeAccount: stripeAccountId }
       )
     }
   } catch (metadataError) {

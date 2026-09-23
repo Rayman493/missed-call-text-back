@@ -53,7 +53,7 @@ export async function POST(
     // Fetch the invoice with ownership check
     const { data: invoice, error: fetchError } = await supabase
       .from('billing_documents')
-      .select('id, business_id, document_type, status, total_cents, customer_id, document_number, payment_request_id')
+      .select('id, business_id, document_type, status, total_cents, currency, customer_id, document_number, payment_request_id')
       .eq('id', id)
       .eq('business_id', business.id)
       .single()

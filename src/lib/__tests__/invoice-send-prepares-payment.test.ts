@@ -20,6 +20,7 @@ vi.mock('@/lib/stripe', () => ({
 function makeMockSupabase(options: {
   invoice: any
   existingPr?: any | null
+  business?: any | null
   insertedPr?: any
   conversationLookup?: any[]
   conversationInsert?: any
@@ -30,6 +31,7 @@ function makeMockSupabase(options: {
   const {
     invoice,
     existingPr = null,
+    business = { id: 'biz_1', stripe_connect_account_id: 'acct_business_1', stripe_connect_status: 'connected', stripe_charges_enabled: true },
     insertedPr = { id: 'pr_new', status: 'draft' },
     conversationLookup = [{ id: 'conv_1', status: 'active' }],
     conversationInsert = { id: 'conv_new' },
@@ -75,6 +77,16 @@ function makeMockSupabase(options: {
             updates[`${table}.${col}=${val}`] = payload
             return { eq: vi.fn(() => ({ error: null })) }
           }),
+        })),
+      }
+    }
+
+    if (table === 'businesses') {
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(async () => ({ data: business, error: null })),
+          })),
         })),
       }
     }
@@ -200,7 +212,7 @@ describe('prepareInvoicePayment', () => {
   it('reuses an existing pending payment request (idempotent)', async () => {
     const supabase = makeMockSupabase({
       invoice: { status: 'sent', payment_request_id: 'pr_1' },
-      existingPr: { id: 'pr_1', checkout_url: 'https://checkout.stripe.com/existing', status: 'pending' },
+      existingPr: { id: 'pr_1', checkout_url: 'https://checkout.stripe.com/existing', status: 'pending', stripe_connect_account_id: 'acct_business_1' },
     })
     const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
       id: 'inv_1',
@@ -244,6 +256,8 @@ describe('prepareInvoicePayment', () => {
       currency: 'usd',
       description: 'Invoice INV-1',
       status: 'draft',
+      payment_provider: 'stripe',
+      stripe_connect_account_id: 'acct_business_1',
       requested_by: 'user_1',
     })
 
@@ -256,13 +270,16 @@ describe('prepareInvoicePayment', () => {
     expect(mockStripe.checkout.sessions.create).toHaveBeenCalledTimes(1)
     const createCall = mockStripe.checkout.sessions.create.mock.calls[0]
     expect(createCall[0].client_reference_id).toBe('pr_new')
-    expect(createCall[1]).toEqual({ idempotencyKey: 'billing-payment-request:pr_new' })
+    expect(createCall[1]).toEqual({ stripeAccount: 'acct_business_1', idempotencyKey: 'billing-payment-request:pr_new' })
 
     // 4. The persisted anchor is activated with the Stripe session URL + id
     expect(supabase._updates['payment_requests.id=pr_new']).toEqual({
       status: 'pending',
+      payment_provider: 'stripe',
+      stripe_connect_account_id: 'acct_business_1',
       checkout_url: 'https://checkout.stripe.com/test',
       stripe_checkout_session_id: 'cs_test_123',
+      stripe_payment_intent_id: 'pi_test_123',
     })
 
     expect(mockPaymentIntentsUpdate).toHaveBeenCalledTimes(1)
@@ -325,6 +342,15 @@ describe('prepareInvoicePayment', () => {
     })
     // Force the insert single() to return an error
     ;(supabase as any).from = vi.fn((table: string) => {
+      if (table === 'businesses') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn(async () => ({ data: { id: 'biz_1', stripe_connect_account_id: 'acct_business_1', stripe_connect_status: 'connected', stripe_charges_enabled: true }, error: null })),
+            })),
+          })),
+        }
+      }
       if (table === 'conversations') {
         return {
           select: vi.fn(() => ({
@@ -419,6 +445,82 @@ describe('prepareInvoicePayment', () => {
     })
     expect(result.ok).toBe(false)
     expect(result.error).toContain('customer')
+    expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
+  })
+
+  it('fails closed when the business has no charge-ready connected account', async () => {
+    for (const business of [
+      null,
+      { id: 'biz_1', stripe_connect_account_id: null, stripe_connect_status: 'not_connected', stripe_charges_enabled: false },
+      { id: 'biz_1', stripe_connect_account_id: 'acct_1', stripe_connect_status: 'setup_incomplete', stripe_charges_enabled: false },
+      { id: 'biz_1', stripe_connect_account_id: 'acct_1', stripe_connect_status: 'connected', stripe_charges_enabled: false },
+    ]) {
+      const supabase = makeMockSupabase({ invoice: {}, business })
+      const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+        id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'draft', payment_request_id: null,
+      })
+      expect(result.ok).toBe(false)
+    }
+    expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid amounts and unsupported currencies before Stripe creation', async () => {
+    for (const input of [
+      { total_cents: 10.5, currency: 'usd' },
+      { total_cents: 100000001, currency: 'usd' },
+      { total_cents: 1000, currency: 'eur' },
+    ]) {
+      const supabase = makeMockSupabase({ invoice: {} })
+      const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+        id: 'inv_1', document_number: 'INV-1', customer_id: 'lead_1', status: 'draft', payment_request_id: null, ...input,
+      })
+      expect(result.ok).toBe(false)
+    }
+    expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
+  })
+
+  it('routes two businesses to isolated connected accounts with consistent metadata', async () => {
+    for (const suffix of ['a', 'b']) {
+      const businessId = `biz_${suffix}`
+      const accountId = `acct_${suffix}`
+      const supabase = makeMockSupabase({
+        invoice: {},
+        business: { id: businessId, stripe_connect_account_id: accountId, stripe_connect_status: 'connected', stripe_charges_enabled: true },
+        insertedPr: { id: `pr_${suffix}`, status: 'draft' },
+      })
+      const result = await prepareInvoicePayment(supabase as any, businessId, {
+        id: `inv_${suffix}`, document_number: `INV-${suffix}`, total_cents: suffix === 'a' ? 1111 : 2222, currency: 'usd', customer_id: `lead_${suffix}`, status: 'draft', payment_request_id: null,
+      })
+      expect(result.ok).toBe(true)
+      const [params, options] = mockStripe.checkout.sessions.create.mock.calls.at(-1)!
+      expect(options.stripeAccount).toBe(accountId)
+      expect(params.metadata).toMatchObject({ payment_request_id: `pr_${suffix}`, business_id: businessId, invoice_id: `inv_${suffix}`, stripe_connect_account_id: accountId, source: 'billing_invoice' })
+      expect(params.payment_intent_data.metadata).toEqual(params.metadata)
+    }
+    expect(mockStripe.checkout.sessions.create.mock.calls.at(-2)![1].stripeAccount).not.toBe(mockStripe.checkout.sessions.create.mock.calls.at(-1)![1].stripeAccount)
+  })
+
+  it('quarantines a historical platform Checkout link without replacing or expiring it', async () => {
+    const supabase = makeMockSupabase({
+      invoice: {},
+      existingPr: { id: 'pr_legacy', status: 'pending', amount_cents: 1000, currency: 'usd', checkout_url: 'https://checkout.stripe.com/legacy', stripe_checkout_session_id: 'cs_legacy', stripe_connect_account_id: null },
+    })
+    const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+      id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'sent', payment_request_id: 'pr_legacy',
+    })
+    expect(result).toMatchObject({ ok: false, status: 409 })
+    expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects an existing anchor assigned to another connected account', async () => {
+    const supabase = makeMockSupabase({
+      invoice: {},
+      existingPr: { id: 'pr_1', status: 'pending', amount_cents: 1000, currency: 'usd', checkout_url: 'https://checkout.stripe.com/existing', stripe_checkout_session_id: 'cs_1', stripe_connect_account_id: 'acct_other' },
+    })
+    const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+      id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'sent', payment_request_id: 'pr_1',
+    })
+    expect(result).toMatchObject({ ok: false, status: 409 })
     expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
   })
 
