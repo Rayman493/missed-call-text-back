@@ -5,6 +5,7 @@ import { FileText, FileSpreadsheet, Edit, Trash2, Loader2, Eye, Download, Send, 
 import Modal from '@/components/ui/Modal'
 import { formatCurrency } from '@/lib/utils'
 import { effectiveStatus } from '@/lib/billing/document-presentation'
+import { billingCustomerDisplayName } from '@/lib/billing/billing-utils'
 import { showToast } from '@/lib/toast'
 import StatusPill from '@/components/ui/StatusPill'
 import type { BillingDocumentType } from './BillingEditorModal'
@@ -32,6 +33,12 @@ export interface BillingDocumentListItem {
     id: string
     contact_name: string | null
     caller_phone: string | null
+    raw_metadata?: Record<string, any> | null
+    ai_call_records?: Array<{
+      id: string
+      created_at: string
+      extracted_info: Record<string, any> | null
+    }> | null
   } | null
   updated_at: string
   sent_at: string | null
@@ -162,7 +169,7 @@ export default function BillingDocumentList({
           due_date: doc.due_date,
         } as any)
         const badge = statusBadge(effective)
-        const customerName = doc.leads?.contact_name || ''
+        const customerName = billingCustomerDisplayName(doc.leads) || ''
         const customerPhone = doc.leads?.caller_phone || ''
         // Display priority: canonical name as primary, phone as secondary metadata,
         // "Unnamed customer" only when no meaningful name truly exists.

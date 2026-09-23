@@ -310,10 +310,9 @@ describe('NUMBERING / MIGRATIONS', () => {
     expect(apiListSrc).not.toContain('SUPABASE_SERVICE_ROLE_KEY')
   })
 
-  it('42. convert route also uses correct RPC', () => {
-    expect(convertSrc).toContain("rpc('assign_billing_document_number'")
-    expect(convertSrc).toContain('p_business_id:')
-    expect(convertSrc).toContain("p_document_type: 'invoice'")
+  it('42. convert route uses the atomic quote conversion RPC', () => {
+    expect(convertSrc).toContain("rpc('convert_quote_to_invoice'")
+    expect(convertSrc).toContain('p_quote_id: id')
   })
 })
 
@@ -620,9 +619,8 @@ describe('BILLING LIST CUSTOMER QUERY', () => {
     expect(apiListSrc).toContain('caller_phone')
   })
 
-  it('89. named customer display works (contact_name)', () => {
-    expect(listSrc).toContain('contact_name')
-    expect(listSrc).toContain('doc.leads?.contact_name')
+  it('89. named customer display uses canonical persisted identity', () => {
+    expect(listSrc).toContain('billingCustomerDisplayName(doc.leads)')
   })
 
   it('90. phone-only customer fallback works (caller_phone)', () => {
@@ -630,8 +628,8 @@ describe('BILLING LIST CUSTOMER QUERY', () => {
     expect(listSrc).toContain('doc.leads?.caller_phone')
   })
 
-  it('91. null optional fields do not crash (No customer fallback)', () => {
-    expect(listSrc).toContain("'No customer'")
+  it('91. null optional fields retain the unnamed customer fallback', () => {
+    expect(listSrc).toContain("'Unnamed customer'")
   })
 
   it('92. customer ownership/business isolation unchanged', () => {
@@ -661,9 +659,9 @@ describe('BILLING LIST CUSTOMER QUERY', () => {
     expect(sendSrc).toContain('contact_name')
   })
 
-  it('97. viewer modal uses contact_name (not leads.name)', () => {
+  it('97. viewer modal uses canonical persisted identity (not leads.name)', () => {
     const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
-    expect(viewerSrc).toContain('contact_name')
+    expect(viewerSrc).toContain('billingCustomerDisplayName(d.leads)')
     expect(viewerSrc).not.toContain('d.leads?.name')
   })
 })
@@ -713,9 +711,12 @@ describe('SAVED-DOCUMENT REVIEW/SEND FLOW', () => {
   })
 
   it('106. successful POST is not retried if list refresh fails', () => {
-    // handleSaveDraft does not contain retry logic
-    expect(editorSrc).not.toContain('retry')
-    expect(editorSrc).not.toContain('POST again')
+    const saveFn = editorSrc.slice(
+      editorSrc.indexOf('const handleSaveDraft'),
+      editorSrc.indexOf('const handleAttemptClose')
+    )
+    expect(saveFn.match(/fetch\('\/api\/billing-documents',/g)).toHaveLength(1)
+    expect(saveFn).not.toContain('POST again')
   })
 
   it('107. successful POST is not reported as failed because GET failed', () => {
@@ -734,12 +735,12 @@ describe('SAVED-DOCUMENT REVIEW/SEND FLOW', () => {
 
   it('109. saved document list has View action', () => {
     expect(listSrc).toContain('onView')
-    expect(listSrc).toContain('View document')
+    expect(listSrc).toContain("label: 'View'")
   })
 
   it('110. saved document list has Edit action (for drafts)', () => {
     expect(listSrc).toContain('onOpen')
-    expect(listSrc).toContain('Edit document')
+    expect(listSrc).toContain("label: 'Edit'")
   })
 
   it('111. saved document list has Download PDF action', () => {
@@ -834,8 +835,8 @@ describe('SAVED-DOCUMENT REVIEW/SEND FLOW', () => {
     expect(listSrc).toContain('caller_phone')
   })
 
-  it('127. null optional customer safe (No customer fallback)', () => {
-    expect(listSrc).toContain("'No customer'")
+  it('127. null optional customer keeps a sensible fallback', () => {
+    expect(listSrc).toContain("'Unnamed customer'")
   })
 
   it('128. PDF loads persisted document (uses DocumentPresentation)', () => {
@@ -874,11 +875,11 @@ describe('PRODUCTION LEADS ALIGNMENT', () => {
     expect(sendSrc).not.toMatch(/leads\s*\(\s*[^)]*\bphone\b[^)]/)
   })
 
-  it('134. billing leads select uses only canonical fields', () => {
-    // Only id, contact_name, caller_phone should be selected
-    expect(apiListSrc).toContain('leads ( id, contact_name, caller_phone )')
+  it('134. billing leads select loads the canonical customer identity fields', () => {
+    const billingLeadEmbed = 'leads ( id, contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info ) )'
+    expect(apiListSrc).toContain(billingLeadEmbed)
     const singleDocSrc = readSrc('src/app/api/billing-documents/[id]/route.ts')
-    expect(singleDocSrc).toContain('leads ( id, contact_name, caller_phone )')
+    expect(singleDocSrc).toContain(billingLeadEmbed)
   })
 
   it('135. viewer does not fall back to leads.email', () => {
@@ -904,7 +905,7 @@ describe('PRODUCTION LEADS ALIGNMENT', () => {
   it('139. billing-utils exports canonical leads select constant', () => {
     const billingUtilsSrc = readSrc('src/lib/billing/billing-utils.ts')
     expect(billingUtilsSrc).toContain('BILLING_LEADS_SELECT')
-    expect(billingUtilsSrc).toContain('leads ( id, contact_name, caller_phone )')
+    expect(billingUtilsSrc).toContain('leads ( id, contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info ) )')
   })
 
   it('140. billing-utils exports billingCustomerName helper', () => {
@@ -991,7 +992,7 @@ describe('PRICING UX', () => {
 describe('SETTINGS LOGO THUMBNAIL', () => {
   it('156. logo thumbnail uses formBusiness.logo_url (not just business.logo_url)', () => {
     const settingsSrc = readSrc('src/components/SettingsContent.tsx')
-    expect(settingsSrc).toContain('formBusiness?.logo_url || business.logo_url')
+    expect(settingsSrc).toContain('formBusiness ? (formBusiness.logo_url ?? null) : (business.logo_url ?? null)')
   })
 
   it('157. logo thumbnail has object-contain', () => {
@@ -1047,8 +1048,9 @@ describe('DOCUMENT POLISH', () => {
     expect(rendererSrc).toContain('text-xl sm:text-2xl')
   })
 
-  it('167. customer + dates block has min-w to prevent wrapping', () => {
-    expect(rendererSrc).toContain('min-w-[180px]')
+  it('167. customer + dates block can shrink without overflow', () => {
+    expect(rendererSrc).toContain('min-w-0')
+    expect(rendererSrc).toContain('break-words')
   })
 
   it('168. date labels use whitespace-nowrap', () => {
@@ -1189,9 +1191,9 @@ describe('NULL BATCH-2 FIELD SAFETY', () => {
     expect(viewerSrc).toContain('d.snapshot_customer_name ||')
   })
 
-  it('195. viewer falls back to leads for customer name', () => {
+  it('195. viewer falls back to canonical lead identity for customer name', () => {
     const viewerSrc = readSrc('src/components/billing/BillingViewerModal.tsx')
-    expect(viewerSrc).toContain('d.leads?.contact_name')
+    expect(viewerSrc).toContain('billingCustomerDisplayName(d.leads)')
   })
 
   it('196. list query selects public_token and source_quote_id', () => {

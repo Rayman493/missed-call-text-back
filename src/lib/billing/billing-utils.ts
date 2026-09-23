@@ -5,6 +5,8 @@
  * recalculated server-side — the API never trusts client-calculated totals.
  */
 
+import { formatPhoneNumber, getLeadDisplayName } from '@/lib/utils'
+
 export type BillingDocumentType = 'quote' | 'invoice'
 export type BillingDocumentStatus = 'draft' | 'sent' | 'cancelled' | 'accepted' | 'declined' | 'expired' | 'paid' | 'overdue'
 
@@ -130,13 +132,29 @@ export function documentNumberPrefix(type: BillingDocumentType): string {
  * Use this constant in every billing route that embeds leads to avoid
  * 42703 (column does not exist) errors.
  */
-export const BILLING_LEADS_SELECT = 'leads ( id, contact_name, caller_phone )'
+export const BILLING_LEADS_SELECT = 'leads ( id, contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info ) )'
+
+export interface BillingCustomerLead {
+  name?: string | null
+  contact_name?: string | null
+  caller_phone?: string | null
+  raw_metadata?: Record<string, any> | null
+  ai_call_records?: Array<{ extracted_info?: Record<string, any> | null; created_at?: string | null }> | null
+  aiCallRecords?: Array<{ extracted_info?: Record<string, any> | null; created_at?: string | null }> | null
+}
+
+export function billingCustomerDisplayName(lead: BillingCustomerLead | null | undefined): string | null {
+  if (!lead) return null
+  const displayName = getLeadDisplayName(lead)
+  const phoneDisplay = lead.caller_phone ? formatPhoneNumber(lead.caller_phone) : null
+  return displayName !== 'Unknown Caller' && displayName !== phoneDisplay ? displayName : null
+}
 
 /**
  * Resolve a billing customer display name from a lead row.
- * Fallback chain: contact_name → caller_phone → 'No customer'.
+ * Fallback chain: canonical name → caller_phone → 'No customer'.
  */
-export function billingCustomerName(lead: { contact_name?: string | null; caller_phone?: string | null } | null | undefined): string {
+export function billingCustomerName(lead: BillingCustomerLead | null | undefined): string {
   if (!lead) return 'No customer'
-  return lead.contact_name || lead.caller_phone || 'No customer'
+  return billingCustomerDisplayName(lead) || lead.caller_phone || 'No customer'
 }

@@ -78,7 +78,7 @@ describe('Issue B — "Customer information updated" only on meaningful change',
 
 describe('Issue C — quote customer card uses canonical saved join', () => {
   it('billing-documents PATCH returns the document with the leads join', () => {
-    expect(billingDocRoute).toContain('leads ( id, contact_name, caller_phone )')
+    expect(billingDocRoute).toContain('leads ( id, contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info ) )')
     expect(billingDocRoute).toContain('return NextResponse.json({ document: fullDoc })')
   })
 

@@ -60,7 +60,7 @@ describe('quote to invoice lifecycle', () => {
 
   it('conversion is atomic and returns the customer join', () => {
     expect(convertRoute).toContain("rpc('convert_quote_to_invoice'")
-    expect(convertRoute).toContain('leads ( id, contact_name, caller_phone )')
+    expect(convertRoute).toContain('leads ( id, contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info ) )')
     expect(convertRoute).not.toContain("delete().eq('id', invoice.id)")
   })
 
@@ -215,7 +215,7 @@ describe('payment rendering and PayPal manual handoff', () => {
     expect(settings).toContain('PayPal username')
     expect(settings).toContain('With or without @')
     expect(settings).toContain('normalizePaypalUsername')
-    expect(handoff).toContain("const paypalRecipient = paypalHandle ? `@${paypalHandle}`")
+    expect(handoff).toContain("const paypalRecipient = paypalDisplay || businessName")
     expect(handoff).toContain('Open PayPal (app or paypal.com)')
     expect(handoff).not.toContain('Payment Link')
   })

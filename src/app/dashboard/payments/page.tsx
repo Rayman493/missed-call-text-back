@@ -16,6 +16,7 @@ import { getPaymentStatusStyle } from '@/lib/payment-status'
 import { isPlaceholderValue } from '@/components/payments/customer-search-helpers'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import { deliverBillingPdf } from '@/lib/billing/download-billing-pdf'
+import { billingCustomerDisplayName } from '@/lib/billing/billing-utils'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
@@ -508,7 +509,7 @@ export default function PaymentsPage() {
         valid_until: d.valid_until,
         due_date: d.due_date,
         customer_id: d.customer_id,
-        customer_name: d.leads?.contact_name || null,
+        customer_name: billingCustomerDisplayName(d.leads),
         customer_phone: d.leads?.caller_phone || null,
         customer_email: null,
         notes: d.notes,
@@ -667,7 +668,7 @@ export default function PaymentsPage() {
             payment_request_id: updated.payment_request_id,
           } : d))
         }
-        const customerName = doc.leads?.contact_name || doc.display_name || 'customer'
+        const customerName = billingCustomerDisplayName(doc.leads) || doc.display_name || 'customer'
         const label = doc.document_type === 'quote' ? 'Quote' : 'Invoice'
         showToast(doc.sent_at ? `${label} resent to ${customerName}.` : `${label} sent to ${customerName}.`, 'success')
       } else {
@@ -2376,7 +2377,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground space-y-1">
               <p>{billingSendTarget?.display_name || `${billingSendTarget?.document_type === 'quote' ? 'Quote' : 'Invoice'} ${billingSendTarget?.document_number}`}</p>
-              <p>{billingSendTarget?.leads?.contact_name || 'Unnamed customer'}{billingSendTarget?.leads?.caller_phone ? ` • ${billingSendTarget.leads.caller_phone}` : ''}</p>
+              <p>{billingCustomerDisplayName(billingSendTarget?.leads) || 'Unnamed customer'}{billingSendTarget?.leads?.caller_phone ? ` • ${billingSendTarget.leads.caller_phone}` : ''}</p>
               <p className="font-medium text-foreground">{billingSendTarget ? formatCurrency(billingSendTarget.total_cents, true) : ''}</p>
             </div>
             {billingSendError && (

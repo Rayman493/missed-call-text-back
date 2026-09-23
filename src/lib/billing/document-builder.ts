@@ -7,6 +7,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { DocumentPresentation, DocumentLineItem } from './document-presentation'
+import { billingCustomerDisplayName } from './billing-utils'
 
 export async function buildDocumentPresentation(
   supabase: ReturnType<typeof createServerClient>,
@@ -70,14 +71,15 @@ export async function buildDocumentPresentation(
       address: doc.snapshot_customer_address,
     }
   } else if (doc.customer_id) {
-    // leads columns: contact_name, caller_phone (no name/phone/email columns exist)
+    // Load the persisted identity sources used by canonical customer-name resolution.
     const { data: lead } = await supabase
       .from('leads')
-      .select('contact_name, caller_phone')
+      .select('contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info )')
       .eq('id', doc.customer_id)
+      .eq('business_id', doc.business_id)
       .maybeSingle()
     customerData = {
-      name: lead?.contact_name || null,
+      name: billingCustomerDisplayName(lead),
       phone: lead?.caller_phone || null,
       email: null,
       address: null,
@@ -174,13 +176,14 @@ export async function createSnapshot(
   let customerEmail: string | null = null
 
   if (doc.customer_id) {
-    // leads columns: contact_name, caller_phone (no name/phone/email columns exist)
+    // Load the persisted identity sources used by canonical customer-name resolution.
     const { data: lead } = await supabase
       .from('leads')
-      .select('contact_name, caller_phone')
+      .select('contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info )')
       .eq('id', doc.customer_id)
+      .eq('business_id', doc.business_id)
       .maybeSingle()
-    customerName = lead?.contact_name || null
+    customerName = billingCustomerDisplayName(lead)
     customerPhone = lead?.caller_phone || null
     customerEmail = null
   }

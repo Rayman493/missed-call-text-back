@@ -59,7 +59,7 @@ export async function POST(
       .select(`
         *,
         billing_document_items (*),
-        leads ( id, contact_name, caller_phone )
+        leads ( id, contact_name, caller_phone, raw_metadata, ai_call_records ( id, created_at, extracted_info ) )
       `)
       .eq('id', invoiceId)
       .eq('business_id', business.id)
