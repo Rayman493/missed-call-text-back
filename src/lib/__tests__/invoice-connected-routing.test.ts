@@ -42,12 +42,13 @@ function makeContext(options: { expectedAccount?: string | null; eventAccount?: 
             eq: vi.fn(() => chain),
             single: vi.fn(async () => {
               if (table === 'payment_requests') return { data: { ...paymentRequest, status: localStatus }, error: null }
-              if (table === 'leads') return { data: { id: 'lead_1', status: 'payment_requested', caller_phone: null }, error: null }
+              if (table === 'leads') return { data: { id: 'lead_1', business_id: 'biz_1', status: 'payment_requested', caller_phone: null }, error: null }
               return { data: null, error: null }
             }),
             maybeSingle: vi.fn(async () => {
               if (table === 'billing_documents') return { data: { ...invoice, status: invoiceStatus }, error: null }
               if (table === 'businesses') return { data: { id: 'biz_1', stripe_connect_account_id: expectedAccount }, error: null }
+              if (table === 'leads') return { data: { id: 'lead_1', business_id: 'biz_1', status: 'payment_requested', caller_phone: null }, error: null }
               return { data: null, error: null }
             }),
           }
@@ -55,17 +56,29 @@ function makeContext(options: { expectedAccount?: string | null; eventAccount?: 
         }),
         limit: vi.fn(() => ({ single: vi.fn(async () => ({ data: { paid_at: null }, error: null })) })),
       })),
-      update: vi.fn((payload: any) => ({
-        eq: vi.fn(() => {
+      update: vi.fn((payload: any) => {
+        const applyUpdate = () => {
           if (table === 'payment_requests' && payload.status) localStatus = payload.status
           if (table === 'billing_documents' && payload.status) invoiceStatus = payload.status
-          const result: any = Promise.resolve({ error: null })
-          result.select = vi.fn(() => ({
-            single: vi.fn(async () => ({ data: { ...paymentRequest, ...payload }, error: null })),
-          }))
-          return result
-        }),
-      })),
+        }
+        return {
+          eq: vi.fn(() => ({
+            neq: vi.fn(() => ({
+              select: vi.fn(() => ({
+                maybeSingle: vi.fn(async () => {
+                  if (localStatus === 'paid') return { data: null, error: null }
+                  applyUpdate()
+                  return { data: { ...paymentRequest, ...payload }, error: null }
+                }),
+              })),
+            })),
+            then: (resolve: any) => {
+              applyUpdate()
+              return Promise.resolve({ error: null }).then(resolve)
+            },
+          })),
+        }
+      }),
     })),
   }
   const session = {

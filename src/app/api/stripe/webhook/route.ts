@@ -10,7 +10,7 @@ import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
-import { reconcileBillingInvoiceCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
+import { isPaymentRequestCheckoutSession, reconcilePaymentRequestCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
 import { verifyStripeWebhookEvent } from '@/lib/stripe/webhook-signature'
 
 /**
@@ -717,15 +717,13 @@ export async function POST(request: Request) {
         console.log('[ProvisioningState] CHECKOUT.SESSION.COMPLETED webhook triggered')
         
         const session = event.data.object as Stripe.Checkout.Session
-        const metadata = session.metadata || {}
 
-        // Dispatch billing-invoice one-time Checkout sessions to payment
-        // request reconciliation BEFORE enforcing subscription-specific
-        // customer requirements. Billing invoice Checkouts may not have
-        // session.customer (they are one-time payments, not subscriptions).
-        if (metadata.source === 'billing_invoice' || metadata.payment_request_id || metadata.invoice_id) {
-          console.log('[STRIPE WEBHOOK] Billing invoice checkout detected — dispatching to payment request reconciliation')
-          await reconcileBillingInvoiceCheckout({
+        // Dispatch one-time Checkout sessions to payment request reconciliation
+        // BEFORE enforcing subscription-specific customer requirements. Payment
+        // Checkout Sessions may not have session.customer.
+        if (isPaymentRequestCheckoutSession(session)) {
+          console.log('[STRIPE WEBHOOK] Payment request checkout detected — dispatching to payment request reconciliation')
+          const reconciliation = await reconcilePaymentRequestCheckout({
             supabase,
             stripe,
             session,
@@ -734,6 +732,10 @@ export async function POST(request: Request) {
             reconstructFn: reconstructPaymentRequestFromStripe,
             markProcessedFn: markEventProcessed,
           })
+          if (reconciliation.status === 'retryable') {
+            await markEventFailed(supabase, event.id, reconciliation.reason || 'Payment request reconciliation failed')
+            return NextResponse.json({ error: 'Payment request reconciliation failed' }, { status: 500 })
+          }
           break
         }
 
