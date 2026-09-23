@@ -23,7 +23,7 @@ describe('PaymentOverviewModal', () => {
 
   it('displays formatted amount and status badge', () => {
     expect(content).toContain('formatCurrency(payment.amount_cents / 100)')
-    expect(content).toContain('getPaymentStatusStyle(payment.status)')
+    expect(content).toContain('getEffectivePaymentStatusStyle(payment)')
     expect(content).toContain('statusStyle.badgeClass')
   })
 

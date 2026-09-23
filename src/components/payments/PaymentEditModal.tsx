@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { User, Copy, ExternalLink } from 'lucide-react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
-import { getPaymentStatusStyle } from '@/lib/payment-status'
+import { getEffectivePaymentStatusStyle, getDisputeStatusLabel, getDisputeStatusBadgeClass } from '@/lib/payment-status'
 import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
 import Modal from '@/components/ui/Modal'
 
@@ -14,6 +14,7 @@ interface PaymentEditModalProps {
   onViewCustomer?: (customerId: string) => void
   onCopyLink?: (url: string) => void
   onCancelPayment?: (payment: any) => void
+  onManageInStripe?: () => void
   isCancelling?: boolean
   payment: {
     id: string
@@ -25,6 +26,10 @@ interface PaymentEditModalProps {
     checkout_url: string | null
     payment_provider: string | null
     payment_method_type: string | null
+    stripe_connect_account_id?: string | null
+    refund_status?: string | null
+    refunded_amount_cents?: number | null
+    dispute_status?: string | null
     display_name: string | null
     leads: {
       id: string
@@ -47,6 +52,7 @@ export default function PaymentEditModal({
   onViewCustomer,
   onCopyLink,
   onCancelPayment,
+  onManageInStripe,
   isCancelling,
   payment,
   currentLabel,
@@ -96,11 +102,18 @@ export default function PaymentEditModal({
     onClose()
   }
 
-  const statusStyle = getPaymentStatusStyle(payment.status)
+  const statusStyle = getEffectivePaymentStatusStyle(payment)
 
   const isSmsLink = payment.payment_method_type === 'card' && payment.checkout_url
   const isPending = payment.status === 'pending'
   const hasCustomer = payment.leads !== null
+  // Stripe-backed transactions carry a connected-account id; manual
+  // Venmo/PayPal/cash payments never do.
+  const canManageInStripe =
+    !!payment.stripe_connect_account_id &&
+    payment.payment_provider !== 'venmo' &&
+    payment.payment_provider !== 'paypal' &&
+    !!onManageInStripe
 
   const handleCopyLink = () => {
     if (onCopyLink && payment.checkout_url) {
@@ -176,6 +189,11 @@ export default function PaymentEditModal({
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusStyle.badgeClass}`}>
               {statusStyle.label}
             </span>
+            {payment.dispute_status && getDisputeStatusLabel(payment.dispute_status) && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getDisputeStatusBadgeClass(payment.dispute_status)}`}>
+                {getDisputeStatusLabel(payment.dispute_status)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -229,10 +247,19 @@ export default function PaymentEditModal({
               {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '—'}
             </span>
           </div>
+
+          {!!payment.refunded_amount_cents && payment.refunded_amount_cents > 0 && (
+            <div className="flex items-center justify-between py-2 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Refunded</span>
+              <span className="text-sm text-slate-900 dark:text-foreground">
+                {formatCurrency(payment.refunded_amount_cents / 100)}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* SMS Link Actions Section */}
-        {isSmsLink && (
+        {/* Payment Actions Section */}
+        {(isSmsLink || canManageInStripe) && (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-slate-900 dark:text-foreground">Payment Actions</h4>
 
@@ -268,6 +295,16 @@ export default function PaymentEditModal({
                   <span>Open Link</span>
                 </a>
               </div>
+            )}
+
+            {canManageInStripe && (
+              <button
+                onClick={onManageInStripe}
+                className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2 text-sm font-medium rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span>Manage in Stripe</span>
+              </button>
             )}
 
             {isPending && onCancelPayment && (

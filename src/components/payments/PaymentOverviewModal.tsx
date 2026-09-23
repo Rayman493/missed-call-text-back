@@ -2,7 +2,7 @@
 
 import Modal from '@/components/ui/Modal'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
-import { getPaymentStatusStyle } from '@/lib/payment-status'
+import { getEffectivePaymentStatusStyle, getDisputeStatusLabel, getDisputeStatusBadgeClass } from '@/lib/payment-status'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import { formatForDisplay } from '@/utils/phone-formatting'
 import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
@@ -37,6 +37,9 @@ export interface PaymentOverviewItem {
   payment_method_type: string | null
   display_name: string | null
   reference_number: string | null
+  refund_status?: string | null
+  refunded_amount_cents?: number | null
+  dispute_status?: string | null
   leads: {
     id: string
     contact_name?: string | null
@@ -60,7 +63,8 @@ interface PaymentOverviewModalProps {
 export default function PaymentOverviewModal({ isOpen, onClose, payment }: PaymentOverviewModalProps) {
   if (!payment) return null
 
-  const statusStyle = getPaymentStatusStyle(payment.status)
+  const statusStyle = getEffectivePaymentStatusStyle(payment)
+  const disputeLabel = getDisputeStatusLabel(payment.dispute_status)
   const dateLabel = new Date(payment.created_at).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -95,6 +99,11 @@ export default function PaymentOverviewModal({ isOpen, onClose, payment }: Payme
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusStyle.badgeClass}`}>
               {statusStyle.label}
             </span>
+            {disputeLabel && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getDisputeStatusBadgeClass(payment.dispute_status)}`}>
+                {disputeLabel}
+              </span>
+            )}
           </div>
         </div>
 
@@ -102,6 +111,9 @@ export default function PaymentOverviewModal({ isOpen, onClose, payment }: Payme
         <div className="space-y-1">
           <DetailRow label="Requested" value={dateLabel} />
           {paidLabel && <DetailRow label="Paid" value={paidLabel} />}
+          {!!payment.refunded_amount_cents && payment.refunded_amount_cents > 0 && (
+            <DetailRow label="Refunded" value={formatCurrency(payment.refunded_amount_cents / 100)} />
+          )}
           {payment.leads?.contact_name && (
             <DetailRow label="Customer" value={payment.leads.contact_name} />
           )}

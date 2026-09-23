@@ -108,3 +108,74 @@ export function getPaymentStatusLabel(rawStatus: string | null | undefined): str
 export function getAllPaymentStatuses(): PaymentStatus[] {
   return Object.keys(PAYMENT_STATUS_STYLES) as PaymentStatus[]
 }
+
+/**
+ * Display-only statuses derived from Stripe-managed refund/dispute state.
+ * These are NOT stored in payment_requests.status — the lifecycle status
+ * remains 'paid' while refund/dispute fields carry the financial truth.
+ */
+export type DerivedPaymentStatus = PaymentStatus | 'partially_refunded' | 'refunded'
+
+const DERIVED_STATUS_STYLES: Record<'partially_refunded' | 'refunded', PaymentStatusStyle> = {
+  partially_refunded: {
+    label: 'Partially refunded',
+    badgeClass: 'border-amber-200/40 bg-amber-100/12 text-amber-600 dark:border-amber-800/40 dark:bg-amber-900/12 dark:text-amber-300',
+    color: '#F59E0B'
+  },
+  refunded: {
+    label: 'Refunded',
+    badgeClass: 'border-purple-200/40 bg-purple-100/12 text-purple-600 dark:border-purple-800/40 dark:bg-purple-900/12 dark:text-purple-300',
+    color: '#8B5CF6'
+  }
+}
+
+export interface PaymentRefundFields {
+  status: string | null | undefined
+  refund_status?: string | null
+}
+
+/**
+ * Derive the display status for a payment, folding Stripe refund state into
+ * the stored lifecycle status. A paid payment that was refunded displays
+ * 'Refunded'/'Partially refunded' on every surface that uses this helper.
+ * A pending refund displays as 'Partially refunded' only when money moved;
+ * pending with zero refunded shows as 'Paid' (nothing lost yet) — but the
+ * refund_status field still carries 'pending' for consumers that need it.
+ */
+export function getEffectivePaymentStatus(payment: PaymentRefundFields): DerivedPaymentStatus {
+  const canonical = normalizePaymentStatus(payment.status)
+  if (canonical === 'paid') {
+    if (payment.refund_status === 'refunded') return 'refunded'
+    if (payment.refund_status === 'partially_refunded') return 'partially_refunded'
+  }
+  return canonical
+}
+
+export function getEffectivePaymentStatusStyle(payment: PaymentRefundFields): PaymentStatusStyle {
+  const derived = getEffectivePaymentStatus(payment)
+  if (derived === 'refunded' || derived === 'partially_refunded') {
+    return DERIVED_STATUS_STYLES[derived]
+  }
+  return PAYMENT_STATUS_STYLES[derived]
+}
+
+/**
+ * Dispute status display — stored in payment_requests.dispute_status,
+ * business-facing only.
+ */
+export function getDisputeStatusLabel(disputeStatus: string | null | undefined): string | null {
+  if (disputeStatus === 'open') return 'Disputed'
+  if (disputeStatus === 'won') return 'Dispute won'
+  if (disputeStatus === 'lost') return 'Dispute lost'
+  return null
+}
+
+export function getDisputeStatusBadgeClass(disputeStatus: string | null | undefined): string {
+  if (disputeStatus === 'open') {
+    return 'border-red-200/40 bg-red-100/12 text-red-600 dark:border-red-800/40 dark:bg-red-900/12 dark:text-red-300'
+  }
+  if (disputeStatus === 'won') {
+    return 'border-green-200/40 bg-green-100/12 text-green-600 dark:border-green-800/40 dark:bg-green-900/12 dark:text-green-300'
+  }
+  return 'border-gray-200/40 bg-gray-100/12 text-gray-400 dark:border-gray-700/40 dark:bg-gray-800/12 dark:text-gray-300'
+}

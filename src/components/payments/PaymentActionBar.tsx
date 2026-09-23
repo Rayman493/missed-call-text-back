@@ -10,6 +10,7 @@ export interface PaymentActionBarPayment {
   checkout_url?: string | null
   payment_provider?: string | null
   payment_method_type?: string | null
+  stripe_connect_account_id?: string | null
   leads?: { id: string } | null
 }
 
@@ -26,6 +27,7 @@ export interface PaymentActionBarProps {
   onMarkUnpaid?: () => void
   onCheckStatus?: () => void
   onCancel?: () => void
+  onManageInStripe?: () => void
 }
 
 const SLOT_ORDER: {
@@ -55,6 +57,7 @@ export default function PaymentActionBar({
   onMarkUnpaid,
   onCheckStatus,
   onCancel,
+  onManageInStripe,
 }: PaymentActionBarProps) {
   const router = useRouter()
   const status = payment.status
@@ -64,6 +67,14 @@ export default function PaymentActionBar({
 
   const canViewCustomer = !!payment.leads
   const canCopyOrOpen = status === 'pending' && !!checkoutUrl
+  // Stripe-backed transactions carry a connected-account id; manual payments
+  // (Venmo/PayPal/cash) never do. The handoff opens the Express dashboard —
+  // it never issues a refund.
+  const canManageInStripe =
+    !!payment.stripe_connect_account_id &&
+    provider !== 'venmo' &&
+    provider !== 'paypal' &&
+    !!onManageInStripe
   const canMarkPaid = status === 'pending' && (provider === 'paypal' || provider === 'venmo')
   const canMarkUnpaid =
     status === 'paid' &&
@@ -137,16 +148,30 @@ export default function PaymentActionBar({
       loading: false,
       onClick: onCopyLink,
     },
-    {
-      key: 'open',
-      icon: ExternalLink,
-      title: 'Open Link',
-      label: 'Open',
-      enabled: canCopyOrOpen,
-      reason: canCopyOrOpen ? '' : 'No active payment link to open.',
-      loading: false,
-      onClick: () => checkoutUrl && window.open(checkoutUrl, '_blank', 'noopener,noreferrer'),
-    },
+    // 'Open Link' and 'Manage in Stripe' share this slot: a pending payment
+    // with a checkout link keeps the existing behavior; otherwise the slot
+    // becomes the Stripe dashboard handoff for eligible Stripe transactions.
+    canCopyOrOpen
+      ? {
+          key: 'open',
+          icon: ExternalLink,
+          title: 'Open Link',
+          label: 'Open',
+          enabled: true,
+          reason: '',
+          loading: false,
+          onClick: () => checkoutUrl && window.open(checkoutUrl, '_blank', 'noopener,noreferrer'),
+        }
+      : {
+          key: 'open',
+          icon: ExternalLink,
+          title: 'Manage in Stripe',
+          label: 'Stripe',
+          enabled: canManageInStripe,
+          reason: canManageInStripe ? '' : 'No active payment link to open.',
+          loading: false,
+          onClick: onManageInStripe,
+        },
     { key: 'status', ...statusSlot },
     {
       key: 'cancel',

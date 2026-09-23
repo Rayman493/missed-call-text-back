@@ -6,6 +6,7 @@ import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, T
 import type { Job, JobStatus } from './JobComposer'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency, capitalizeFirstAlpha } from '@/lib/utils'
+import { getEffectivePaymentStatus } from '@/lib/payment-status'
 import { useBusiness } from '@/contexts/BusinessContext'
 import JobTimer from '@/components/jobs/JobTimer'
 import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
@@ -47,6 +48,8 @@ interface PaymentRequest {
   checkout_url: string | null
   expires_at: string | null
   payment_provider: string | null
+  refund_status?: string | null
+  refunded_amount_cents?: number | null
 }
 
 interface Lead {
@@ -247,6 +250,10 @@ export default function JobDetailsModal({
         return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
       case 'failed':
         return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+      case 'refunded':
+        return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+      case 'partially_refunded':
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
       default:
         return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
     }
@@ -258,6 +265,10 @@ export default function JobDetailsModal({
         return 'Pending'
       case 'paid':
         return 'Paid'
+      case 'refunded':
+        return 'Refunded'
+      case 'partially_refunded':
+        return 'Partially refunded'
       case 'cancelled':
         return 'Cancelled'
       case 'expired':
@@ -506,8 +517,8 @@ export default function JobDetailsModal({
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getPaymentStatusColor(paymentRequest.status)}`}>
-                      {getPaymentStatusLabel(paymentRequest.status)}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getPaymentStatusColor(getEffectivePaymentStatus(paymentRequest))}`}>
+                      {getPaymentStatusLabel(getEffectivePaymentStatus(paymentRequest))}
                     </span>
                     <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {formatCurrency(paymentRequest.amount_cents / 100)}
@@ -527,6 +538,11 @@ export default function JobDetailsModal({
                   {paymentRequest.status === 'paid' && paymentRequest.paid_at && (
                     <div className="text-[10px] text-green-600 dark:text-green-400">
                       Paid on {new Date(paymentRequest.paid_at).toLocaleDateString()}
+                    </div>
+                  )}
+                  {!!paymentRequest.refunded_amount_cents && paymentRequest.refunded_amount_cents > 0 && (
+                    <div className="text-[10px] text-purple-600 dark:text-purple-400">
+                      Refunded {formatCurrency(paymentRequest.refunded_amount_cents / 100)}
                     </div>
                   )}
                 </div>

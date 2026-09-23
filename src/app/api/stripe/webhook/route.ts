@@ -12,6 +12,7 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
 import { isPaymentRequestCheckoutSession, reconcilePaymentRequestCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
 import { verifyStripeWebhookEvent } from '@/lib/stripe/webhook-signature'
+import { computeRefundState, mapDisputeStatus } from '@/lib/payment-refund-dispute'
 
 /**
  * Determine canonical Stripe Connect status from a Stripe account object
@@ -2387,6 +2388,174 @@ export async function POST(request: Request) {
         await markEventProcessed(supabase, event.id)
 
         console.log('[STRIPE CONNECT] ========== ACCOUNT.UPDATED END ==========')
+        break
+      }
+
+      // ========== STRIPE-MANAGED REFUNDS ==========
+      // charge.refunded carries the Charge; charge.refund.updated and the
+      // refund.* family carry the Refund. Both reduce to a charge + payment
+      // intent, then the authoritative refund state is re-fetched from Stripe
+      // so duplicate/out-of-order events can never overwrite a newer state.
+      case 'charge.refunded':
+      case 'charge.refund.updated':
+      case 'refund.created':
+      case 'refund.updated':
+      case 'refund.failed': {
+        const obj: any = event.data.object
+        // Charge events: object IS the charge (obj.charge is undefined).
+        // Refund events: obj.charge is the charge id.
+        let chargeId: string | null = typeof obj.charge === 'string' ? obj.charge : (typeof obj.id === 'string' && obj.id.startsWith('ch_') ? obj.id : null)
+        let paymentIntentId: string | null = typeof obj.payment_intent === 'string' ? obj.payment_intent : null
+        const eventConnectedAccountId = (event as any).account as string | undefined
+
+        // Resolve missing identifiers through Stripe on the event's own
+        // account — never through client-supplied or stored values.
+        if (!paymentIntentId && chargeId) {
+          try {
+            const ch = await stripe.charges.retrieve(chargeId, {}, { stripeAccount: eventConnectedAccountId } as any)
+            paymentIntentId = typeof (ch as any).payment_intent === 'string' ? (ch as any).payment_intent : null
+          } catch (e) {
+            console.error('[PAYMENT REFUND] Failed to resolve charge -> payment_intent:', e)
+          }
+        } else if (paymentIntentId && !chargeId) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: eventConnectedAccountId } as any)
+            const latest = (pi as any).latest_charge
+            chargeId = typeof latest === 'string' ? latest : (latest && typeof latest.id === 'string' ? latest.id : null)
+          } catch (e) {
+            console.error('[PAYMENT REFUND] Failed to resolve payment_intent -> charge:', e)
+          }
+        }
+
+        console.log('[PAYMENT REFUND]', event.type, 'charge:', chargeId, 'pi:', paymentIntentId, 'account:', eventConnectedAccountId)
+
+        if (!paymentIntentId || !chargeId) {
+          console.error('[PAYMENT REFUND] Could not resolve charge/payment_intent — cannot reconcile refund')
+          await markEventProcessed(supabase, event.id)
+          break
+        }
+
+        const { data: paymentRequest, error: prError } = await supabase
+          .from('payment_requests')
+          .select('id, business_id, status, amount_cents, stripe_connect_account_id, refund_status, refunded_amount_cents')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle()
+
+        if (prError || !paymentRequest) {
+          console.error('[PAYMENT REFUND] Payment request not found for PaymentIntent:', paymentIntentId, prError)
+          await markEventProcessed(supabase, event.id)
+          break
+        }
+
+        // Tenant isolation: the event's connected account must own the payment.
+        const expectedConnectedAccountId = paymentRequest.stripe_connect_account_id
+        if (expectedConnectedAccountId && eventConnectedAccountId !== expectedConnectedAccountId) {
+          console.error('[PAYMENT REFUND] CONNECT ACCOUNT MISMATCH — rejecting cross-tenant refund event')
+          await markEventProcessed(supabase, event.id)
+          break
+        }
+
+        // Authoritative state: re-fetch the charge on the owning account.
+        let refundUpdate: { refund_status: string | null; refunded_amount_cents: number }
+        try {
+          const charge = await stripe.charges.retrieve(chargeId!, { expand: ['refunds'] } as any, { stripeAccount: expectedConnectedAccountId } as any)
+          refundUpdate = computeRefundState(paymentRequest.amount_cents, charge as any)
+        } catch (fetchErr) {
+          console.error('[PAYMENT REFUND] Failed to retrieve authoritative charge:', fetchErr)
+          return NextResponse.json({ error: 'Failed to reconcile refund' }, { status: 500 })
+        }
+
+        const updatePayload: Record<string, any> = {
+          refunded_amount_cents: refundUpdate.refunded_amount_cents,
+          refund_status: refundUpdate.refund_status,
+          updated_at: new Date().toISOString(),
+        }
+        if (refundUpdate.refunded_amount_cents > 0 && !(paymentRequest.refunded_amount_cents > 0)) {
+          updatePayload.refunded_at = new Date().toISOString()
+        }
+
+        const { error: refundUpdateError } = await supabase
+          .from('payment_requests')
+          .update(updatePayload)
+          .eq('id', paymentRequest.id)
+
+        if (refundUpdateError) {
+          console.error('[PAYMENT REFUND] Failed to update payment request:', refundUpdateError)
+          return NextResponse.json({ error: 'Failed to update payment request' }, { status: 500 })
+        }
+
+        console.log('[PAYMENT REFUND] Reconciled:', paymentRequest.id, refundUpdate.refund_status, refundUpdate.refunded_amount_cents)
+        await markEventProcessed(supabase, event.id)
+        break
+      }
+
+      // ========== STRIPE-MANAGED DISPUTES ==========
+      // Dispute outcomes are stored independently of refund state — a 'won'
+      // dispute does not imply funds were reinstated.
+      case 'charge.dispute.created':
+      case 'charge.dispute.updated':
+      case 'charge.dispute.closed': {
+        const dispute = event.data.object as Stripe.Dispute
+        let paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : null
+        const eventConnectedAccountId = (event as any).account as string | undefined
+
+        // Older payloads may omit payment_intent — resolve through the
+        // dispute's charge on the event's own account.
+        if (!paymentIntentId && typeof (dispute as any).charge === 'string') {
+          try {
+            const ch = await stripe.charges.retrieve((dispute as any).charge, {}, { stripeAccount: eventConnectedAccountId } as any)
+            paymentIntentId = typeof (ch as any).payment_intent === 'string' ? (ch as any).payment_intent : null
+          } catch (e) {
+            console.error('[PAYMENT DISPUTE] Failed to resolve charge -> payment_intent:', e)
+          }
+        }
+
+        console.log('[PAYMENT DISPUTE]', event.type, 'dispute:', dispute.id, 'status:', dispute.status, 'account:', eventConnectedAccountId)
+
+        if (!paymentIntentId) {
+          console.error('[PAYMENT DISPUTE] No payment_intent on dispute — cannot match a payment request')
+          await markEventProcessed(supabase, event.id)
+          break
+        }
+
+        const { data: paymentRequest, error: prError } = await supabase
+          .from('payment_requests')
+          .select('id, business_id, status, amount_cents, stripe_connect_account_id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle()
+
+        if (prError || !paymentRequest) {
+          console.error('[PAYMENT DISPUTE] Payment request not found for PaymentIntent:', paymentIntentId, prError)
+          await markEventProcessed(supabase, event.id)
+          break
+        }
+
+        const expectedConnectedAccountId = paymentRequest.stripe_connect_account_id
+        if (expectedConnectedAccountId && eventConnectedAccountId !== expectedConnectedAccountId) {
+          console.error('[PAYMENT DISPUTE] CONNECT ACCOUNT MISMATCH — rejecting cross-tenant dispute event')
+          await markEventProcessed(supabase, event.id)
+          break
+        }
+
+        const { error: disputeUpdateError } = await supabase
+          .from('payment_requests')
+          .update({
+            dispute_id: dispute.id,
+            dispute_status: mapDisputeStatus(dispute.status),
+            dispute_reason: dispute.reason || null,
+            dispute_amount_cents: typeof dispute.amount === 'number' ? dispute.amount : null,
+            disputed_at: new Date(dispute.created * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', paymentRequest.id)
+
+        if (disputeUpdateError) {
+          console.error('[PAYMENT DISPUTE] Failed to update payment request:', disputeUpdateError)
+          return NextResponse.json({ error: 'Failed to update payment request' }, { status: 500 })
+        }
+
+        console.log('[PAYMENT DISPUTE] Reconciled:', paymentRequest.id, '->', dispute.status)
+        await markEventProcessed(supabase, event.id)
         break
       }
 

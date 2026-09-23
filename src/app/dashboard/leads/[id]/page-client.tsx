@@ -37,6 +37,7 @@ import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { CustomerStatus, normalizeCustomerStatus, getCustomerStatusStyle } from '@/lib/customer-status'
 import { formatJobStatus, formatPaymentStatus } from '@/lib/status-formatter'
+import { getEffectivePaymentStatus } from '@/lib/payment-status'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
@@ -74,7 +75,7 @@ import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import PaymentOverviewModal from '@/components/payments/PaymentOverviewModal'
 import CustomerDetailPreviewCard from '@/components/ui/CustomerDetailPreviewCard'
 import CustomerStatusPill from '@/components/ui/CustomerStatusPill'
-import StatusPill from '@/components/ui/StatusPill'
+import StatusPill, { StatusPillVariant } from '@/components/ui/StatusPill'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -108,6 +109,19 @@ const formatJobSubtitle = (job: any) => {
 const formatTaskSubtitle = (task: any) => {
   if (!task.due_date) return 'No due date'
   return `${formatDate(task.due_date)}${task.due_time ? ` • ${formatTime12Hour(task.due_time)}` : ''}`
+}
+
+// Payment pills fold Stripe-managed refund state into the stored lifecycle
+// status so a refunded payment never shows a green "Paid" here while the
+// Payments screen shows "Refunded" (D2 consistency).
+const paymentRequestPill = (pr: { status: string; refund_status?: string | null }): { variant: StatusPillVariant; text: string } => {
+  const effective = getEffectivePaymentStatus(pr)
+  if (effective === 'refunded') return { variant: 'purple', text: 'Refunded' }
+  if (effective === 'partially_refunded') return { variant: 'amber', text: 'Partially refunded' }
+  return {
+    variant: pr.status === 'paid' ? 'green' : pr.status === 'pending' ? 'amber' : 'gray',
+    text: formatPaymentStatus(pr.status).text,
+  }
 }
 
 function dateTimeFromLocal(dateStr: string, timeStr?: string | null): number | null {
@@ -4423,8 +4437,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         onClick={() => handleOpenPaymentOverview(pr)}
                         ariaLabel="View payment details"
                         badge={
-                          <StatusPill variant={pr.status === 'paid' ? 'green' : pr.status === 'pending' ? 'amber' : 'gray'}>
-                            {formatPaymentStatus(pr.status).text}
+                          <StatusPill variant={paymentRequestPill(pr).variant}>
+                            {paymentRequestPill(pr).text}
                           </StatusPill>
                         }
                       />
@@ -5894,7 +5908,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <div>
                             <div className="text-sm font-medium text-foreground mb-2">
                               {paymentRequests.filter((pr: any) => pr.status === 'paid').length === paymentRequests.length
-                                ? `Paid ${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0), 0), true)}`
+                                ? `Paid ${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + Math.max(0, (pr.amount_cents || 0) - (pr.refunded_amount_cents || 0)), 0), true)}`
                                 : `${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0) - (pr.status === 'paid' ? pr.amount_cents || 0 : 0), 0), true)} outstanding`
                               }
                             </div>
@@ -5910,8 +5924,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   onClick={() => handleOpenPaymentOverview(pr)}
                                   ariaLabel="View payment details"
                                   badge={
-                                    <StatusPill variant={pr.status === 'paid' ? 'green' : pr.status === 'pending' ? 'amber' : 'gray'}>
-                                      {formatPaymentStatus(pr.status).text}
+                                    <StatusPill variant={paymentRequestPill(pr).variant}>
+                                      {paymentRequestPill(pr).text}
                                     </StatusPill>
                                   }
                                 />
@@ -6560,8 +6574,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       onClick={() => handleOpenPaymentOverview(pr)}
                       ariaLabel="View payment details"
                       badge={
-                        <StatusPill variant={pr.status === 'paid' ? 'green' : pr.status === 'pending' ? 'amber' : 'gray'}>
-                          {formatPaymentStatus(pr.status).text}
+                        <StatusPill variant={paymentRequestPill(pr).variant}>
+                          {paymentRequestPill(pr).text}
                         </StatusPill>
                       }
                     />

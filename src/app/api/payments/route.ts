@@ -262,9 +262,11 @@ export async function GET(request: Request) {
     const pendingAmount = actionablePendingRequests
       .reduce((sum, p) => sum + p.amount_cents, 0)
 
+    // Net of Stripe refunds: a partially or fully refunded payment must not
+    // report the full original amount as collected revenue.
     const paidThisMonth = paymentRequests
       .filter(p => p.status === 'paid' && new Date(p.paid_at || p.created_at) >= startOfMonth)
-      .reduce((sum, p) => sum + p.amount_cents, 0)
+      .reduce((sum, p) => sum + Math.max(0, p.amount_cents - (p.refunded_amount_cents || 0)), 0)
 
     const pendingRequests = actionablePendingRequests.length
 

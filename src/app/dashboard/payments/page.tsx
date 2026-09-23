@@ -12,7 +12,7 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import AppleTapToPayIcon from '@/components/icons/AppleTapToPayIcon'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { getPaymentStatusStyle } from '@/lib/payment-status'
+import { getEffectivePaymentStatusStyle, getDisputeStatusLabel, getDisputeStatusBadgeClass } from '@/lib/payment-status'
 import { isPlaceholderValue } from '@/components/payments/customer-search-helpers'
 import { getPaymentMethodBadge } from '@/lib/payment-method-badge'
 import { deliverBillingPdf } from '@/lib/billing/download-billing-pdf'
@@ -33,6 +33,7 @@ import type { DropdownOption } from '@/components/ui/Dropdown'
 import PaymentEditModal from '@/components/payments/PaymentEditModal'
 import PaymentsNewRequestModal from '@/components/payments/PaymentsNewRequestModal'
 import PaymentActionBar from '@/components/payments/PaymentActionBar'
+import { openStripeDashboardHandoff } from '@/lib/stripe-dashboard-handoff'
 import Modal from '@/components/ui/Modal'
 import SuccessBanner from '@/components/SuccessBanner'
 import BillingChooserModal from '@/components/billing/BillingChooserModal'
@@ -55,6 +56,11 @@ interface PaymentRequest {
   expires_at: string | null
   payment_provider: string | null
   payment_method_type: string | null
+  stripe_connect_account_id: string | null
+  refund_status: string | null
+  refunded_amount_cents: number | null
+  dispute_status: string | null
+  dispute_reason: string | null
   job_id: string | null
   display_name: string | null
   leads: {
@@ -80,14 +86,14 @@ interface PaymentStats {
   collectionRate: number
 }
 
-function getStatusColor(status: string): string {
-  const style = getPaymentStatusStyle(status)
+function getStatusColor(payment: { status: string; refund_status?: string | null }): string {
+  const style = getEffectivePaymentStatusStyle(payment)
   return style.badgeClass
 }
 
 
-const getStatusLabel = (status: string) => {
-  const style = getPaymentStatusStyle(status)
+const getStatusLabel = (payment: { status: string; refund_status?: string | null }) => {
+  const style = getEffectivePaymentStatusStyle(payment)
   return style.label
 }
 
@@ -1108,6 +1114,19 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     setShowEditModal(true)
   }
 
+  // Opens the business's Stripe Express Dashboard scoped to this payment.
+  // Refunds/disputes are managed entirely in Stripe — never through ReplyFlow.
+  const handleManageInStripe = async (payment: PaymentRequest) => {
+    if (!business?.id || !payment.stripe_connect_account_id) return
+    const result = await openStripeDashboardHandoff({
+      businessId: business.id,
+      paymentRequestId: payment.id,
+    })
+    if (!result.ok) {
+      showToast(result.error || 'Couldn\'t open Stripe right now. Please try again.', 'error')
+    }
+  }
+
   const handleCloseEditModal = () => {
     setShowEditModal(false)
     setPaymentToEdit(null)
@@ -1533,9 +1552,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
                             {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
-                              {getStatusLabel(payment.status)}
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment)}`}>
+                              {getStatusLabel(payment)}
                             </span>
+                            {payment.dispute_status && getDisputeStatusLabel(payment.dispute_status) && (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getDisputeStatusBadgeClass(payment.dispute_status)}`}>
+                                {getDisputeStatusLabel(payment.dispute_status)}
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -1564,14 +1588,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                           {/* Canonical final-status row: only render with a real timestamp */}
                           {isFinalStatus && finalTimestamp && (
                             <div className="flex justify-between">
-                              <span className="text-muted-foreground">{getStatusLabel(payment.status)}</span>
+                              <span className="text-muted-foreground">{getStatusLabel(payment)}</span>
                               <span className="text-foreground">{new Date(finalTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                             </div>
                           )}
                           {/* Reserve structural row space when no final timestamp exists */}
                           {isFinalStatus && !finalTimestamp && (
                             <div className="flex justify-between min-h-[1.25rem]">
-                              <span className="text-muted-foreground">{getStatusLabel(payment.status)}</span>
+                              <span className="text-muted-foreground">{getStatusLabel(payment)}</span>
                               <span>&nbsp;</span>
                             </div>
                           )}
@@ -1601,6 +1625,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               setPaymentToCancel(payment)
                               setShowCancelConfirm(true)
                             }}
+                            onManageInStripe={() => handleManageInStripe(payment)}
                           />
                         </div>
                       </div>
@@ -1639,9 +1664,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
-                                      {getStatusLabel(payment.status)}
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment)}`}>
+                                      {getStatusLabel(payment)}
                                     </span>
+                                    {payment.dispute_status && getDisputeStatusLabel(payment.dispute_status) && (
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getDisputeStatusBadgeClass(payment.dispute_status)}`}>
+                                        {getDisputeStatusLabel(payment.dispute_status)}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="space-y-1.5 text-xs">
@@ -1695,6 +1725,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                       setPaymentToCancel(payment)
                                       setShowCancelConfirm(true)
                                     }}
+                                    onManageInStripe={() => handleManageInStripe(payment)}
                                   />
                                 </div>
                               </div>
@@ -1800,9 +1831,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                               {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
-                                {getStatusLabel(payment.status)}
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment)}`}>
+                                {getStatusLabel(payment)}
                               </span>
+                              {payment.dispute_status && getDisputeStatusLabel(payment.dispute_status) && (
+                                <span className={`ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getDisputeStatusBadgeClass(payment.dispute_status)}`}>
+                                  {getDisputeStatusLabel(payment.dispute_status)}
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                               {new Date(payment.created_at).toLocaleDateString()}
@@ -1928,9 +1964,14 @@ const getPaymentDescription = (payment: PaymentRequest) => {
                                   {getPaymentMethodBadge(payment.payment_method_type, payment.payment_provider)}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
-                                    {getStatusLabel(payment.status)}
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment)}`}>
+                                    {getStatusLabel(payment)}
                                   </span>
+                                  {payment.dispute_status && getDisputeStatusLabel(payment.dispute_status) && (
+                                    <span className={`ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getDisputeStatusBadgeClass(payment.dispute_status)}`}>
+                                      {getDisputeStatusLabel(payment.dispute_status)}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-sm">
                                   {new Date(payment.created_at).toLocaleDateString()}
@@ -2324,6 +2365,7 @@ const getPaymentDescription = (payment: PaymentRequest) => {
           }}
           isCancelling={isCancelling}
           payment={paymentToEdit}
+          onManageInStripe={paymentToEdit ? () => handleManageInStripe(paymentToEdit) : undefined}
           currentLabel={editLabel}
           methodBadge={paymentToEdit ? getPaymentMethodBadge(paymentToEdit.payment_method_type, paymentToEdit.payment_provider) : null}
         />
