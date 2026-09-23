@@ -35,6 +35,17 @@ function getIntake(lead: LeadRecord) {
   return getLeadAIIntake(lead)
 }
 
+// The API's canonical display name (getLeadDisplayName) takes precedence over
+// historical AI intake names — an edited/saved customer name must win.
+// Returns null when the canonical value is only a phone or placeholder.
+function getPickerCustomerName(lead: LeadRecord, intakeName?: string | null): string | null {
+  const apiName = lead.name
+  if (apiName && apiName !== 'Unknown Caller' && !/^[\d+()\-\s.x]+$/.test(apiName)) {
+    return apiName
+  }
+  return intakeName || null
+}
+
 // Format phone for display
 function fmtPhone(phone: string | null): string {
   if (!phone) return ''
@@ -106,7 +117,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
     if (!query.trim()) return true
     const q = query.toLowerCase()
     const intake = getIntake(lead)
-    const name = (intake.customerName || '').toLowerCase()
+    const name = (getPickerCustomerName(lead, intake.customerName) || '').toLowerCase()
     const phone = (intake.customerPhone || '').replace(/\D/g, '')
     const service = (intake.serviceRequested || '').toLowerCase()
     const address = (intake.serviceAddress || '').toLowerCase()
@@ -120,7 +131,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
 
   const handleSelect = (lead: LeadRecord) => {
     const intake = getIntake(lead)
-    const name = intake.customerName
+    const name = getPickerCustomerName(lead, intake.customerName)
     const address = intake.serviceAddress
     const phone = intake.customerPhone
 
@@ -214,7 +225,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
               <div className="divide-y divide-border/10">
                 {filtered.map(lead => {
                   const intake = getIntake(lead)
-                  const name = intake.customerName || 'Unknown Caller'
+                  const name = getPickerCustomerName(lead, intake.customerName) || lead.name || 'Unknown Caller'
                   const service = getLeadRequestTitle(lead) || intake.serviceRequested
                   const phone = fmtPhone(intake.customerPhone || lead.caller_phone)
                   const location = intake.serviceAddress || ''

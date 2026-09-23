@@ -788,7 +788,8 @@ export default function PaymentsPage() {
       ].filter(Boolean)
 
       const prefill: JobPrefill = {
-        customer_name: intake.customerName || undefined,
+        // Canonical saved name wins over historical AI intake names
+        customer_name: lead.contact_name || lead.name || intake.customerName || undefined,
         customer_phone: intake.customerPhone || lead.caller_phone || undefined,
         service_address: intake.serviceAddress || undefined,
         title: getLeadRequestTitle(lead) || intake.serviceRequested || undefined,
