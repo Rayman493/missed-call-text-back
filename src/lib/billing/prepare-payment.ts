@@ -142,7 +142,15 @@ export async function prepareInvoicePayment(
         return { ok: true, alreadyPaid: true }
       }
       if ((existingPr.stripe_checkout_session_id || existingPr.checkout_url) && !existingPr.stripe_connect_account_id) {
-        return { ok: false, error: 'This invoice payment link requires review before it can accept payment', status: 409 }
+        // Legacy platform-account link. A still-live 'pending' link must stay
+        // blocked: paying it would collect into the platform account, not the
+        // business's connected account. A dead anchor (cancelled/expired/draft)
+        // is safe to resume — activation below creates a fresh connected-account
+        // session and rewrites the account/session/url fields, so the old
+        // platform link can no longer collect on this request.
+        if (existingPr.status === 'pending') {
+          return { ok: false, error: 'This invoice payment link requires review before it can accept payment', status: 409 }
+        }
       }
       if (existingPr.stripe_connect_account_id && existingPr.stripe_connect_account_id !== stripeAccountId) {
         return { ok: false, error: 'Invoice payment account does not match the business Stripe account', status: 409 }

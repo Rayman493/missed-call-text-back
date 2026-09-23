@@ -809,6 +809,23 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     setPendingNewEmail(((user as any)?.new_email as string | undefined) || null)
   }, [user])
 
+  // The context user can be a stale persisted-session snapshot — e.g. a
+  // pending email change cancelled on another device only clears here after
+  // the next token refresh. Revalidate once per signed-in user against the
+  // auth server so the banner reflects authoritative state.
+  const pendingEmailUserId = user?.id
+  useEffect(() => {
+    if (!pendingEmailUserId) return
+    let cancelled = false
+    supabase.auth.getUser()
+      .then((result: any) => {
+        const fresh = result?.data?.user
+        if (!cancelled) setPendingNewEmail((fresh?.new_email as string | undefined) || null)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [pendingEmailUserId])
+
   useBodyScrollLock(showAddModal || showDeleteModal || showChangeEmailModal || showCancelEmailConfirm, 'settings-modal')
 
   // Time input refs for better UX

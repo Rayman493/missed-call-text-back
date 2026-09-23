@@ -9,7 +9,7 @@ import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclama
 import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
-import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
+import { validateStateTransition, isAuthoritativePaidCorrection } from '@/lib/terminal/state-transition-guards'
 import { isPaymentRequestCheckoutSession, reconcilePaymentRequestCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
 import { verifyStripeWebhookEvent } from '@/lib/stripe/webhook-signature'
 import { computeRefundState, mapDisputeStatus } from '@/lib/payment-refund-dispute'
@@ -2010,12 +2010,24 @@ export async function POST(request: Request) {
         
         // Validate state transition before updating to prevent state corruption
         const validation = validateStateTransition(paymentRequest.status, 'paid')
-        if (!validation.allowed) {
+
+        // Authoritative Stripe correction: this payment_intent.succeeded event IS
+        // Stripe's signed confirmation that the charge succeeded, so it may
+        // correct a local 'failed'/'requires_payment_method' record to paid.
+        // This covers the Tap to Pay race where a transient failure marker
+        // (payment_intent.payment_failed, attempt-status polling seeing
+        // requires_payment_method) lands before Stripe's final succeeded state.
+        // Matches the existing recovery path in terminal/reconcile-payment.
+        const isAuthoritative = !validation.allowed && isAuthoritativePaidCorrection(paymentRequest.status)
+        if (!validation.allowed && !isAuthoritative) {
           console.error('[TERMINAL PAYMENT] Invalid state transition:', validation.reason, 'from:', paymentRequest.status, 'to: paid')
           await markEventProcessed(supabase, event.id)
           break
         }
-        
+        if (isAuthoritative) {
+          console.warn('[TERMINAL PAYMENT] Authoritative correction: Stripe-confirmed success overriding local', paymentRequest.status, '→ paid:', paymentRequest.id)
+        }
+
         // Update payment request to paid
         const { error: updateError } = await supabase
           .from('payment_requests')
