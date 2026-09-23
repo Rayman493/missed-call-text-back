@@ -421,6 +421,10 @@ const COMPLETION_PATTERNS: RegExp[] = [
   // Standalone temporal words with optional "if possible" / "if you can" qualifier.
   // Captures "tomorrow", "tomorrow if possible", "today if possible", "this week if possible".
   /\b((?:today|tomorrow|tonight)(?:\s+if\s+(?:possible|you\s+(?:can|could)))?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i,
+  // Full natural timing answers including optional lead-in hedges and
+  // prepositional wrappers — captured wholesale so "Ideally sometime in the
+  // next week" and "in the next week" are not truncated to "next week".
+  /\b((?:(?:ideally|hopefully|preferably)\s+)?(?:(?:sometime|later)\s+)*(?:(?:in|within|by)\s+(?:the\s+)?)?(?:this|next|coming|following|upcoming)\s+(?:(?:couple|few|one|two|three|four|five|six|seven|\d+)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend))(?:\s+(?:is|works|would|will|'d|'ll)\s+(?:be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
   // Weekday and week/month phrases, including judgment scaffolds:
   // "Friday", "tomorrow would be great", "next week is fine",
   // "sometime later this week", "later this week".
@@ -451,7 +455,7 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
       // to the longer natural phrase ("by next Tuesday") — let the natural
       // completion matcher claim the full form instead of truncating to
       // "tuesday".
-      if (/\b(?:next|this|coming|following|upcoming|every|by|in|on|within|sometime)\s*$/i.test(immediatePrefix)) {
+      if (/\b(?:(?:in|on|within|by|before|after|around|about)\s+(?:the|a|an)|next|this|coming|following|upcoming|every|by|in|on|within|sometime)\s*$/i.test(immediatePrefix)) {
         continue;
       }
       // Early completion patterns capture only the suffix in group 1. Use the full match
@@ -1168,7 +1172,7 @@ const CORRECTION_SCAFFOLD_CLAUSE_RE = /\b(?:i\s+(?:gave|told)\s+you\s+the\s+wron
 // A clause that is ONLY a timing expression (no problem/incident content) is a
 // timing-field answer, not a detail. Incident-history wording ("it shut off
 // around 2 pm yesterday") stays eligible as a detail.
-const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:the\s+)?(?:sometime|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|in\s+(?:the\s+)?next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend)|in\s+(?:(?:a|an|the)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?|years?)|within\s+(?:the\s+)?(?:next\s+)?(?:(?:a|an)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?)|by\s+(?:the\s+end\s+of\s+(?:the\s+)?(?:week|month|year)|end\s+of\s+(?:the\s+)?(?:week|month|year)|next\s+(?:week|month|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(?:week|weekend|month)|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|as\s+soon\s+as\s+(?:possible|you\s+can|he\s+can|she\s+can|they\s+can|convenient)|before\s+(?:the\s+)?(?:weekend|next\s+week|the\s+end\s+of\s+(?:the\s+)?(?:week|month)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|not\s+(?:before|until)\b[^.!?]*|(?:early|late|later)\s+(?:next|this)\s+(?:week|month|weekend)|the\s+sooner\s+the\s+better|sooner\s+the\s+better|no\s+rush|no\s+hurry|when\s+it'?s\s+convenient|at\s+your\s+(?:earliest\s+)?convenience|asap)\b[^.!?]*$/i;
+const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh|ideally|hopefully|preferably|maybe)[,.\s]*)*(?:the\s+)?(?:sometimes?|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|in\s+(?:the\s+)?next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend)|in\s+(?:(?:a|an|the)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?|years?)|within\s+(?:the\s+)?(?:next\s+)?(?:(?:a|an)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?)|by\s+(?:the\s+end\s+of\s+(?:the\s+)?(?:week|month|year)|end\s+of\s+(?:the\s+)?(?:week|month|year)|next\s+(?:week|month|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(?:week|weekend|month)|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|as\s+soon\s+as\s+(?:possible|you\s+can|he\s+can|she\s+can|they\s+can|convenient)|before\s+(?:the\s+)?(?:weekend|next\s+week|the\s+end\s+of\s+(?:the\s+)?(?:week|month)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|not\s+(?:before|until)\b[^.!?]*|(?:early|late|later)\s+(?:next|this)\s+(?:week|month|weekend)|the\s+sooner\s+the\s+better|sooner\s+the\s+better|no\s+rush|no\s+hurry|when\s+it'?s\s+convenient|at\s+your\s+(?:earliest\s+)?convenience|asap)\b[^.!?]*$/i;
 
 // A clause that is ONLY a callback scalar answer — "after 3 PM", "anytime",
 // "around noon" — is callback field content, not a supporting detail.
@@ -1860,7 +1864,11 @@ export function enrichIntakeFromTranscript(
     // Exception: "not before noon" / "not after 5" are valid negated timing
     // constraints, not clause-laden prose.
     const negatedTiming = /^not\s+(?:before|after|until)\b/i.test(cleaned);
-    if (/[,;]|\b(?:but|instead|and)\b/i.test(cleaned) || (!negatedTiming && /\bnot\b/i.test(cleaned))) return;
+    // A trailing polite qualifier (", if you could", ", if possible") is part
+    // of the natural timing answer, not clause-laden prose — the full source
+    // phrase is preserved in the stored value.
+    const cleanedForCheck = cleaned.replace(/,\s*if\s+(?:you\s+(?:can|could)|it'?s\s+possible|possible)\.?\s*$/i, '');
+    if (/[,;]|\b(?:but|instead|and)\b/i.test(cleanedForCheck) || (!negatedTiming && /\bnot\b/i.test(cleanedForCheck))) return;
     // Incident-history prose must never land in a timing field ("the furnace
     // shut off around 2 pm", "it began leaking last night").
     if ((field === 'callbackTime' || field === 'desiredCompletionTime') && INCIDENT_ANSWER_RE.test(cleaned)) return;
