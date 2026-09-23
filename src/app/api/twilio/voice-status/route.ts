@@ -290,7 +290,7 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
 
       const { data: record } = await supabase
         .from('ai_call_records')
-        .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary')
+        .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary, transcript')
         .eq('call_sid', CallSid)
         .maybeSingle()
 
@@ -347,7 +347,7 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     // Final refresh: Reload ai_call_records ONLY
     const { data: refreshedAiCallRecord } = await supabase
       .from('ai_call_records')
-      .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary')
+      .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary, transcript')
       .eq('call_sid', CallSid)
       .maybeSingle();
 

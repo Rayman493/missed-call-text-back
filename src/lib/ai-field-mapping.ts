@@ -73,7 +73,8 @@ export const CANONICAL_FIELDS = {
   summary: 'summary',
   serviceLocationType: 'serviceLocationType',
   nameRefused: 'nameRefused',
-  locationRefused: 'locationRefused'
+  locationRefused: 'locationRefused',
+  intakeMode: 'intakeMode'
 } as const
 
 /**
@@ -132,6 +133,9 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
 
   'locationRefused': 'locationRefused',
   'location_refused': 'locationRefused',
+
+  'intakeMode': 'intakeMode',
+  'intake_mode': 'intakeMode',
 }
 
 /**
@@ -150,6 +154,7 @@ export function normalizeExtractedInfo(extractedInfo: any): {
   serviceLocationType?: string
   nameRefused?: boolean
   locationRefused?: boolean
+  intakeMode?: string
 } {
   const normalized: any = {}
 
@@ -206,6 +211,7 @@ export function canonicalizeExtractedInfo(extractedInfo: any): {
   serviceLocationType?: string
   nameRefused?: boolean
   locationRefused?: boolean
+  intakeMode?: string
 } {
   const canonical: any = {}
 

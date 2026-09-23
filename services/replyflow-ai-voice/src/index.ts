@@ -5940,6 +5940,7 @@ async function createFallbackLead(
       .insert(buildAiMessagePayload({
         conversation_id: conversation.id,
         lead_id: lead.id,
+        business_id: businessId,
         from_phone: callerPhone,
         to_phone: businessPhone,
         body: `AI system failed (${failureReason}). Caller was redirected to voicemail. Please follow up with this customer.`,
@@ -8746,8 +8747,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     const rawRequestTranscript = extractRawRequestTranscriptFromStageCaptures(state.stageCaptures);
-    const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid, rawRequestTranscript);
-    const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => canonicalExtractedInfo[k as keyof typeof canonicalExtractedInfo]);
+    const canonicalExtractedInfo = { ...(await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid, rawRequestTranscript)), intakeMode: 'simple' };
+    const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => (canonicalExtractedInfo as any)[k]);
 
     console.log('[PARTIAL INTAKE PERSIST] =========================================');
     console.log('[PARTIAL INTAKE PERSIST] callSid:', state.callSid);
@@ -10113,7 +10114,7 @@ Reply to this message if you'd like to update or add any information.
       // Include canonical AI intake metadata in the upsert so the lead is useful
       // even if the ai_call_record insert fails.
       const rawRequestTranscript = extractRawRequestTranscriptFromStageCaptures(state.stageCaptures);
-      const canonicalExtractedInfo = await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid, rawRequestTranscript);
+      const canonicalExtractedInfo = { ...(await buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '', state.serviceLocationType, state.callSid, rawRequestTranscript)), intakeMode: 'simple' };
 
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] =========================================');
       console.log('[AI INTAKE FINAL EXTRACTION AUDIT] stageCaptures:', JSON.stringify(state.stageCaptures, null, 2));
@@ -11983,6 +11984,11 @@ Reply to this message if you'd like to update or add any information.
         state.callSid = callSid;
         state.businessId = businessId;
         state.callerPhone = from;
+        // Authoritative business number from Twilio custom parameters; required
+        // by transcript/summary persistence (toPhone).
+        state.businessPhone =
+          customParams.called || customParams.Called || to ||
+          customParams.businessTwilioPhoneNumber || '';
 
         // Initialize AI session tracker now that we have callSid and businessId
         state.aiSessionTracker = createAISessionTracker(callSid, businessId);
@@ -16171,7 +16177,7 @@ Return only JSON, no other text.`;
             `Partial AI intake information:\n` +
             `Name: ${intakeData.customerName || 'Not provided'}\n` +
             `Reason: ${intakeData.serviceRequested || 'Not provided'}\n` +
-            `Details: ${intakeData.issueDescription || 'Not provided'}\n` +
+            (intakeData.issueDescription ? `Details: ${intakeData.issueDescription}\n` : '') +
             `Location: ${intakeData.serviceAddress || 'Not provided'}\n` +
             `Desired Completion Time: ${intakeData.desiredCompletionTime || 'Not provided'}\n` +
             `Best Callback Time: ${intakeData.callbackTime || 'Not provided'}` :
@@ -20190,8 +20196,7 @@ Return only JSON, no other text.`;
                   : `AI call summary:
 Name: ${extractedFields.customerName || 'Not provided'}
 Service: ${extractedFields.serviceRequested || 'Not provided'}
-Details: ${extractedFields.issueDescription || 'Not provided'}
-Location: ${extractedFields.serviceAddress || 'Not provided'}
+${extractedFields.issueDescription ? `Details: ${extractedFields.issueDescription}\n` : ''}Location: ${extractedFields.serviceAddress || 'Not provided'}
 Completion time: ${extractedFields.desiredCompletionTime || 'Not provided'}
 Callback: ${extractedFields.callbackTime || 'Not provided'}`;
 

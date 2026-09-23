@@ -12,6 +12,7 @@ export type MessageDirection = 'inbound' | 'outbound'
 export interface AiMessagePayload {
   conversation_id: string
   lead_id: string
+  business_id: string
   from_phone: string
   to_phone: string
   body: string
@@ -23,9 +24,10 @@ export interface AiMessagePayload {
  * Build and validate a payload for the messages table.
  *
  * This enforces the production message contract:
- * - lead_id, direction, body, from_phone, to_phone are required
+ * - lead_id, business_id, direction, body, from_phone, to_phone are required
+ *   (business_id is NOT NULL in production — omitting it fails with 23502)
  * - conversation_id, twilio_message_sid, status, media_count, message_type, created_at are optional
- * - No 'sender', 'content', 'business_id', 'structured_data' fields (not in production schema)
+ * - No 'sender', 'content', 'structured_data' fields (not in production schema)
  */
 export function buildAiMessagePayload(payload: AiMessagePayload): Record<string, any> {
   if (typeof payload.conversation_id !== 'string' || payload.conversation_id.length === 0) {
@@ -33,6 +35,9 @@ export function buildAiMessagePayload(payload: AiMessagePayload): Record<string,
   }
   if (typeof payload.lead_id !== 'string' || payload.lead_id.length === 0) {
     throw new Error('[AI MESSAGE PAYLOAD] lead_id is required and must be a non-empty string')
+  }
+  if (typeof payload.business_id !== 'string' || payload.business_id.length === 0) {
+    throw new Error('[AI MESSAGE PAYLOAD] business_id is required and must be a non-empty string')
   }
   if (typeof payload.from_phone !== 'string' || payload.from_phone.length === 0) {
     throw new Error('[AI MESSAGE PAYLOAD] from_phone is required and must be a non-empty string')
@@ -52,6 +57,7 @@ export function buildAiMessagePayload(payload: AiMessagePayload): Record<string,
 
   const result: Record<string, any> = {
     lead_id: payload.lead_id,
+    business_id: payload.business_id,
     conversation_id: payload.conversation_id,
     body: payload.body,
     direction: payload.direction,

@@ -6,6 +6,7 @@ describe('AI message insert contract', () => {
     const payload = buildAiMessagePayload({
       conversation_id: 'conv-1',
       lead_id: 'lead-1',
+      business_id: 'biz-1',
       from_phone: '+15551234567',
       to_phone: '+15559876543',
       body: 'NEW CUSTOMER REQUEST\nService: plumbing',
@@ -23,7 +24,7 @@ describe('AI message insert contract', () => {
     expect(payload.media_count).to.equal(0);
     expect(payload).to.not.have.property('sender');
     expect(payload).to.not.have.property('content');
-    expect(payload).to.not.have.property('business_id');
+    expect(payload.business_id).to.equal('biz-1');
     expect(payload.conversation_id).to.equal('conv-1');
     expect(payload.lead_id).to.equal('lead-1');
   });
@@ -32,6 +33,7 @@ describe('AI message insert contract', () => {
     const payload = buildAiMessagePayload({
       conversation_id: 'conv-1',
       lead_id: 'lead-1',
+      business_id: 'biz-1',
       from_phone: '+15551234567',
       to_phone: '+15559876543',
       body: 'Assistant: hello\nCaller: hi',
@@ -113,6 +115,7 @@ describe('AI message insert contract', () => {
     const payload = buildAiMessagePayload({
       conversation_id: 'conv-1',
       lead_id: 'lead-1',
+      business_id: 'biz-1',
       from_phone: '+15551234567',
       to_phone: '+15559876543',
       body: 'summary',
@@ -120,9 +123,10 @@ describe('AI message insert contract', () => {
       message_type: 'summary',
     });
 
-    // Expected fields: lead_id, conversation_id, body, direction, message_type,
+    // Expected fields: lead_id, business_id, conversation_id, body, direction, message_type,
     // from_phone, to_phone, twilio_message_sid, status, media_count, created_at
     expect(payload).to.have.property('lead_id');
+    expect(payload).to.have.property('business_id');
     expect(payload).to.have.property('conversation_id');
     expect(payload).to.have.property('body');
     expect(payload).to.have.property('direction');
@@ -137,6 +141,20 @@ describe('AI message insert contract', () => {
     expect(payload).to.not.have.property('call_sid');
     expect(payload).to.not.have.property('sender');
     expect(payload).to.not.have.property('content');
-    expect(payload).to.not.have.property('business_id');
+  });
+
+  it('rejects missing business_id', () => {
+    expect(() =>
+      buildAiMessagePayload({
+        conversation_id: 'conv-1',
+        lead_id: 'lead-1',
+        business_id: '',
+        from_phone: '+15551234567',
+        to_phone: '+15559876543',
+        body: 'text',
+        direction: 'outbound',
+        message_type: 'summary',
+      } as any)
+    ).to.throw();
   });
 });

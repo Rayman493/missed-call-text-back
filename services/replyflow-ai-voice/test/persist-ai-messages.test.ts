@@ -9,8 +9,16 @@ interface FakeRow {
   body?: string;
 }
 
-function createFakeSupabase(existing: FakeRow[] = [], insertError?: any) {
+function createFakeSupabase(
+  existing: FakeRow[] = [],
+  insertError?: any,
+  fixtures?: { conversations?: Array<{ id: string; business_id: string }>; leads?: Array<{ id: string; business_id: string }> }
+) {
   const rows = [...existing];
+  // Default ownership fixtures: conv-1/lead-1 share business 'biz-1' so the
+  // authoritative business_id lookup resolves unless a test overrides it.
+  const conversations = fixtures?.conversations ?? [{ id: 'conv-1', business_id: 'biz-1' }];
+  const leads = fixtures?.leads ?? [{ id: 'lead-1', business_id: 'biz-1' }];
   return {
     from(table: string) {
       const q: { table: string; conditions: { key: string; value: any; op?: string }[] } = {
@@ -30,6 +38,12 @@ function createFakeSupabase(existing: FakeRow[] = [], insertError?: any) {
           return self;
         },
         maybeSingle: async () => {
+          if (table === 'conversations' || table === 'leads') {
+            const source = table === 'conversations' ? conversations : leads;
+            const idEq = q.conditions.find(c => c.key === 'id');
+            const row = source.find((r) => r.id === idEq?.value);
+            return { data: row || null, error: row ? null : { code: 'PGRST116', message: 'No rows found' } };
+          }
           const now = Date.now();
           const match = rows.find((r) => {
             // Check conversation_id and message_type
@@ -112,7 +126,10 @@ describe('persistAiCallConversationMessages', () => {
     expect(summary).to.not.have.property('structured_data');
     expect(summary).to.not.have.property('sender');
     expect(summary).to.not.have.property('content');
-    expect(summary).to.not.have.property('business_id');
+    // business_id is required (NOT NULL in production) and comes from the
+    // owning conversation, verified against the lead.
+    expect(summary.business_id).to.equal('biz-1');
+    expect(transcript.business_id).to.equal('biz-1');
 
     expect(transcript.body).to.equal('Assistant: hi\nCaller: hello');
     expect(transcript.direction).to.equal('inbound');
@@ -261,6 +278,51 @@ describe('persistAiCallConversationMessages', () => {
       conversationId: 'conv-1',
       leadId: 'lead-1',
       fromPhone: '',
+      toPhone: '+15559876543',
+      summary: 'AI summary',
+      transcript: 'Transcript',
+    });
+
+    expect(result.summary.status).to.equal('failed');
+    expect(result.transcript.status).to.equal('failed');
+    expect(supabase.rows).to.have.length(0);
+  });
+
+  it('fails when the lead belongs to a different business than the conversation', async () => {
+    const supabase = createFakeSupabase([], undefined, {
+      conversations: [{ id: 'conv-1', business_id: 'biz-1' }],
+      leads: [{ id: 'lead-1', business_id: 'biz-OTHER' }],
+    }) as any;
+
+    const result = await persistAiCallConversationMessages({
+      supabase,
+      callSid: 'CA123',
+      conversationId: 'conv-1',
+      leadId: 'lead-1',
+      fromPhone: '+15551234567',
+      toPhone: '+15559876543',
+      summary: 'AI summary',
+      transcript: 'Transcript',
+    });
+
+    expect(result.summary.status).to.equal('failed');
+    expect(result.transcript.status).to.equal('failed');
+    expect(result.summary.error).to.include('business ownership');
+    expect(supabase.rows).to.have.length(0);
+  });
+
+  it('fails when the conversation cannot be resolved to a business', async () => {
+    const supabase = createFakeSupabase([], undefined, {
+      conversations: [],
+      leads: [{ id: 'lead-1', business_id: 'biz-1' }],
+    }) as any;
+
+    const result = await persistAiCallConversationMessages({
+      supabase,
+      callSid: 'CA123',
+      conversationId: 'conv-missing',
+      leadId: 'lead-1',
+      fromPhone: '+15551234567',
       toPhone: '+15559876543',
       summary: 'AI summary',
       transcript: 'Transcript',

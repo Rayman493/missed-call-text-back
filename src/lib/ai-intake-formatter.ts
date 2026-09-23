@@ -1733,12 +1733,16 @@ export const formatAiIntakeSummary = (
       intakeData?.serviceAddress ?? intakeData?.addressOrLocation
     )
   );
-  const desiredCompletionTime = polishTimingWrapper(
-    intakeData?.desiredCompletionTime
-  );
-  const callbackTime = normalizeCallbackTime(
-    intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
-  );
+  // Simple Mode intake preserves the caller's actual phrasing: no canonical
+  // service-title rewrite, no timing paraphrase, and no request-as-Details
+  // fallback. Presentation is limited to capitalization/punctuation.
+  const isSimpleIntake = intakeData?.intakeMode === 'simple';
+  const desiredCompletionTime = isSimpleIntake
+    ? safeTrimAndCapitalize(intakeData?.desiredCompletionTime)
+    : polishTimingWrapper(intakeData?.desiredCompletionTime);
+  const callbackTime = isSimpleIntake
+    ? safeTrimAndCapitalize(intakeData?.callbackTime ?? intakeData?.preferredCallbackTime)
+    : normalizeCallbackTime(intakeData?.callbackTime ?? intakeData?.preferredCallbackTime);
   // Use canonical request field for SMS (concise, professional summary)
   // Match completion checker alias resolution: serviceRequested || reasonForCalling || request || issueDescription
   const serviceRequestedRaw = normalizeServiceReason(
@@ -1754,9 +1758,35 @@ export const formatAiIntakeSummary = (
     serviceRequestedTitle === 'General Service' ||
     serviceRequestedTitle === 'Not collected' ||
     isPlaceholderValue(serviceRequestedTitle, PLACEHOLDER_SERVICES);
-  const serviceRequested = serviceRequestedIsPlaceholder ? serviceRequestedRaw : serviceRequestedTitle;
-  // Resolve the Details row using the richest canonical source available
-  const { detailsValue } = resolveDetailsValue(intakeData, serviceRequested);
+  // Simple Mode shows the captured caller request verbatim; broad service
+  // classification stays internal and is not substituted into the SMS.
+  const serviceRequested = isSimpleIntake
+    ? serviceRequestedRaw
+    : (serviceRequestedIsPlaceholder ? serviceRequestedRaw : serviceRequestedTitle);
+  // Resolve the Details row using the richest canonical source available.
+  // Simple Mode: only dedicated details fields count — never fall back to the
+  // request text, and the line is omitted entirely when nothing was volunteered.
+  let detailsValue: string;
+  if (isSimpleIntake) {
+    const dedicated = [
+      intakeData?.importantDetails,
+      intakeData?.additionalDetails,
+      intakeData?.issueDescription,
+      intakeData?.additional_details,
+      intakeData?.requestDetails,
+    ].find(v =>
+      typeof v === 'string' &&
+      v.trim() !== '' &&
+      v.trim().toLowerCase() !== 'not collected' &&
+      !isPlaceholderValue(v.trim(), PLACEHOLDER_SERVICES)
+    );
+    detailsValue = (dedicated || '').trim();
+    if (detailsValue && normalizeForComparison(detailsValue) === normalizeForComparison(serviceRequested)) {
+      detailsValue = '';
+    }
+  } else {
+    detailsValue = resolveDetailsValue(intakeData, serviceRequested).detailsValue;
+  }
   // Determine which fields have actual meaningful values
   const hasName = (customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES)) || !!intakeData?.nameRefused;
   const hasRequest = serviceRequested &&
@@ -1793,7 +1823,10 @@ export const formatAiIntakeSummary = (
   if (hasRequest) {
     capturedFields.push(`• Request: ${serviceRequested}`);
     // The Details row is always shown once a request is captured so the summary never feels incomplete.
-    capturedFields.push(`• Details: ${detailsValue}`);
+    // Simple Mode: the row is omitted entirely when no details were volunteered.
+    if (!isSimpleIntake || detailsValue !== '') {
+      capturedFields.push(`• Details: ${detailsValue}`);
+    }
   }
   if (hasAddress) capturedFields.push(`• Address: ${serviceAddress}`);
   if (hasCompletionTime) capturedFields.push(`• Desired completion: ${desiredCompletionTime}`);

@@ -80,6 +80,31 @@ export async function persistAiCallConversationMessages(
     return result
   }
 
+  // Resolve authoritative tenant ownership: messages.business_id is NOT NULL in
+  // production. Read it from the owning conversation and verify the lead agrees
+  // so a mismatched lead/conversation pair can never write cross-tenant rows.
+  const [{ data: conversationRow, error: convoError }, { data: leadRow, error: leadError }] = await Promise.all([
+    supabase.from('conversations').select('business_id').eq('id', conversationId).maybeSingle(),
+    supabase.from('leads').select('business_id').eq('id', leadId).maybeSingle(),
+  ])
+  const businessId = conversationRow?.business_id || ''
+  const ownershipMismatch =
+    !!convoError || !!leadError || !businessId || !leadRow?.business_id ||
+    leadRow.business_id !== businessId
+
+  if (ownershipMismatch) {
+    console.log('[AI MESSAGE PERSIST] status=failed reason=business-ownership-unresolved', {
+      ...baseLog,
+      conversationBusinessId: businessId || null,
+      leadBusinessId: leadRow?.business_id || null,
+      convoError: convoError?.message || null,
+      leadError: leadError?.message || null,
+    })
+    result.summary = { status: 'failed', error: 'business ownership unresolved for conversation/lead' }
+    result.transcript = { status: 'failed', error: 'business ownership unresolved for conversation/lead' }
+    return result
+  }
+
   const persistOne = async (
     type: 'summary' | 'transcript',
     body: string
@@ -131,6 +156,7 @@ export async function persistAiCallConversationMessages(
       const payload = buildAiMessagePayload({
         conversation_id: conversationId,
         lead_id: leadId,
+        business_id: businessId,
         from_phone: fromPhone,
         to_phone: toPhone,
         body,
