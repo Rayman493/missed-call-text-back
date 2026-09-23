@@ -111,7 +111,7 @@ const paymentFilterOptions: DropdownOption[] = [
 
 export default function PaymentsPage() {
   const router = useRouter()
-  const { business } = useBusiness()
+  const { business, role } = useBusiness()
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([])
   const [paymentFilter, setPaymentFilter] = useState('all')
   const [stats, setStats] = useState<PaymentStats>({
@@ -1127,6 +1127,15 @@ const getPaymentDescription = (payment: PaymentRequest) => {
     }
   }
 
+  // Same handoff, unscoped — business-level dashboard link (fee notice).
+  const handleManageStripeDashboard = async () => {
+    if (!business?.id) return
+    const result = await openStripeDashboardHandoff({ businessId: business.id })
+    if (!result.ok) {
+      showToast(result.error || 'Couldn\'t open Stripe right now. Please try again.', 'error')
+    }
+  }
+
   const handleCloseEditModal = () => {
     setShowEditModal(false)
     setPaymentToEdit(null)
@@ -1392,6 +1401,25 @@ const getPaymentDescription = (payment: PaymentRequest) => {
             )
           })()}
         </div>
+
+        {/* Stripe processing fee notice — shown only when Stripe is set up;
+            never for purely manual/non-Stripe payment setups */}
+        {business?.stripe_connect_account_id && (
+          <p className="text-xs text-muted-foreground mt-3">
+            Stripe charges processing fees on applicable payments. Fees vary by payment method and account.{' '}
+            {role === 'owner' ? (
+              <button
+                type="button"
+                onClick={() => handleManageStripeDashboard()}
+                className="underline underline-offset-2 hover:text-foreground transition-colors"
+              >
+                View your exact fees and net earnings in your Stripe Dashboard.
+              </button>
+            ) : (
+              'View your exact fees and net earnings in your Stripe Dashboard.'
+            )}
+          </p>
+        )}
 
         {/* Segment control: Payments | Quotes & Invoices */}
         <div className="flex items-center gap-1 mt-4 mb-4 p-1 bg-muted/50 dark:bg-slate-800/50 rounded-lg w-fit max-w-full">
