@@ -70,4 +70,21 @@ describe('team member removal experience', () => {
   it('new users without membership still go to onboarding', () => {
     expect(callbackSrc).toContain("'/onboarding'")
   })
+
+  it('a removed member\'s consumed invite resurfaces labeled removed, not accepted', () => {
+    // Accepted invites dedupe against live member phones; after removal the
+    // invite re-enters pastInvites. Its chip must say "removed" so the owner
+    // does not read it as a still-active member.
+    expect(teamSectionSrc).toContain('memberPhones')
+    expect(teamSectionSrc).toContain("inv.status === 'accepted' ? 'removed' : inv.status")
+  })
+
+  it('list refetch happens after successful removal', () => {
+    const removeIdx = teamSectionSrc.indexOf('handleRemoveMember')
+    const successIdx = teamSectionSrc.indexOf("setNotice('Member access removed.')", removeIdx)
+    const refetchIdx = teamSectionSrc.indexOf('loadTeam()', removeIdx)
+    expect(removeIdx).toBeGreaterThan(-1)
+    expect(successIdx).toBeGreaterThan(removeIdx)
+    expect(refetchIdx).toBeGreaterThan(successIdx)
+  })
 })
