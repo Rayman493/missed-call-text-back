@@ -280,7 +280,8 @@ async function reconstructPaymentRequestFromStripe(
   paymentIntentId: string,
   metadata: any,
   session: any,
-  stripe: Stripe
+  stripe: Stripe,
+  eventAccountId: string | null
 ): Promise<{
   success: boolean;
   paymentRequest?: any;
@@ -312,7 +313,7 @@ async function reconstructPaymentRequestFromStripe(
   // Verify business exists
   const { data: business, error: businessError } = await supabase
     .from('businesses')
-    .select('id, name')
+    .select('id, name, stripe_connect_account_id')
     .eq('id', businessId)
     .single()
 
@@ -323,6 +324,11 @@ async function reconstructPaymentRequestFromStripe(
       error: 'Business not found',
       reason: `business_id ${businessId} does not exist or is inaccessible`
     }
+  }
+
+  const metadataAccountId = metadata.stripe_connect_account_id || null
+  if ((eventAccountId && (!metadataAccountId || metadataAccountId !== eventAccountId || business.stripe_connect_account_id !== eventAccountId)) || (!eventAccountId && metadataAccountId)) {
+    return { success: false, error: 'Stripe account mismatch', reason: 'Invoice Checkout account context is invalid' }
   }
 
   // Verify lead exists and belongs to business
@@ -391,7 +397,11 @@ async function reconstructPaymentRequestFromStripe(
   // Fetch PaymentIntent to get authoritative amount and currency
   let paymentIntent: Stripe.PaymentIntent | null = null
   try {
-    paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+    paymentIntent = await stripe.paymentIntents.retrieve(
+      paymentIntentId,
+      {},
+      eventAccountId ? { stripeAccount: eventAccountId } : undefined
+    )
     console.log('[PAYMENT RECONSTRUCTION] PaymentIntent retrieved:', {
       id: paymentIntent.id,
       status: paymentIntent.status,
@@ -416,6 +426,31 @@ async function reconstructPaymentRequestFromStripe(
       reason: `PaymentIntent status is ${paymentIntent.status}, not succeeded`
     }
   }
+  if (session.payment_status !== 'paid') {
+    return { success: false, error: 'Payment not paid', reason: `Checkout Session payment status is ${session.payment_status}` }
+  }
+  if (session.amount_total != null && session.amount_total !== paymentIntent.amount) {
+    return { success: false, error: 'Payment amount mismatch', reason: 'Checkout Session and PaymentIntent amounts differ' }
+  }
+  if (session.currency && session.currency.toLowerCase() !== paymentIntent.currency.toLowerCase()) {
+    return { success: false, error: 'Payment currency mismatch', reason: 'Checkout Session and PaymentIntent currencies differ' }
+  }
+
+  const invoiceId = metadata.invoice_id
+  if (!invoiceId) {
+    return { success: false, error: 'Missing invoice metadata', reason: 'invoice_id is required' }
+  }
+  const { data: invoice } = await supabase
+    .from('billing_documents')
+    .select('id, business_id, customer_id, total_cents, currency, document_type')
+    .eq('id', invoiceId)
+    .maybeSingle()
+  if (!invoice || invoice.document_type !== 'invoice' || invoice.business_id !== businessId || invoice.customer_id !== leadId) {
+    return { success: false, error: 'Invoice mismatch', reason: 'Invoice does not match Stripe metadata' }
+  }
+  if (invoice.total_cents !== paymentIntent.amount || invoice.currency.toLowerCase() !== paymentIntent.currency.toLowerCase()) {
+    return { success: false, error: 'Invoice financial mismatch', reason: 'Invoice amount or currency does not match Stripe' }
+  }
 
   // A6: RECONSTRUCT MINIMUM CANONICAL RECORD
   // Use authoritative values from Stripe
@@ -437,7 +472,7 @@ async function reconstructPaymentRequestFromStripe(
     payment_provider: 'stripe',
     stripe_checkout_session_id: sessionId,
     stripe_payment_intent_id: paymentIntentId,
-    stripe_connect_account_id: session.metadata?.stripe_connect_account_id || null,
+    stripe_connect_account_id: eventAccountId,
     checkout_url: session.url || null,
     requested_by: null, // Cannot reconstruct - acceptable for recovered records (column is nullable per migration)
     expires_at: expiresAt,
@@ -475,7 +510,7 @@ async function reconstructPaymentRequestFromStripe(
     // Fetch the existing record
     const { data: existingRequest } = await supabase
       .from('payment_requests')
-      .select('id, lead_id, business_id, status, amount_cents')
+      .select('id, lead_id, business_id, status, amount_cents, currency, stripe_connect_account_id, stripe_payment_intent_id')
       .eq('stripe_checkout_session_id', sessionId)
       .single()
 
@@ -686,6 +721,7 @@ export async function POST(request: Request) {
             stripe,
             session,
             eventId: event.id,
+            eventAccountId: (event as any).account || null,
             reconstructFn: reconstructPaymentRequestFromStripe,
             markProcessedFn: markEventProcessed,
           })

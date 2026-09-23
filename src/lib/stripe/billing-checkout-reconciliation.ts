@@ -18,19 +18,21 @@ interface ReconciliationContext {
   stripe: Stripe
   session: Stripe.Checkout.Session
   eventId: string
+  eventAccountId: string | null
   reconstructFn: (
     supabase: SupabaseClient,
     sessionId: string,
     paymentIntentId: string,
     metadata: Record<string, string>,
     session: Stripe.Checkout.Session,
-    stripe: Stripe
+    stripe: Stripe,
+    eventAccountId: string | null
   ) => Promise<{ success: boolean; error?: string; reason?: string; paymentRequest?: any; paymentRequestId?: string }>
   markProcessedFn: (supabase: SupabaseClient, eventId: string) => Promise<void | boolean>
 }
 
 export async function reconcileBillingInvoiceCheckout(ctx: ReconciliationContext): Promise<void> {
-  const { supabase, stripe, session, eventId, reconstructFn, markProcessedFn } = ctx
+  const { supabase, stripe, session, eventId, eventAccountId, reconstructFn, markProcessedFn } = ctx
   const sessionId = session.id
   const paymentIntentId = session.payment_intent as string
   const metadata = session.metadata || {}
@@ -40,14 +42,19 @@ export async function reconcileBillingInvoiceCheckout(ctx: ReconciliationContext
   console.log('[PAYMENT WEBHOOK] Session metadata:', JSON.stringify(metadata))
 
   let paymentRequestId = metadata.payment_request_id
+  let authoritativePaymentIntent: Stripe.PaymentIntent | null = null
   console.log('[PAYMENT WEBHOOK] payment_request_id from session metadata:', paymentRequestId)
 
   if (!paymentRequestId && paymentIntentId) {
     console.log('[PAYMENT WEBHOOK] payment_request_id not in session metadata, checking payment intent metadata')
     try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
-      paymentRequestId = paymentIntent.metadata?.payment_request_id
-      console.log('[PAYMENT WEBHOOK] Payment intent metadata:', JSON.stringify(paymentIntent.metadata))
+      authoritativePaymentIntent = await stripe.paymentIntents.retrieve(
+        paymentIntentId,
+        {},
+        eventAccountId ? { stripeAccount: eventAccountId } : undefined
+      )
+      paymentRequestId = authoritativePaymentIntent.metadata?.payment_request_id
+      console.log('[PAYMENT WEBHOOK] Payment intent metadata:', JSON.stringify(authoritativePaymentIntent.metadata))
       console.log('[PAYMENT WEBHOOK] Payment request ID from payment intent:', paymentRequestId)
     } catch (piError) {
       console.error('[PAYMENT WEBHOOK] Failed to retrieve payment intent:', piError)
@@ -68,7 +75,7 @@ export async function reconcileBillingInvoiceCheckout(ctx: ReconciliationContext
   console.log('[PAYMENT WEBHOOK] Looking up payment request by stripe_checkout_session_id:', sessionId)
   let { data: paymentRequest, error: paymentRequestError } = await supabase
     .from('payment_requests')
-    .select('id, lead_id, business_id, status, amount_cents')
+    .select('id, lead_id, business_id, status, amount_cents, currency, stripe_connect_account_id, stripe_payment_intent_id')
     .eq('stripe_checkout_session_id', sessionId)
     .single()
 
@@ -80,7 +87,7 @@ export async function reconcileBillingInvoiceCheckout(ctx: ReconciliationContext
     }
 
     console.log('[PAYMENT RECONSTRUCTION] Payment request not found, attempting reconstruction from Stripe metadata')
-    const reconstructionResult = await reconstructFn(supabase, sessionId, paymentIntentId, metadata, session, stripe)
+    const reconstructionResult = await reconstructFn(supabase, sessionId, paymentIntentId, metadata, session, stripe, eventAccountId)
     if (!reconstructionResult.success) {
       console.error('[PAYMENT RECONSTRUCTION] Reconstruction failed:', reconstructionResult.error)
       return
@@ -93,6 +100,56 @@ export async function reconcileBillingInvoiceCheckout(ctx: ReconciliationContext
     console.error('[PAYMENT WEBHOOK] Payment request is null after lookup/reconstruction')
     return
   }
+
+  const expectedAccountId = paymentRequest.stripe_connect_account_id || null
+  if ((expectedAccountId && eventAccountId !== expectedAccountId) || (!expectedAccountId && eventAccountId)) {
+    console.error('[PAYMENT WEBHOOK] Invoice Checkout account mismatch')
+    await markProcessedFn(supabase, eventId)
+    return
+  }
+  if (metadata.payment_request_id && metadata.payment_request_id !== paymentRequest.id) return
+  if (metadata.business_id && metadata.business_id !== paymentRequest.business_id) return
+  if (metadata.lead_id && metadata.lead_id !== paymentRequest.lead_id) return
+  if (session.payment_status !== 'paid') return
+  if (session.amount_total != null && session.amount_total !== paymentRequest.amount_cents) return
+  if (session.currency && paymentRequest.currency && session.currency.toLowerCase() !== paymentRequest.currency.toLowerCase()) return
+
+  if (!authoritativePaymentIntent && paymentIntentId) {
+    try {
+      authoritativePaymentIntent = await stripe.paymentIntents.retrieve(
+        paymentIntentId,
+        {},
+        expectedAccountId ? { stripeAccount: expectedAccountId } : undefined
+      )
+    } catch (piError) {
+      console.error('[PAYMENT WEBHOOK] Failed to retrieve authoritative payment intent:', piError)
+      return
+    }
+  }
+  if (!authoritativePaymentIntent || authoritativePaymentIntent.status !== 'succeeded') return
+  if (authoritativePaymentIntent.amount !== paymentRequest.amount_cents) return
+  if (paymentRequest.currency && authoritativePaymentIntent.currency.toLowerCase() !== paymentRequest.currency.toLowerCase()) return
+  if (paymentRequest.stripe_payment_intent_id && paymentRequest.stripe_payment_intent_id !== authoritativePaymentIntent.id) return
+
+  const { data: linkedInvoice } = await supabase
+    .from('billing_documents')
+    .select('id, business_id, customer_id, total_cents, currency, status')
+    .eq('payment_request_id', paymentRequest.id)
+    .eq('document_type', 'invoice')
+    .maybeSingle()
+  if (!linkedInvoice) return
+  if (linkedInvoice.business_id !== paymentRequest.business_id || linkedInvoice.customer_id !== paymentRequest.lead_id) return
+  if (linkedInvoice.total_cents !== paymentRequest.amount_cents) return
+  if (linkedInvoice.currency.toLowerCase() !== paymentRequest.currency.toLowerCase()) return
+  if (metadata.invoice_id && metadata.invoice_id !== linkedInvoice.id) return
+
+  const { data: business } = await supabase
+    .from('businesses')
+    .select('id, stripe_connect_account_id')
+    .eq('id', paymentRequest.business_id)
+    .maybeSingle()
+  if (!business) return
+  if (expectedAccountId && business.stripe_connect_account_id !== expectedAccountId) return
 
   console.log('[PAYMENT WEBHOOK] Found payment request:', paymentRequest.id)
   console.log('[PAYMENT WEBHOOK] Payment request current status:', paymentRequest.status)
