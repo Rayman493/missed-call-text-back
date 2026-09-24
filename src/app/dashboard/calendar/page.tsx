@@ -1504,11 +1504,29 @@ export default function SchedulePage() {
     }
   }
 
+  // Remove an event id from every local copy — the current-month `events`
+  // list AND every cached month in `eventsCache`. The Appointments tab's
+  // upcoming list unions both sources, so clearing only `events` leaves a
+  // stale copy that resurrects on month navigation or keeps showing in
+  // Appointments until the next full refetch.
+  const removeEventLocally = useCallback((eventId: string) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId))
+    setEventsCache(prev => {
+      const next = new Map<string, CalendarEvent[]>()
+      for (const [key, list] of prev) {
+        next.set(key, list.filter(e => e.id !== eventId))
+      }
+      return next
+    })
+  }, [])
+
   // Card-level appointment delete with confirmation — reuses the same API
   // endpoint as EventDetailsModal (DELETE /api/google/calendar/events/${id}).
   // Does NOT rewrite the flow.
+  const appointmentDeleteInFlightRef = useRef(false)
   const handleConfirmDeleteAppointment = async () => {
-    if (!appointmentToDelete) return
+    if (!appointmentToDelete || appointmentDeleteInFlightRef.current) return
+    appointmentDeleteInFlightRef.current = true
     setIsDeletingAppointment(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -1521,8 +1539,12 @@ export default function SchedulePage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
-      if (!response.ok) throw new Error('Failed to delete appointment')
-      setEvents(prev => prev.filter(e => e.id !== appointmentToDelete.id))
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        showToast(errorData?.error || 'Failed to delete appointment', 'error')
+        return
+      }
+      removeEventLocally(appointmentToDelete.id)
       showToast('Appointment removed', 'success')
     } catch (error) {
       console.error('[Schedule] Failed to delete appointment:', error)
@@ -1530,6 +1552,7 @@ export default function SchedulePage() {
     } finally {
       setIsDeletingAppointment(false)
       setAppointmentToDelete(null)
+      appointmentDeleteInFlightRef.current = false
     }
   }
 
@@ -2907,15 +2930,24 @@ export default function SchedulePage() {
                       setTaskToEdit(null)
                     }}
                     onTaskCreated={(isNew, task) => {
-                      if (isNew && task) {
-                        // Optimistic update: add task immediately with real ID from API
+                      if (task) {
+                        // Reconcile the saved row into local state by stable ID —
+                        // covers both creates and edits (including recurring
+                        // virtual ids, where the response carries the real row id
+                        // while the list holds the edited virtual id).
                         setTasks(prev => {
-                          // Deduplicate by ID - if task already exists, don't add duplicate
-                          if (prev.some(t => t.id === task.id)) {
-                            return prev
+                          const idx = prev.findIndex(t => t.id === task.id || t.id === taskToEdit?.id)
+                          if (idx === -1) {
+                            return prev.some(t => t.id === task.id) ? prev : [...prev, task]
                           }
-                          return [...prev, task]
+                          const next = [...prev]
+                          next[idx] = { ...next[idx], ...task }
+                          return next
                         })
+                      } else if (!isNew) {
+                        // scope=future responses return a series, not a task —
+                        // refetch so every affected row reconciles.
+                        fetchTasks()
                       }
                       setTaskRefreshTrigger(prev => prev + 1)
                     }}
@@ -2995,8 +3027,10 @@ export default function SchedulePage() {
                         await fetchEvents()
                       }}
                       onDelete={async () => {
-                        // Remove the deleted event from local state
-                        setEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
+                        // Remove the deleted event from every local copy
+                        // (current month + cached months) so Appointments,
+                        // calendar and map views can't resurrect it.
+                        removeEventLocally(selectedEvent.id)
                         // Clear selected event; keep selectedDay so the
                         // day-details panel stays populated after refresh.
                         setSelectedEvent(null)

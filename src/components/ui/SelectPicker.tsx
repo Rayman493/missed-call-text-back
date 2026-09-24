@@ -109,11 +109,34 @@ export default function SelectPicker({
     }
   }, [isOpen])
 
-  // Close when focus leaves the picker (e.g., user taps another field)
+  // Track taps that start inside the picker. On touch platforms (iOS),
+  // tapping an option blurs the search input with relatedTarget === null
+  // because tapped buttons never receive focus — without this flag the
+  // focusout handler below would close the dropdown at touch-down and
+  // unmount the option before its click event can fire.
+  const pointerDownInsideRef = useRef(false)
+  useEffect(() => {
+    const handlePointerDownInside = (event: PointerEvent) => {
+      pointerDownInsideRef.current = !!(
+        pickerRef.current && isDomNode(event.target) && pickerRef.current.contains(event.target)
+      )
+    }
+    const handlePointerUp = () => { pointerDownInsideRef.current = false }
+    document.addEventListener('pointerdown', handlePointerDownInside, true)
+    document.addEventListener('pointerup', handlePointerUp, true)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDownInside, true)
+      document.removeEventListener('pointerup', handlePointerUp, true)
+    }
+  }, [])
+
+  // Close when focus leaves the picker (e.g., user tabs to another field)
   useEffect(() => {
     const handleFocusOut = (event: FocusEvent) => {
       const next = event.relatedTarget as Node | null
       if (next && pickerRef.current && pickerRef.current.contains(next)) return
+      // Null relatedTarget during an inside touch tap: let the click land.
+      if (!next && pointerDownInsideRef.current) return
       setIsOpen(false)
       setSearchQuery('')
     }
@@ -329,10 +352,10 @@ export default function SelectPicker({
                       role="option"
                       onClick={() => handleSelect(option.value)}
                       disabled={option.disabled}
-                      className={`w-full px-3 py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
+                      className={`w-full px-3 py-3 sm:py-2 text-sm text-left duration-150 flex items-center justify-between gap-2 ${
                         option.disabled
                           ? 'text-muted-foreground/50 cursor-not-allowed'
-                          : 'text-foreground hover:bg-accent/40'
+                          : 'text-foreground hover:bg-accent/40 active:bg-accent/60'
                       } ${selected ? 'bg-accent/40' : ''}`}
                     >
                       {renderOption ? (

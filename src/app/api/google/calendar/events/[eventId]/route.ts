@@ -411,6 +411,10 @@ export async function DELETE(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(masterId)}`,
         { method: 'GET', headers: { 'Authorization': `Bearer ${accessToken}` } }
       )
+      if (masterRes.status === 404 || masterRes.status === 410) {
+        console.log('[Google Calendar Delete] Recurring series already absent, treating as success:', eventId)
+        return NextResponse.json({ success: true, alreadyDeleted: true })
+      }
       if (!masterRes.ok) {
         return NextResponse.json({ error: 'Failed to load recurring series' }, { status: 500 })
       }
@@ -452,6 +456,13 @@ export async function DELETE(
         }
       }
     )
+
+    // Google 404/410 means the event is already gone — the desired end state.
+    // Treat as success so stale UI entries reconcile instead of erroring.
+    if (deleteResponse.status === 404 || deleteResponse.status === 410) {
+      console.log('[Google Calendar Delete] Event already absent, treating as success:', eventId)
+      return NextResponse.json({ success: true, alreadyDeleted: true })
+    }
 
     if (!deleteResponse.ok) {
       const errorText = await deleteResponse.text()
