@@ -58,10 +58,15 @@ describe('Create Job Flow Simplification', () => {
     expect(content).not.toContain('import LeadPickerModal')
   })
 
-  it('JobComposer should NOT import AddCustomerModal', () => {
+  it('JobComposer uses AddCustomerModal only for the inline add-customer flow', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).not.toContain('import AddCustomerModal')
+    // The intermediate customer-choice modal is gone; AddCustomerModal is only
+    // rendered as a sibling (after </Modal>) for the inline "+ Add customer" link.
+    expect(content).toContain('import AddCustomerModal')
+    const modalCloseIdx = content.indexOf('</Modal>')
+    const addCustomerIdx = content.indexOf('<AddCustomerModal')
+    expect(addCustomerIdx).toBeGreaterThan(modalCloseIdx)
   })
 
   it('JobComposer should have leadId state', () => {
@@ -82,10 +87,10 @@ describe('Create Job Flow Simplification', () => {
     expect(content).not.toContain('const [isLeadPickerOpen, setIsLeadPickerOpen]')
   })
 
-  it('JobComposer should NOT have isAddCustomerOpen state', () => {
+  it('JobComposer should NOT have isLeadPickerOpen-adjacent choice state', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).not.toContain('const [isAddCustomerOpen, setIsAddCustomerOpen]')
+    expect(content).not.toContain('isLeadPickerOpen')
   })
 
   it('JobComposer should render SearchableCustomerSelect', () => {
@@ -100,10 +105,10 @@ describe('Create Job Flow Simplification', () => {
     expect(content).not.toContain('<LeadPickerModal')
   })
 
-  it('JobComposer should NOT render AddCustomerModal', () => {
+  it('JobComposer should NOT render LeadPickerModal-adjacent UI', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).not.toContain('<AddCustomerModal')
+    expect(content).not.toContain('<LeadPickerModal')
   })
 
   it('JobComposer should NOT render "Select Existing" button', () => {
@@ -118,10 +123,10 @@ describe('Create Job Flow Simplification', () => {
     expect(content).not.toContain('Add New Customer')
   })
 
-  it('JobComposer should use theme-aware bg-background', () => {
+  it('JobComposer should use theme-aware backgrounds', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('bg-background')
+    expect(content).toContain('bg-muted/30 dark:bg-slate-900/55')
   })
 
   it('JobComposer should use canonical border-border', () => {
@@ -157,19 +162,19 @@ describe('Create Job Flow Simplification', () => {
   it('JobComposer should normalize customerName with firstNonPlaceholder', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('firstNonPlaceholder(metadata.customerName, metadata.callerName, customer.name)')
+    expect(content).toContain('firstNonPlaceholder(intake.customerName, metadata.customerName, metadata.callerName, customer.name)')
   })
 
   it('JobComposer should normalize customerPhone with firstNonPlaceholder', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('firstNonPlaceholder(metadata.customerPhone, customer.caller_phone)')
+    expect(content).toContain('firstNonPlaceholder(intake.customerPhone, metadata.customerPhone, customer.caller_phone)')
   })
 
   it('JobComposer should normalize serviceAddress with normalizeEditableContext', () => {
     const fs = require('fs')
     const content = fs.readFileSync('src/components/jobs/JobComposer.tsx', 'utf8')
-    expect(content).toContain('normalizeEditableContext(metadata.serviceAddress)')
+    expect(content).toContain('normalizeEditableContext(intake.serviceAddress || metadata.serviceAddress)')
   })
 
   it('JobComposer should have handleCustomerSelect function', () => {

@@ -10,6 +10,7 @@ import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/compone
 import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import JobTimer from '@/components/jobs/JobTimer'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
@@ -120,6 +121,11 @@ export default function JobComposer({
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  // Inline "+ Add customer" flow: the created customer is injected into the
+  // picker via prefillCustomer so it appears in the list and stays selectable
+  // even before the picker's next background refetch.
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [newlyCreatedCustomer, setNewlyCreatedCustomer] = useState<Customer | null>(null)
 
   const locationInputRef = useRef<HTMLInputElement>(null)
 
@@ -167,6 +173,22 @@ export default function JobComposer({
       setServiceAddress('')
       // Do not clear title/notes on customer deselect — user may have typed them
     }
+  }
+
+  // Handle successful customer creation from the inline Add Customer modal:
+  // hydrate the selector so the new customer appears immediately, then run the
+  // normal selection path so identity fields populate through the same code.
+  const handleLeadCreated = (leadId: string, leadData?: any) => {
+    const newCustomer: Customer = {
+      id: leadId,
+      name: leadData?.raw_metadata?.extracted_info?.callerName || leadData?.raw_metadata?.customerName || leadData?.raw_metadata?.callerName || leadData?.contact_name || leadData?.name || null,
+      caller_phone: leadData?.caller_phone || leadData?.raw_metadata?.customerPhone || null,
+      raw_metadata: leadData?.raw_metadata || null,
+    }
+    setNewlyCreatedCustomer(newCustomer)
+    setLeadId(leadId)
+    handleCustomerSelect(newCustomer)
+    setIsAddCustomerOpen(false)
   }
 
   // Autofocus location input when initialFocus is 'location'
@@ -385,7 +407,8 @@ export default function JobComposer({
                 required={!editJob}
                 allowClear={!editJob}
                 placeholder="Search or select a customer..."
-                prefillCustomer={prefill?.prefillCustomer}
+                prefillCustomer={newlyCreatedCustomer || prefill?.prefillCustomer}
+                onAddCustomerClick={!editJob ? () => setIsAddCustomerOpen(true) : undefined}
               />
               {selectedCustomer && (
                 <CustomerContextDisclosure key={selectedCustomer.id} leadData={selectedCustomer} className="mt-2" />
@@ -555,6 +578,15 @@ export default function JobComposer({
             </div>
         </div>
       </Modal>
+
+      {/* Inline Add Customer modal — reuses canonical AddCustomerModal. Stacks
+          above this modal via portal order; parent form state is untouched
+          while it is open and cancel simply closes it. */}
+      <AddCustomerModal
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onLeadCreated={handleLeadCreated}
+      />
     </>
   )
 }

@@ -269,7 +269,7 @@ describe('Batch 14 — Prefill: Inline Add Customer Preservation', () => {
     // The composer uses SearchableCustomerSelect with controlled value,
     // optional clear (new jobs only), and a prefillCustomer prop.
     expect(jobComposerContent).toContain('allowClear={!editJob}')
-    expect(jobComposerContent).toContain('prefillCustomer={prefill?.prefillCustomer}')
+    expect(jobComposerContent).toContain('prefillCustomer={newlyCreatedCustomer || prefill?.prefillCustomer}')
   })
 
   it('handleCustomerSelect only prefills identity fields and read-only metadata', () => {

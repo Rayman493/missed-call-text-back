@@ -181,7 +181,7 @@ describe('Inline Add Customer — Draft Preservation Hardening', () => {
     // The hardened code uses the functional updater with an empty-field check.
     expect(jobComposerContent).toContain('setServiceAddress(prev =>')
     expect(jobComposerContent).toContain("if (prev && prev.trim()) return prev")
-    expect(jobComposerContent).toContain('normalizeEditableContext(metadata.serviceAddress) || ')
+    expect(jobComposerContent).toContain('normalizeEditableContext(intake.serviceAddress || metadata.serviceAddress) || ')
   })
 
   it('Service Address is only prefilled when the field is empty/untouched', () => {
@@ -190,22 +190,22 @@ describe('Inline Add Customer — Draft Preservation Hardening', () => {
   })
 
   it('customer name still updates unconditionally (identity field)', () => {
-    expect(jobComposerContent).toContain('setCustomerName(firstNonPlaceholder(metadata.customerName, metadata.callerName, customer.name) || ')
+    expect(jobComposerContent).toContain('setCustomerName(firstNonPlaceholder(intake.customerName, metadata.customerName, metadata.callerName, customer.name) || ')
   })
 
   it('customer phone still updates unconditionally (identity field)', () => {
-    expect(jobComposerContent).toContain('setCustomerPhone(firstNonPlaceholder(metadata.customerPhone, customer.caller_phone) || ')
+    expect(jobComposerContent).toContain('setCustomerPhone(firstNonPlaceholder(intake.customerPhone, metadata.customerPhone, customer.caller_phone) || ')
   })
 
   it('leadId still updates unconditionally (identity field)', () => {
     expect(jobComposerContent).toContain('setLeadId(leadId)')
   })
 
-  it('Job Title is never touched by handleCustomerSelect', () => {
-    // handleCustomerSelect should not call setTitle
+  it('Job Title is only prefilled when empty by handleCustomerSelect', () => {
+    // Guarded functional updater: never overwrites a user-typed title
     const handlerMatch = jobComposerContent.match(/const handleCustomerSelect[\s\S]*?\n  \}/)
     expect(handlerMatch).not.toBeNull()
-    expect(handlerMatch![0]).not.toContain('setTitle')
+    expect(handlerMatch![0]).toContain('setTitle(prev =>')
   })
 
   it('Scheduled Date is never touched by handleCustomerSelect', () => {
@@ -226,10 +226,10 @@ describe('Inline Add Customer — Draft Preservation Hardening', () => {
     expect(handlerMatch![0]).not.toContain('setStatus')
   })
 
-  it('Notes is never touched by handleCustomerSelect', () => {
+  it('Notes is only prefilled when empty by handleCustomerSelect', () => {
     const handlerMatch = jobComposerContent.match(/const handleCustomerSelect[\s\S]*?\n  \}/)
     expect(handlerMatch).not.toBeNull()
-    expect(handlerMatch![0]).not.toContain('setNotes')
+    expect(handlerMatch![0]).toContain('setNotes(prev =>')
   })
 
   it('handleLeadCreated does not directly set title/date/time/status/notes', () => {

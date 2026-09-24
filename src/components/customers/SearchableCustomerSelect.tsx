@@ -334,7 +334,7 @@ export default function SearchableCustomerSelect({
               onClick={onAddCustomerClick}
               className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex-shrink-0"
             >
-              Add customer
+              Can't find them? Add customer
             </button>
           )}
         </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, Trash2, Search, User, X, Loader2, Eye, CalendarDays, AlertCircle } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency, isDomNode } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -127,6 +128,7 @@ export default function BillingEditorModal({
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
   const [customerSearch, setCustomerSearch] = useState('')
   const [leads, setLeads] = useState<LeadOption[]>([])
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
   const [loadingLeads, setLoadingLeads] = useState(false)
 
   // Saved document state (set after saving from preview, so the preview
@@ -605,9 +607,20 @@ export default function BillingEditorModal({
 
         {/* Customer */}
         <div ref={customerFieldRef}>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
-            Customer
-          </label>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <label className="block text-xs font-medium text-muted-foreground">
+              Customer
+            </label>
+            {!customerId && (
+              <button
+                type="button"
+                onClick={() => { setShowCustomerPicker(false); setIsAddCustomerOpen(true) }}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex-shrink-0"
+              >
+                Add customer
+              </button>
+            )}
+          </div>
           {customerId ? (
             <div className="flex items-center justify-between gap-2 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60">
               <div className="min-w-0 flex-1">
@@ -1096,6 +1109,25 @@ export default function BillingEditorModal({
           </div>
         </div>
       </Modal>
+
+      {/* Inline customer creation — stacks above via portal order. On success
+          the new customer is selected into the in-progress document; cancel
+          returns to the editor with all line items and fields preserved. */}
+      <AddCustomerModal
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onLeadCreated={(newLeadId, lead) => {
+          const option: LeadOption = {
+            id: newLeadId,
+            contact_name: lead?.raw_metadata?.extracted_info?.callerName ?? null,
+            name: lead?.raw_metadata?.extracted_info?.callerName ?? null,
+            caller_phone: lead?.caller_phone ?? null,
+            email: lead?.raw_metadata?.extracted_info?.email ?? null,
+          }
+          setLeads(prev => [option, ...prev.filter(l => l.id !== newLeadId)])
+          selectCustomer(option)
+        }}
+      />
     </Modal>
   )
 }

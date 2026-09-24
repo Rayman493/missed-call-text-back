@@ -16,11 +16,14 @@ describe('Batch 4 — Jobs / Schedule / Nested Customer Flows', () => {
   const tasksTab = readSrc('components/schedule/TasksTab.tsx')
   const eventModal = readSrc('components/calendar/EventDetailsModal.tsx')
 
-  describe('A. No nested Add Customer flow', () => {
-    it('JobComposer no longer creates customers inside the composer', () => {
-      expect(jobComposer).not.toContain('setNewlyCreatedCustomer')
-      expect(jobComposer).not.toContain('AddCustomerModal')
-      expect(jobComposer).not.toContain('handleLeadCreated')
+  describe('A. Nested Add Customer flow is canonical', () => {
+    it('JobComposer creates customers via the shared AddCustomerModal sibling', () => {
+      expect(jobComposer).toContain('setNewlyCreatedCustomer')
+      expect(jobComposer).toContain('AddCustomerModal')
+      expect(jobComposer).toContain('handleLeadCreated')
+      // The nested modal renders after the parent </Modal> so the parent form
+      // stays mounted and its draft state is preserved.
+      expect(jobComposer.indexOf('<AddCustomerModal')).toBeGreaterThan(jobComposer.indexOf('</Modal>'))
     })
 
     it('JobComposer still supports a preselected customer from prefill', () => {

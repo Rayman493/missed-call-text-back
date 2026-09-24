@@ -10,6 +10,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
@@ -52,6 +53,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
   const [leadId, setLeadId] = useState<string | null>(null)
   const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  // Inline "+ Add customer" flow: created customer is injected via
+  // prefillCustomer so it is listed and auto-selected without a refetch.
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [newlyCreatedCustomer, setNewlyCreatedCustomer] = useState<Customer | null>(null)
 
   // Meeting type
   const [meetingType, setMeetingType] = useState<'in_person' | 'google_meet' | 'custom'>('in_person')
@@ -369,7 +374,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
                 required={customerIsRequired}
                 allowClear={!isCustomerLocked}
                 placeholder="Search or select a customer..."
-                prefillCustomer={preselectedLeadCustomer}
+                prefillCustomer={newlyCreatedCustomer || preselectedLeadCustomer}
+                onAddCustomerClick={
+                  (allowAddCustomer ?? !isCustomerLocked)
+                    ? () => setIsAddCustomerOpen(true)
+                    : undefined
+                }
               />
               {selectedCustomer && (
                 <CustomerContextDisclosure key={selectedCustomer.id} leadData={selectedCustomer} className="mt-2" />
@@ -497,6 +507,26 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
             </div>
           </div>
       </Modal>
+
+      {/* Inline customer creation — stacks above this modal via portal order.
+          Form state is untouched while open; cancel just closes it. On success
+          the new customer is injected + auto-selected, returning the user to
+          the in-progress appointment form with nothing lost. */}
+      <AddCustomerModal
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        onLeadCreated={(newLeadId, lead) => {
+          const customer: Customer = {
+            id: newLeadId,
+            name: lead?.raw_metadata?.extracted_info?.callerName ?? lead?.contact_name ?? null,
+            caller_phone: lead?.caller_phone ?? null,
+            raw_metadata: lead?.raw_metadata ?? null,
+          }
+          setNewlyCreatedCustomer(customer)
+          setLeadId(newLeadId)
+          handleCustomerSelect(customer)
+        }}
+      />
     </>
   )
 }

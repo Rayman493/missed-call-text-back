@@ -9,6 +9,7 @@ import SelectPicker from '@/components/ui/SelectPicker'
 import RepeatControls, { NO_REPEAT, RepeatValue, repeatPayload } from '@/components/ui/RepeatControls'
 import Modal from '@/components/ui/Modal'
 import SearchableCustomerSelect, { Customer } from '@/components/customers/SearchableCustomerSelect'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import CustomerContextDisclosure from '@/components/customers/CustomerContextDisclosure'
 import { getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 
@@ -56,6 +57,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [reminderOffsetMinutes, setReminderOffsetMinutes] = useState<number | null>(null)
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(preselectedLeadCustomer || null)
+  // Inline "+ Add customer" flow: created customer is injected via
+  // prefillCustomer so it is listed and auto-selected without a refetch.
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+  const [newlyCreatedCustomer, setNewlyCreatedCustomer] = useState<Customer | null>(null)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -357,7 +362,8 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               onCustomerSelect={setSelectedCustomer}
               label="Customer"
               allowClear={true}
-              prefillCustomer={preselectedLeadCustomer}
+              prefillCustomer={newlyCreatedCustomer || preselectedLeadCustomer}
+              onAddCustomerClick={() => setIsAddCustomerOpen(true)}
             />
             {selectedCustomer && (
               <CustomerContextDisclosure key={selectedCustomer.id} leadData={selectedCustomer} />
@@ -539,6 +545,25 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         </form>
       </div>
     </Modal>
+
+    {/* Inline customer creation — stacks above this modal via portal order.
+        Form state is untouched while open; cancel just closes it. On success
+        the new customer is injected + auto-selected. */}
+    <AddCustomerModal
+      isOpen={isAddCustomerOpen}
+      onClose={() => setIsAddCustomerOpen(false)}
+      onLeadCreated={(newLeadId, lead) => {
+        const customer: Customer = {
+          id: newLeadId,
+          name: lead?.raw_metadata?.extracted_info?.callerName ?? lead?.contact_name ?? null,
+          caller_phone: lead?.caller_phone ?? null,
+          raw_metadata: lead?.raw_metadata ?? null,
+        }
+        setNewlyCreatedCustomer(customer)
+        setSelectedLeadId(newLeadId)
+        setSelectedCustomer(customer)
+      }}
+    />
     </>
   )
 }
