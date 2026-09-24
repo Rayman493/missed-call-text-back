@@ -105,7 +105,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // extra read; the subsequent update below is the authoritative write.
     const { data: existing, error: existingError } = await supabase
       .from('jobs')
-      .select('scheduled_date, scheduled_time, scheduled_end_time, series_id')
+      .select('scheduled_date, scheduled_time, scheduled_end_time, series_id, service_address')
       .eq('id', id)
       .eq('business_id', businessId)
       .single()
@@ -172,6 +172,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const [eh, em] = effectiveEnd.split(':').map(Number)
       if (eh < sh || (eh === sh && em <= sm)) {
         return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 })
+      }
+    }
+
+    // Address change invalidates persisted geocoding. If service_address
+    // changed, the stored latitude/longitude/geocoded_address describe the OLD
+    // address — leaving them would pin the map marker to the wrong location
+    // forever (ScheduleMap trusts persisted coords). Clearing them forces a
+    // fresh geocode of the new address on the next map build; if geocoding
+    // fails the job simply has no marker rather than a wrong one.
+    if ('service_address' in updates) {
+      const nextAddress = typeof updates.service_address === 'string' ? updates.service_address.trim() : ''
+      const prevAddress = (existing.service_address || '').trim()
+      if (nextAddress !== prevAddress) {
+        updates.latitude = null
+        updates.longitude = null
+        updates.geocoded_at = null
+        updates.geocoded_address = null
       }
     }
 
