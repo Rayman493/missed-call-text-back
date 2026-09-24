@@ -945,6 +945,51 @@ export default function SchedulePage() {
     }
   }, [business?.id])
 
+  // Tasks/reminders realtime reconciliation: reminder rows created or edited
+  // on another device or surface must appear here without a manual refresh.
+  // Debounced refetch updates parent `tasks` state; bumping
+  // taskRefreshTrigger makes TasksTab and TodayCommandCenter refetch their
+  // own lists. Same unfiltered + client-side business guard pattern as jobs.
+  const tasksRealtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    const businessId = business?.id
+    if (!businessId) return
+
+    let cancelled = false
+    const channel = supabase
+      .channel(`schedule-tasks-list:${businessId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks' },
+        (payload: any) => {
+          const row = (payload?.new ?? payload?.old) as { business_id?: string } | undefined
+          if (row?.business_id !== businessId) return
+          if (tasksRealtimeDebounceRef.current) clearTimeout(tasksRealtimeDebounceRef.current)
+          tasksRealtimeDebounceRef.current = setTimeout(() => {
+            fetchTasks()
+            setTaskRefreshTrigger(prev => prev + 1)
+          }, 300)
+        }
+      )
+
+    ;(async () => {
+      // Resolve realtime auth before joining — an unauthenticated websocket
+      // reports SUBSCRIBED but RLS blocks all postgres_changes events.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) await (supabase as any).realtime.setAuth(session.access_token)
+      } catch { /* best effort */ }
+      if (cancelled) return
+      channel.subscribe()
+    })()
+
+    return () => {
+      cancelled = true
+      if (tasksRealtimeDebounceRef.current) clearTimeout(tasksRealtimeDebounceRef.current)
+      supabase.removeChannel(channel)
+    }
+  }, [business?.id])
+
   
   // Resolve job and customer for selected event
   useEffect(() => {

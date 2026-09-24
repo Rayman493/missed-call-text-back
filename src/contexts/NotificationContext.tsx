@@ -219,6 +219,28 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     await fetchNotifications(currentBusinessIdRef.current)
   }
 
+  // Foreground reconcile: postgres_changes events that arrive while the app
+  // is suspended are not replayed after the socket reconnects — the channel
+  // rejoins silently with a gap. Refetch on visibility/focus return so badge
+  // counts and the notifications list never require a manual refresh.
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | null = null
+    const reconcile = () => {
+      if (timeout) clearTimeout(timeout)
+      timeout = setTimeout(() => { refreshNotifications() }, 300)
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') reconcile()
+    }
+    window.addEventListener('focus', reconcile)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      window.removeEventListener('focus', reconcile)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (timeout) clearTimeout(timeout)
+    }
+  }, [])
+
   const markAsRead = async (notificationId: string) => {
     // Capture the notification's original read state before optimistic update
     const notification = notifications.find(n => n.id === notificationId)

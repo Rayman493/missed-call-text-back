@@ -144,6 +144,20 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           fetchStats()
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'call_events',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          // Missed-call stat derives from call_events — without this the
+          // "Forwarded Missed Calls" card stayed stale until remount.
+          fetchStats()
+        }
+      )
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           setRealtimeConnected(true)

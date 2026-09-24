@@ -650,6 +650,36 @@ export default function LeadsPage() {
     fetchLeads({ silent: true })
   }, [fetchLeads])
 
+  // Foreground reconcile: realtime events delivered while the app was
+  // backgrounded (or while the socket was briefly disconnected) are not
+  // replayed on reconnect — Supabase rejoins the channel but does not resend
+  // missed postgres_changes. A silent refetch on visibility/focus return
+  // closes that delivery gap without a manual pull-to-refresh. Debounced so
+  // focus+visibility firing together produce one fetch.
+  const foregroundRefetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    const reconcile = () => {
+      if (foregroundRefetchTimeoutRef.current) {
+        clearTimeout(foregroundRefetchTimeoutRef.current)
+      }
+      foregroundRefetchTimeoutRef.current = setTimeout(() => {
+        fetchLeads({ silent: true })
+      }, 300)
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') reconcile()
+    }
+    window.addEventListener('focus', reconcile)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      window.removeEventListener('focus', reconcile)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (foregroundRefetchTimeoutRef.current) {
+        clearTimeout(foregroundRefetchTimeoutRef.current)
+      }
+    }
+  }, [fetchLeads])
+
   // Handle conversation click
   const handleConversationClick = (leadId: string) => {
     router.push(`/dashboard/leads/${leadId}`)
