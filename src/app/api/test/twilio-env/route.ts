@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  // Development-only diagnostic — unavailable in production builds.
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+  }
   return NextResponse.json({
     accountSid: process.env.TWILIO_ACCOUNT_SID ? `${process.env.TWILIO_ACCOUNT_SID.substring(0, 8)}...` : null,
     hasAuthToken: !!process.env.TWILIO_AUTH_TOKEN,

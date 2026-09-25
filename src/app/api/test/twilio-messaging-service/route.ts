@@ -17,6 +17,11 @@ const supabase = createClient(
 );
 
 export async function GET() {
+  // Development-only diagnostic — unavailable in production builds.
+  // This route reads business data via the service role; never public.
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+  }
   try {
     const { data: business, error: businessError } = await supabase
       .from("businesses")
