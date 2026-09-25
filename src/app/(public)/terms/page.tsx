@@ -37,7 +37,7 @@ export default function TermsPage() {
         title="Terms of Service"
         subtitle="ReplyFlowHQ service agreement for automated missed-call text responses."
         iconColor="purple"
-        lastUpdated={new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        lastUpdated="September 11, 2026"
         icon={
           <svg
             className="w-8 h-8"

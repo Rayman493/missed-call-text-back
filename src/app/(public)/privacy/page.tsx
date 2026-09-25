@@ -36,7 +36,7 @@ export default function PrivacyPage() {
         title="Privacy Policy"
         subtitle="How ReplyFlowHQ protects customer and business information."
         iconColor="blue"
-        lastUpdated={new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        lastUpdated="August 31, 2026"
         icon={
           <svg
             className="w-8 h-8"
