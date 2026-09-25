@@ -404,8 +404,11 @@ function AuthContent() {
         console.log('[Auth] Account already created, proceeding to checkout retry')
 
         // Android: Google Play Billing purchase sheet (server-verified)
+        // Retry path: reconcile first — the Google account may already hold
+        // the purchase from a previous attempt that timed out.
         {
           const handledOnAndroid = await maybeStartGooglePlaySubscription({
+            reconcileFirst: true,
             onEntitled: async () => {
               // Refresh the shared business state before navigating so guards
               // never see the pre-purchase (null subscription) snapshot, then
@@ -631,6 +634,9 @@ function AuthContent() {
           isCreatingCheckoutRef.current = false
         }
         const handledOnAndroid = await maybeStartGooglePlaySubscription({
+          // signInData.user.id is already authenticated — skip the extra
+          // network auth round-trip inside the purchase handoff.
+          userId: signInData.user?.id,
           onEntitled: async () => {
             // Same single-transition rule as the initial purchase path —
             // refresh shared business state, then navigate once to the
@@ -763,8 +769,11 @@ function AuthContent() {
     setCheckoutFailedAfterAccountCreation(false)
 
     // Android: Google Play Billing purchase sheet (server-verified)
+    // Reconcile first: if a previous purchase timed out but completed in
+    // Play, re-verification grants entitlement without a second sheet.
     {
       const handledOnAndroid = await maybeStartGooglePlaySubscription({
+        reconcileFirst: true,
         onEntitled: async () => {
           // Single transition: refresh shared business state, then straight
           // to the dashboard setup view (profile was collected at signup).

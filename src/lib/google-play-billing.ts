@@ -159,22 +159,26 @@ export async function purchaseSubscription(
  * Reconciliation: re-submit all Play-held subscription purchases for
  * server-side verification. Safe to call on resume and cold start.
  */
-export async function reconcilePlayPurchases(): Promise<void> {
+export async function reconcilePlayPurchases(): Promise<{ entitled: boolean }> {
   const { purchases } = await GooglePlayBilling.queryPurchases()
+  let entitled = false
   for (const p of purchases) {
     if (p.purchaseState !== 1 /* PURCHASED */) continue
     const productId = p.products?.[0]
     if (!productId) continue
     try {
-      await fetch('/api/google-play/verify-purchase', {
+      const res = await fetch('/api/google-play/verify-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ purchaseToken: p.purchaseToken, productId }),
       })
+      const verification = await res.json()
+      if (res.ok && verification?.ok && verification.entitled) entitled = true
     } catch (e) {
       console.warn('[GooglePlayBilling] Reconcile failed for purchase:', e)
     }
   }
+  return { entitled }
 }
 
 /** Play Store subscription-management URL (replaces Stripe portal on Android). */

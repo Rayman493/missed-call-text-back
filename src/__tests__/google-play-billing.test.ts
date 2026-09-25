@@ -338,7 +338,7 @@ describe('Android never initiates Stripe subscription checkout', () => {
 
   it('shared action short-circuits before any Stripe call on Android', () => {
     expect(shared.indexOf('if (!isNativeAndroid()) return false')).toBeLessThan(
-      shared.indexOf('await purchaseSubscription')
+      shared.indexOf('purchaseSubscription(userId)')
     )
     // The Android wrapper itself must contain no Stripe references.
     expect(wrapper).not.toContain('stripe')
