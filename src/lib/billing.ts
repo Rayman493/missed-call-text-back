@@ -67,7 +67,7 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
     // Determine action based on subscription status and Stripe data
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('stripe_customer_id, stripe_subscription_id, subscription_status')
+      .select('stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider')
       .eq('user_id', session.user.id)
       .limit(1)
       .maybeSingle()
@@ -92,7 +92,35 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
         error: 'Billing not required for this account.'
       }
     }
-    
+
+    // GOOGLE PLAY: subscriptions are managed in the Play Store, not the
+    // Stripe Billing Portal — open the Play subscription management page.
+    if (business?.subscription_provider === 'google_play') {
+      console.log('[Billing Action] Google Play subscription - opening Play Store management')
+      const { Browser } = await import('@capacitor/browser')
+      const { getPlaySubscriptionManageUrl } = await import('@/lib/google-play-billing')
+      await Browser.open({ url: getPlaySubscriptionManageUrl() })
+      return { success: true }
+    }
+
+    // ANDROID PLAY BILLING: any flow that would create a NEW ReplyFlow
+    // subscription on Android must use Google Play Billing — never Stripe
+    // Checkout. Existing Stripe subscribers keep portal access for account
+    // management (card updates, cancellation) but cannot start a new Stripe
+    // subscription here.
+    if (isNativeAndroid() && !(business?.subscription_provider === 'stripe' && hasExistingSubscription)) {
+      console.log('[Billing Action] Android without manageable Stripe subscription — launching Google Play purchase')
+      const { maybeStartGooglePlaySubscription } = await import('@/lib/subscription-purchase')
+      let playResult: BillingActionResult = { success: false, error: 'Purchase did not complete.' }
+      await maybeStartGooglePlaySubscription({
+        onEntitled: () => { playResult = { success: true } },
+        onCanceled: () => { playResult = { success: true, canceled: true } },
+        onPending: () => { playResult = { success: false, error: 'Purchase is pending — access will activate once Google confirms payment.' } },
+        onError: (message) => { playResult = { success: false, error: message } },
+      })
+      return playResult
+    }
+
     if (hasStripeAccount) {
       console.log('[Billing Action] Selected action: portal (has Stripe account)')
       // Pass current URL as return URL for better UX
@@ -136,7 +164,7 @@ async function openBillingPortal(accessToken: string, returnUrl?: string, hasExi
     // 2. Business does NOT have an existing active/trialing subscription
     const isNoCustomerError = data.code === "NO_STRIPE_CUSTOMER" || data.code === "INVALID_STRIPE_CUSTOMER" || data.code === "CUSTOMER_NOT_FOUND"
 
-    if (!hasExistingSubscription && isNoCustomerError) {
+    if (!hasExistingSubscription && isNoCustomerError && !isNativeAndroid()) {
       console.log('[Billing Action] No existing subscription and no Stripe customer (positive indication), falling back to checkout')
       return await openCheckout()
     }

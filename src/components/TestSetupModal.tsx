@@ -64,7 +64,7 @@ export default function TestSetupModal({ isOpen, onClose, onTestCompleted }: Tes
       label: 'Subscription Active',
       status: subscriptionActive ? 'healthy' : 'error',
       details: subscriptionActive 
-        ? getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+        ? getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, undefined, undefined, undefined, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
         : 'Start your 14-day free trial to activate ReplyFlow'
     })
 

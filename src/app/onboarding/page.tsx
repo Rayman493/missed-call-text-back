@@ -10,6 +10,7 @@ import { normalizePhoneNumber } from '@/lib/utils'
 import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES, isActiveSubscription } from '@/lib/subscription'
 import { useSearchParams } from 'next/navigation'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
@@ -369,7 +370,17 @@ export default function OnboardingPage() {
 
       // Refresh business context to update state
       await refreshBusiness()
-      
+
+      // Android: Google Play Billing purchase sheet (server-verified)
+      const handledOnAndroid = await maybeStartGooglePlaySubscription({
+        userId: userId ?? user?.id,
+        onEntitled: async () => { router.push('/dashboard') },
+        onCanceled: () => {},
+        onPending: () => { router.push('/dashboard') },
+        onError: (msg) => setError(msg),
+      })
+      if (handledOnAndroid) return
+
       // Create Stripe checkout session directly
       const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',

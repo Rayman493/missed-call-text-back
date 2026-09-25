@@ -117,6 +117,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ReplyflowWebCheckoutPlugin.class);
         Log.d(TAG, "[PLUGIN] ReplyflowWebCheckoutPlugin registered successfully");
 
+        Log.d(TAG, "[PLUGIN] Registering ReplyflowGooglePlayBillingPlugin...");
+        registerPlugin(ReplyflowGooglePlayBillingPlugin.class);
+        Log.d(TAG, "[PLUGIN] ReplyflowGooglePlayBillingPlugin registered successfully");
+
         super.onCreate(savedInstanceState);
 
         // Initialize the Capacitor WebView immediately after bridge creation.

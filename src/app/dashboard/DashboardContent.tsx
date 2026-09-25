@@ -15,6 +15,7 @@ import { isAdminUserById } from '@/lib/admin'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { CalendarOff, MessageSquare } from 'lucide-react'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import { 
   formatPhoneNumber, 
   formatRelativeTime, 
@@ -731,7 +732,23 @@ export default function DashboardContent() {
     
     console.log('[checkout] ===== SESSION/USER/TOKEN VERIFIED - PROCEEDING WITH STRIPE =====')
     console.log('[checkout] Session, user, and refresh token confirmed, proceeding with checkout')
-    
+
+    // Android: Google Play Billing purchase sheet (server-verified)
+    const handledOnAndroid = await maybeStartGooglePlaySubscription({
+      userId: user?.id,
+      onEntitled: async () => {
+        await refreshBusiness?.(true)
+        setCheckoutLoading(false)
+      },
+      onCanceled: () => setCheckoutLoading(false),
+      onPending: () => setCheckoutLoading(false),
+      onError: (msg) => {
+        setCheckoutError(msg)
+        setCheckoutLoading(false)
+      },
+    })
+    if (handledOnAndroid) return
+
     // Persist temporary checkout markers in localStorage for recovery
     if (typeof window !== 'undefined') {
       localStorage.setItem('replyflow_checkout_in_progress', 'true')

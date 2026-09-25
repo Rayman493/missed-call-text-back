@@ -5553,7 +5553,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               business?.stripe_subscription_id,
                               business?.cancel_at_period_end,
                               business?.current_period_end,
-                              business?.trial_ends_at
+                              business?.trial_ends_at,
+                              { subscriptionProvider: business?.subscription_provider, googlePlayPurchaseToken: business?.google_play_purchase_token }
                             )}
                     </p>
                   </div>

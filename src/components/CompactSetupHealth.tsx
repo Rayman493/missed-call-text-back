@@ -55,7 +55,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
                            business.call_forwarding_enabled &&
                            business.forwarding_verified
     
-    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
     const twilioHealthy = !!business.twilio_phone_number
     const smsWorking = twilioHealthy && subscriptionValid
     
@@ -107,7 +107,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     const items: HealthItem[] = []
 
     // 1. Free trial status
-    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
     const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
     
     if (subscriptionValid) {
@@ -196,12 +196,12 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     if (!business) return null
     
     // Check forwarding status - only if subscription is active
-    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
     const forwardingNotConfigured = subscriptionValid && (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled)
     const forwardingActive = subscriptionValid && business.business_phone_number && business.phone_setup_completed_at && business.call_forwarding_enabled && business.forwarding_verified
     
     // Check subscription status
-    const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
+    const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
     const subscriptionInactive = !subscriptionValid
     
     // Check SMS status
@@ -258,7 +258,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   
   // Check if forwarding is active for success banner
   const forwardingActive = business && 
-    hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id) &&
+    hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token }) &&
     business.business_phone_number && 
     business.phone_setup_completed_at && 
     business.call_forwarding_enabled &&

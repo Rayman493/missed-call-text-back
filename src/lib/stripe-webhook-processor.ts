@@ -205,13 +205,13 @@ async function findBusinessForSubscription(
   subscriptionId: string,
   customerId: string,
   opts: { repair?: boolean } = {}
-): Promise<{ business: { id: string } | null; lookupMethod: string }> {
+): Promise<{ business: { id: string; subscription_provider?: string | null } | null; lookupMethod: string }> {
   let business: { id: string } | null = null
   let lookupMethod = 'subscription_id'
 
   const { data: bySubId } = await supabase
     .from('businesses')
-    .select('id')
+    .select('id, subscription_provider')
     .eq('stripe_subscription_id', subscriptionId)
     .limit(1)
     .single()
@@ -222,7 +222,7 @@ async function findBusinessForSubscription(
     lookupMethod = 'customer_id'
     const { data: byCustId } = await supabase
       .from('businesses')
-      .select('id, stripe_subscription_id')
+      .select('id, stripe_subscription_id, subscription_provider')
       .eq('stripe_customer_id', customerId)
       .limit(1)
       .single()
@@ -306,6 +306,7 @@ export async function processStripeWebhookEvent(
 
       const updateData = {
         subscription_status: subscription.status,
+        subscription_provider: 'stripe',
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
         subscription_price_id: (subscription as any).items?.data?.[0]?.price?.id || null,
@@ -372,8 +373,17 @@ export async function processStripeWebhookEvent(
           ? new Date((subscription as any).current_period_end * 1000).toISOString()
           : trialEndsAt
 
+        // GOOGLE PLAY GUARD: don't let a stale Stripe event overwrite a
+        // Google Play-managed entitlement (e.g. after provider switch).
+        if (business.subscription_provider === 'google_play') {
+          console.log('[STRIPE WEBHOOK] Business is Google Play-managed, skipping status update')
+          await markEventProcessed(supabase, event.id)
+          return { success: true, shouldRetry: false, message: 'google_play provider - skipped' }
+        }
+
         const updatePayload = {
           subscription_status: subscription.status,
+          subscription_provider: 'stripe',
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id,
           subscription_price_id: (subscription as any).items?.data?.[0]?.price?.id || null,
@@ -436,8 +446,17 @@ export async function processStripeWebhookEvent(
           ? new Date((subscription as any).cancel_at * 1000).toISOString()
           : null
 
+        // GOOGLE PLAY GUARD: don't let a stale Stripe event overwrite a
+        // Google Play-managed entitlement (e.g. after provider switch).
+        if (business.subscription_provider === 'google_play') {
+          console.log('[STRIPE WEBHOOK] Business is Google Play-managed, skipping status update')
+          await markEventProcessed(supabase, event.id)
+          return { success: true, shouldRetry: false, message: 'google_play provider - skipped' }
+        }
+
         const updatePayload = {
           subscription_status: subscription.status,
+          subscription_provider: 'stripe',
           stripe_customer_id: customerId,
           stripe_subscription_id: subscription.id,
           subscription_price_id: (subscription as any).items?.data?.[0]?.price?.id || null,
@@ -484,7 +503,7 @@ export async function processStripeWebhookEvent(
 
       const { data: business } = await supabase
         .from('businesses')
-        .select('id, user_id, carrier, stripe_subscription_id, subscription_status')
+        .select('id, user_id, carrier, stripe_subscription_id, subscription_status, subscription_provider')
         .eq('stripe_subscription_id', subscription.id)
         .limit(1)
         .single()
@@ -514,6 +533,14 @@ export async function processStripeWebhookEvent(
           }
         }
         
+        // GOOGLE PLAY GUARD: a stale Stripe deletion must not cancel a
+        // Google Play-managed entitlement.
+        if (business.subscription_provider === 'google_play') {
+          console.log('[STRIPE CANCEL] Business is Google Play-managed, skipping deletion')
+          await markEventProcessed(supabase, event.id)
+          return { success: true, shouldRetry: false }
+        }
+
         const updateData = {
           stripe_subscription_id: null,
           subscription_status: SUBSCRIPTION_STATES.CANCELED,

@@ -58,18 +58,27 @@ export function isScheduledToCancel(cancelAt: string | null | undefined, cancelA
   return Boolean(cancelAt) || cancelAtPeriodEnd === true
 }
 
-export function hasValidSubscription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): boolean {
+export interface SubscriptionIdentity {
+  subscriptionProvider?: string | null
+  googlePlayPurchaseToken?: string | null
+}
+
+export function hasValidSubscription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null, identity?: SubscriptionIdentity): boolean {
   // A business has a valid subscription only if:
   // 1. subscription_status is 'active' or 'trialing' AND
-  // 2. stripe_customer_id exists (meaning they've completed checkout) AND
-  // 3. stripe_subscription_id exists (meaning they have an active subscription)
+  // 2. The provider's purchase identifiers exist:
+  //    - stripe: stripe_customer_id + stripe_subscription_id
+  //    - google_play: google_play_purchase_token
   const statusValid = subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE || subscriptionStatus === SUBSCRIPTION_STATES.TRIALING
-  const hasCustomerId = !!stripeCustomerId
-  const hasSubscriptionId = !!stripeSubscriptionId
+
+  const isGooglePlay = identity?.subscriptionProvider === 'google_play'
+  const hasCustomerId = isGooglePlay ? !!identity?.googlePlayPurchaseToken : !!stripeCustomerId
+  const hasSubscriptionId = isGooglePlay ? !!identity?.googlePlayPurchaseToken : !!stripeSubscriptionId
   
   if (process.env.NODE_ENV === 'development') {
     console.log('[Subscription] hasValidSubscription check:', {
       subscriptionStatus,
+      provider: identity?.subscriptionProvider ?? 'stripe',
       hasCustomerId,
       hasSubscriptionId,
       result: statusValid && hasCustomerId && hasSubscriptionId
@@ -79,9 +88,12 @@ export function hasValidSubscription(subscriptionStatus: string | null | undefin
   return statusValid && hasCustomerId && hasSubscriptionId
 }
 
-export function hasInvalidTrialState(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): boolean {
-  // Returns true if subscription_status is 'trialing' but Stripe IDs are missing (invalid state)
-  return subscriptionStatus === SUBSCRIPTION_STATES.TRIALING && (!stripeCustomerId || !stripeSubscriptionId)
+export function hasInvalidTrialState(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null, identity?: SubscriptionIdentity): boolean {
+  // Returns true if subscription_status is 'trialing' but the provider's
+  // purchase identifiers are missing (invalid state).
+  const isGooglePlay = identity?.subscriptionProvider === 'google_play'
+  const idsMissing = isGooglePlay ? !identity?.googlePlayPurchaseToken : (!stripeCustomerId || !stripeSubscriptionId)
+  return subscriptionStatus === SUBSCRIPTION_STATES.TRIALING && idsMissing
 }
 
 export function needsUpgrade(subscriptionStatus: string | null | undefined): boolean {
@@ -116,10 +128,11 @@ export function getSubscriptionStatusDescription(
   stripeSubscriptionId?: string | null,
   cancelAtPeriodEnd?: boolean | null,
   currentPeriodEnd?: string | null,
-  trialEndsAt?: string | null
+  trialEndsAt?: string | null,
+  identity?: SubscriptionIdentity
 ): string {
   // Check for invalid trial state first
-  if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
+  if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId, identity)) {
     return 'Start your free trial to activate ReplyFlow. No charge today.'
   }
 
@@ -163,9 +176,9 @@ export function getSubscriptionStatusDescription(
   }
 }
 
-export function getSubscriptionActionButton(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): { text: string; href: string } {
+export function getSubscriptionActionButton(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null, identity?: SubscriptionIdentity): { text: string; href: string } {
   // Check for invalid trial state first
-  if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
+  if (hasInvalidTrialState(subscriptionStatus, stripeCustomerId, stripeSubscriptionId, identity)) {
     return { text: 'Start 14-Day Free Trial', href: '/dashboard' }
   }
   
@@ -187,9 +200,9 @@ export function getSubscriptionActionButton(subscriptionStatus: string | null | 
   }
 }
 
-export function getSubscriptionTrustNote(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null): string | null {
+export function getSubscriptionTrustNote(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null, identity?: SubscriptionIdentity): string | null {
   // Show trust note for users who haven't completed checkout
-  if (!hasValidSubscription(subscriptionStatus, stripeCustomerId, stripeSubscriptionId)) {
+  if (!hasValidSubscription(subscriptionStatus, stripeCustomerId, stripeSubscriptionId, identity)) {
     return 'No charge today. Cancel anytime.'
   }
   return null

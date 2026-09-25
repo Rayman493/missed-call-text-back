@@ -28,6 +28,8 @@ export interface Business {
   setup_completed_at?: string | null;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
+  subscription_provider?: string | null;
+  google_play_purchase_token?: string | null;
   messaging_status?: string | null;
   a2p_status?: string | null;
   call_forwarding_enabled?: boolean | null;
@@ -134,12 +136,15 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
     )
   }
   
-  // Stripe accounts require customer and subscription
+  // Billing identity: Stripe accounts need customer + subscription; Google
+  // Play accounts carry a verified purchase token instead.
+  const hasBillingIdentity = business.subscription_provider === 'google_play'
+    ? Boolean(business.google_play_purchase_token)
+    : Boolean(business.stripe_customer_id) && Boolean(business.stripe_subscription_id)
   return (
     hasAccess &&
     hasNumber &&
-    Boolean(business.stripe_customer_id) &&
-    Boolean(business.stripe_subscription_id) &&
+    hasBillingIdentity &&
     !isForwardingComplete(business) &&
     !isSetupComplete(business)
   );

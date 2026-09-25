@@ -14,6 +14,7 @@ import { mapAuthError, type AuthErrorDisplay } from '@/lib/auth-error-mapper'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { openStripeCheckout } from '@/lib/stripe-checkout'
 import { isNativeIOS as checkNativeIOS } from '@/lib/stripe-checkout'
+import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import { Capacitor } from '@capacitor/core'
 import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
 
@@ -400,6 +401,22 @@ function AuthContent() {
       if (accountCreatedRef.current) {
         console.log('[Auth] Account already created, proceeding to checkout retry')
 
+        // Android: Google Play Billing purchase sheet (server-verified)
+        {
+          const handledOnAndroid = await maybeStartGooglePlaySubscription({
+            onEntitled: async () => { router.push('/onboarding') },
+            onCanceled: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
+            onPending: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
+            onError: (msg) => {
+              setError(msg)
+              setLoading(false)
+              setIsSubmitting(false)
+              isSubmittingRef.current = false
+            },
+          })
+          if (handledOnAndroid) return
+        }
+
         try {
           // Determine if checkout originated from native iOS app for proper return handling
           const isNativeIOS = isCapacitorNative() && getCapacitorPlatform() === 'ios'
@@ -593,7 +610,29 @@ function AuthContent() {
       
       setIsCreatingCheckout(true)
       isCreatingCheckoutRef.current = true
-      
+
+      // Android: Google Play Billing purchase sheet (server-verified)
+      {
+        const handledOnAndroid = await maybeStartGooglePlaySubscription({
+          onEntitled: async () => { router.push('/onboarding') },
+          onCanceled: () => {
+            setIsCreatingCheckout(false)
+            isCreatingCheckoutRef.current = false
+          },
+          onPending: () => {
+            setIsCreatingCheckout(false)
+            isCreatingCheckoutRef.current = false
+          },
+          onError: (msg) => {
+            setError(msg)
+            setCheckoutFailedAfterAccountCreation(true)
+            setIsCreatingCheckout(false)
+            isCreatingCheckoutRef.current = false
+          },
+        })
+        if (handledOnAndroid) return
+      }
+
       try {
         // Determine if checkout originated from native iOS app for proper return handling
         const isNativeIOS = isCapacitorNative() && getCapacitorPlatform() === 'ios'
@@ -698,6 +737,21 @@ function AuthContent() {
     setLoading(true)
     setError('')
     setCheckoutFailedAfterAccountCreation(false)
+
+    // Android: Google Play Billing purchase sheet (server-verified)
+    {
+      const handledOnAndroid = await maybeStartGooglePlaySubscription({
+        onEntitled: async () => { router.push('/onboarding') },
+        onCanceled: () => { setLoading(false) },
+        onPending: () => { setLoading(false) },
+        onError: (msg) => {
+          setError(msg)
+          setCheckoutFailedAfterAccountCreation(true)
+          setLoading(false)
+        },
+      })
+      if (handledOnAndroid) return
+    }
 
     try {
       // Determine if checkout originated from native iOS app for proper return handling

@@ -568,4 +568,15 @@ export async function handleAppResume(): Promise<void> {
   } else {
     console.log('[EXTERNAL RETURN] No pending Google operation')
   }
+
+  // Google Play Billing: re-verify any Play-held subscription purchases on
+  // every resume so renewals/cancellations propagate without waiting for RTDN.
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+    try {
+      const { reconcilePlayPurchases } = await import('@/lib/google-play-billing')
+      await reconcilePlayPurchases()
+    } catch (e) {
+      console.warn('[EXTERNAL RETURN] Google Play reconcile skipped:', e)
+    }
+  }
 }

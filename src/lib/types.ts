@@ -14,11 +14,15 @@ export interface Business {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
+  subscription_provider?: 'stripe' | 'google_play' | null;
   subscription_price_id?: string | null;
   current_period_end?: string | null;
   cancel_at_period_end?: boolean | null;
   cancel_at?: string | null;
   trial_ends_at?: string | null;
+  google_play_purchase_token?: string | null;
+  google_play_product_id?: string | null;
+  google_play_is_trial?: boolean | null;
   forwarding_phone_number?: string | null;
   carrier?: string | null;
   call_forwarding_enabled?: boolean | null;

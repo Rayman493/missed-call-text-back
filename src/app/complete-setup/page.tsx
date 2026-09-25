@@ -10,6 +10,7 @@ import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 import BrandIcon from '@/components/BrandIcon'
 import PasswordInput from '@/components/PasswordInput'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import AppBackButton from '@/components/AppBackButton'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
@@ -667,6 +668,22 @@ export default function CompleteSetupPage() {
     }
 
     try {
+      // Android: Google Play Billing purchase sheet (server-verified)
+      const handledOnAndroid = await maybeStartGooglePlaySubscription({
+        userId: user?.id,
+        onEntitled: async () => {
+          await refreshBusiness?.(true)
+          router.push('/dashboard')
+        },
+        onCanceled: () => { setIsRedirectingToStripe(false) },
+        onPending: () => { setIsRedirectingToStripe(false) },
+        onError: (msg) => {
+          setError(msg)
+          setIsRedirectingToStripe(false)
+        },
+      })
+      if (handledOnAndroid) return
+
       if (typeof window !== 'undefined' && (window as any).__recordClickEvent) {
         (window as any).__recordClickEvent('checkout_fetch_start', {
           userPresent: !!user

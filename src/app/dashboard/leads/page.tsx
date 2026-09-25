@@ -9,6 +9,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AuthGuard from '@/components/AuthGuard'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
@@ -865,7 +866,23 @@ export default function LeadsPage() {
     setCheckoutLoading(true)
     
     // Eligibility is now handled by useTrialEligibility hook
-    
+
+    // Android: Google Play Billing purchase sheet (server-verified)
+    const handledOnAndroid = await maybeStartGooglePlaySubscription({
+      userId: user?.id,
+      onEntitled: async () => {
+        await refreshBusiness?.(true)
+        setCheckoutLoading(false)
+      },
+      onCanceled: () => setCheckoutLoading(false),
+      onPending: () => setCheckoutLoading(false),
+      onError: (msg) => {
+        setCheckoutError(msg)
+        setCheckoutLoading(false)
+      },
+    })
+    if (handledOnAndroid) return
+
     try {
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',

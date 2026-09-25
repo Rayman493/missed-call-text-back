@@ -9,6 +9,7 @@ import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
 import CallForwardingInstructions from '@/components/CallForwardingInstructions'
@@ -109,6 +110,14 @@ export default function SetupStatusCard({
       // If user has active subscription, go to portal
       // If user needs to subscribe, go to checkout
       if (hasSubscription) {
+        // Google Play subscribers manage their subscription in the Play Store.
+        if (business?.subscription_provider === 'google_play') {
+          const { Browser } = await import('@capacitor/browser')
+          const { getPlaySubscriptionManageUrl } = await import('@/lib/google-play-billing')
+          await Browser.open({ url: getPlaySubscriptionManageUrl() })
+          return
+        }
+
         const response = await fetch('/api/stripe/create-portal-session', {
           method: 'POST',
           headers: {
@@ -129,6 +138,14 @@ export default function SetupStatusCard({
           throw new Error('No billing portal URL returned')
         }
       } else {
+        // Android: Google Play Billing purchase sheet (server-verified)
+        const handledOnAndroid = await maybeStartGooglePlaySubscription({
+          userId: user?.id,
+          onEntitled: async () => { window.location.reload() },
+          onError: (msg) => setBillingError(msg),
+        })
+        if (handledOnAndroid) return
+
         const response = await fetch('/api/stripe/create-checkout-session', {
           method: 'POST',
           headers: {
