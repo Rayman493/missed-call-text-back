@@ -28,8 +28,8 @@ export async function GET(request: Request) {
       sessionId: session.id,
       paymentStatus: session.payment_status,
       status: session.status,
-      subscription: session.subscription,
-      customer: session.customer
+      subscriptionId: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
+      customerId: typeof session.customer === 'string' ? session.customer : session.customer?.id
     })
 
     // Get metadata from session

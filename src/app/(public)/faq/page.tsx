@@ -885,7 +885,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
               </div>
               <div className="bg-card border border-border rounded-xl p-5">
                 <h3 className="font-semibold text-foreground mb-2">Can I cancel anytime?</h3>
-                <p className="text-sm text-muted-foreground mb-3">Yes. Manage your plan in the Stripe billing portal from Settings. Access continues through the current billing period.</p>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Manage your plan in the Stripe billing portal from Settings — or in the Play Store under Payments &amp; subscriptions on Android. Access continues through the current billing period. Uninstalling the app does not cancel a Google Play subscription.</p>
                 <Link href="/faq?kb=manage-subscription" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
               </div>
             </div>

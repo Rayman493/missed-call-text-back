@@ -40,7 +40,7 @@ export default function BillingSuccessPage() {
   const [status, setStatus] = useState<CheckoutStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isTimeout, setIsTimeout] = useState(false)
-  const [pollCount, setPollCount] = useState(0)
+  const pollCountRef = useRef(0)
   const [showButton, setShowButton] = useState(false)
 
   // Session restoration state
@@ -265,7 +265,7 @@ export default function BillingSuccessPage() {
       })
 
         setStatus(data)
-        setPollCount(prev => prev + 1)
+        pollCountRef.current += 1
 
         // Check if subscription is ready for reauth
         if (data.ok && ['trialing', 'active'].includes(data.subscriptionStatus)) {
@@ -319,7 +319,7 @@ export default function BillingSuccessPage() {
           return
         }
         console.error('[Billing Success] Poll error:', err)
-        if (pollCount >= 5) { // Allow some retries before showing error
+        if (pollCountRef.current >= 5) { // Allow some retries before showing error
           setError(err instanceof Error ? err.message : 'Failed to check status')
         }
       }
@@ -334,7 +334,7 @@ export default function BillingSuccessPage() {
     return () => {
       if (intervalId) clearInterval(intervalId)
     }
-  }, [sessionId, error, isTimeout, pollCount, router, isNativeCallback, sessionRestorationState])
+  }, [sessionId, error, isTimeout, router, isNativeCallback, sessionRestorationState])
 
   // Timeout handling
   useEffect(() => {
@@ -345,7 +345,7 @@ export default function BillingSuccessPage() {
     }, TIMEOUT_DURATION)
 
     return () => clearTimeout(timer)
-  }, [sessionId, status, pollCount])
+  }, [sessionId, status])
 
   // Button fade-in animation effect
   useEffect(() => {

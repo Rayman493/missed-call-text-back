@@ -5585,7 +5585,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Opening...' : 'Loading...'}</span>
                           </>
                         ) : (
-                          <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now'}</span>
+                          <span>{business?.subscription_provider === 'google_play' ? 'Manage Subscription' : (business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now')}</span>
                         )}
                       </button>
                     )}
@@ -5594,7 +5594,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 {/* Android-specific guidance for Billing Portal return */}
                 {typeof window !== 'undefined' && /Android/i.test(window.navigator.userAgent) && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    When you're finished in Stripe, tap X to return to ReplyFlow.
+                    {business?.subscription_provider === 'google_play'
+                      ? "Manage or cancel your subscription in Google Play — when you're finished, return to ReplyFlow."
+                      : "When you're finished in Stripe, tap X to return to ReplyFlow."}
                   </p>
                 )}
                 {role === 'owner' && needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
@@ -5783,7 +5785,9 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           Subscription
                         </p>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Your active ReplyFlow subscription will be canceled automatically.
+                          {business?.subscription_provider === 'google_play'
+                            ? 'Your subscription renews through Google Play and is not canceled by deleting your ReplyFlow account. To stop billing, cancel in the Play Store under Payments & subscriptions — uninstalling the app does not cancel it. Access continues until the end of your paid period.'
+                            : 'Your active ReplyFlow subscription will be canceled automatically.'}
                         </p>
                       </div>
                     </div>

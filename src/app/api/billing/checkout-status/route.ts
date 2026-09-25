@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
       sessionId: session.id,
       status: session.status,
       paymentStatus: session.payment_status,
-      customer: session.customer,
-      subscription: session.subscription,
-      metadata: session.metadata
+      customerId: typeof session.customer === 'string' ? session.customer : session.customer?.id,
+      subscriptionId: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id,
+      hasBusinessMetadata: Boolean(session.metadata?.business_id && session.metadata?.user_id),
     })
 
     // Validate session

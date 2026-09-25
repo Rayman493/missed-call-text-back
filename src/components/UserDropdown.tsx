@@ -329,7 +329,7 @@ export default function UserDropdown({ forceDark = false, isPublicPage = false }
               <User className="w-5 h-5 text-inherit group-hover:text-inherit transition-colors duration-200" />
               
               {/* Business name - desktop only */}
-              <span className="hidden md:inline leading-none motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none max-w-32 truncate">
+              <span className="hidden md:inline leading-normal motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none max-w-32 truncate">
                 {business?.name || 'Account'}
               </span>
               
