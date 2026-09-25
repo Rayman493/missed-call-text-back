@@ -674,7 +674,9 @@ export default function CompleteSetupPage() {
         userId: user?.id,
         onEntitled: async () => {
           await refreshBusiness?.(true)
-          router.push('/dashboard')
+          // A fresh purchase always has provisioning pending — land on the
+          // dashboard setup view, matching the routing check above.
+          router.push('/dashboard?setup=1')
         },
         onCanceled: () => { setIsRedirectingToStripe(false) },
         onPending: () => {

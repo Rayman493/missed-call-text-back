@@ -23,6 +23,7 @@ interface SetupStatusCardProps {
     aiIntakeReady?: boolean
   }
   missedCallCount?: number
+  leadCount?: number
 }
 
 type CardState =
@@ -36,7 +37,8 @@ type CardState =
 export default function SetupStatusCard({
   business,
   setupHealth,
-  missedCallCount = 0
+  missedCallCount = 0,
+  leadCount = 0
 }: SetupStatusCardProps) {
   const [userHasToggled, setUserHasToggled] = useState(false)
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
@@ -48,7 +50,9 @@ export default function SetupStatusCard({
   const cardRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
   const { refreshBusiness } = useBusiness()
-  const setupState = deriveSetupState(business, missedCallCount)
+  // Completion counts both signals of first real activity: a captured call
+  // (call_events) or a persisted customer (leads — manual or AI intake).
+  const setupState = deriveSetupState(business, missedCallCount + leadCount)
   const hasSubscription = hasActiveSubscription(business)
   
   // Defensive timestamp check: forwarding/test state is only valid for the

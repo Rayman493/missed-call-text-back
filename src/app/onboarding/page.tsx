@@ -374,7 +374,12 @@ export default function OnboardingPage() {
       // Android: Google Play Billing purchase sheet (server-verified)
       const handledOnAndroid = await maybeStartGooglePlaySubscription({
         userId: userId ?? user?.id,
-        onEntitled: async () => { router.push('/dashboard') },
+        onEntitled: async () => {
+          // Business state is already refreshed above; land directly on the
+          // dashboard's setup view — forwarding isn't done yet, and plain
+          // /dashboard would flash a second routing decision.
+          router.push('/dashboard?setup=1')
+        },
         onCanceled: () => { setLoading(false) },
         onPending: () => {
           setLoading(false)

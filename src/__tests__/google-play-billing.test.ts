@@ -546,3 +546,49 @@ describe('acknowledgment endpoint and provisioning trigger', () => {
     expect(idx).toBeGreaterThan(-1)
   })
 })
+
+/* ---------- 12. Post-purchase navigation + Ready card live refresh ---------- */
+
+describe('post-purchase navigation is single-hop', () => {
+  const auth = read('src/app/auth/page.tsx')
+  const onboarding = read('src/app/onboarding/page.tsx')
+  const completeSetup = read('src/app/complete-setup/page.tsx')
+
+  it('signup purchase entitled path refreshes business then goes straight to dashboard setup', () => {
+    const matches = auth.match(/onEntitled[\s\S]{0,800}?router\.push\('\/dashboard\?setup=1'\)/g) || []
+    // Both the initial signup purchase and the checkout-retry path.
+    expect(matches.length).toBeGreaterThanOrEqual(2)
+    expect(auth).toContain('await refreshBusiness(true)')
+    // The onboarding detour is gone from the entitled paths.
+    expect(auth).not.toContain("onEntitled: async () => { router.push('/onboarding') }")
+  })
+
+  it('onboarding purchase entitled path lands on dashboard setup', () => {
+    expect(onboarding).toContain("router.push('/dashboard?setup=1')")
+  })
+
+  it('complete-setup purchase entitled path lands on dashboard setup', () => {
+    const block = completeSetup.slice(completeSetup.indexOf('maybeStartGooglePlaySubscription'))
+    expect(block).toContain("router.push('/dashboard?setup=1')")
+  })
+})
+
+describe('ReplyFlow Ready card live refresh', () => {
+  const dashboard = read('src/app/dashboard/DashboardContent.tsx')
+  const card = read('src/components/SetupStatusCard.tsx')
+
+  it('card completion counts customers (leads) as well as call events', () => {
+    expect(card).toContain('leadCount')
+    expect(card).toContain('deriveSetupState(business, missedCallCount + leadCount)')
+    expect(dashboard).toContain('leadCount={leadCount}')
+  })
+
+  it('dashboard subscribes to leads and call_events inserts for live refresh', () => {
+    expect(dashboard).toContain('dashboard-activity-')
+    expect(dashboard).toContain("table: 'leads'")
+    expect(dashboard).toContain("table: 'call_events'")
+    expect(dashboard).toContain('fetchCounts')
+    // Counts cover AI-intake AND manual customers (leads rows) + test calls.
+    expect(dashboard).toContain(".is('deleted_at', null)")
+  })
+})

@@ -15,6 +15,7 @@ import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { openStripeCheckout } from '@/lib/stripe-checkout'
 import { isNativeIOS as checkNativeIOS } from '@/lib/stripe-checkout'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
+import { useBusiness } from '@/contexts/BusinessContext'
 import { Capacitor } from '@capacitor/core'
 import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
 
@@ -60,6 +61,7 @@ function isValidRedirectPath(path: string): boolean {
 
 function AuthContent() {
   const router = useRouter()
+  const { refreshBusiness } = useBusiness()
   const searchParams = useSearchParams()
   const mode = searchParams?.get('mode') || 'signup'
   const emailParam = searchParams?.get('email')
@@ -404,7 +406,15 @@ function AuthContent() {
         // Android: Google Play Billing purchase sheet (server-verified)
         {
           const handledOnAndroid = await maybeStartGooglePlaySubscription({
-            onEntitled: async () => { router.push('/onboarding') },
+            onEntitled: async () => {
+              // Refresh the shared business state before navigating so guards
+              // never see the pre-purchase (null subscription) snapshot, then
+              // go straight to the dashboard — signup already collected the
+              // full profile, so routing through /onboarding only flashes a
+              // re-check spinner and a redirect.
+              try { await refreshBusiness(true) } catch {}
+              router.push('/dashboard?setup=1')
+            },
             onCanceled: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
             onPending: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
             onError: (msg) => {
@@ -621,7 +631,13 @@ function AuthContent() {
           isCreatingCheckoutRef.current = false
         }
         const handledOnAndroid = await maybeStartGooglePlaySubscription({
-          onEntitled: async () => { router.push('/onboarding') },
+          onEntitled: async () => {
+            // Same single-transition rule as the initial purchase path —
+            // refresh shared business state, then navigate once to the
+            // dashboard setup view (signup already collected the profile).
+            try { await refreshBusiness(true) } catch {}
+            router.push('/dashboard?setup=1')
+          },
           onCanceled: () => {
             clearPurchaseState()
             setError('Purchase canceled. Tap "Continue to Free Trial" to try again.')
@@ -749,7 +765,12 @@ function AuthContent() {
     // Android: Google Play Billing purchase sheet (server-verified)
     {
       const handledOnAndroid = await maybeStartGooglePlaySubscription({
-        onEntitled: async () => { router.push('/onboarding') },
+        onEntitled: async () => {
+          // Single transition: refresh shared business state, then straight
+          // to the dashboard setup view (profile was collected at signup).
+          try { await refreshBusiness(true) } catch {}
+          router.push('/dashboard?setup=1')
+        },
         onCanceled: () => {
           setLoading(false)
           setIsSubmitting(false)

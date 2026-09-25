@@ -251,6 +251,7 @@ export default function DashboardContent() {
   const supportsBusinessNumber = useSupportsBusinessNumber()
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
   const [missedCallCount, setMissedCallCount] = useState(0)
+  const [leadCount, setLeadCount] = useState(0)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading, eligibility } = useTrialEligibility()
@@ -348,25 +349,50 @@ export default function DashboardContent() {
     })
   }, [business, processedLeads, missedCallCount])
 
-  // Fetch missed call count for Step 3 completion logic
+  // Fetch activity counts for ReplyFlow Ready completion logic.
+  // missedCallCount tracks call_events; leadCount tracks customers — both a
+  // manually added customer and an AI-intake customer persist a leads row.
+  // A realtime subscription refetches both so the card flips live instead of
+  // only on the next cold start.
   useEffect(() => {
-    const fetchMissedCallCount = async () => {
-      if (!business?.id) return
+    if (!business?.id) return
 
+    const supabase = createBrowserClient()
+    let cancelled = false
+
+    const fetchCounts = async () => {
       try {
-        const supabase = createBrowserClient()
-        const { count } = await supabase
-          .from('call_events')
-          .select('*', { count: 'exact', head: true })
-          .eq('business_id', business.id)
-        
-        setMissedCallCount(count || 0)
+        const [{ count: calls }, { count: leads }] = await Promise.all([
+          supabase
+            .from('call_events')
+            .select('*', { count: 'exact', head: true })
+            .eq('business_id', business.id),
+          supabase
+            .from('leads')
+            .select('*', { count: 'exact', head: true })
+            .eq('business_id', business.id)
+            .is('deleted_at', null),
+        ])
+        if (cancelled) return
+        setMissedCallCount(calls || 0)
+        setLeadCount(leads || 0)
       } catch (error) {
-        console.error('[DashboardContent] Error fetching missed call count:', error)
+        console.error('[DashboardContent] Error fetching activity counts:', error)
       }
     }
 
-    fetchMissedCallCount()
+    fetchCounts()
+
+    const channel = supabase
+      .channel(`dashboard-activity-${business.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'call_events', filter: `business_id=eq.${business.id}` }, fetchCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `business_id=eq.${business.id}` }, fetchCounts)
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [business?.id])
 
   // Auto-complete setup if leads exist but setup is not complete
@@ -1146,6 +1172,7 @@ export default function DashboardContent() {
                     business={business}
                     setupHealth={setupHealth}
                     missedCallCount={missedCallCount}
+                    leadCount={leadCount}
                   />
                 </SectionErrorBoundary>
 
