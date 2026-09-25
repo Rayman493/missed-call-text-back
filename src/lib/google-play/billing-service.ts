@@ -33,6 +33,33 @@ export const SUBSCRIPTION_STATE = {
   COMPLETED: 9,
 } as const
 
+const SUBSCRIPTION_STATE_NAMES: Record<string, number> = {
+  SUBSCRIPTION_STATE_UNSPECIFIED: SUBSCRIPTION_STATE.UNSPECIFIED,
+  SUBSCRIPTION_STATE_PENDING: SUBSCRIPTION_STATE.PENDING,
+  SUBSCRIPTION_STATE_ACTIVE: SUBSCRIPTION_STATE.ACTIVE,
+  SUBSCRIPTION_STATE_PAUSED: SUBSCRIPTION_STATE.PAUSED,
+  SUBSCRIPTION_STATE_IN_GRACE_PERIOD: SUBSCRIPTION_STATE.IN_GRACE_PERIOD,
+  SUBSCRIPTION_STATE_ON_HOLD: SUBSCRIPTION_STATE.ON_HOLD,
+  SUBSCRIPTION_STATE_CANCELED: SUBSCRIPTION_STATE.CANCELED,
+  SUBSCRIPTION_STATE_EXPIRED: SUBSCRIPTION_STATE.EXPIRED,
+}
+
+/**
+ * The REST API serializes proto enums as strings ("SUBSCRIPTION_STATE_ACTIVE")
+ * while client libraries may surface numbers. Normalize to the numeric enum;
+ * unknown values degrade to UNSPECIFIED → never entitled.
+ */
+export function parseSubscriptionState(v: unknown): number {
+  if (typeof v === 'number') return v
+  if (typeof v === 'string') return SUBSCRIPTION_STATE_NAMES[v] ?? SUBSCRIPTION_STATE.UNSPECIFIED
+  return SUBSCRIPTION_STATE.UNSPECIFIED
+}
+
+/** acknowledgementState is likewise a string enum in REST responses. */
+function isAcknowledged(v: unknown): boolean {
+  return v === 'ACKNOWLEDGED' || v === 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED'
+}
+
 export interface PlaySubscriptionV2 {
   subscriptionState?: number
   acknowledgementState?: string
@@ -60,7 +87,8 @@ export interface PlaySubscriptionV2 {
 }
 
 export type ApplyResult =
-  | { ok: true; entitled: boolean; status: string; businessId: string; alreadyOwned?: boolean; pending?: boolean }
+  | { ok: true; entitled: boolean; status: string; businessId: string; alreadyOwned?: boolean; pending?: boolean;
+      google?: { subscriptionState: unknown; expiryTime: string | null; testPurchase: boolean } }
   | { ok: false; error: string; status?: number }
 
 async function playApi(path: string, init?: RequestInit): Promise<Response> {
@@ -104,13 +132,14 @@ export function mapPlayEntitlement(
 ): { status: string | null; cancelAtPeriodEnd: boolean; currentPeriodEnd: string | null } {
   const expiry = sub.lineItems?.[0]?.expiryTime ?? null
   const expired = expiry ? new Date(expiry).getTime() <= Date.now() : false
+  const state = parseSubscriptionState(sub.subscriptionState)
 
-  if (opts.revoked || sub.subscriptionState === SUBSCRIPTION_STATE.EXPIRED ||
-      (sub.subscriptionState === SUBSCRIPTION_STATE.CANCELED && expired)) {
+  if (opts.revoked || state === SUBSCRIPTION_STATE.EXPIRED ||
+      (state === SUBSCRIPTION_STATE.CANCELED && expired)) {
     return { status: 'canceled', cancelAtPeriodEnd: false, currentPeriodEnd: expiry }
   }
 
-  switch (sub.subscriptionState) {
+  switch (state) {
     case SUBSCRIPTION_STATE.ACTIVE:
     case SUBSCRIPTION_STATE.IN_GRACE_PERIOD:
       return {
@@ -224,10 +253,17 @@ export async function verifyAndApplyPurchase(
 
   // Trial continuity: once the trial flag is set, keep it until a renewal or
   // revocation clears it — RTDN recomputes must not downgrade 'trialing'.
-  const isTrial = args.usedTrialOffer ?? (business.google_play_purchase_token === purchaseToken ? business.google_play_is_trial : false)
+  // Server-side fallback: the purchased offer id itself (e.g. "trial-14d")
+  // proves a trial even when the caller didn't pass usedTrialOffer (reconcile
+  // and RTDN paths have no client context).
+  const offerId = sub.lineItems?.[0]?.offerDetails?.offerId ?? ''
+  const offerIsTrial = /trial/i.test(offerId)
+  const isTrial = args.usedTrialOffer ??
+    (business.google_play_purchase_token === purchaseToken ? business.google_play_is_trial || offerIsTrial : offerIsTrial)
 
   const mapped = mapPlayEntitlement(sub, { isTrial, revoked: args.forceRevoked })
   const expiry = mapped.currentPeriodEnd
+  const state = parseSubscriptionState(sub.subscriptionState)
 
   // Regression guard: a non-entitled snapshot (PENDING/unspecified → null) may
   // never erase an existing entitlement for the same token. PENDING cannot
@@ -235,8 +271,8 @@ export async function verifyAndApplyPurchase(
   // only come from a stale concurrent verification or out-of-order RTDN.
   const existingEntitled = business.subscription_status === 'active' || business.subscription_status === 'trialing'
   const terminal = args.forceRevoked ||
-    sub.subscriptionState === SUBSCRIPTION_STATE.EXPIRED ||
-    (sub.subscriptionState === SUBSCRIPTION_STATE.CANCELED && expiry && new Date(expiry).getTime() <= Date.now())
+    state === SUBSCRIPTION_STATE.EXPIRED ||
+    (state === SUBSCRIPTION_STATE.CANCELED && expiry && new Date(expiry).getTime() <= Date.now())
   if (mapped.status === null && existingEntitled && !terminal) {
     return { ok: true, entitled: true, status: business.subscription_status, businessId, alreadyOwned: true }
   }
@@ -286,7 +322,7 @@ export async function verifyAndApplyPurchase(
   }
 
   // Acknowledge initial purchases so Google doesn't auto-refund after 3 days.
-  if (mapped.status !== null && sub.acknowledgementState !== 'ACKNOWLEDGED') {
+  if (mapped.status !== null && !isAcknowledged(sub.acknowledgementState)) {
     await acknowledgeSubscription(purchaseToken)
   }
 
@@ -296,6 +332,13 @@ export async function verifyAndApplyPurchase(
     status: mapped.status ?? 'none',
     businessId,
     // Lets the caller distinguish "Google says pending" from other nulls.
-    pending: mapped.status === null && sub.subscriptionState === SUBSCRIPTION_STATE.PENDING,
+    pending: mapped.status === null && state === SUBSCRIPTION_STATE.PENDING,
+    // Non-sensitive diagnostic echo: lets clients/logs confirm what Google
+    // actually reported without exposing tokens or account identifiers.
+    google: {
+      subscriptionState: sub.subscriptionState ?? null,
+      expiryTime: expiry,
+      testPurchase: !!sub.testPurchase,
+    },
   }
 }

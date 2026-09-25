@@ -410,3 +410,80 @@ describe('subscription_status NULL-after-purchase fixes', () => {
     expect(rtdn).toContain('REVOKED = 12')
   })
 })
+
+/* ---------- 10. Real REST wire format (production 04:52–04:57 repro) ---------- */
+
+describe('SubscriptionsV2 string-enum wire format', () => {
+  // Google's REST API serializes proto enums as strings, not integers.
+  // Every verify/RTDN mapped to status null because 'SUBSCRIPTION_STATE_ACTIVE' !== 2.
+  const wire = (state: string, over: object = {}) => ({
+    subscriptionState: state as any,
+    lineItems: [{ productId: 'replyflow_monthly', expiryTime: '2999-01-01T00:00:00Z', autoRenewingPlan: { autoRenewEnabled: true } }],
+    ...over,
+  })
+
+  it('"SUBSCRIPTION_STATE_ACTIVE" maps to active (the production bug)', () => {
+    expect(mapPlayEntitlement(wire('SUBSCRIPTION_STATE_ACTIVE'), { isTrial: false }).status).toBe('active')
+  })
+
+  it('"SUBSCRIPTION_STATE_ACTIVE" + trial flag → trialing', () => {
+    expect(mapPlayEntitlement(wire('SUBSCRIPTION_STATE_ACTIVE'), { isTrial: true }).status).toBe('trialing')
+  })
+
+  it('"SUBSCRIPTION_STATE_PENDING" stays non-entitled', () => {
+    expect(mapPlayEntitlement(wire('SUBSCRIPTION_STATE_PENDING'), { isTrial: false }).status).toBeNull()
+  })
+
+  it('"SUBSCRIPTION_STATE_CANCELED" before expiry → still active until expiry', () => {
+    const m = mapPlayEntitlement(wire('SUBSCRIPTION_STATE_CANCELED'), { isTrial: false })
+    expect(m.status).toBe('active')
+    expect(m.cancelAtPeriodEnd).toBe(true)
+  })
+
+  it('"SUBSCRIPTION_STATE_CANCELED" past expiry → canceled', () => {
+    const m = mapPlayEntitlement(
+      wire('SUBSCRIPTION_STATE_CANCELED', { lineItems: [{ productId: 'replyflow_monthly', expiryTime: '2020-01-01T00:00:00Z' }] }),
+      { isTrial: false })
+    expect(m.status).toBe('canceled')
+  })
+
+  it('"SUBSCRIPTION_STATE_EXPIRED" → canceled', () => {
+    expect(mapPlayEntitlement(wire('SUBSCRIPTION_STATE_EXPIRED'), { isTrial: false }).status).toBe('canceled')
+  })
+
+  it('"SUBSCRIPTION_STATE_ON_HOLD" → past_due', () => {
+    expect(mapPlayEntitlement(wire('SUBSCRIPTION_STATE_ON_HOLD'), { isTrial: false }).status).toBe('past_due')
+  })
+
+  it('numeric enums still work (client-library callers)', () => {
+    expect(mapPlayEntitlement(sub({ subscriptionState: SUBSCRIPTION_STATE.ACTIVE }), { isTrial: false }).status).toBe('active')
+  })
+
+  it('service exposes the raw Google state for diagnostics (non-sensitive)', () => {
+    const service = read('src/lib/google-play/billing-service.ts')
+    expect(service).toContain('parseSubscriptionState')
+    expect(service).toContain('SUBSCRIPTION_STATE_NAMES')
+    expect(service).toContain('google: {')
+    expect(service).toContain('subscriptionState: sub.subscriptionState')
+    expect(service).toContain('ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED')
+  })
+
+  it('server detects trial from offerId when client flag is absent', () => {
+    const service = read('src/lib/google-play/billing-service.ts')
+    expect(service).toContain('offerDetails?.offerId')
+    expect(service).toContain('offerIsTrial')
+  })
+})
+
+describe('homepage redirect must not be swallowed', () => {
+  it('redirect runs outside the try/catch that logs NEXT_REDIRECT', () => {
+    const page = read('src/app/(public)/page.tsx')
+    expect(page).toContain('needsCompleteSetup')
+    // The redirect call sits after the catch block, not inside try.
+    const catchIdx = page.indexOf("console.error('[Homepage] Unexpected error checking business:'")
+    const redirectIdx = page.indexOf("redirect('/complete-setup')")
+    expect(redirectIdx).toBeGreaterThan(catchIdx)
+    const tryBlock = page.slice(page.indexOf('try {'), catchIdx)
+    expect(tryBlock).not.toContain("redirect('/complete-setup')")
+  })
+})

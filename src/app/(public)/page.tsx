@@ -90,6 +90,7 @@ export default async function Home() {
 
   // If user is signed in, check if they have an incomplete signup business
   // If business exists but subscription_status is null, redirect to /complete-setup
+  let needsCompleteSetup = false
   if (user) {
     try {
       const { data: business, error: businessError } = await supabase
@@ -103,12 +104,15 @@ export default async function Home() {
         console.error('[Homepage] Error checking business:', businessError)
       }
 
-      if (business && business.subscription_status === null) {
-        return redirect('/complete-setup')
-      }
+      needsCompleteSetup = !!business && business.subscription_status === null
     } catch (err) {
       console.error('[Homepage] Unexpected error checking business:', err)
     }
+  }
+  // redirect() must run outside the try/catch above — it throws NEXT_REDIRECT,
+  // which a catch block would otherwise swallow and silently suppress the nav.
+  if (needsCompleteSetup) {
+    redirect('/complete-setup')
   }
 
   // Render public homepage for unauthenticated users and users with active subscriptions
