@@ -89,6 +89,28 @@ export async function purchaseSubscription(
   if (purchase.status === 'pending') {
     return { ok: true, pending: true }
   }
+  // ITEM_ALREADY_OWNED (7): the Google account already holds this subscription
+  // — re-verify the existing purchase instead of failing (restore path).
+  if (purchase.status === 'error' && purchase.code === 7) {
+    const { purchases } = await GooglePlayBilling.queryPurchases()
+    const held = purchases.find(p => p.purchaseState === 1 && p.products?.includes(offer.productId))
+    if (!held?.purchaseToken) {
+      return { ok: false, error: 'Subscription already owned but could not be recovered. Please restart the app.' }
+    }
+    const res = await fetch('/api/google-play/verify-purchase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purchaseToken: held.purchaseToken, productId: offer.productId }),
+    })
+    const verification = await res.json()
+    if (!res.ok || !verification.ok) {
+      return { ok: false, error: verification.error || 'Purchase verification failed' }
+    }
+    return verification.entitled
+      ? { ok: true, entitled: true, status: verification.status }
+      : { ok: true, pending: true }
+  }
+
   if (purchase.status !== 'purchased' || !purchase.purchaseToken) {
     return { ok: false, error: purchase.message || 'Purchase failed' }
   }
@@ -106,6 +128,29 @@ export async function purchaseSubscription(
   const verification = await res.json()
   if (!res.ok || !verification.ok) {
     return { ok: false, error: verification.error || 'Purchase verification failed' }
+  }
+  if (verification.pending) {
+    // Google reported SUBSCRIPTION_STATE_PENDING — license-test and deferred
+    // transactions can take a few seconds to settle to ACTIVE. Retry the
+    // authoritative verification briefly before reporting pending.
+    for (let i = 0; i < 4; i++) {
+      await new Promise(r => setTimeout(r, 4000))
+      try {
+        const retry = await fetch('/api/google-play/verify-purchase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ purchaseToken: purchase.purchaseToken, productId: offer.productId }),
+        })
+        const rv = await retry.json()
+        if (retry.ok && rv.ok && rv.entitled) {
+          return { ok: true, entitled: true, status: rv.status }
+        }
+        if (retry.ok && rv.ok && !rv.pending) break
+      } catch (e) {
+        console.warn('[GooglePlayBilling] Pending re-check failed:', e)
+      }
+    }
+    return { ok: true, pending: true }
   }
   return { ok: true, entitled: verification.entitled, status: verification.status }
 }

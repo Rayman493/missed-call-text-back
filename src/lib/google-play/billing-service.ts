@@ -60,7 +60,7 @@ export interface PlaySubscriptionV2 {
 }
 
 export type ApplyResult =
-  | { ok: true; entitled: boolean; status: string; businessId: string; alreadyOwned?: boolean }
+  | { ok: true; entitled: boolean; status: string; businessId: string; alreadyOwned?: boolean; pending?: boolean }
   | { ok: false; error: string; status?: number }
 
 async function playApi(path: string, init?: RequestInit): Promise<Response> {
@@ -153,6 +153,7 @@ export async function verifyAndApplyPurchase(
   }
 
   const sub = await fetchSubscription(purchaseToken)
+  const fetchedAt = new Date().toISOString()
   if (!sub) {
     if (args.forceRevoked) {
       // Revoked tokens can return 404 once Google invalidates them. The
@@ -228,7 +229,22 @@ export async function verifyAndApplyPurchase(
   const mapped = mapPlayEntitlement(sub, { isTrial, revoked: args.forceRevoked })
   const expiry = mapped.currentPeriodEnd
 
-  const { error: updateError } = await supabaseAdmin
+  // Regression guard: a non-entitled snapshot (PENDING/unspecified → null) may
+  // never erase an existing entitlement for the same token. PENDING cannot
+  // legitimately follow ACTIVE on the same subscription — such a write can
+  // only come from a stale concurrent verification or out-of-order RTDN.
+  const existingEntitled = business.subscription_status === 'active' || business.subscription_status === 'trialing'
+  const terminal = args.forceRevoked ||
+    sub.subscriptionState === SUBSCRIPTION_STATE.EXPIRED ||
+    (sub.subscriptionState === SUBSCRIPTION_STATE.CANCELED && expiry && new Date(expiry).getTime() <= Date.now())
+  if (mapped.status === null && existingEntitled && !terminal) {
+    return { ok: true, entitled: true, status: business.subscription_status, businessId, alreadyOwned: true }
+  }
+
+  // Monotonic application: only apply if this fetch is newer than the last
+  // verification we persisted. Prevents slower duplicate verifications and
+  // out-of-order RTDN from overwriting fresher authoritative state.
+  const { data: updatedRows, error: updateError } = await supabaseAdmin
     .from('businesses')
     .update({
       subscription_provider: 'google_play',
@@ -239,15 +255,17 @@ export async function verifyAndApplyPurchase(
       google_play_package_name: PLAY_PACKAGE_NAME,
       google_play_is_trial: mapped.status === 'trialing',
       google_play_revoked_at: args.forceRevoked ? new Date().toISOString() : null,
-      google_play_last_verified_at: new Date().toISOString(),
       subscription_status: mapped.status,
       subscription_price_id: null,
       current_period_end: expiry,
       trial_ends_at: mapped.status === 'trialing' ? expiry : null,
       cancel_at_period_end: mapped.cancelAtPeriodEnd,
       cancel_at: mapped.cancelAtPeriodEnd ? expiry : null,
+      google_play_last_verified_at: fetchedAt,
     })
     .eq('id', businessId)
+    .or(`google_play_last_verified_at.is.null,google_play_last_verified_at.lt.${fetchedAt}`)
+    .select('id')
 
   if (updateError) {
     if (updateError.code === '23505') {
@@ -256,10 +274,28 @@ export async function verifyAndApplyPurchase(
     return { ok: false, error: `Failed to persist entitlement: ${updateError.message}`, status: 500 }
   }
 
+  if (!updatedRows || updatedRows.length === 0) {
+    // A fresher verification already applied — this stale snapshot is a no-op.
+    return {
+      ok: true,
+      entitled: business.subscription_status === 'active' || business.subscription_status === 'trialing',
+      status: business.subscription_status ?? 'none',
+      businessId,
+      alreadyOwned: true,
+    }
+  }
+
   // Acknowledge initial purchases so Google doesn't auto-refund after 3 days.
   if (mapped.status !== null && sub.acknowledgementState !== 'ACKNOWLEDGED') {
     await acknowledgeSubscription(purchaseToken)
   }
 
-  return { ok: true, entitled: mapped.status !== null, status: mapped.status ?? 'none', businessId }
+  return {
+    ok: true,
+    entitled: mapped.status !== null,
+    status: mapped.status ?? 'none',
+    businessId,
+    // Lets the caller distinguish "Google says pending" from other nulls.
+    pending: mapped.status === null && sub.subscriptionState === SUBSCRIPTION_STATE.PENDING,
+  }
 }

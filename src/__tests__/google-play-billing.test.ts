@@ -345,3 +345,68 @@ describe('Android never initiates Stripe subscription checkout', () => {
     expect(wrapper).not.toContain('checkout.stripe.com')
   })
 })
+
+/* ---------- 9. Purchase-failure fixes (pending state, regressions, wedged UI) ---------- */
+
+describe('subscription_status NULL-after-purchase fixes', () => {
+  const service = read('src/lib/google-play/billing-service.ts')
+  const wrapper = read('src/lib/google-play-billing.ts')
+  const auth = read('src/app/auth/page.tsx')
+  const onboarding = read('src/app/onboarding/page.tsx')
+
+  it('writes are monotonic — stale verifications cannot overwrite newer state', () => {
+    expect(service).toContain('google_play_last_verified_at.is.null,google_play_last_verified_at.lt.')
+    expect(service).toContain('fetchedAt')
+  })
+
+  it('a non-entitled snapshot cannot erase an existing entitlement', () => {
+    expect(service).toContain('existingEntitled')
+    expect(service).toContain('terminal')
+    expect(service).toContain('mapped.status === null && existingEntitled && !terminal')
+  })
+
+  it('stale-write no-op is handled (empty updatedRows)', () => {
+    expect(service).toContain('updatedRows')
+    expect(service).toContain('updatedRows.length === 0')
+  })
+
+  it('service surfaces a pending flag when Google reports PENDING', () => {
+    expect(service).toContain('SUBSCRIPTION_STATE.PENDING')
+    expect(service).toContain('pending:')
+  })
+
+  it('wrapper retries verification while Google reports pending', () => {
+    expect(wrapper).toContain('verification.pending')
+    expect(wrapper).toContain('Pending re-check')
+  })
+
+  it('ITEM_ALREADY_OWNED recovers the existing purchase instead of failing', () => {
+    expect(wrapper).toContain('purchase.code === 7')
+    expect(wrapper).toContain('queryPurchases')
+  })
+
+  it('auth signup clears every loading flag on cancel/pending/error', () => {
+    // The wedged path: callbacks must clear loading, isSubmitting and the
+    // checkout-in-progress refs so "Creating Account..." cannot persist.
+    expect(auth).toContain('clearPurchaseState')
+    expect(auth).toContain('isSubmittingRef.current = false')
+    expect(auth).toContain('pending Google confirmation')
+  })
+
+  it('auth retry path clears isSubmitting on cancel/pending/error', () => {
+    const retryBlock = auth.slice(auth.indexOf('handleRetryCheckout'))
+    expect(retryBlock).toContain('isSubmittingRef.current = false')
+    expect(retryBlock).toContain('setIsSubmitting(false)')
+  })
+
+  it('onboarding clears loading on cancel and error', () => {
+    expect(onboarding).toContain('onCanceled: () => { setLoading(false) }')
+    expect(onboarding).toContain('onError: (msg) => { setError(msg); setLoading(false) }')
+  })
+
+  it('RTDN still re-verifies before applying (authoritative)', () => {
+    const rtdn = read('src/app/api/google-play/rtdn/route.ts')
+    expect(rtdn).toContain('verifyAndApplyPurchase')
+    expect(rtdn).toContain('REVOKED = 12')
+  })
+})

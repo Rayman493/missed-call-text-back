@@ -613,21 +613,29 @@ function AuthContent() {
 
       // Android: Google Play Billing purchase sheet (server-verified)
       {
+        const clearPurchaseState = () => {
+          setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          setIsCreatingCheckout(false)
+          isCreatingCheckoutRef.current = false
+        }
         const handledOnAndroid = await maybeStartGooglePlaySubscription({
           onEntitled: async () => { router.push('/onboarding') },
           onCanceled: () => {
-            setIsCreatingCheckout(false)
-            isCreatingCheckoutRef.current = false
+            clearPurchaseState()
+            setError('Purchase canceled. Tap "Continue to Free Trial" to try again.')
+            setCheckoutFailedAfterAccountCreation(true)
           },
           onPending: () => {
-            setIsCreatingCheckout(false)
-            isCreatingCheckoutRef.current = false
+            clearPurchaseState()
+            setError('Purchase is pending Google confirmation. Your trial will activate automatically — you can retry in a moment or sign back in later.')
+            setCheckoutFailedAfterAccountCreation(true)
           },
           onError: (msg) => {
+            clearPurchaseState()
             setError(msg)
             setCheckoutFailedAfterAccountCreation(true)
-            setIsCreatingCheckout(false)
-            isCreatingCheckoutRef.current = false
           },
         })
         if (handledOnAndroid) return
@@ -742,12 +750,26 @@ function AuthContent() {
     {
       const handledOnAndroid = await maybeStartGooglePlaySubscription({
         onEntitled: async () => { router.push('/onboarding') },
-        onCanceled: () => { setLoading(false) },
-        onPending: () => { setLoading(false) },
+        onCanceled: () => {
+          setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          setError('Purchase canceled. Tap "Continue to Free Trial" to try again.')
+          setCheckoutFailedAfterAccountCreation(true)
+        },
+        onPending: () => {
+          setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          setError('Purchase is pending Google confirmation. Your trial will activate automatically — you can retry in a moment or sign back in later.')
+          setCheckoutFailedAfterAccountCreation(true)
+        },
         onError: (msg) => {
           setError(msg)
           setCheckoutFailedAfterAccountCreation(true)
           setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
         },
       })
       if (handledOnAndroid) return

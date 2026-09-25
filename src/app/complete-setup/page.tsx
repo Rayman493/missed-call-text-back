@@ -11,6 +11,7 @@ import BrandIcon from '@/components/BrandIcon'
 import PasswordInput from '@/components/PasswordInput'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
+import { isNativeAndroid } from '@/lib/google-play-billing'
 import AppBackButton from '@/components/AppBackButton'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
@@ -676,7 +677,10 @@ export default function CompleteSetupPage() {
           router.push('/dashboard')
         },
         onCanceled: () => { setIsRedirectingToStripe(false) },
-        onPending: () => { setIsRedirectingToStripe(false) },
+        onPending: () => {
+          setIsRedirectingToStripe(false)
+          setError('Purchase is pending Google confirmation. Your trial will activate automatically once payment clears.')
+        },
         onError: (msg) => {
           setError(msg)
           setIsRedirectingToStripe(false)
@@ -890,7 +894,7 @@ export default function CompleteSetupPage() {
                 disabled={isRedirectingToStripe}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isRedirectingToStripe ? 'Redirecting to Stripe...' : 'Activate My Free Trial'}
+                {isRedirectingToStripe ? (isNativeAndroid() ? 'Opening Google Play...' : 'Redirecting to Stripe...') : 'Activate My Free Trial'}
               </button>
 
               <p className="text-center text-xs text-slate-500">

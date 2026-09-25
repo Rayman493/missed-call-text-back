@@ -375,9 +375,13 @@ export default function OnboardingPage() {
       const handledOnAndroid = await maybeStartGooglePlaySubscription({
         userId: userId ?? user?.id,
         onEntitled: async () => { router.push('/dashboard') },
-        onCanceled: () => {},
-        onPending: () => { router.push('/dashboard') },
-        onError: (msg) => setError(msg),
+        onCanceled: () => { setLoading(false) },
+        onPending: () => {
+          setLoading(false)
+          setError('Purchase is pending Google confirmation. Your trial will activate automatically once payment clears.')
+          router.push('/dashboard')
+        },
+        onError: (msg) => { setError(msg); setLoading(false) },
       })
       if (handledOnAndroid) return
 
