@@ -88,7 +88,7 @@ export interface PlaySubscriptionV2 {
 
 export type ApplyResult =
   | { ok: true; entitled: boolean; status: string; businessId: string; alreadyOwned?: boolean; pending?: boolean;
-      google?: { subscriptionState: unknown; expiryTime: string | null; testPurchase: boolean } }
+      google?: { subscriptionState: unknown; expiryTime: string | null; testPurchase: boolean; acknowledged?: boolean } }
   | { ok: false; error: string; status?: number }
 
 async function playApi(path: string, init?: RequestInit): Promise<Response> {
@@ -111,15 +111,23 @@ export async function fetchSubscription(purchaseToken: string): Promise<PlaySubs
   return res.json()
 }
 
-async function acknowledgeSubscription(purchaseToken: string): Promise<void> {
+/**
+ * purchases.subscriptions.acknowledge — the subscriptionId path segment is
+ * the Play product id (e.g. "replyflow_monthly"), NOT the purchase token.
+ * Returns true on success; failures are logged and surfaced in the result
+ * so a missed ack stays visible (unacknowledged purchases auto-refund).
+ */
+async function acknowledgeSubscription(subscriptionId: string, purchaseToken: string): Promise<boolean> {
   const res = await playApi(
-    `/applications/${encodeURIComponent(PLAY_PACKAGE_NAME)}/purchases/subscriptions/${encodeURIComponent(purchaseToken)}:acknowledge`,
+    `/applications/${encodeURIComponent(PLAY_PACKAGE_NAME)}/purchases/subscriptions/${encodeURIComponent(subscriptionId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`,
     { method: 'POST', body: JSON.stringify({}) }
   )
   if (!res.ok) {
     const body = await res.text()
     console.warn('[GOOGLE PLAY] acknowledge failed:', res.status, body.slice(0, 200))
+    return false
   }
+  return true
 }
 
 /**
@@ -234,7 +242,7 @@ export async function verifyAndApplyPurchase(
 
   const { data: business } = await supabaseAdmin
     .from('businesses')
-    .select('id, user_id, subscription_status, subscription_provider, stripe_subscription_id, google_play_purchase_token, google_play_is_trial')
+    .select('id, user_id, subscription_status, subscription_provider, stripe_subscription_id, google_play_purchase_token, google_play_is_trial, twilio_phone_number, provisioning_status')
     .eq('id', businessId)
     .maybeSingle()
   if (!business) {
@@ -322,8 +330,39 @@ export async function verifyAndApplyPurchase(
   }
 
   // Acknowledge initial purchases so Google doesn't auto-refund after 3 days.
-  if (mapped.status !== null && !isAcknowledged(sub.acknowledgementState)) {
-    await acknowledgeSubscription(purchaseToken)
+  // Idempotent — Google treats repeat acks of an acknowledged purchase as OK.
+  let acknowledged = isAcknowledged(sub.acknowledgementState)
+  if (mapped.status !== null && !acknowledged) {
+    acknowledged = await acknowledgeSubscription(apiProductId, purchaseToken)
+  }
+
+  // Provisioning parity with the Stripe path: the Stripe webhook POSTs to
+  // /api/business/trigger-provisioning after activation. Play verification is
+  // the equivalent activation point — fire the same canonical trigger so a
+  // newly-entitled business gets its Twilio number. Only 'active'/'trialing'
+  // count as entitled — canceled/past_due/expired must never provision.
+  // Safe to repeat: the route rate-limits, locks and short-circuits once a
+  // number exists.
+  const newlyEntitled = mapped.status === 'active' || mapped.status === 'trialing'
+  if (newlyEntitled && !business.twilio_phone_number) {
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      const adminSecret = process.env.PROVISIONING_ADMIN_SECRET
+      if (appUrl && adminSecret) {
+        const provRes = await fetch(`${appUrl}/api/business/trigger-provisioning`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+          body: JSON.stringify({ business_id: businessId }),
+        })
+        console.log('[GOOGLE PLAY] trigger-provisioning status:', provRes.status)
+      } else {
+        console.warn('[GOOGLE PLAY] provisioning trigger skipped: NEXT_PUBLIC_APP_URL or PROVISIONING_ADMIN_SECRET not configured')
+      }
+    } catch (provErr: any) {
+      // Never fail verification over provisioning — dashboard self-heal paths
+      // (GettingStarted/SetupProgress) also fire the same trigger.
+      console.warn('[GOOGLE PLAY] provisioning trigger error:', provErr?.message || provErr)
+    }
   }
 
   return {
@@ -339,6 +378,7 @@ export async function verifyAndApplyPurchase(
       subscriptionState: sub.subscriptionState ?? null,
       expiryTime: expiry,
       testPurchase: !!sub.testPurchase,
+      acknowledged,
     },
   }
 }

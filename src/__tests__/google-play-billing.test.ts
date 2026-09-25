@@ -487,3 +487,62 @@ describe('homepage redirect must not be swallowed', () => {
     expect(tryBlock).not.toContain("redirect('/complete-setup')")
   })
 })
+
+/* ---------- 11. Ack endpoint + provisioning parity ---------- */
+
+describe('acknowledgment endpoint and provisioning trigger', () => {
+  const service = read('src/lib/google-play/billing-service.ts')
+  const webhook = read('src/app/api/stripe/webhook/route.ts')
+
+  it('ack uses subscriptions/{id}/tokens/{token}:acknowledge (the 404 fix)', () => {
+    expect(service).toContain('purchases/subscriptions/${encodeURIComponent(subscriptionId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge')
+    // Token must never occupy the subscriptionId segment again.
+    expect(service).not.toContain('subscriptions/${encodeURIComponent(purchaseToken)}:acknowledge')
+  })
+
+  it('ack result is surfaced in the diagnostic echo', () => {
+    expect(service).toContain('acknowledged')
+  })
+
+  it('Play activation fires the same trigger-provisioning route as Stripe', () => {
+    expect(service).toContain('/api/business/trigger-provisioning')
+    expect(service).toContain("headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }")
+    // Same route Stripe webhook uses.
+    expect(webhook).toContain('/api/business/trigger-provisioning')
+    expect(webhook).toContain("'x-admin-secret': process.env.PROVISIONING_ADMIN_SECRET")
+  })
+
+  it('trigger only fires when entitled and no number exists (no duplicate assigns)', () => {
+    expect(service).toContain("newlyEntitled && !business.twilio_phone_number")
+    expect(service).toContain('twilio_phone_number, provisioning_status')
+  })
+
+  it('non-entitled states can never trigger provisioning', () => {
+    // 'canceled' and 'past_due' are non-null but NOT entitled — the guard must
+    // require an entitled status, not merely a non-null one.
+    expect(service).toContain("mapped.status === 'active' || mapped.status === 'trialing'")
+    expect(service).not.toContain('mapped.status !== null && !business.twilio_phone_number')
+    // Prove the mapper actually produces those non-entitled non-null statuses.
+    expect(mapPlayEntitlement(
+      { subscriptionState: 'SUBSCRIPTION_STATE_EXPIRED', lineItems: [{ productId: 'replyflow_monthly', expiryTime: '2020-01-01T00:00:00Z' }] } as any,
+      { isTrial: false }).status).toBe('canceled')
+    expect(mapPlayEntitlement(
+      { subscriptionState: 'SUBSCRIPTION_STATE_ON_HOLD', lineItems: [{ productId: 'replyflow_monthly', expiryTime: '2999-01-01T00:00:00Z' }] } as any,
+      { isTrial: false }).status).toBe('past_due')
+  })
+
+  it('a provisioning failure can never fail verification', () => {
+    const provIdx = service.indexOf('trigger-provisioning')
+    const catchIdx = service.indexOf('provErr', provIdx)
+    expect(catchIdx).toBeGreaterThan(provIdx)
+    expect(service).toContain('Never fail verification over provisioning')
+  })
+
+  it('Stripe onboarding path untouched — webhook still provisions via same route', () => {
+    // The Stripe trigger call predates this change and is unchanged.
+    const idx = webhook.indexOf("'/api/business/trigger-provisioning'") >= 0
+      ? webhook.indexOf("'/api/business/trigger-provisioning'")
+      : webhook.indexOf('/api/business/trigger-provisioning')
+    expect(idx).toBeGreaterThan(-1)
+  })
+})
