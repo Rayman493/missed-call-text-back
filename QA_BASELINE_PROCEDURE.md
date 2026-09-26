@@ -115,8 +115,27 @@ Teardown after export: `drop role qa_schema_reader;`
 
 ### Step 1 — export (scripted, guarded)
 
+**Connection method — get the exact strings from the prod project's
+`Connect` panel** (Supabase Dashboard → your project → Connect button).
+Do not guess the pooler hostname — copy what the panel shows.
+
+Preferred — direct connection (IPv6-capable networks):
+
 ```bash
-export PROD_DB_URL='postgresql://qa_schema_reader.<ref>:<pwd>@aws-...pooler.supabase.com:6543/postgres'
+export PROD_DB_URL='postgresql://qa_schema_reader:<pwd>@db.bqummccorpfihatocffl.supabase.co:5432/postgres'
+```
+
+Alternative — session pooler (IPv4-only networks; port 5432, session mode):
+
+```bash
+export PROD_DB_URL='postgresql://qa_schema_reader.bqummccorpfihatocffl:<pwd>@<session-pooler-host-from-Connect-panel>:5432/postgres'
+```
+
+**The transaction pooler on port 6543 is rejected** — transaction-mode pooling
+does not preserve the session semantics this procedure's verification relies
+on. The script enforces this plus strict endpoint validation:
+
+```bash
 export CONFIRM_PROD_REF=bqummccorpfihatocffl   # explicit prod confirmation
 ./scripts/qa/01-export-prod-schema.sh          # add --check-only to dry-run guards
 ```
@@ -125,7 +144,13 @@ Guards (all must pass before any bytes move):
 - QA worktree still linked to `ixtifohdqhtvhhessgaj`
 - `qa-baseline/` gitignored
 - `CONFIRM_PROD_REF` explicitly equals the prod allowlist ref
-- URL references the prod project **and** authenticates as `qa_schema_reader`
+- URL strictly parsed — accepted forms ONLY:
+  - direct: host exactly `db.<prod-ref>.supabase.co`, bare `qa_schema_reader` user
+  - session pooler: host `*.pooler.supabase.com` (regional prefix required),
+    username exactly `qa_schema_reader.<prod-ref>`
+  - port 5432 in both cases; 6543 and other ports rejected; malformed URLs,
+    privileged usernames (`postgres`, `supabase_*`, `service_role`, …),
+    unrelated/lookalike hosts rejected; credentials never echoed in errors
 - post-connect: `current_user` verified + `rolsuper/rolbypassrls/rolcreatedb`
   all false + `transaction_read_only=on`
 - post-dump: schema file must contain ≥1 `CREATE TABLE` and zero

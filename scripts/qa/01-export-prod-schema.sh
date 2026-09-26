@@ -19,8 +19,8 @@
 #     see QA_BASELINE_PROCEDURE.md).
 #   * Refuses to run if the exports directory is not gitignored.
 #
-# Usage:
-#   export PROD_DB_URL='postgresql://qa_schema_reader:<pwd>@<pooler>:6543/postgres'
+# Usage (endpoint from the prod project's Connect panel — see procedure doc):
+#   export PROD_DB_URL='postgresql://qa_schema_reader:<pwd>@db.<ref>.supabase.co:5432/postgres'
 #   ./scripts/qa/01-export-prod-schema.sh
 # =============================================================================
 set -euo pipefail
@@ -55,26 +55,100 @@ if [ "${CONFIRM_PROD_REF:-}" != "$PROD_REF_EXPECTED" ]; then
   exit 1
 fi
 
-# --- Guard 3b: connection string required, must reference the prod project ---
+# --- Guard 3b: connection string required ------------------------------------
 if [ -z "${PROD_DB_URL:-}" ]; then
   echo "ABORT: PROD_DB_URL is not set." >&2
-  echo "Use the restricted qa_schema_reader credential via the Supabase pooler:" >&2
-  echo "  postgresql://qa_schema_reader.<ref>:<pwd>@<pooler-host>:6543/postgres" >&2
+  echo "Use the restricted qa_schema_reader credential. Endpoint hostnames come" >&2
+  echo "from the prod project's Connect panel (Dashboard → Connect):" >&2
+  echo "  direct:  postgresql://qa_schema_reader:<pwd>@db.<ref>.supabase.co:5432/postgres" >&2
+  echo "  session: postgresql://qa_schema_reader.<ref>:<pwd>@aws-<n>-<region>.pooler.supabase.com:5432/postgres" >&2
   exit 1
 fi
-case "$PROD_DB_URL" in
-  *"$PROD_REF_EXPECTED"*|*pooler*) ;;  # pooler embeds ref in username or host
-  *) echo "ABORT: PROD_DB_URL does not reference expected prod project ($PROD_REF_EXPECTED)." >&2; exit 1 ;;
+
+# --- Guard 3c: strict URL parsing + approved endpoints -----------------------
+# Accepted forms ONLY (port 5432 always — the 6543 transaction pooler is
+# rejected: transaction-mode pooling doesn't preserve the session semantics
+# this script's verification relies on):
+#   direct:  postgresql://qa_schema_reader:<pwd>@db.<prod-ref>.supabase.co[:5432]/postgres
+#   session: postgresql://qa_schema_reader.<prod-ref>:<pwd>@*.pooler.supabase.com[:5432]/postgres
+# Never echo the URL or credentials — only the violation class.
+URL_BODY="${PROD_DB_URL#postgresql://}"
+if [ "$URL_BODY" = "$PROD_DB_URL" ]; then
+  URL_BODY="${PROD_DB_URL#postgres://}"
+fi
+if [ "$URL_BODY" = "$PROD_DB_URL" ]; then
+  echo "ABORT: malformed PROD_DB_URL — expected a postgresql:// connection string." >&2
+  exit 1
+fi
+case "$URL_BODY" in
+  *@*) ;;
+  *) echo "ABORT: malformed PROD_DB_URL — missing userinfo (user@host)." >&2; exit 1 ;;
+esac
+URL_CRED="${URL_BODY%%@*}"
+DB_USER="${URL_CRED%%:*}"
+HOSTPORT="${URL_BODY#*@}"; HOSTPORT="${HOSTPORT%%/*}"; HOSTPORT="${HOSTPORT%%\?*}"
+DB_HOST="${HOSTPORT%%:*}"
+case "$HOSTPORT" in
+  *:*) DB_PORT="${HOSTPORT##*:}" ;;
+  *)   DB_PORT="5432" ;;
+esac
+DB_HOST=$(printf '%s' "$DB_HOST" | tr 'A-Z' 'a-z')
+
+if [ -z "$DB_USER" ] || [ -z "$DB_HOST" ]; then
+  echo "ABORT: malformed PROD_DB_URL — empty user or host component." >&2
+  exit 1
+fi
+case "$DB_PORT" in
+  ''|*[!0-9]*) echo "ABORT: malformed PROD_DB_URL — invalid port." >&2; exit 1 ;;
+esac
+if [ "$DB_PORT" = "6543" ]; then
+  echo "ABORT: port 6543 is the transaction-mode pooler — rejected." >&2
+  echo "Use direct port 5432, or the session pooler on port 5432." >&2
+  exit 1
+fi
+if [ "$DB_PORT" != "5432" ]; then
+  echo "ABORT: only port 5432 is approved (direct or session pooler)." >&2
+  exit 1
+fi
+
+# Privileged / non-reader usernames are always rejected, whatever the host.
+case "$DB_USER" in
+  postgres|postgres.*|supabase_admin*|authenticator*|supabase_auth*|supabase_storage*|service_role*|anon*)
+    echo "ABORT: username '$DB_USER' is not the restricted qa_schema_reader role." >&2
+    exit 1 ;;
 esac
 
-# --- Guard 3c: the connection must authenticate as qa_schema_reader ----------
-# Extract the userinfo user from the URL (postgresql://user[:pw]@host/…).
-DB_USER=$(printf '%s' "$PROD_DB_URL" | sed -E 's|^[^:]+://([^:@]+)(:[^@]*)?@.*|\1|')
-case "$DB_USER" in
-  qa_schema_reader|qa_schema_reader.*) ;;
-  *) echo "ABORT: PROD_DB_URL user is '$DB_USER' — must be the restricted" >&2
-     echo "qa_schema_reader role, never the database administrator." >&2; exit 1 ;;
-esac
+DIRECT_HOST="db.${PROD_REF_EXPECTED}.supabase.co"
+if [ "${RF_EXPORT_ALLOW_CUSTOM_ENDPOINT:-}" = "1" ]; then
+  # Disposable-database testing seam ONLY — never for real prod exports.
+  case "$DB_USER" in
+    qa_schema_reader|qa_schema_reader.*) ;;
+    *) echo "ABORT: custom-endpoint mode still requires a qa_schema_reader user." >&2; exit 1 ;;
+  esac
+  echo "WARNING: RF_EXPORT_ALLOW_CUSTOM_ENDPOINT=1 — approved-endpoint check skipped (test mode)." >&2
+elif [ "$DB_HOST" = "$DIRECT_HOST" ]; then
+  # Direct connection: bare role name only — pooler-qualified names are wrong here.
+  if [ "$DB_USER" != "qa_schema_reader" ]; then
+    echo "ABORT: direct connection requires the bare 'qa_schema_reader' username." >&2
+    exit 1
+  fi
+  echo "endpoint: direct connection (db.<prod-ref>.supabase.co:5432)"
+elif [ "${DB_HOST%.pooler.supabase.com}" != "$DB_HOST" ]; then
+  # Session pooler: host ends in .pooler.supabase.com (the strip requires a
+  # non-empty regional prefix, so bare pooler.supabase.com and lookalike
+  # domains like pooler.supabase.com.evil.com are rejected); username must be
+  # the ref-qualified reader for THIS prod project.
+  if [ "$DB_USER" != "qa_schema_reader.${PROD_REF_EXPECTED}" ]; then
+    echo "ABORT: session-pooler connection requires username" >&2
+    echo "'qa_schema_reader.<prod-ref>' for the approved production project." >&2
+    exit 1
+  fi
+  echo "endpoint: session pooler (*.pooler.supabase.com:5432)"
+else
+  echo "ABORT: unapproved endpoint — expected db.<prod-ref>.supabase.co or a" >&2
+  echo "regional *.pooler.supabase.com session-pooler host on port 5432." >&2
+  exit 1
+fi
 
 if [ "${1:-}" = "--check-only" ]; then
   echo "CHECK-ONLY: all pre-flight guards passed (user=$DB_USER, ref confirmed)."

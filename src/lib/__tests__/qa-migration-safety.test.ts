@@ -36,21 +36,17 @@ let bashOk = true
 try { execFileSync('bash', ['--version'], { stdio: 'pipe' }) } catch { bashOk = false }
 
 function runBash(script: string, args: string[] = [], env: Record<string, string> = {}) {
-  try {
-    const out = execFileSync('bash', [script, ...args], {
-      encoding: 'utf8', env: { ...process.env, ...env }, stdio: 'pipe',
-    })
-    return { code: 0, out }
-  } catch (e: any) {
-    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }
-  }
+  const r = spawnSync('bash', [script, ...args], {
+    encoding: 'utf8', env: { ...process.env, ...env },
+  })
+  return { code: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` }
 }
 
 const cleanEnv = {
   REPLYFLOW_ENV: '', PROD_DB_URL: '', CONFIRM_PROD_REF: '',
   PROD_REF_EXPECTED: '', EXPORT_DIR: '', BASELINE_OUT: '', SEED_OUT: '',
   QA_DB_URL: '', QA_REF_EXPECTED: '', MIGRATIONS_DIR: '', PROJECT_REF_FILE: '',
-  ALLOW_PROD_MIGRATION_WRITE: '',
+  ALLOW_PROD_MIGRATION_WRITE: '', RF_EXPORT_ALLOW_CUSTOM_ENDPOINT: '',
 }
 
 describe('check-migration-artifacts.mjs', () => {
@@ -104,10 +100,15 @@ describe('verify-qa-env.mjs — universal artifact check', () => {
 })
 
 describe.skipIf(!bashOk)('01-export-prod-schema.sh guards (--check-only)', () => {
+  const P = 'bqummccorpfihatocffl'
+  const env = (url: string) => ({
+    ...cleanEnv, CONFIRM_PROD_REF: P, PROD_DB_URL: url,
+  })
+
   it('aborts without explicit CONFIRM_PROD_REF', () => {
     const r = runBash(EXPORT_SH, ['--check-only'], {
       ...cleanEnv,
-      PROD_DB_URL: 'postgresql://qa_schema_reader.x@h:6543/postgres',
+      PROD_DB_URL: `postgresql://qa_schema_reader:x@db.${P}.supabase.co:5432/postgres`,
     })
     expect(r.code).toBe(1)
     expect(r.out).toMatch(/CONFIRM_PROD_REF/)
@@ -116,38 +117,106 @@ describe.skipIf(!bashOk)('01-export-prod-schema.sh guards (--check-only)', () =>
   it('aborts on a mismatched CONFIRM_PROD_REF', () => {
     const r = runBash(EXPORT_SH, ['--check-only'], {
       ...cleanEnv, CONFIRM_PROD_REF: 'wrongref',
-      PROD_DB_URL: 'postgresql://qa_schema_reader.x@h:6543/postgres',
+      PROD_DB_URL: `postgresql://qa_schema_reader:x@db.${P}.supabase.co:5432/postgres`,
     })
     expect(r.code).toBe(1)
   })
 
-  it('aborts when the DB user is not qa_schema_reader', () => {
-    const r = runBash(EXPORT_SH, ['--check-only'], {
-      ...cleanEnv,
-      CONFIRM_PROD_REF: 'bqummccorpfihatocffl',
-      PROD_DB_URL: 'postgresql://postgres.bqummccorpfihatocffl:x@pooler:6543/postgres',
-    })
+  // --- Accepted endpoint structures -----------------------------------------
+  it('accepts a direct connection URL (db.<ref>.supabase.co:5432)', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader:pw@db.${P}.supabase.co:5432/postgres`))
+    expect(r.code).toBe(0)
+    expect(r.out).toMatch(/CHECK-ONLY/)
+  })
+
+  it('accepts a session-pooler URL (*.pooler.supabase.com:5432, qualified user)', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader.${P}:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres`))
+    expect(r.code).toBe(0)
+  })
+
+  it('accepts postgres:// scheme and default port 5432', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgres://qa_schema_reader:pw@db.${P}.supabase.co/postgres`))
+    expect(r.code).toBe(0)
+  })
+
+  // --- Rejected endpoint structures -----------------------------------------
+  it('rejects the transaction pooler on port 6543', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader.${P}:pw@aws-0-us-east-1.pooler.supabase.com:6543/postgres`))
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/6543/)
+  })
+
+  it('rejects any other non-5432 port', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader:pw@db.${P}.supabase.co:5433/postgres`))
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/5432|port/)
+  })
+
+  it('rejects a ref-qualified username on a direct connection', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader.${P}:pw@db.${P}.supabase.co:5432/postgres`))
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/bare 'qa_schema_reader'/)
+  })
+
+  it('rejects a bare username on the session pooler', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres`))
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/qa_schema_reader.<prod-ref>|prod-ref/)
+  })
+
+  it('rejects a qualified username for the WRONG project (QA ref)', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader.ixtifohdqhtvhhessgaj:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres`))
+    expect(r.code).toBe(1)
+  })
+
+  it('rejects the wrong project on a direct connection', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader:pw@db.wrongref.supabase.co:5432/postgres`))
+    expect(r.code).toBe(1)
+  })
+
+  it('rejects privileged usernames (postgres)', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://postgres.${P}:pw@aws-0-us-east-1.pooler.supabase.com:5432/postgres`))
     expect(r.code).toBe(1)
     expect(r.out).toMatch(/qa_schema_reader/)
   })
 
-  it('aborts when URL lacks the prod ref entirely', () => {
-    const r = runBash(EXPORT_SH, ['--check-only'], {
-      ...cleanEnv,
-      CONFIRM_PROD_REF: 'bqummccorpfihatocffl',
-      PROD_DB_URL: 'postgresql://qa_schema_reader:x@some-other-host:5432/postgres',
-    })
+  it('rejects unrelated pooler hosts', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader.${P}:pw@evil.pooler.evil.com:5432/postgres`))
     expect(r.code).toBe(1)
   })
 
-  it('passes all guards with correct ref + qa_schema_reader pooler URL', () => {
-    const r = runBash(EXPORT_SH, ['--check-only'], {
-      ...cleanEnv,
-      CONFIRM_PROD_REF: 'bqummccorpfihatocffl',
-      PROD_DB_URL: 'postgresql://qa_schema_reader.bqummccorpfihatocffl:x@aws-0.pooler.supabase.com:6543/postgres',
-    })
+  it('rejects lookalike supabase domains', () => {
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://qa_schema_reader.${P}:pw@aws-0.pooler.supabase.com.evil.com:5432/postgres`))
+    expect(r.code).toBe(1)
+  })
+
+  it('rejects malformed URLs (no userinfo, bad scheme)', () => {
+    const r1 = runBash(EXPORT_SH, ['--check-only'],
+      env(`postgresql://db.${P}.supabase.co:5432/postgres`))
+    expect(r1.code).toBe(1)
+    const r2 = runBash(EXPORT_SH, ['--check-only'], env('not-a-url'))
+    expect(r2.code).toBe(1)
+  })
+
+  it('rejects unapproved endpoints unless the test seam is enabled', () => {
+    const url = 'postgresql://qa_schema_reader:pw@172.17.0.2:5432/postgres?application_name=x'
+    expect(runBash(EXPORT_SH, ['--check-only'], env(url)).code).toBe(1)
+    const r = runBash(EXPORT_SH, ['--check-only'],
+      { ...env(url), RF_EXPORT_ALLOW_CUSTOM_ENDPOINT: '1' })
     expect(r.code).toBe(0)
-    expect(r.out).toMatch(/CHECK-ONLY/)
+    expect(r.out).toMatch(/WARNING.*CUSTOM_ENDPOINT/)
   })
 })
 
