@@ -360,7 +360,7 @@ export default function BookingRequestDetailModal({
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Phone</p>
                       {detail.customer_phone ? (
-                        <a href={`tel:${detail.customer_phone}`} className="font-medium text-foreground hover:text-primary-600">
+                        <a href={`tel:${detail.customer_phone}`} className="font-medium text-foreground hover:text-primary">
                           {formatPhoneNumber(detail.customer_phone)}
                         </a>
                       ) : (
@@ -423,7 +423,7 @@ export default function BookingRequestDetailModal({
               <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">Time</p>
               <div className="rounded-xl border border-border/40 bg-card p-3 text-sm">
                 <div className="flex items-start gap-2 text-foreground">
-                  <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary-500" />
+                  <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <div>
                     <p className="font-medium">
                       {formatInTimeZone(agreedStart!, detail.timezone, 'EEEE, MMM d')}
@@ -523,8 +523,8 @@ export default function BookingRequestDetailModal({
                                 onClick={() => setSelectedSlot(s)}
                                 className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
                                   selected
-                                    ? 'border-primary-600 bg-primary-600 text-white ring-2 ring-primary-600/20'
-                                    : 'border-border text-foreground hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+                                    ? 'border-primary bg-primary text-primary-foreground ring-2 ring-primary/20'
+                                    : 'border-border text-foreground hover:border-primary/50 hover:bg-primary/10'
                                 }`}
                               >
                                 {formatInTimeZone(s.start, slotTz, 'h:mm a')}
@@ -537,7 +537,7 @@ export default function BookingRequestDetailModal({
                   </div>
                 )}
                 {selectedSlot && (
-                  <div className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-900 dark:border-primary-900/40 dark:bg-primary-900/20 dark:text-primary-100">
+                  <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground">
                     <span className="font-medium">Selected:</span>{' '}
                     {formatInTimeZone(selectedSlot.start, slotTz, 'EEEE, MMM d · h:mm a')} –{' '}
                     {formatInTimeZone(selectedSlot.end, slotTz, 'h:mm a')}
@@ -546,7 +546,7 @@ export default function BookingRequestDetailModal({
                 <button
                   disabled={!selectedSlot || busy !== null}
                   onClick={() => runAction('propose', { start: selectedSlot!.start, end: selectedSlot!.end })}
-                  className="w-full rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                  className="w-full rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {busy === 'propose' ? 'Sending…' : 'Send suggested time'}
                 </button>
@@ -561,7 +561,7 @@ export default function BookingRequestDetailModal({
                     <button
                       disabled={busy !== null}
                       onClick={() => runAction('create-appointment')}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary-600 bg-primary-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
                       {busy === 'create-appointment' ? 'Creating…' : 'Create Appointment'}
                     </button>
@@ -570,7 +570,7 @@ export default function BookingRequestDetailModal({
                     <button
                       disabled={busy !== null}
                       onClick={() => runAction('create-job')}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary-600 px-3.5 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 disabled:opacity-50 dark:hover:bg-primary-900/20"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary px-3.5 py-2 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
                     >
                       {busy === 'create-job' ? 'Creating…' : 'Create Job'}
                     </button>
@@ -614,7 +614,7 @@ export default function BookingRequestDetailModal({
                   {detail.events.length > 3 && (
                     <button
                       onClick={() => setShowAllHistory((x) => !x)}
-                      className="inline-flex items-center gap-0.5 text-xs text-primary-600 hover:underline dark:text-primary-400"
+                      className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline"
                     >
                       {showAllHistory ? 'Show fewer' : 'Show all'}
                       <ChevronDown className={`h-3 w-3 transition-transform ${showAllHistory ? 'rotate-180' : ''}`} />

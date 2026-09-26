@@ -16,7 +16,8 @@ describe('Modal async content resize scroll handling', () => {
   it('only re-anchors when the user was already near the bottom and content grew', () => {
     expect(modalSource).toMatch(/wasNearBottom/)
     expect(modalSource).toMatch(/scrollHeight > prev\.scrollHeight/)
-    expect(modalSource).toMatch(/content\.scrollTop = Math\.max\(0, scrollHeight - content\.clientHeight\)/)
+    expect(modalSource).toMatch(/requestAnimationFrame/)
+    expect(modalSource).toMatch(/content\.scrollTop = Math\.max\(0, content\.scrollHeight - content\.clientHeight\)/)
   })
 
   it('records scroll state from passive scroll events', () => {
