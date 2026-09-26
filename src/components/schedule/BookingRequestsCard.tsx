@@ -263,7 +263,7 @@ export default function BookingRequestsCard() {
                 <button
                   type="button"
                   onClick={() => setOpenId(r.id)}
-                  className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:border-primary-300 hover:bg-primary-50/60 active:bg-primary-100/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 dark:hover:bg-primary-900/20 dark:active:bg-primary-900/30"
+                  className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10 active:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-primary/15 dark:active:bg-primary/20"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
@@ -276,7 +276,7 @@ export default function BookingRequestsCard() {
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_PILL[converted ? '_converted' : r.status]}`}>
                       {converted ? convertedLabel(r) : STATUS_LABEL[r.status]}
                     </span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/70 transition-colors group-hover:text-primary-500" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/70 transition-colors group-hover:text-primary" />
                   </div>
                 </button>
               </li>

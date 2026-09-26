@@ -102,6 +102,7 @@ export default function Modal({
       }
     }
 
+    let pinRaf = 0
     const ro = new ResizeObserver(() => {
       const prev = contentScrollStateRef.current
       // Only treat the user as "pinned to bottom" if the content was actually
@@ -110,13 +111,25 @@ export default function Modal({
       // state) has scrollTop=0 with scrollHeight<=clientHeight — counting
       // that as near-bottom made the newly loaded detail pin the scroll to
       // the bottom, i.e. the modal "opened at the bottom".
+      // The live-position OR covers the frame where the user reaches the
+      // bottom in the same tick the content grows — before the scroll
+      // listener has updated the ref.
       const wasNearBottom =
         prev.scrollHeight > prev.clientHeight &&
-        prev.scrollTop > 0 &&
-        prev.scrollTop + prev.clientHeight >= prev.scrollHeight - CONTENT_RESIZE_ANCHOR_THRESHOLD_PX
+        ((prev.scrollTop > 0 &&
+          prev.scrollTop + prev.clientHeight >= prev.scrollHeight - CONTENT_RESIZE_ANCHOR_THRESHOLD_PX) ||
+         (content.scrollTop + content.clientHeight >= prev.scrollHeight - CONTENT_RESIZE_ANCHOR_THRESHOLD_PX))
       const scrollHeight = content.scrollHeight
       if (wasNearBottom && scrollHeight > prev.scrollHeight) {
-        content.scrollTop = Math.max(0, scrollHeight - content.clientHeight)
+        // Defer to rAF: writing scrollTop inside the ResizeObserver callback
+        // runs before the browser commits the new scrollable range, so the
+        // write can clamp to the OLD maximum (WebKit/WKWebView) and leave the
+        // user trapped at the previous boundary until they re-scroll.
+        cancelAnimationFrame(pinRaf)
+        pinRaf = requestAnimationFrame(() => {
+          content.scrollTop = Math.max(0, content.scrollHeight - content.clientHeight)
+          updateScrollState()
+        })
       }
       updateScrollState()
     })
@@ -126,6 +139,7 @@ export default function Modal({
     updateScrollState()
 
     return () => {
+      cancelAnimationFrame(pinRaf)
       ro.disconnect()
       content.removeEventListener('scroll', updateScrollState)
     }
