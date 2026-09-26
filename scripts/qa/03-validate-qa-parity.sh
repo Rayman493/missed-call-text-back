@@ -24,7 +24,11 @@ QA_REF_EXPECTED="${QA_REF_EXPECTED:-ixtifohdqhtvhhessgaj}"  # override only for 
 [ -z "${QA_DB_URL:-}" ] && { echo "ABORT: set QA_DB_URL (QA pooler string)." >&2; exit 1; }
 case "$QA_DB_URL" in
   *"$QA_REF_EXPECTED"*|*pooler*) ;;
-  *) echo "ABORT: QA_DB_URL does not reference expected QA project." >&2; exit 1 ;;
+  *) if [ -n "${RF_QA_INIT_TEST_URL:-}" ] && [ "$QA_DB_URL" = "$RF_QA_INIT_TEST_URL" ]; then
+       echo "WARNING: disposable-database test URL accepted (RF_QA_INIT_TEST_URL)." >&2
+     else
+       echo "ABORT: QA_DB_URL does not reference expected QA project." >&2; exit 1
+     fi ;;
 esac
 [ -s "$PROD_DUMP" ] || { echo "ABORT: missing prod export ($PROD_DUMP)." >&2; exit 1; }
 
@@ -42,12 +46,16 @@ case "$HISTORY_STATUS" in
 esac
 
 PGIMG="public.ecr.aws/supabase/postgres:17.6.1.159"
+# Dockerized clients run inside a container — rewrite loopback URLs to the
+# Docker Desktop host alias so the same QA_DB_URL works for both docker
+# clients and the host-native Supabase CLI.
+forcli() { printf '%s' "$1" | sed -E 's|@(localhost\|127\.0\.0\.1)(:[0-9]+)|@host.docker.internal\2|'; }
 if command -v psql >/dev/null 2>&1; then
   sqlp() { psql "$@"; }
   pgd()  { pg_dump "$@"; }
 else
-  sqlp() { docker run --rm -i ${DOCKER_NET:+--network "$DOCKER_NET"} "$PGIMG" psql "$@"; }
-  pgd()  { docker run --rm -i ${DOCKER_NET:+--network "$DOCKER_NET"} "$PGIMG" pg_dump "$@"; }
+  sqlp() { docker run --rm -i -e PGPASSWORD ${DOCKER_NET:+--network "$DOCKER_NET"} "$PGIMG" psql "$(forcli "$1")" "${@:2}"; }
+  pgd()  { docker run --rm -i -e PGPASSWORD ${DOCKER_NET:+--network "$DOCKER_NET"} "$PGIMG" pg_dump "$(forcli "$1")" "${@:2}"; }
 fi
 
 echo "==> Dumping QA schema..."

@@ -116,9 +116,20 @@ if [ "$APPLY" -eq 1 ]; then
   [ -z "${QA_DB_URL:-}" ] && { echo "ABORT: set QA_DB_URL for --apply." >&2; exit 1; }
   case "$QA_DB_URL" in
     *"$QA_REF_EXPECTED"*|*pooler*) ;;
-    *) echo "ABORT: QA_DB_URL does not reference the QA project." >&2; exit 1 ;;
+    *) if [ -n "${RF_QA_INIT_TEST_URL:-}" ] && [ "$QA_DB_URL" = "$RF_QA_INIT_TEST_URL" ]; then
+         echo "WARNING: disposable-database test URL accepted (RF_QA_INIT_TEST_URL)." >&2
+       else
+         echo "ABORT: QA_DB_URL does not reference the QA project." >&2; exit 1
+       fi ;;
   esac
   echo "==> Applying seed to QA database..."
-  psql "$QA_DB_URL" -v ON_ERROR_STOP=1 -f "$SEED_OUT"
+  PGIMG="public.ecr.aws/supabase/postgres:17.6.1.159"
+  if command -v psql >/dev/null 2>&1; then
+    psql "$QA_DB_URL" -v ON_ERROR_STOP=1 -f "$SEED_OUT"
+  else
+    docker run --rm -i -e PGPASSWORD ${DOCKER_NET:+--network "$DOCKER_NET"} \
+      "$PGIMG" psql "$(printf '%s' "$QA_DB_URL" | sed -E 's|@(localhost\|127\.0\.0\.1)(:[0-9]+)|@host.docker.internal\2|')" \
+      -v ON_ERROR_STOP=1 -f - < "$SEED_OUT"
+  fi
   echo "Applied. 'supabase db push' / 'migration list' now sees all local versions as applied."
 fi

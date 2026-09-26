@@ -153,6 +153,12 @@ echo "==> Writing $OUT_MIGRATION ..."
   echo "-- and are NEVER replayed. Safe to run on prod (IF NOT EXISTS / OR REPLACE only)."
   echo "-- ============================================================================"
   echo ""
+  # pg_dump emits SET check_function_bodies=false so functions may reference
+  # objects created later in the dump (e.g. accept_team_invite ->
+  # public.team_invites%rowtype). The strip below removes session SETs, so the
+  # one semantically required flag is re-emitted explicitly.
+  echo "SET check_function_bodies = false;"
+  echo ""
   cat "$EXP/prod_extensions.sql"
   echo ""
   # Strip pg_dump session noise and prod ownership; keep pure DDL

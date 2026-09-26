@@ -47,6 +47,7 @@ const cleanEnv = {
   PROD_REF_EXPECTED: '', EXPORT_DIR: '', BASELINE_OUT: '', SEED_OUT: '',
   QA_DB_URL: '', QA_REF_EXPECTED: '', MIGRATIONS_DIR: '', PROJECT_REF_FILE: '',
   ALLOW_PROD_MIGRATION_WRITE: '', RF_EXPORT_ALLOW_CUSTOM_ENDPOINT: '',
+  RF_QA_INIT_TEST_URL: '', POOLER_URL_FILE: '', BASELINE: '',
 }
 
 describe('check-migration-artifacts.mjs', () => {
@@ -476,5 +477,96 @@ describe.skipIf(!bashOk)('04-seed-qa-history.sh', () => {
     })
     expect(r.code).toBe(1)
     expect(r.out).toMatch(/QA_DB_URL/)
+  })
+})
+
+describe.skipIf(!bashOk)('05-init-qa-db.sh pre-connection guards', () => {
+  const INIT_SH = 'scripts/qa/05-init-qa-db.sh'
+  const QA = 'ixtifohdqhtvhhessgaj', PROD = 'bqummccorpfihatocffl'
+
+  function refPair(ref: string, pooler: string | null) {
+    const d = tmpDir()
+    writeFileSync(join(d, 'project-ref'), ref)
+    if (pooler !== null) writeFileSync(join(d, 'pooler-url'), pooler)
+    return d
+  }
+
+  it('aborts when the worktree is linked to production', () => {
+    const d = refPair(PROD, null)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+    })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/PRODUCTION/)
+  })
+
+  it('aborts when linked to an unexpected project', () => {
+    const d = refPair('someotherref', null)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+    })
+    expect(r.code).toBe(1)
+  })
+
+  it('aborts when pooler-url is missing', () => {
+    const d = refPair(QA, null)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+    })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/pooler-url/)
+  })
+
+  it('rejects a pooler-url on port 6543', () => {
+    const d = refPair(QA, `postgresql://postgres.${QA}@aws-0.pooler.supabase.com:6543/postgres`)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+    })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/6543/)
+  })
+
+  it('rejects a pooler-url for the wrong project', () => {
+    const d = refPair(QA, `postgresql://postgres.${PROD}@aws-0.pooler.supabase.com:5432/postgres`)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+    })
+    expect(r.code).toBe(1)
+  })
+
+  it('rejects a non-pooler host in pooler-url', () => {
+    const d = refPair(QA, `postgresql://postgres.${QA}@db.${QA}.supabase.co:5432/postgres`)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+    })
+    expect(r.code).toBe(1)
+  })
+
+  it('requires a TTY for the password prompt (no silent fallback)', () => {
+    const d = refPair(QA, `postgresql://postgres.${QA}@aws-0-us-east-2.pooler.supabase.com:5432/postgres`)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+    })
+    // no TTY under spawnSync -> must abort rather than read nothing
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/interactive terminal/)
+  })
+
+  it('test-seam URL referencing production is rejected', () => {
+    const d = refPair(QA, null)
+    const r = runBash(INIT_SH, ['--dry-run'], {
+      ...cleanEnv, PROJECT_REF_FILE: join(d, 'project-ref'),
+      POOLER_URL_FILE: join(d, 'pooler-url'),
+      RF_QA_INIT_TEST_URL: `postgresql://postgres.${PROD}:x@aws-0.pooler.supabase.com:5432/postgres`,
+    })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/PRODUCTION/)
   })
 })

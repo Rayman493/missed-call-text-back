@@ -187,20 +187,22 @@ defers to step 3.
   against a disposable database.
 - Merges prod-recorded versions when a real prod history export exists.
 
-### Step 4 — apply to QA (manual trigger, when authorized)
+### Step 4 — initialize QA (one guarded script, when authorized)
 
 ```bash
-psql "$QA_DB_URL" -f qa-baseline/prod_baseline.sql     # schema snapshot
-# (prod-history seed — only if status was 'present')
-psql "$QA_DB_URL" -f qa-baseline/exports/seed_migration_history.sql
-QA_DB_URL=... ./scripts/qa/04-seed-qa-history.sh --apply  # local-manifest seed
-npx supabase db push        # no-op: applies only versions > max seeded
-./scripts/qa/03-validate-qa-parity.sh
+# Git Bash, qa worktree root — prompts for the QA DB password privately:
+./scripts/qa/05-init-qa-db.sh            # full bring-up
+./scripts/qa/05-init-qa-db.sh --dry-run  # connectivity + safety checks only
 ```
 
-`--apply` requires the worktree linked to QA and `QA_DB_URL` referencing the
-QA project. Plain `db push` must remain a no-op — if it lists dup-sibling
-files, that is the expected warning; do NOT add `--include-all`.
+`05` does the whole sequence in order and aborts on any failure: link check →
+privately-built session-pooler connection (host from `.temp/pooler-url`,
+password via `read -s`, never logged/saved, unset on exit) → remote-empty
+verification → baseline safety scan → single-transaction apply → QA-only
+history seed → `migration list` + `db push --dry-run` → parity validation →
+zero-customer-data check. Plain `db push` must remain a no-op — dup-sibling
+files listed as "before the last migration" are the expected warning; do NOT
+add `--include-all`.
 
 ### Step 5 — parity check
 
