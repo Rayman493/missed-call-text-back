@@ -61,10 +61,41 @@ case "$EXP" in
 esac
 
 # --- Leak scan: credentials --------------------------------------------------
+# Two-tier scan — secret VALUES, not secret-sounding identifiers:
+#   Tier 1  known credential formats (key prefixes, JWTs, conn strings with
+#           passwords, private-key blocks, vault secret writes)
+#   Tier 2  secret-identifier assigned a literal value (password := 'x',
+#           "client_secret": "x", FDW OPTIONS (password 'x'), and unquoted
+#           assignments carrying digits) — catches secrets even when they sit
+#           on the same line as a legitimate identifier.
+# Role references (TO service_role, auth.role() = 'service_role'), column
+# names (payment_intent_client_secret) and descriptive COMMENT text are NOT
+# flagged. Findings are reported as file:line + class only — content is
+# redacted so real secrets never hit the log.
 echo "==> Scanning exports for credentials and secrets..."
-if grep -rEin "sk_live|sk_test|rk_live|rk_test|whsec_|service_role|eyJ[A-Za-z0-9_-]{10,}\.|password|passwd|secret" \
-     "$EXP" ; then
-  echo "ABORT: potential secret material found in exports (see matches above)." >&2
+SECRET_HITS=0
+flag_secret() { # $1=file $2=line $3=class
+  echo "  SECRET-CANDIDATE $(basename "$1"):$2 ($3 — content redacted)" >&2
+  SECRET_HITS=$((SECRET_HITS+1))
+}
+for f in "$EXP"/*; do
+  [ -f "$f" ] || continue
+  while IFS= read -r ln; do
+    [ -n "$ln" ] && flag_secret "$f" "$ln" "credential-format value"
+  done < <(grep -nE "sk_live_|sk_test_|rk_live_|rk_test_|pk_live_|pk_test_|whsec_|xox[baprs]-|eyJ[A-Za-z0-9_-]{10,}\.|BEGIN [A-Z ]*PRIVATE KEY|(postgres|postgresql|mysql|mongodb|redis|amqp)s?://[^/@[:space:]]+:[^@[:space:]]+@|AKIA[0-9A-Z]{16}|vault\.create_secret[[:space:]]*\(" "$f" | cut -d: -f1)
+  while IFS= read -r ln; do
+    [ -n "$ln" ] && flag_secret "$f" "$ln" "secret identifier assigned a quoted literal"
+  done < <(grep -nEi "(password|passwd|pwd|secret|token|api_?key|client_?secret|private_?key|credential|service_?role)[\"']?[[:space:]]*(:|:=|=>|=)[[:space:]]*[\"'][^\"']{4,}" "$f" | cut -d: -f1)
+  while IFS= read -r ln; do
+    [ -n "$ln" ] && flag_secret "$f" "$ln" "secret identifier assigned an unquoted value"
+  done < <(grep -nEi "(password|passwd|secret|token|api_?key|client_?secret|private_?key|credential)[\"']?[[:space:]]*(:=|=>|=)[[:space:]]*[^\"'[:space:],;(){:]*[0-9][^\"'[:space:],;(){:]*" "$f" | cut -d: -f1)
+  while IFS= read -r ln; do
+    [ -n "$ln" ] && flag_secret "$f" "$ln" "password option/literal (FDW-style)"
+  done < <(grep -nEi "password[[:space:]]+[\"'][^\"']{3,}" "$f" | cut -d: -f1)
+done
+if [ "$SECRET_HITS" -gt 0 ]; then
+  echo "ABORT: $SECRET_HITS potential secret value(s) in exports — inspect" >&2
+  echo "the flagged lines manually; contents were redacted from this log." >&2
   exit 1
 fi
 

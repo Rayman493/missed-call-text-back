@@ -260,10 +260,26 @@ describe('guard-prod-db-push.mjs', () => {
 })
 
 describe.skipIf(!bashOk)('02-build-baseline.sh', () => {
+  // Schema fixture includes the exact false-positive shapes observed in the
+  // real prod export: service_role role references in policies/comments,
+  // admin_password_reset inside a COMMENT literal, and the
+  // payment_intent_client_secret column name/description.
+  const LEGIT_SCHEMA = [
+    '-- dump',
+    'SET x=1;',
+    '-- Server-side writes (service_role, anon key not carrying a user, triggers)',
+    'CREATE TABLE public.t(id int, payment_intent_client_secret text);',
+    "COMMENT ON COLUMN public.t.id IS 'Action performed (e.g., admin_password_reset, admin_login_email_changed)';",
+    "COMMENT ON COLUMN public.t.payment_intent_client_secret IS 'Client secret for Terminal PaymentIntent (not stored for Checkout Sessions)';",
+    'CREATE POLICY "svc" ON public.t FOR INSERT TO service_role WITH CHECK (true);',
+    "CREATE POLICY \"svc2\" ON public.t USING ((auth.role() = 'service_role'::text));",
+    '\\restrict tok',
+    '',
+  ].join('\n')
+
   function fixture(dir: string, history: 'present' | 'absent' = 'present') {
     mkdirSync(dir, { recursive: true })
-    writeFileSync(join(dir, 'prod_schema_public.sql'),
-      '-- dump\nSET x=1;\nCREATE TABLE public.t(id int);\n\\restrict tok\n')
+    writeFileSync(join(dir, 'prod_schema_public.sql'), LEGIT_SCHEMA)
     writeFileSync(join(dir, 'prod_extensions.sql'), 'create extension if not exists "pgcrypto";\n')
     writeFileSync(join(dir, 'prod_storage_buckets.sql'), '-- none\n')
     writeFileSync(join(dir, 'prod_publications.sql'), '-- none\n')
@@ -320,6 +336,45 @@ describe.skipIf(!bashOk)('02-build-baseline.sh', () => {
       "CREATE TABLE public.t(id int); -- sk_live_abcdef\n")
     const r = runBash(BUILD_SH, [], { ...cleanEnv, EXPORT_DIR: exp })
     expect(r.code).toBe(1)
+  })
+
+  it('passes on the observed false positives (service_role/policy/COMMENT)', () => {
+    const d = tmpDir()
+    const exp = join(d, 'exports'); fixture(exp)
+    const r = runBash(BUILD_SH, [], {
+      ...cleanEnv, EXPORT_DIR: exp,
+      BASELINE_OUT: join(d, 'prod_baseline.sql'), SEED_OUT: join(exp, 's.sql'),
+    })
+    expect(r.code).toBe(0)
+  })
+
+  it.each([
+    ['stripe key in a comment', "CREATE TABLE public.t(id int); -- sk_live_51abc\n"],
+    ['JWT literal', "COMMENT ON TABLE t IS 'x eyJhbGciOiJIUzI1NiJ9.payloadpart sig';\n"],
+    ['conn string with password', "-- postgresql://app:s3cr3tpass@db.x.supabase.co:5432/postgres\nCREATE TABLE public.t(id int);\n"],
+    ['assigned secret in function body', "CREATE FUNCTION public.f() returns void language plpgsql as $$ begin v_secret := 'whsec_ABC123'; end $$;\nCREATE TABLE public.t(id int);\n"],
+    ['JSON-style client_secret', "COMMENT ON TABLE t IS '{\"client_secret\": \"whsec_ABC123456\"}';\nCREATE TABLE public.t(id int);\n"],
+    ['unquoted token assignment with digits', "-- config: api_token = tok12345\nCREATE TABLE public.t(id int);\n"],
+    ['secret on same line as legit identifier',
+     "CREATE TABLE public.t(id int, payment_intent_client_secret text); -- live key sk_live_9zZz9zZz\n"],
+  ])('rejects real-secret shapes: %s', (_label, sql) => {
+    const d = tmpDir()
+    const exp = join(d, 'exports'); fixture(exp)
+    writeFileSync(join(exp, 'prod_schema_public.sql'),
+      LEGIT_SCHEMA + sql)
+    const r = runBash(BUILD_SH, [], { ...cleanEnv, EXPORT_DIR: exp })
+    expect(r.code).toBe(1)
+  })
+
+  it('redacts secret content in findings (file:line + class only)', () => {
+    const d = tmpDir()
+    const exp = join(d, 'exports'); fixture(exp)
+    writeFileSync(join(exp, 'prod_schema_public.sql'),
+      LEGIT_SCHEMA + "CREATE TABLE public.t(id int); -- sk_live_51ReaLkEy987\n")
+    const r = runBash(BUILD_SH, [], { ...cleanEnv, EXPORT_DIR: exp })
+    expect(r.code).toBe(1)
+    expect(r.out).not.toContain('sk_live_51ReaLkEy987')
+    expect(r.out).toMatch(/SECRET-CANDIDATE prod_schema_public\.sql:\d+/)
   })
 
   it('present: emits QA-ONLY baseline + idempotent prod-history seed', () => {
