@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { areCronsEnabled } from '@/lib/runtime-env'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,10 @@ export const dynamic = 'force-dynamic'
  * Security: Protected by CRON_SECRET environment variable
  */
 export async function GET(request: Request) {
+  if (!areCronsEnabled()) {
+    return NextResponse.json({ error: 'Crons disabled in this environment' }, { status: 404 })
+  }
+
   // Verify cron secret to prevent unauthorized access
   const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get('authorization')

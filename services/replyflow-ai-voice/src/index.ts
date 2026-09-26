@@ -87,6 +87,7 @@ import {
   requiresSettleWindow,
 } from './lib/timing-policy';
 import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
+import { getMainAppUrl, getVoiceBaseUrl, getVoiceEnv, assertVoiceQaIsolation } from './runtime-env';
 import { EARLY_COMPLETION_PATTERNS, EARLY_CALLBACK_PATTERNS } from './early-timing-patterns';
 import { enrichIntakeFromTranscript, hasUsableLocation, isNameRefusal, isLocationRefusal, detectCorrectionIntent, extractExplicitNameCorrection, extractCompletionTimeCandidate, extractCallbackTimeCandidate, splitServiceAndDetails } from './intake-skip-ahead';
 
@@ -1988,7 +1989,7 @@ async function persistAiSummarySmsMessage(params: {
       console.log('[AI SUMMARY SMS API PERSIST START] Timestamp:', new Date().toISOString());
       console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
 
-      const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+      const appBaseUrl = getMainAppUrl();
       const internalApiSecret = process.env.INTERNAL_API_SECRET;
 
       console.log('[AI SUMMARY SMS API PERSIST START] =========================================');
@@ -2126,7 +2127,7 @@ function executeOpenaiFinalHangup(ws: any, twilioHandler: any, closingState: any
 function executeTwilioFallback(ws: any, twilioHandler: any, closingState: any): void {
   const callSid = (ws as any).callSid;
   const twilioClient = (twilioHandler as any).twilioClient;
-  const baseUrl = process.env.BASE_URL || 'https://replyflow-ai-voice.fly.dev';
+  const baseUrl = getVoiceBaseUrl();
   const finalCloseUrl = `${baseUrl}/api/twilio/ai-final-close`;
 
   if (callSid && twilioClient) {
@@ -5434,7 +5435,7 @@ async function finalizeIncompleteIntake(
   console.log('[INCOMPLETE FINALIZATION] Creating follow-up jobs for leadId:', lead.id);
 
   try {
-    const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+    const appBaseUrl = getMainAppUrl();
     const notificationApiUrl = appBaseUrl;
     const internalApiSecret = process.env.INTERNAL_API_SECRET;
 
@@ -5822,7 +5823,7 @@ async function triggerVoicemailFallback(
     const twilioClient = require('twilio')(twilioAccountSid, twilioAuthToken);
 
     // Redirect the call to the voicemail endpoint
-    const voicemailUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'}/api/twilio/voicemail`;
+    const voicemailUrl = `${getMainAppUrl()}/api/twilio/voicemail`;
 
     console.log('[VOICEMAIL FALLBACK START]', { callSid, voicemailUrl });
 
@@ -6220,6 +6221,11 @@ process.on('unhandledRejection', (reason, promise) => {
   }
   log(LogLevel.ERROR, '[PROCESS] unhandledRejection', { reason, promise });
 });
+
+// Fail closed before binding: a QA deployment pointing at production
+// resources must refuse to start rather than touch production.
+assertVoiceQaIsolation();
+log(LogLevel.INFO, '[ENV] REPLYFLOW_ENV resolved', { env: getVoiceEnv() });
 
 // Create HTTP server for health checks
 const server = createServer(async (req, res) => {
@@ -15797,7 +15803,7 @@ Return only JSON, no other text.`;
         // Call follow-up creation API
         try {
           console.log('[FOLLOWUP DEBUG API START - ACTIVE] Fetching from follow-up API');
-          const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+          const appBaseUrl = getMainAppUrl();
           const followUpApiUrl = appBaseUrl;
           const internalApiSecret = process.env.INTERNAL_API_SECRET;
 
@@ -16230,7 +16236,7 @@ Return only JSON, no other text.`;
           console.log('[INCOMPLETE FOLLOWUP CREATE START] =========================================');
 
           try {
-            const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+            const appBaseUrl = getMainAppUrl();
             const followUpApiUrl = appBaseUrl;
             const internalApiSecret = process.env.INTERNAL_API_SECRET;
 
@@ -20069,7 +20075,7 @@ Return only JSON, no other text.`;
                 });
 
                 try {
-                  const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+                  const appBaseUrl = getMainAppUrl();
                   const notificationApiUrl = appBaseUrl;
                   console.log('[NOTIFICATION SERVICE URL - PATH-C]', notificationApiUrl);
 
@@ -20323,7 +20329,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   });
 
                   try {
-                    const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+                    const appBaseUrl = getMainAppUrl();
                     const notificationApiUrl = appBaseUrl;
                     console.log('[NOTIFICATION SERVICE URL - PATH-D]', notificationApiUrl);
 
@@ -20614,7 +20620,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   });
 
                   try {
-                    const appBaseUrl = process.env.MAIN_APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.replyflowhq.com' : 'http://localhost:3000');
+                    const appBaseUrl = getMainAppUrl();
                     const notificationApiUrl = appBaseUrl;
                     console.log('[NOTIFICATION SERVICE URL - PATH-E]', notificationApiUrl);
 

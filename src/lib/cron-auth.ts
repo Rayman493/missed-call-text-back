@@ -20,6 +20,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { areCronsEnabled } from '@/lib/runtime-env'
 
 export interface CronAuthResult {
   authorized: boolean
@@ -44,6 +45,16 @@ export interface CronAuthResult {
  * Never logs the secret value.
  */
 export function verifyCronRequest(request: NextRequest): CronAuthResult {
+  // Scheduled mutations (Twilio purchases, customer SMS, billing updates)
+  // only run in production unless explicitly enabled for QA.
+  if (!areCronsEnabled()) {
+    return {
+      authorized: false,
+      error: 'Crons disabled in this environment',
+      status: 404,
+    }
+  }
+
   const cronSecret = process.env.CRON_SECRET
 
   // Fail closed if CRON_SECRET not configured

@@ -5,6 +5,7 @@
  */
 
 import Twilio from 'twilio';
+import { getAppBaseUrl } from './urls';
 import { createClient } from '@supabase/supabase-js';
 import { isSystemPhoneNumber } from './twilio-assignment';
 import { isTransientError, normalizeErrorField } from './twilio-error-utils';
@@ -335,7 +336,7 @@ export async function provisionWarmNumber(): Promise<{ success: boolean; phoneNu
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+  const appUrl = getAppBaseUrl();
 
   if (!accountSid || !authToken) {
     console.error('[Warm Inventory] Missing Twilio credentials');

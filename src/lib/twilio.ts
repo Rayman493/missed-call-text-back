@@ -1,4 +1,5 @@
 import Twilio from "twilio";
+import { getAppBaseUrl } from './urls';
 import { createClient } from '@supabase/supabase-js';
 import { validateTwilioForSms, logTwilioEnvStatus } from './twilio/env';
 import { isNumberReadyForUse } from './twilio-provisioning-service';
@@ -435,7 +436,7 @@ export async function sendSms(
 
   try {
     // Get app URL for status callback
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
+    const appUrl = getAppBaseUrl()
     const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
     console.log('[SMS TRACE sendSms STEP_9_CALLBACK_URL]', { appUrl, statusCallbackUrl });
 
@@ -1131,7 +1132,7 @@ export async function sendMms(
   let errorCode = '';
 
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
+    const appUrl = getAppBaseUrl()
     const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
     const fromNumber = business.twilio_phone_number;
 
@@ -1935,7 +1936,7 @@ export async function provisionTwilioNumber(businessId: string, correlationId?: 
     console.log('[PROVISIONING_LIFECYCLE] ========== twilio_purchase_started ==========');
     console.log(`[PROVISIONING_LIFECYCLE] business_id=${businessId}`);
     const client = Twilio(accountSid, authToken)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
+    const appUrl = getAppBaseUrl()
 
     console.log(`[Provisioning] Searching for available local number correlation_id=${correlationId}`)
 

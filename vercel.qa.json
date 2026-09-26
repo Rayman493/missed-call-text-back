@@ -1,0 +1,4 @@
+{
+  "$comment": "QA deployment config — rename to vercel.json in the QA Vercel project ONLY, or configure the QA project without the crons section. Crons are additionally gated at runtime by REPLYFLOW_ENV, but the QA project should not register them at all.",
+  "crons": []
+}

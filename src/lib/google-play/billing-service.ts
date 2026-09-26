@@ -11,6 +11,7 @@
  */
 
 import { getGooglePlayAccessToken } from './auth'
+import { getAppBaseUrlOrNull } from '@/lib/urls'
 
 const API_BASE = 'https://androidpublisher.googleapis.com/androidpublisher/v3'
 
@@ -346,7 +347,7 @@ export async function verifyAndApplyPurchase(
   const newlyEntitled = mapped.status === 'active' || mapped.status === 'trialing'
   if (newlyEntitled && !business.twilio_phone_number) {
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      const appUrl = getAppBaseUrlOrNull()
       const adminSecret = process.env.PROVISIONING_ADMIN_SECRET
       if (appUrl && adminSecret) {
         const provRes = await fetch(`${appUrl}/api/business/trigger-provisioning`, {

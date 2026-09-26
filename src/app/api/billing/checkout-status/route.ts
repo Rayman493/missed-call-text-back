@@ -3,6 +3,7 @@ import getStripe from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import { hasActiveManualAccess, getManualAccessStatus } from '@/lib/manual-access'
 import { isEligibleForProvisioning } from '@/lib/subscription'
+import { getAppBaseUrl } from '@/lib/urls'
 
 export async function POST(request: NextRequest) {
   try {
@@ -206,7 +207,7 @@ export async function POST(request: NextRequest) {
           if (shouldProvision) {
             console.log('[Billing Success Fallback Recovery] Triggering provisioning after repair')
             try {
-              const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
+              const response = await fetch(`${getAppBaseUrl()}/api/business/trigger-provisioning`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

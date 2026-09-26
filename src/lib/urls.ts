@@ -7,34 +7,54 @@
  * - Local Development: http://localhost:3000
  */
 
+import { getReplyFlowEnv, isProductionAppHost } from './runtime-env'
+
 export function getAppBaseUrl(): string {
-  // Production: Use canonical www hostname for Universal Links compatibility
-  if (process.env.NODE_ENV === 'production') {
+  const env = getReplyFlowEnv()
+
+  // Production: Use canonical www hostname for Universal Links compatibility.
+  // REPLYFLOW_ENV (not NODE_ENV) decides this — a QA deployment also runs
+  // NODE_ENV=production but must never resolve to the production URL.
+  if (env === 'production') {
     return 'https://www.replyflowhq.com'
   }
-  
-  // Preview/Development: Check for environment variables
+
+  // Preview/QA/Development: Check for environment variables
   const vercelUrl = process.env.VERCEL_URL
   const appUrl = process.env.NEXT_PUBLIC_APP_URL
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  
-  // Vercel preview deployments
-  if (vercelUrl) {
-    return `https://${vercelUrl}`
+
+  const candidates = [vercelUrl ? `https://${vercelUrl}` : '', appUrl || '', siteUrl || '']
+  for (const candidate of candidates) {
+    if (!candidate || candidate.includes('localhost')) continue
+    if (env === 'qa' && isProductionAppHost(candidate)) {
+      throw new Error(
+        `[ENV ISOLATION] App URL resolved to production (${new URL(candidate).hostname}) while REPLYFLOW_ENV=qa`
+      )
+    }
+    return candidate
   }
-  
-  // Explicitly configured app URL
-  if (appUrl && !appUrl.includes('localhost')) {
-    return appUrl
+
+  if (env === 'qa') {
+    throw new Error(
+      '[ENV ISOLATION] NEXT_PUBLIC_APP_URL is required when REPLYFLOW_ENV=qa; refusing to fall back to production'
+    )
   }
-  
-  // Explicitly configured site URL
-  if (siteUrl && !siteUrl.includes('localhost')) {
-    return siteUrl
-  }
-  
+
   // Local development fallback
   return 'http://localhost:3000'
+}
+
+/**
+ * Null-returning variant for call sites that deliberately degrade when
+ * no base URL is configured (e.g. optional provisioning triggers).
+ */
+export function getAppBaseUrlOrNull(): string | null {
+  try {
+    return getAppBaseUrl()
+  } catch {
+    return null
+  }
 }
 
 /**

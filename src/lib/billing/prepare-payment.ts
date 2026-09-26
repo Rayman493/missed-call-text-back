@@ -1,4 +1,5 @@
 import getStripe from '@/lib/stripe'
+import { getAppBaseUrl } from '@/lib/urls'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -236,7 +237,7 @@ export async function prepareInvoicePayment(
     return { ok: false, error: 'Stripe is not configured', status: 500 }
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const origin = getAppBaseUrl()
 
   let publicToken = invoice.public_token
   if (!publicToken) {

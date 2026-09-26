@@ -13,6 +13,7 @@ import { validateStateTransition, isAuthoritativePaidCorrection } from '@/lib/te
 import { isPaymentRequestCheckoutSession, reconcilePaymentRequestCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
 import { verifyStripeWebhookEvent } from '@/lib/stripe/webhook-signature'
 import { computeRefundState, mapDisputeStatus } from '@/lib/payment-refund-dispute'
+import { getAppBaseUrl } from '@/lib/urls'
 
 /**
  * Determine canonical Stripe Connect status from a Stripe account object
@@ -1008,7 +1009,7 @@ export async function POST(request: Request) {
                   gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'not_set'
                 })
 
-                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
+                const response = await fetch(`${getAppBaseUrl()}/api/business/trigger-provisioning`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -1804,7 +1805,7 @@ export async function POST(request: Request) {
                   gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'not_set'
                 })
 
-                const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/business/trigger-provisioning`, {
+                const response = await fetch(`${getAppBaseUrl()}/api/business/trigger-provisioning`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',

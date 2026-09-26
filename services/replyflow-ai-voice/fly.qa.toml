@@ -1,0 +1,30 @@
+# QA voice service — separate Fly app, deploy with: fly deploy -c fly.qa.toml
+
+app = 'replyflow-ai-voice-qa'
+primary_region = 'ewr'
+
+[build]
+  dockerfile = "Dockerfile"
+  context = "."
+
+[env]
+  NODE_ENV = 'production'
+  REPLYFLOW_ENV = 'qa'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512
