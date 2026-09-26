@@ -13,6 +13,16 @@
  *   REPLYFLOW_ENV=development  -> no-op
  */
 
+// Universal guard — runs for ALL environments: QA bootstrap artifacts must
+// never be present in the shared production migration directory. Fails the
+// build regardless of REPLYFLOW_ENV so a contaminated tree can't deploy.
+try {
+  const { execFileSync } = await import('node:child_process')
+  execFileSync(process.execPath, ['scripts/check-migration-artifacts.mjs'], { stdio: 'inherit' })
+} catch {
+  process.exit(1)
+}
+
 const env = (process.env.REPLYFLOW_ENV || '').trim().toLowerCase()
 
 if (env !== 'qa') {

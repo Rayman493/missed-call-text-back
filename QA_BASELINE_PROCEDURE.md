@@ -16,14 +16,24 @@ SQL-editor patches). 136/149 tracked files fail on a fresh database.
 
 Instead of repairing 149 imperfect files, QA gets:
 
-1. **One baseline migration** — `pg_dump --schema-only` of prod's `public`
-   schema, sanitized, emitted as
-   `supabase/migrations/20261005000000_qa_baseline_prod_schema.sql`.
-2. **A history seed** — `INSERT`s marking every version recorded in prod's
-   `supabase_migrations.schema_migrations` as already applied on QA. `db push`
-   then runs ONLY the baseline; historical files never execute on QA.
+1. **One baseline file** — `pg_dump --schema-only` of prod's `public`
+   schema, sanitized, emitted as **`qa-baseline/prod_baseline.sql`** —
+   deliberately OUTSIDE `supabase/migrations/` (physical separation), applied
+   once via `psql` during QA bring-up. It carries a `-- QA-ONLY` marker.
+2. **A history seed** — `qa-baseline/exports/seed_migration_history.sql`:
+   `INSERT ... ON CONFLICT DO NOTHING` marking every version recorded in prod's
+   `supabase_migrations.schema_migrations` as applied on QA. `db push` then has
+   nothing pending; historical files never execute on QA.
 3. **Future migrations** are new timestamped files written on `qa` and promoted
    to `main` normally — `db push` to prod applies only versions prod lacks.
+
+### Why separation is physical, not just nominal
+
+`check-migration-artifacts.mjs` runs inside `verify-qa-env.mjs` for **every**
+build (including production Vercel builds): any QA-only artifact found in
+`supabase/migrations/` fails the build. Because the baseline lives in
+`qa-baseline/`, even a direct `supabase db push` against prod from this branch
+cannot execute it — the file is invisible to the CLI.
 
 ### Why no renames are needed
 
@@ -75,11 +85,18 @@ Teardown after export: `drop role qa_schema_reader;`
 
 ```bash
 export PROD_DB_URL='postgresql://qa_schema_reader.<ref>:<pwd>@aws-...pooler.supabase.com:6543/postgres'
-./scripts/qa/01-export-prod-schema.sh
+export CONFIRM_PROD_REF=bqummccorpfihatocffl   # explicit prod confirmation
+./scripts/qa/01-export-prod-schema.sh          # add --check-only to dry-run guards
 ```
 
-Guards: refuses if QA worktree isn't linked to the QA project, if the exports
-dir isn't gitignored, or if the URL doesn't reference the prod allowlist ref.
+Guards (all must pass before any bytes move):
+- QA worktree still linked to `ixtifohdqhtvhhessgaj`
+- exports dir gitignored
+- `CONFIRM_PROD_REF` explicitly equals the prod allowlist ref
+- URL references the prod project **and** authenticates as `qa_schema_reader`
+- post-connect: `current_user` verified + `rolsuper/rolbypassrls/rolcreatedb`
+  all false + `transaction_read_only=on`
+- post-dump: schema file scanned for `COPY`/`INSERT INTO public|auth` → abort
 
 ### Step 2 — build the baseline (scripted)
 
@@ -93,8 +110,9 @@ builds the baseline migration + `seed_migration_history.sql`.
 ### Step 3 — apply to QA (manual trigger, when authorized)
 
 ```bash
-psql "$QA_DB_URL" -f qa-baseline/exports/seed_migration_history.sql
-npx supabase db push            # applies ONLY 20261005000000 baseline
+psql "$QA_DB_URL" -f qa-baseline/prod_baseline.sql                 # schema
+psql "$QA_DB_URL" -f qa-baseline/exports/seed_migration_history.sql # history
+npx supabase db push        # no-op — everything already recorded applied
 ./scripts/qa/03-validate-qa-parity.sh
 ```
 

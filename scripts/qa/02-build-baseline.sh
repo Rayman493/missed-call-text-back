@@ -20,17 +20,23 @@
 # =============================================================================
 set -euo pipefail
 
-EXP="qa-baseline/exports"
-BASELINE_TS="20261005000000"
-OUT_MIGRATION="supabase/migrations/${BASELINE_TS}_qa_baseline_prod_schema.sql"
-SEED_OUT="$EXP/seed_migration_history.sql"
+EXP="${EXPORT_DIR:-qa-baseline/exports}"
+# Physical separation: the baseline is a QA bootstrap artifact applied via
+# psql during bring-up, NOT a supabase/migrations file. It can never be
+# picked up by `supabase db push` on any environment.
+OUT_MIGRATION="${BASELINE_OUT:-qa-baseline/prod_baseline.sql}"
+SEED_OUT="${SEED_OUT:-$EXP/seed_migration_history.sql}"
+mkdir -p "$(dirname "$OUT_MIGRATION")"
 
 for f in prod_schema_public.sql prod_extensions.sql prod_migration_history.sql; do
   [ -s "$EXP/$f" ] || { echo "ABORT: missing $EXP/$f — run 01-export-prod-schema.sh first." >&2; exit 1; }
 done
 
-# --- Gitignore re-check ------------------------------------------------------
-git check-ignore -q "$EXP/probe" || { echo "ABORT: $EXP not gitignored." >&2; exit 1; }
+# --- Gitignore re-check (in-repo exports path only) --------------------------
+case "$EXP" in
+  qa-baseline/*) git check-ignore -q "$EXP/probe" \
+    || { echo "ABORT: $EXP not gitignored." >&2; exit 1; } ;;
+esac
 
 # --- Leak scan: credentials --------------------------------------------------
 echo "==> Scanning exports for credentials and secrets..."
@@ -57,21 +63,22 @@ grep -nEi "bqummccorpfihatocffl" "$EXP"/prod_*.sql \
 # version itself so the file is idempotent.
 echo "==> Generating migration-history seed..."
 {
+  echo "-- QA-ONLY — seeds QA's schema_migrations to mirror production history."
   echo "-- Seed: mark production-recorded migration versions as applied on QA."
   echo "-- Generated $(date -u +%Y-%m-%dT%H:%M:%SZ). Versions sourced from prod export."
   echo "create schema if not exists supabase_migrations;"
   echo "create table if not exists supabase_migrations.schema_migrations("
   echo "  version text primary key, statements text[], name text,"
   echo "  created_at timestamptz not null default now());"
-  cat "$EXP/prod_migration_history.sql" | grep -E "^INSERT" || true
-  echo "insert into supabase_migrations.schema_migrations(version,name)"
-  echo "  values('${BASELINE_TS}','qa_baseline_prod_schema')"
-  echo "  on conflict (version) do nothing;"
+  cat "$EXP/prod_migration_history.sql" | grep -E "^INSERT" \
+    | sed -E 's/\);$/) ON CONFLICT (version) DO NOTHING;/' || true
 } > "$SEED_OUT"
 
 # --- Assemble the baseline migration -----------------------------------------
 echo "==> Writing $OUT_MIGRATION ..."
 {
+  echo "-- QA-ONLY — this file is a QA bootstrap artifact. It must NEVER be placed"
+  echo "-- in supabase/migrations/ or applied to production."
   echo "-- ============================================================================"
   echo "-- QA BASELINE — snapshot of the production public schema"
   echo "-- Generated $(date -u +%Y-%m-%dT%H:%M:%SZ) from a READ-ONLY pg_dump of prod."
@@ -99,9 +106,10 @@ echo "==> Writing $OUT_MIGRATION ..."
 } > "$OUT_MIGRATION"
 
 LINES=$(wc -l < "$OUT_MIGRATION")
-echo "DONE. Baseline migration written ($LINES lines)."
+echo "DONE. Baseline written ($LINES lines) → $OUT_MIGRATION (outside supabase/migrations)."
 echo ""
 echo "Apply order on the fresh QA project (manual, when authorized):"
-echo "  1. psql \$QA_DB_URL -f $SEED_OUT          # mark prod history applied"
-echo "  2. npx supabase db push                  # applies ONLY the baseline"
-echo "  3. ./scripts/qa/03-validate-qa-parity.sh # compare QA schema vs prod export"
+echo "  1. psql \$QA_DB_URL -f $OUT_MIGRATION    # schema snapshot"
+echo "  2. psql \$QA_DB_URL -f $SEED_OUT         # mark prod history applied"
+echo "  3. npx supabase db push                  # no-op until new migrations exist"
+echo "  4. ./scripts/qa/03-validate-qa-parity.sh # compare QA schema vs prod export"

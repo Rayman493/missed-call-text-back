@@ -44,7 +44,16 @@ if ! git check-ignore -q "$OUT_DIR/probe" 2>/dev/null; then
   exit 1
 fi
 
-# --- Guard 3: connection string required, must reference the prod project only -
+# --- Guard 3a: explicit confirmation of the production project ref ----------
+# The operator must deliberately restate the target; a wrong or absent value
+# aborts before any network connection is attempted.
+if [ "${CONFIRM_PROD_REF:-}" != "$PROD_REF_EXPECTED" ]; then
+  echo "ABORT: set CONFIRM_PROD_REF=$PROD_REF_EXPECTED to confirm you intend a" >&2
+  echo "read-only export from PRODUCTION. Mismatched or unset — refusing." >&2
+  exit 1
+fi
+
+# --- Guard 3b: connection string required, must reference the prod project ---
 if [ -z "${PROD_DB_URL:-}" ]; then
   echo "ABORT: PROD_DB_URL is not set." >&2
   echo "Use the restricted qa_schema_reader credential via the Supabase pooler:" >&2
@@ -55,6 +64,20 @@ case "$PROD_DB_URL" in
   *"$PROD_REF_EXPECTED"*|*pooler*) ;;  # pooler embeds ref in username or host
   *) echo "ABORT: PROD_DB_URL does not reference expected prod project ($PROD_REF_EXPECTED)." >&2; exit 1 ;;
 esac
+
+# --- Guard 3c: the connection must authenticate as qa_schema_reader ----------
+# Extract the userinfo user from the URL (postgresql://user[:pw]@host/…).
+DB_USER=$(printf '%s' "$PROD_DB_URL" | sed -E 's|^[^:]+://([^:@]+)(:[^@]*)?@.*|\1|')
+case "$DB_USER" in
+  qa_schema_reader|qa_schema_reader.*) ;;
+  *) echo "ABORT: PROD_DB_URL user is '$DB_USER' — must be the restricted" >&2
+     echo "qa_schema_reader role, never the database administrator." >&2; exit 1 ;;
+esac
+
+if [ "${1:-}" = "--check-only" ]; then
+  echo "CHECK-ONLY: all pre-flight guards passed (user=$DB_USER, ref confirmed)."
+  exit 0
+fi
 
 # --- Client tooling: local psql/pg_dump, else the pinned supabase image ------
 PGIMG="public.ecr.aws/supabase/postgres:17.6.1.159"
@@ -67,9 +90,21 @@ else
   pgd()  { docker run --rm -i ${DOCKER_NET:+--network "$DOCKER_NET"} "$PGIMG" pg_dump "$@"; }
 fi
 
-# --- Guard 4: prove read-only session before dumping -------------------------
+# --- Guard 4: verify server-side identity + privileges before dumping --------
+IDENT=$(sqlp "$PROD_DB_URL" -Atc \
+  "select current_user, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole, rolreplication \
+     from pg_roles where rolname = current_user" 2>/dev/null || echo "FAILED")
+[ "$IDENT" = "FAILED" ] && { echo "ABORT: could not verify connection identity." >&2; exit 1; }
+ROLE_USER=$(printf '%s' "$IDENT" | cut -d'|' -f1)
+PRIVS=$(printf '%s' "$IDENT" | cut -d'|' -f2-)
+if [ "${ROLE_USER#qa_schema_reader}" = "$ROLE_USER" ]; then
+  echo "ABORT: connected as '$ROLE_USER' — not qa_schema_reader." >&2; exit 1
+fi
+if printf '%s' "$PRIVS" | grep -q 't'; then
+  echo "ABORT: role holds elevated privileges ($PRIVS) — refusing." >&2; exit 1
+fi
 READONLY=$(sqlp "$PROD_DB_URL" -Atqc "show transaction_read_only" 2>/dev/null || echo "unknown")
-echo "transaction_read_only=$READONLY (role-level read-only is enforced server-side for qa_schema_reader)"
+echo "verified: current_user=$ROLE_USER superuser=f bypassrls=f createdb=f read_only=$READONLY"
 
 echo "==> Exporting public schema (DDL only)..."
 pgd "$PROD_DB_URL" \
@@ -89,14 +124,14 @@ sqlp "$PROD_DB_URL" -Atc \
 
 echo "==> Exporting storage.buckets (bucket configuration rows only)..."
 pgd "$PROD_DB_URL" \
-  --data-only --table=storage.buckets --inserts \
+  --data-only --table=storage.buckets --column-inserts \
   --no-owner --no-privileges \
 > "$OUT_DIR/prod_storage_buckets.sql" 2>/dev/null \
   || echo "-- storage schema not accessible with this role" > "$OUT_DIR/prod_storage_buckets.sql"
 
 echo "==> Exporting migration history (supabase_migrations.schema_migrations)..."
 pgd "$PROD_DB_URL" \
-  --data-only --table=supabase_migrations.schema_migrations --inserts \
+  --data-only --table=supabase_migrations.schema_migrations --column-inserts \
   --no-owner --no-privileges \
 > "$OUT_DIR/prod_migration_history.sql"
 
@@ -108,5 +143,11 @@ sqlp "$PROD_DB_URL" -Atc \
     where n.nspname='public' order by 1" \
   > "$OUT_DIR/prod_publications.sql" || true
 
+# --- Post-dump verification: schema export must contain zero row data --------
+if grep -nE "^COPY |^INSERT INTO (public|auth)\." "$OUT_DIR/prod_schema_public.sql"; then
+  echo "ABORT: schema export contains row data — refusing to keep artifacts." >&2
+  rm -f "$OUT_DIR"/*.sql
+  exit 1
+fi
 echo "DONE. Exports written to $OUT_DIR/ (gitignored)."
 echo "Next: run ./scripts/qa/02-build-baseline.sh"
