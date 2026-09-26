@@ -92,3 +92,6 @@ SECURITY_AUDIT_FINAL.md
 .rf_session.json
 supabase/.temp/
 *-fly-logs.txt
+
+# QA baseline exports — may contain prod schema; never commit
+qa-baseline/exports/
