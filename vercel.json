@@ -1,44 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/send-followups",
-      "schedule": "*/1 * * * *"
-    },
-    {
-      "path": "/api/cron/reclaim-twilio-numbers",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/send-offboarding-reminders",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/health-checks",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/replenish-warm-numbers",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/meet-artifacts",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-stale-terminal-payments",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/twilio-number-cleanup",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/process-reminder-notifications",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/admin/recover-stuck-provisioning",
-      "schedule": "0 * * * *"
-    }
-  ]
+  "$comment": "QA BRANCH: no cron registrations. The QA Vercel project deploys this branch, so removing crons here removes them from QA only — main's vercel.json is untouched and production schedules are unaffected. Restore before merging qa into main. Runtime gating in src/lib/cron-auth.ts is the second layer.",
+  "crons": []
 }

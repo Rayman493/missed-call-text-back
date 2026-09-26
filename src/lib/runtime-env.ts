@@ -73,6 +73,13 @@ export function assertQaIsolation(): void {
     problems.push(`Supabase URL has an unexpected host: ${new URL(supabaseUrl).hostname}`)
   }
 
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    problems.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set')
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    problems.push('SUPABASE_SERVICE_ROLE_KEY is not set')
+  }
+
   const stripeKey = process.env.STRIPE_SECRET_KEY || ''
   if (/^(sk|rk)_live_/.test(stripeKey)) {
     problems.push('STRIPE_SECRET_KEY is a LIVE key (qa requires sk_test_/rk_test_)')

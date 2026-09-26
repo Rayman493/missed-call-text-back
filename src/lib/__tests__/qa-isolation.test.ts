@@ -24,6 +24,8 @@ const ENV_KEYS = [
   'VERCEL_URL',
   'TWILIO_ACCOUNT_SID',
   'REPLYFLOW_EXPECTED_TWILIO_ACCOUNT_SID',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
   'INTERNAL_API_SECRET',
   'ALLOW_NON_PROD_CRONS',
   'CRON_SECRET',
@@ -54,6 +56,8 @@ const QA_SUPABASE = 'https://qaprojectref.supabase.co'
 const validQaEnv = {
   REPLYFLOW_ENV: 'qa',
   NEXT_PUBLIC_SUPABASE_URL: QA_SUPABASE,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'qa-anon',
+  SUPABASE_SERVICE_ROLE_KEY: 'qa-service-role',
   STRIPE_SECRET_KEY: 'sk_test_abc',
   NEXT_PUBLIC_APP_URL: 'https://replyflow-qa.vercel.app',
   TWILIO_ACCOUNT_SID: 'AC_qa_subaccount',
@@ -122,6 +126,14 @@ describe('assertQaIsolation', () => {
     Object.assign(process.env, validQaEnv, { TWILIO_ACCOUNT_SID: 'AC_other' })
     const { assertQaIsolation } = await load()
     expect(() => assertQaIsolation()).toThrow(/does not match/)
+  })
+
+  it('requires Supabase keys to be present in qa', async () => {
+    Object.assign(process.env, validQaEnv)
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
+    const { assertQaIsolation } = await load()
+    expect(() => assertQaIsolation()).toThrow(/ANON_KEY|SERVICE_ROLE/)
   })
 
   it('passes for a correctly configured qa environment', async () => {
@@ -193,6 +205,35 @@ describe('cron gating', () => {
       headers: { authorization: 'Bearer secret' },
     })
     expect(verifyCronRequest(req).authorized).toBe(true)
+  })
+})
+
+describe('qa deployment artifacts', () => {
+  it('vercel.json on the qa branch registers zero crons', () => {
+    const { readFileSync } = require('fs')
+    const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'))
+    expect(Array.isArray(vercel.crons) ? vercel.crons.length : 0).toBe(0)
+  })
+
+  it('verify-qa-env script passes a clean qa config', () => {
+    Object.assign(process.env, validQaEnv)
+    const { execFileSync } = require('child_process')
+    const out = execFileSync('node', ['scripts/verify-qa-env.mjs'], { encoding: 'utf8' })
+    expect(out).toContain('verified')
+  })
+
+  it('verify-qa-env script fails the build on production Supabase', () => {
+    Object.assign(process.env, validQaEnv, { NEXT_PUBLIC_SUPABASE_URL: PROD_SUPABASE })
+    const { spawnSync } = require('child_process')
+    const r = spawnSync('node', ['scripts/verify-qa-env.mjs'], { encoding: 'utf8' })
+    expect(r.status).toBe(1)
+    expect(r.stderr).toContain('PRODUCTION project')
+  })
+
+  it('verify-qa-env script is a no-op without REPLYFLOW_ENV (production builds unchanged)', () => {
+    const { spawnSync } = require('child_process')
+    const r = spawnSync('node', ['scripts/verify-qa-env.mjs'], { encoding: 'utf8' })
+    expect(r.status).toBe(0)
   })
 })
 
