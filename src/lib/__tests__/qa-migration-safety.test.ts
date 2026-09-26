@@ -16,8 +16,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const GUARD = 'scripts/check-migration-artifacts.mjs'
+const PUSH_GUARD = 'scripts/guard-prod-db-push.mjs'
 const EXPORT_SH = 'scripts/qa/01-export-prod-schema.sh'
 const BUILD_SH = 'scripts/qa/02-build-baseline.sh'
+const SEED_SH = 'scripts/qa/04-seed-qa-history.sh'
 
 function tmpDir() {
   return mkdtempSync(join(tmpdir(), 'rfq-mig-'))
@@ -47,6 +49,8 @@ function runBash(script: string, args: string[] = [], env: Record<string, string
 const cleanEnv = {
   REPLYFLOW_ENV: '', PROD_DB_URL: '', CONFIRM_PROD_REF: '',
   PROD_REF_EXPECTED: '', EXPORT_DIR: '', BASELINE_OUT: '', SEED_OUT: '',
+  QA_DB_URL: '', QA_REF_EXPECTED: '', MIGRATIONS_DIR: '', PROJECT_REF_FILE: '',
+  ALLOW_PROD_MIGRATION_WRITE: '',
 }
 
 describe('check-migration-artifacts.mjs', () => {
@@ -147,21 +151,87 @@ describe.skipIf(!bashOk)('01-export-prod-schema.sh guards (--check-only)', () =>
   })
 })
 
+describe('guard-prod-db-push.mjs', () => {
+  function refFile(content: string | null) {
+    const d = tmpDir()
+    const f = join(d, 'project-ref')
+    if (content !== null) writeFileSync(f, content)
+    return f
+  }
+
+  it('is a no-op when no project-ref file exists (CI/prod build)', () => {
+    const r = runNode([PUSH_GUARD], { PROJECT_REF_FILE: refFile(null) })
+    expect(r.code).toBe(0)
+  })
+
+  it('passes when linked to the QA project', () => {
+    const r = runNode([PUSH_GUARD], { PROJECT_REF_FILE: refFile('ixtifohdqhtvhhessgaj') })
+    expect(r.code).toBe(0)
+  })
+
+  it('blocks when linked to production (history unreconciled)', () => {
+    const r = runNode([PUSH_GUARD], { PROJECT_REF_FILE: refFile('bqummccorpfihatocffl') })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/PROD PUSH GUARD.*REFUSING/)
+  })
+
+  it('blocks an unknown project link too? — only prod is blocked; unknown passes', () => {
+    // Guard is prod-specific: non-prod links are not this guard's concern.
+    const r = runNode([PUSH_GUARD], { PROJECT_REF_FILE: refFile('someotherref') })
+    expect(r.code).toBe(0)
+  })
+
+  it('honours the explicit reconciliation override', () => {
+    const r = runNode([PUSH_GUARD], {
+      PROJECT_REF_FILE: refFile('bqummccorpfihatocffl'),
+      ALLOW_PROD_MIGRATION_WRITE: 'I-RECONCILED-PROD-HISTORY',
+    })
+    expect(r.code).toBe(0)
+  })
+})
+
 describe.skipIf(!bashOk)('02-build-baseline.sh', () => {
-  function fixture(dir: string) {
+  function fixture(dir: string, history: 'present' | 'absent' = 'present') {
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'prod_schema_public.sql'),
       '-- dump\nSET x=1;\nCREATE TABLE public.t(id int);\n\\restrict tok\n')
     writeFileSync(join(dir, 'prod_extensions.sql'), 'create extension if not exists "pgcrypto";\n')
     writeFileSync(join(dir, 'prod_storage_buckets.sql'), '-- none\n')
     writeFileSync(join(dir, 'prod_publications.sql'), '-- none\n')
-    writeFileSync(join(dir, 'prod_migration_history.sql'),
-      "INSERT INTO supabase_migrations.schema_migrations (version,name) VALUES ('20240513','a');\n")
+    writeFileSync(join(dir, 'prod_history_status.txt'), history + '\n')
+    if (history === 'present') {
+      writeFileSync(join(dir, 'prod_migration_history.sql'),
+        "INSERT INTO supabase_migrations.schema_migrations (version,name) VALUES ('20240513','a');\n")
+    }
   }
 
   it('aborts when a required export is missing', () => {
     const d = tmpDir()
     const r = runBash(BUILD_SH, [], { ...cleanEnv, EXPORT_DIR: join(d, 'exports') })
+    expect(r.code).toBe(1)
+  })
+
+  it('aborts on a schema dump with zero CREATE TABLE (partial export)', () => {
+    const d = tmpDir()
+    const exp = join(d, 'exports'); fixture(exp)
+    writeFileSync(join(exp, 'prod_schema_public.sql'), '-- empty dump\nSET x=1;\n')
+    const r = runBash(BUILD_SH, [], { ...cleanEnv, EXPORT_DIR: exp })
+    expect(r.code).toBe(1)
+  })
+
+  it('aborts when status=present but history has no INSERT rows', () => {
+    const d = tmpDir()
+    const exp = join(d, 'exports'); fixture(exp)
+    writeFileSync(join(exp, 'prod_migration_history.sql'), '-- dump produced no rows\n')
+    const r = runBash(BUILD_SH, [], { ...cleanEnv, EXPORT_DIR: exp })
+    expect(r.code).toBe(1)
+  })
+
+  it('aborts on an unrecognised history status', () => {
+    const d = tmpDir()
+    const exp = join(d, 'exports'); fixture(exp)
+    writeFileSync(join(exp, 'prod_history_status.txt'), 'garbage\n')
+    const r = runBash(BUILD_SH, [], { ...cleanEnv, EXPORT_DIR: exp })
     expect(r.code).toBe(1)
   })
 
@@ -183,7 +253,7 @@ describe.skipIf(!bashOk)('02-build-baseline.sh', () => {
     expect(r.code).toBe(1)
   })
 
-  it('emits a QA-ONLY baseline outside supabase/migrations + idempotent seed', () => {
+  it('present: emits QA-ONLY baseline + idempotent prod-history seed', () => {
     const d = tmpDir()
     const exp = join(d, 'exports'); fixture(exp)
     const base = join(d, 'prod_baseline.sql')
@@ -198,7 +268,89 @@ describe.skipIf(!bashOk)('02-build-baseline.sh', () => {
     expect(baseline).not.toMatch(/^\\\\restrict/m)
     const seedSql = require('node:fs').readFileSync(seed, 'utf8')
     expect(seedSql).toMatch(/ON CONFLICT \(version\) DO NOTHING/i)
-    // baseline must never land inside supabase/migrations
+    expect(seedSql).toMatch(/version text not null primary key/i)
+    expect(seedSql).toMatch(/add column if not exists statements/i)
     expect(base).not.toContain('supabase/migrations')
+  })
+
+  it('absent: emits baseline but fabricates NO prod-history seed', () => {
+    const d = tmpDir()
+    const exp = join(d, 'exports'); fixture(exp, 'absent')
+    const base = join(d, 'prod_baseline.sql')
+    const seed = join(exp, 'seed.sql')
+    const r = runBash(BUILD_SH, [], {
+      ...cleanEnv, EXPORT_DIR: exp, BASELINE_OUT: base, SEED_OUT: seed,
+    })
+    expect(r.code).toBe(0)
+    expect(existsSync(base)).toBe(true)
+    expect(existsSync(seed)).toBe(false)
+    expect(r.out).toMatch(/04-seed-qa-history/)
+  })
+})
+
+describe.skipIf(!bashOk)('04-seed-qa-history.sh', () => {
+  function migDir(withArtifact = false) {
+    const d = tmpDir()
+    writeFileSync(join(d, '20260101000000_a.sql'), 'select 1;')
+    writeFileSync(join(d, '20260101000000_b.sql'), 'select 2;')
+    writeFileSync(join(d, '20260202000000_c.sql'), 'select 3;')
+    if (withArtifact) {
+      writeFileSync(join(d, '20261005000000_qa_baseline_prod_schema.sql'), 'select 4;')
+    }
+    return d
+  }
+
+  it('aborts while the worktree is linked to production', () => {
+    const d = tmpDir()
+    writeFileSync(join(d, 'project-ref'), 'bqummccorpfihatocffl')
+    const r = runBash(SEED_SH, [], {
+      ...cleanEnv, MIGRATIONS_DIR: migDir(),
+      SEED_OUT: join(d, 'seed.sql'), PROJECT_REF_FILE: join(d, 'project-ref'),
+    })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/PROD/i)
+  })
+
+  it('aborts on a migration manifest containing QA-only artifacts', () => {
+    const d = tmpDir()
+    writeFileSync(join(d, 'project-ref'), 'ixtifohdqhtvhhessgaj')
+    const r = runBash(SEED_SH, [], {
+      ...cleanEnv, MIGRATIONS_DIR: migDir(true),
+      SEED_OUT: join(d, 'seed.sql'), PROJECT_REF_FILE: join(d, 'project-ref'),
+    })
+    expect(r.code).toBe(1)
+  })
+
+  it('generates CLI-shaped seed covering every local version, warns on dups', () => {
+    const d = tmpDir()
+    writeFileSync(join(d, 'project-ref'), 'ixtifohdqhtvhhessgaj')
+    const seed = join(d, 'seed.sql')
+    const r = runBash(SEED_SH, [], {
+      ...cleanEnv, MIGRATIONS_DIR: migDir(),
+      SEED_OUT: seed, PROJECT_REF_FILE: join(d, 'project-ref'),
+    })
+    expect(r.code).toBe(0)
+    expect(r.out).toMatch(/duplicate version 20260101000000/)
+    const sql = require('node:fs').readFileSync(seed, 'utf8')
+    expect(sql).toMatch(/QA-ONLY/)
+    expect(sql).toMatch(/create schema if not exists supabase_migrations/i)
+    expect(sql).toMatch(/version text not null primary key/i)
+    expect(sql).toMatch(/add column if not exists statements text\[\]/i)
+    expect(sql).toMatch(/add column if not exists name/i)
+    for (const v of ['20260101000000', '20260202000000']) {
+      expect(sql).toContain(`'${v}'`)
+    }
+    expect((sql.match(/ON CONFLICT \(version\) DO NOTHING/g) || []).length).toBe(2)
+  })
+
+  it('--apply refuses without QA_DB_URL', () => {
+    const d = tmpDir()
+    writeFileSync(join(d, 'project-ref'), 'ixtifohdqhtvhhessgaj')
+    const r = runBash(SEED_SH, ['--apply'], {
+      ...cleanEnv, MIGRATIONS_DIR: migDir(), QA_DB_URL: '',
+      SEED_OUT: join(d, 'seed.sql'), PROJECT_REF_FILE: join(d, 'project-ref'),
+    })
+    expect(r.code).toBe(1)
+    expect(r.out).toMatch(/QA_DB_URL/)
   })
 })

@@ -12,64 +12,96 @@ The audit proved `supabase/migrations/` alone cannot rebuild prod: `businesses`,
 created by the untracked layer (`docs/supabase-setup.sql` + `migrations/` +
 SQL-editor patches). 136/149 tracked files fail on a fresh database.
 
-## Architecture decision — snapshot + history seed (no replay)
+## Verified finding — production has NO CLI migration history
 
-Instead of repairing 149 imperfect files, QA gets:
+A read-only probe (2026-09-26) returned:
+
+- `reader_role_exists = false`
+- `migration_schema_exists = false`
+- `migration_history_table_exists = false`
+
+Production was never managed by `supabase db push`; its schema was built
+manually (SQL editor / dashboard). Consequences:
+
+1. **The original reader SQL failed** because it granted on the nonexistent
+   `supabase_migrations` schema. The corrected Step-0 grants only verified
+   objects.
+2. **No prod history can be exported** — `01` detects this via `to_regclass`,
+   writes `prod_history_status.txt = absent`, and records a marker instead of
+   fabricating rows.
+3. **QA history seeding is local-manifest driven** (`04-seed-qa-history.sh`):
+   QA's `schema_migrations` is seeded with the repo's 136 distinct versions so
+   `db push` has nothing pending on QA.
+4. **Production `db push` / `migration repair` is UNSAFE until reconciled** —
+   with no history, every local file would be pending. `guard-prod-db-push.mjs`
+   blocks it in builds and via `npm run db:push` / `npm run migration:repair`.
+
+## Architecture decision — snapshot + QA-local history seed (no replay)
 
 1. **One baseline file** — `pg_dump --schema-only` of prod's `public`
    schema, sanitized, emitted as **`qa-baseline/prod_baseline.sql`** —
    deliberately OUTSIDE `supabase/migrations/` (physical separation), applied
-   once via `psql` during QA bring-up. It carries a `-- QA-ONLY` marker.
-2. **A history seed** — `qa-baseline/exports/seed_migration_history.sql`:
-   `INSERT ... ON CONFLICT DO NOTHING` marking every version recorded in prod's
-   `supabase_migrations.schema_migrations` as applied on QA. `db push` then has
-   nothing pending; historical files never execute on QA.
-3. **Future migrations** are new timestamped files written on `qa` and promoted
-   to `main` normally — `db push` to prod applies only versions prod lacks.
+   once via `psql` during QA bring-up. Carries a `-- QA-ONLY` marker.
+   `qa-baseline/` is gitignored.
+2. **A QA-only history seed** — `qa-baseline/seed_qa_history.sql`, generated
+   by `04-seed-qa-history.sh` from the LOCAL migration manifest (+ prod rows
+   if a future prod ever has them). Uses the exact DDL Supabase CLI 2.x
+   creates (`version` PK, `statements`, `name`). Applied to QA via `psql`.
+3. **Future migrations** are new timestamped files on `qa` → promoted to
+   `main` normally. On QA `db push` applies only versions > max(remote).
 
 ### Why separation is physical, not just nominal
 
 `check-migration-artifacts.mjs` runs inside `verify-qa-env.mjs` for **every**
-build (including production Vercel builds): any QA-only artifact found in
-`supabase/migrations/` fails the build. Because the baseline lives in
-`qa-baseline/`, even a direct `supabase db push` against prod from this branch
-cannot execute it — the file is invisible to the CLI.
+build: any QA-only artifact inside `supabase/migrations/` fails the build.
+Because the baseline lives in `qa-baseline/`, even a direct `supabase db push`
+against prod cannot execute it — the file is invisible to the CLI.
 
-### Why no renames are needed
+### Duplicate timestamps + the `--include-all` hazard (verified with real CLI)
 
-The 12 duplicate-timestamp groups are only fatal when both files try to record
+The 13 duplicate-version groups are only fatal when both files try to record
 the same `schema_migrations.version` PK on a fresh database. Under this
 strategy neither file ever executes on QA (version pre-marked applied), and on
-prod both share one version that is already present → neither is pending.
-**Historical filenames stay untouched**, satisfying the promotion constraint.
+prod neither is pending because prod has no history mechanism at all.
+**Historical filenames stay untouched.**
 
-### Promotion caveat — verify at go-time
+**Verified CLI behavior (supabase@2.58.5, disposable DB):** after seeding QA,
+a plain `supabase db push` applies **only** versions newer than the max seeded
+version — the 13 duplicate-sibling files (same version as an already-recorded
+row) are reported as "files to be inserted before the last migration" and are
+**not** applied. They only apply if `--include-all` is passed.
 
-`db push` to prod treats as pending every *local file version* missing from
-prod's history. If prod's `schema_migrations` lacks a version for an old
-manual-era file, a future prod push would try to apply it. The exported
-`prod_migration_history.sql` shows exactly which versions prod recorded;
-any gap gets resolved by `supabase migration repair --status applied <v>`
-on prod — a metadata-only insert, done under explicit change control.
+> **NEVER run `supabase db push --include-all` on QA or production** — it would
+> replay the 13 duplicate-sibling historical files.
 
 ## The extraction procedure (read-only)
 
 ### Step 0 — one-time prod prep (manual, Supabase SQL Editor, ~1 min)
 
-Create a least-privilege read-only role. **Verified constraint:** `pg_dump
+Pre-check (optional, confirms what exists):
+
+```sql
+select to_regclass('supabase_migrations.schema_migrations') as history_table,
+       to_regclass('storage.buckets') as buckets_table,
+       to_regnamespace('auth') as auth_schema;
+-- expected: history_table NULL (absent), buckets_table present, auth present
+```
+
+Create the least-privilege read-only role. **Verified constraint:** `pg_dump
 --schema-only` `LOCK TABLE`s every dumped table (ACCESS SHARE), and LOCK
 requires `SELECT` — a catalog-only role cannot run it. The true minimum is
 `SELECT` on the dumped schema's tables; the export still contains zero rows,
-the role can never write, and `auth` stays ungranted:
+the role can never write, and `auth` stays ungranted. Grants are ONLY for
+objects verified to exist — no `supabase_migrations` grant:
 
 ```sql
 create role qa_schema_reader login password '<generated>' connection limit 1;
 alter role qa_schema_reader set default_transaction_read_only = on;
-grant usage on schema public, storage, supabase_migrations to qa_schema_reader;
+grant usage on schema public, storage to qa_schema_reader;
 grant select on all tables in schema public to qa_schema_reader;  -- pg_dump lock requirement
-grant select on supabase_migrations.schema_migrations to qa_schema_reader;
-grant select on storage.buckets to qa_schema_reader;
+grant select on storage.buckets to qa_schema_reader;             -- optional; skip if missing
 -- auth schema: ungranted (auth.users emails unreachable)
+-- supabase_migrations: does NOT exist on prod — do not grant it
 -- NOTE: this role CAN technically read public rows if someone queries them —
 -- time-box it and drop it after export. It can never write (read-only txn).
 ```
@@ -91,12 +123,16 @@ export CONFIRM_PROD_REF=bqummccorpfihatocffl   # explicit prod confirmation
 
 Guards (all must pass before any bytes move):
 - QA worktree still linked to `ixtifohdqhtvhhessgaj`
-- exports dir gitignored
+- `qa-baseline/` gitignored
 - `CONFIRM_PROD_REF` explicitly equals the prod allowlist ref
 - URL references the prod project **and** authenticates as `qa_schema_reader`
 - post-connect: `current_user` verified + `rolsuper/rolbypassrls/rolcreatedb`
   all false + `transaction_read_only=on`
-- post-dump: schema file scanned for `COPY`/`INSERT INTO public|auth` → abort
+- post-dump: schema file must contain ≥1 `CREATE TABLE` and zero
+  `COPY`/`INSERT INTO public|auth` rows → else abort
+- migration history: `to_regclass` detection → `present` exports rows and
+  aborts if 0 rows (present-but-empty would falsely reconcile); `absent`
+  writes a marker + status file — never fabricates prod history
 
 ### Step 2 — build the baseline (scripted)
 
@@ -105,22 +141,69 @@ Guards (all must pass before any bytes move):
 ```
 
 Leak-scans exports (credentials, JWTs, row-data `COPY/INSERT` into public),
-builds the baseline migration + `seed_migration_history.sql`.
+emits `qa-baseline/prod_baseline.sql`. Emits a prod-history seed ONLY when
+`prod_history_status.txt = present`; when `absent` it fabricates nothing and
+defers to step 3.
 
-### Step 3 — apply to QA (manual trigger, when authorized)
+### Step 3 — QA-only history seed (scripted, local manifest)
 
 ```bash
-psql "$QA_DB_URL" -f qa-baseline/prod_baseline.sql                 # schema
-psql "$QA_DB_URL" -f qa-baseline/exports/seed_migration_history.sql # history
-npx supabase db push        # no-op — everything already recorded applied
+./scripts/qa/04-seed-qa-history.sh              # generates qa-baseline/seed_qa_history.sql
+```
+
+- Enumerates `supabase/migrations/*.sql` → 136 distinct versions; reports all
+  13 duplicate-version groups explicitly.
+- Runs `check-migration-artifacts.mjs` on the manifest first — QA-only files
+  inside `supabase/migrations/` abort the seed.
+- Refuses to run while the worktree is linked to production (these rows
+  describe local files — they are not prod history).
+- DDL matches Supabase CLI 2.x exactly (`version` PK + `statements` + `name`),
+  verified by grepping the CLI binary and by `migration list`/`db push`
+  against a disposable database.
+- Merges prod-recorded versions when a real prod history export exists.
+
+### Step 4 — apply to QA (manual trigger, when authorized)
+
+```bash
+psql "$QA_DB_URL" -f qa-baseline/prod_baseline.sql     # schema snapshot
+# (prod-history seed — only if status was 'present')
+psql "$QA_DB_URL" -f qa-baseline/exports/seed_migration_history.sql
+QA_DB_URL=... ./scripts/qa/04-seed-qa-history.sh --apply  # local-manifest seed
+npx supabase db push        # no-op: applies only versions > max seeded
 ./scripts/qa/03-validate-qa-parity.sh
 ```
 
-### Step 4 — parity check
+`--apply` requires the worktree linked to QA and `QA_DB_URL` referencing the
+QA project. Plain `db push` must remain a no-op — if it lists dup-sibling
+files, that is the expected warning; do NOT add `--include-all`.
 
-`03-validate-qa-parity.sh` re-dumps QA schema-only, normalizes both dumps
-(strip comments/ordering), diffs object inventories, and prints per-object
-catalog counts. **No row data ever participates** — comparison is DDL-only.
+### Step 5 — parity check
+
+`03-validate-qa-parity.sh` re-dumps QA schema-only, normalizes both dumps,
+diffs object inventories, compares publication membership vs the prod export,
+and reports per-object catalog counts. When prod history was present it also
+verifies QA's `schema_migrations` covers every prod-recorded version; when
+absent it reports that and continues with schema parity. **No row data ever
+participates.**
+
+## Production write-safety
+
+`guard-prod-db-push.mjs` runs inside `verify-qa-env.mjs` for every build and
+wraps `npm run db:push` / `npm run migration:repair`. While this worktree's
+`supabase/.temp/project-ref` equals the production ref, any migration-write
+command is refused — prod has no history, so a naive push would replay ~149
+files (incl. duplicates and the known MySQL-syntax file). Override only after
+an explicit reconciliation decision:
+
+```
+ALLOW_PROD_MIGRATION_WRITE=I-RECONCILED-PROD-HISTORY
+```
+
+Reconciliation options when prod migrations become necessary (pick one under
+change control): (a) one-time seed of prod's `schema_migrations` recording all
+local versions as applied, mirroring `04`'s output — makes `db push` apply
+only new versions; or (b) continue manual SQL-editor application and never
+enable CLI push on prod.
 
 ## What the snapshot does / does not cover
 
@@ -131,19 +214,24 @@ catalog counts. **No row data ever participates** — comparison is DDL-only.
 | indexes, views, sequences | Secrets / env vars (never exported) |
 | functions, triggers | Realtime enablement toggle (publication rows exported) |
 | RLS enabled + policies | Storage objects (customer data — excluded) |
-| extension list | `storage.buckets` config rows (exported) |
+| extension list | `storage.buckets` config rows (exported if granted) |
 
 ## Remaining risks
 
 - **Drift between export and QA apply** — prod keeps changing; re-export if
-  prod ships migrations between export and QA bring-up.
+  prod ships schema changes between export and QA bring-up.
 - **`pg_dump -s` vs prod's true runtime state** — things created by dashboard
   toggles (Realtime publication, storage RLS on `storage.objects`) are partly
-  outside `public` schema; `prod_publications.sql` + `storage.buckets` cover
-  the observed needs (`business-logos` bucket). Verify against Step-4 diff.
+  outside `public`; `prod_publications.sql` + `storage.buckets` cover the
+  observed needs (`business-logos` bucket). Verify against Step-5 diff.
 - **`auth.users` references** — public functions/triggers referencing
   `auth.users` are kept verbatim (QA project has its own auth schema — same
   shape). No auth data is exported.
 - **RLS in dump** — pg_dump emits `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY`;
   a fresh project's default grants (`anon`/`authenticated`/`service_role`)
   exist out-of-the-box, so policies apply identically.
+- **`--include-all` footgun** — verified: it would replay the 13
+  duplicate-sibling files on QA. Documented + never used by scripts.
+- **`storage.buckets` grant** may fail on prod if `postgres` isn't the owner —
+  `01` degrades gracefully to a comment-only file; recreate bucket config from
+  `20260913230000` if needed.

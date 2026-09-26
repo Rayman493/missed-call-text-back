@@ -93,5 +93,6 @@ SECURITY_AUDIT_FINAL.md
 supabase/.temp/
 *-fly-logs.txt
 
-# QA baseline exports — may contain prod schema; never commit
-qa-baseline/exports/
+# QA baseline artifacts — generated from a prod schema export + local manifest;
+# never commit (baseline contains prod DDL; seeds describe QA-only state)
+qa-baseline/

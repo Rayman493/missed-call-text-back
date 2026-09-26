@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/verify-qa-env.mjs && next build",
+    "db:push": "node scripts/guard-prod-db-push.mjs && supabase db push",
+    "migration:repair": "node scripts/guard-prod-db-push.mjs && supabase migration repair",
     "start": "next start",
     "lint": "next lint",
     "seed": "npx tsx src/scripts/seed-data.ts",

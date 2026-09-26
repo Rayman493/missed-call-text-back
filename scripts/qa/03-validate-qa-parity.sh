@@ -28,6 +28,19 @@ case "$QA_DB_URL" in
 esac
 [ -s "$PROD_DUMP" ] || { echo "ABORT: missing prod export ($PROD_DUMP)." >&2; exit 1; }
 
+# --- Migration-history posture -----------------------------------------------
+# Prod may have NO CLI migration history (verified absent). Parity here means
+# schema parity — history comparison only runs when prod exported real rows.
+HISTORY_STATUS="unknown"
+if [ -f "$EXP/prod_history_status.txt" ]; then
+  HISTORY_STATUS=$(tr -d '[:space:]' < "$EXP/prod_history_status.txt")
+fi
+case "$HISTORY_STATUS" in
+  absent)  echo "==> Prod migration history: ABSENT — schema parity only." ;;
+  present) echo "==> Prod migration history: present — will compare vs QA." ;;
+  *)       echo "==> Prod migration history: status file missing — skipping history check." ;;
+esac
+
 PGIMG="public.ecr.aws/supabase/postgres:17.6.1.159"
 if command -v psql >/dev/null 2>&1; then
   sqlp() { psql "$@"; }
@@ -63,6 +76,38 @@ else
   echo "DIFFERENCES FOUND ($N changed lines) — see $EXP/schema_diff.txt"
   echo "Review each line: legitimate differences are only QA-intended objects."
   exit 2
+fi
+
+# --- Publication membership (realtime) ----------------------------------------
+# prod_publications.sql holds `alter publication ... add table` lines captured
+# by 01. Re-run the same query on QA and compare when prod had memberships.
+if [ -f "$EXP/prod_publications.sql" ] && grep -qE "^alter publication" "$EXP/prod_publications.sql"; then
+  echo "==> Comparing publication membership..."
+  sqlp "$QA_DB_URL" -Atc \
+    "select 'alter publication ' || p.pubname || ' add table ' || c.relname || ';' \
+       from pg_publication p join pg_publication_rel r on r.prpubid=p.oid \
+       join pg_class c on c.oid=r.prrelid join pg_namespace n on n.oid=c.relnamespace \
+      where n.nspname='public' order by 1" > "$EXP/qa_publications.sql" || true
+  if ! diff <(grep -E "^alter publication" "$EXP/prod_publications.sql" | sort) \
+            <(grep -E "^alter publication" "$EXP/qa_publications.sql" | sort); then
+    echo "PUBLICATION DIFFERENCES — QA realtime membership != prod." >&2
+    exit 2
+  fi
+  echo "    -> publication membership matches prod."
+fi
+
+# --- Prod history comparison (only when prod exported real rows) --------------
+if [ "$HISTORY_STATUS" = "present" ]; then
+  echo "==> Verifying QA schema_migrations covers prod-recorded versions..."
+  comm -23 \
+    <(grep -oE "VALUES \('[0-9]{8,14}'" "$EXP/prod_migration_history.sql" | grep -oE "[0-9]{8,14}" | sort) \
+    <(sqlp "$QA_DB_URL" -Atc "select version from supabase_migrations.schema_migrations order by 1" | sort) \
+    > "$EXP/missing_on_qa.txt" || true
+  if [ -s "$EXP/missing_on_qa.txt" ]; then
+    echo "FAIL — QA is missing prod-recorded versions (see $EXP/missing_on_qa.txt)." >&2
+    exit 2
+  fi
+  echo "    -> all prod-recorded versions are marked applied on QA."
 fi
 
 # --- Catalog checksum (belt & suspenders) ------------------------------------

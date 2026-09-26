@@ -19,6 +19,10 @@
 try {
   const { execFileSync } = await import('node:child_process')
   execFileSync(process.execPath, ['scripts/check-migration-artifacts.mjs'], { stdio: 'inherit' })
+  // Refuse builds while the worktree is linked to PRODUCTION without the
+  // explicit reconciliation override — prod has no migration history, so a
+  // naive db push from this tree would replay all historical files.
+  execFileSync(process.execPath, ['scripts/guard-prod-db-push.mjs'], { stdio: 'inherit' })
 } catch {
   process.exit(1)
 }

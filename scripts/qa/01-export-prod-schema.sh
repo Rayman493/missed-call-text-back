@@ -6,7 +6,9 @@
 #   qa-baseline/exports/prod_schema_public.sql   — pg_dump --schema-only of public
 #   qa-baseline/exports/prod_extensions.sql      — extension list
 #   qa-baseline/exports/prod_storage_buckets.sql — storage.buckets rows (config)
-#   qa-baseline/exports/prod_migration_history.sql — supabase_migrations rows
+#   qa-baseline/exports/prod_migration_history.sql — supabase_migrations rows,
+#       or an ABSENT marker when prod has no CLI migration history
+#   qa-baseline/exports/prod_history_status.txt  — 'present' | 'absent'
 #
 # Safety properties:
 #   * NEVER links any Supabase project. Works from a raw connection string.
@@ -116,6 +118,14 @@ pgd "$PROD_DB_URL" \
 # NOTE: --no-publications omitted if you want supabase_realtime membership;
 # see 02-build-baseline.sh which re-adds publication config explicitly.
 
+# A dump that silently produced zero DDL would masquerade as success.
+if ! grep -qE "^CREATE TABLE " "$OUT_DIR/prod_schema_public.sql"; then
+  echo "ABORT: schema export contains no CREATE TABLE — looks empty or partial." >&2
+  echo "Refusing to record a falsely-successful export. Removing artifacts." >&2
+  rm -f "$OUT_DIR"/*.sql "$OUT_DIR"/*.txt
+  exit 1
+fi
+
 echo "==> Exporting extension list..."
 sqlp "$PROD_DB_URL" -Atc \
   "select 'create extension if not exists \"' || extname || '\";' \
@@ -129,11 +139,40 @@ pgd "$PROD_DB_URL" \
 > "$OUT_DIR/prod_storage_buckets.sql" 2>/dev/null \
   || echo "-- storage schema not accessible with this role" > "$OUT_DIR/prod_storage_buckets.sql"
 
-echo "==> Exporting migration history (supabase_migrations.schema_migrations)..."
-pgd "$PROD_DB_URL" \
-  --data-only --table=supabase_migrations.schema_migrations --column-inserts \
-  --no-owner --no-privileges \
-> "$OUT_DIR/prod_migration_history.sql"
+echo "==> Checking whether prod has supabase_migrations.schema_migrations..."
+# Verified finding: production may have NO CLI migration history at all
+# (schema built manually via SQL editor). Detect first — never assume.
+HISTORY_REGCLASS=$(sqlp "$PROD_DB_URL" -Atc \
+  "select coalesce(to_regclass('supabase_migrations.schema_migrations')::text,'')" \
+  2>/dev/null || echo "QUERY_FAILED")
+if [ "$HISTORY_REGCLASS" = "QUERY_FAILED" ]; then
+  echo "ABORT: could not determine migration-history presence — connection" >&2
+  echo "or role problem. Not continuing on ambiguous state." >&2
+  exit 1
+fi
+
+if [ -z "$HISTORY_REGCLASS" ]; then
+  echo "    -> ABSENT: prod has no supabase_migrations schema/table."
+  echo "       Recording status; QA history seeding falls back to the local manifest (04)."
+  printf -- "-- ABSENT — production has no supabase_migrations.schema_migrations.\n-- Verified %s as %s via to_regclass(). Do NOT fabricate prod history.\n" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ROLE_USER" > "$OUT_DIR/prod_migration_history.sql"
+  echo "absent" > "$OUT_DIR/prod_history_status.txt"
+else
+  echo "    -> present ($HISTORY_REGCLASS); exporting rows..."
+  pgd "$PROD_DB_URL" \
+    --data-only --table=supabase_migrations.schema_migrations --column-inserts \
+    --no-owner --no-privileges \
+  > "$OUT_DIR/prod_migration_history.sql"
+  ROWS=$(grep -cE "^INSERT INTO" "$OUT_DIR/prod_migration_history.sql" || true)
+  if [ "$ROWS" -eq 0 ]; then
+    echo "ABORT: schema_migrations exists but exported 0 rows — a present-but-" >&2
+    echo "empty history would falsely reconcile. Refusing partial export." >&2
+    rm -f "$OUT_DIR/prod_migration_history.sql" "$OUT_DIR/prod_history_status.txt"
+    exit 1
+  fi
+  echo "present" > "$OUT_DIR/prod_history_status.txt"
+  echo "    -> $ROWS migration versions recorded on prod."
+fi
 
 echo "==> Exporting publication membership (realtime)..."
 sqlp "$PROD_DB_URL" -Atc \
