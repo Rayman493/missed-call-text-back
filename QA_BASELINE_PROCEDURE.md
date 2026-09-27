@@ -285,7 +285,7 @@ INTENTIONAL — do not normalize them away or flag as drift:
   20260913230000; mms-media deliberately none),
   `03-api-grants.sql` (revokes PUBLIC+anon+authenticated EXECUTE on all
   18 app functions and from future-function defaults; service_role full
-  access; authenticated only the 21 audited tables + 2 billing RPCs;
+  access; authenticated only the 23 audited tables + 2 billing RPCs;
   anon nothing; no broad default-privilege grants),
   `04-verify.sql` (effective-privilege verification incl.
   has_function_privilege/has_table_privilege checks and SET ROLE
