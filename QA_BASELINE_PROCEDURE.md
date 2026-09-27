@@ -262,3 +262,25 @@ enable CLI push on prod.
 - **`storage.buckets` grant** may fail on prod if `postgres` isn't the owner —
   `01` degrades gracefully to a comment-only file; recreate bucket config from
   `20260913230000` if needed.
+
+## Post-install QA configuration (verified live 2025 QA bring-up)
+
+The real QA install exposed two Supabase-managed differences that are
+INTENTIONAL — do not normalize them away or flag as drift:
+
+- **`public.rls_auto_enable()`** — managed event trigger that enables RLS
+  on every `CREATE TABLE` in `public`. It fired during baseline restore.
+- **3 tables RLS-enabled in QA that prod leaves unprotected**:
+  `call_pipeline_classifications`, `stripe_webhook_events`,
+  `twilio_number_cleanup_runs`. All are exclusively reached via
+  `supabaseAdmin`/`SUPABASE_SERVICE_ROLE_KEY` server-side code paths
+  (BYPASSRLS), so the extra RLS is inert for the app and strictly safer.
+- **"Private by default" grants** — this project's `pg_default_acl` gives
+  the API roles only REFERENCES,TRIGGER,TRUNCATE,MAINTAIN (no DML/EXECUTE).
+  The audited restore grants live in `qa-baseline/proposed/`:
+  `01-storage-buckets.sql` (2 buckets: business-logos public,
+  mms-media private), `02-storage-policies.sql` (4 business-logos
+  policies verbatim from 20260913230000), `03-api-grants.sql`
+  (service_role full; authenticated only the 24 audited tables + 2
+  billing RPCs; anon none; no default-privilege changes),
+  `04-verify.sql` (read-only verification). Apply manually, in order.
