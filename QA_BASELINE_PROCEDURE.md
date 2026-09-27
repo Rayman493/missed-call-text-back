@@ -277,10 +277,16 @@ INTENTIONAL — do not normalize them away or flag as drift:
   (BYPASSRLS), so the extra RLS is inert for the app and strictly safer.
 - **"Private by default" grants** — this project's `pg_default_acl` gives
   the API roles only REFERENCES,TRIGGER,TRUNCATE,MAINTAIN (no DML/EXECUTE).
-  The audited restore grants live in `qa-baseline/proposed/`:
-  `01-storage-buckets.sql` (2 buckets: business-logos public,
-  mms-media private), `02-storage-policies.sql` (4 business-logos
-  policies verbatim from 20260913230000), `03-api-grants.sql`
-  (service_role full; authenticated only the 24 audited tables + 2
-  billing RPCs; anon none; no default-privilege changes),
-  `04-verify.sql` (read-only verification). Apply manually, in order.
+  The audited restore configuration lives in `qa-baseline/proposed/`:
+  `01-storage-buckets.sql` (config record only — buckets are created via
+  `scripts/qa/06-create-qa-buckets.sh` against the Storage API:
+  business-logos public/2 MB/images, mms-media private/5 MB),
+  `02-storage-policies.sql` (4 business-logos policies verbatim from
+  20260913230000; mms-media deliberately none),
+  `03-api-grants.sql` (revokes PUBLIC+anon+authenticated EXECUTE on all
+  18 app functions and from future-function defaults; service_role full
+  access; authenticated only the 21 audited tables + 2 billing RPCs;
+  anon nothing; no broad default-privilege grants),
+  `04-verify.sql` (effective-privilege verification incl.
+  has_function_privilege/has_table_privilege checks and SET ROLE
+  unauthorized-invocation proofs). Apply manually, in order.
