@@ -16,7 +16,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-QA_REF_FILE=".temp/project-ref"
+QA_REF_FILE="supabase/.temp/project-ref"
 EXPECTED_QA_REF="ixtifohdqhtvhhessgaj"
 PROD_REF="bqummccorpfihatocffl"
 CHECK_ONLY=0
