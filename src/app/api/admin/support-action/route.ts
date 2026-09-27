@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { cancelTwilioRelease } from '@/lib/twilio-reclamation'
+import { getAppBaseUrl } from '@/lib/urls'
 import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
       status: 'executing'
     })
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const appUrl = getAppBaseUrl()
     let message = ''
 
     switch (action) {

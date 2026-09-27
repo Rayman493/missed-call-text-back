@@ -15,6 +15,7 @@
 import { formatInTimeZone } from 'date-fns-tz'
 import { sendSms } from '@/lib/twilio'
 import { bookingAdmin } from './settings'
+import { getAppBaseUrl } from '@/lib/urls'
 import type { BookingRequest } from './types'
 
 /** Business fields the canonical SMS path requires. */
@@ -33,8 +34,7 @@ async function getBusinessForSms(businessId: string) {
 type BusinessForSms = Awaited<ReturnType<typeof getBusinessForSms>>
 
 function publicUrl(path: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com'
-  return `${base}${path}`
+  return `${getAppBaseUrl()}${path}`
 }
 
 function formatSlot(startIso: string, timezone: string): string {

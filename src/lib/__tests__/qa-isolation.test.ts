@@ -5,7 +5,7 @@
  * ever reaching production resources: REPLYFLOW_ENV identification,
  * production-URL fallback removal, startup assertions, and cron gating.
  */
-import { describe, it, expect, beforeEach, afterAll } from 'vitest'
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const ENV_KEYS = [
@@ -277,5 +277,149 @@ describe('voice service env guard', () => {
     expect(getMainAppUrl()).toBe('https://www.replyflowhq.com')
     expect(getVoiceBaseUrl()).toBe('https://replyflow-ai-voice.fly.dev')
     expect(() => assertVoiceQaIsolation()).not.toThrow()
+  })
+})
+
+describe('stripe env-aware key validation', () => {
+  async function loadStripe() {
+    const { default: getStripe } = await import('@/lib/stripe')
+    return getStripe
+  }
+
+  it('allows sk_test_ keys in qa (NODE_ENV=production)', async () => {
+    process.env.REPLYFLOW_ENV = 'qa'
+    setNodeEnv('production')
+    process.env.STRIPE_SECRET_KEY = 'sk_test_dummy_123'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(getStripe()).not.toBeNull()
+  })
+
+  it('allows rk_test_ restricted test keys in qa', async () => {
+    process.env.REPLYFLOW_ENV = 'qa'
+    setNodeEnv('production')
+    process.env.STRIPE_SECRET_KEY = 'rk_test_dummy_123'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(getStripe()).not.toBeNull()
+  })
+
+  it('throws on sk_live_ in qa', async () => {
+    process.env.REPLYFLOW_ENV = 'qa'
+    setNodeEnv('production')
+    process.env.STRIPE_SECRET_KEY = 'sk_live_dummy_123'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(() => getStripe()).toThrow(/forbids live Stripe/)
+  })
+
+  it('throws on rk_live_ in qa', async () => {
+    process.env.REPLYFLOW_ENV = 'qa'
+    setNodeEnv('production')
+    process.env.STRIPE_SECRET_KEY = 'rk_live_dummy_123'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(() => getStripe()).toThrow(/forbids live Stripe/)
+  })
+
+  it('returns null for malformed keys in qa', async () => {
+    process.env.REPLYFLOW_ENV = 'qa'
+    setNodeEnv('production')
+    process.env.STRIPE_SECRET_KEY = 'not-a-key'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(getStripe()).toBeNull()
+  })
+
+  it('returns null when the key is missing in qa', async () => {
+    process.env.REPLYFLOW_ENV = 'qa'
+    setNodeEnv('production')
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(getStripe()).toBeNull()
+  })
+
+  it('production still rejects sk_test_ in non-dev builds', async () => {
+    delete process.env.REPLYFLOW_ENV
+    setNodeEnv('production')
+    process.env.STRIPE_SECRET_KEY = 'sk_test_dummy_123'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(() => getStripe()).toThrow(/live Stripe/)
+  })
+
+  it('production accepts sk_live_', async () => {
+    delete process.env.REPLYFLOW_ENV
+    setNodeEnv('production')
+    process.env.STRIPE_SECRET_KEY = 'sk_live_dummy_123'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(getStripe()).not.toBeNull()
+  })
+
+  it('development still allows test keys (unchanged)', async () => {
+    delete process.env.REPLYFLOW_ENV
+    setNodeEnv('development')
+    process.env.STRIPE_SECRET_KEY = 'sk_test_dummy_123'
+    vi.resetModules()
+    const getStripe = await loadStripe()
+    expect(getStripe()).not.toBeNull()
+  })
+})
+
+describe('production-URL fallback removal', () => {
+  const { readFileSync } = require('fs')
+
+  const FIXED_SOURCES = [
+    'src/lib/twilio/numberManager.ts',
+    'src/lib/twilio-provisioning-service.ts',
+    'src/lib/assigned-number-monitor.ts',
+    'src/lib/mms-media-url-helper.ts',
+    'src/lib/booking/sms.ts',
+    'src/lib/env-validation.ts',
+    'src/app/admin/actions.ts',
+    'src/app/api/admin/support-action/route.ts',
+    'src/app/api/admin/fix-voice-webhook-method/route.ts',
+    'src/app/api/admin/repair-twilio-provisioning/route.ts',
+    'src/app/api/admin/reprovision-twilio-number/route.ts',
+    'src/app/api/twilio/voice/route.ts',
+    'src/app/dashboard/DashboardContent.tsx',
+    'src/app/dashboard/admin/diagnostics/page.tsx',
+  ]
+
+  it('no service-callsite retains a literal replyflowhq.com fallback', () => {
+    for (const f of FIXED_SOURCES) {
+      const src = readFileSync(f, 'utf8')
+      expect(src, f).not.toMatch(/https:\/\/(www\.)?replyflowhq\.com/)
+    }
+  })
+
+  it('numberManager builds webhook URLs from the environment-aware resolver', () => {
+    const src = readFileSync('src/lib/twilio/numberManager.ts', 'utf8')
+    expect(src).toContain('getAppBaseUrl()')
+    expect(src).toContain('/api/twilio/voice')
+    expect(src).toContain('/api/twilio/incoming-sms')
+  })
+
+  it('qa webhook URLs resolve to the QA host; prod-host config throws', async () => {
+    process.env.REPLYFLOW_ENV = 'qa'
+    process.env.NEXT_PUBLIC_APP_URL = 'https://replyflow-qa.vercel.app'
+    const { getAppBaseUrl } = await import('@/lib/urls')
+    expect(`${getAppBaseUrl()}/api/twilio/voice`).toBe('https://replyflow-qa.vercel.app/api/twilio/voice')
+    expect(`${getAppBaseUrl()}/api/twilio/incoming-sms`).toBe('https://replyflow-qa.vercel.app/api/twilio/incoming-sms')
+
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.replyflowhq.com'
+    expect(() => getAppBaseUrl()).toThrow(/ENV ISOLATION/)
+
+    delete process.env.NEXT_PUBLIC_APP_URL
+    delete process.env.VERCEL_URL
+    delete process.env.NEXT_PUBLIC_SITE_URL
+    expect(() => getAppBaseUrl()).toThrow(/ENV ISOLATION/)
+  })
+
+  it('production resolution is unchanged', async () => {
+    delete process.env.REPLYFLOW_ENV
+    const { getAppBaseUrl } = await import('@/lib/urls')
+    expect(getAppBaseUrl()).toBe('https://www.replyflowhq.com')
   })
 })

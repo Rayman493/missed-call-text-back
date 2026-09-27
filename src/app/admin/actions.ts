@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { getProvisioningStatus, retryProvisioning } from '@/lib/twilio-provisioning-service'
+import { getAppBaseUrl } from '@/lib/urls'
 
 /**
  * Server action to reconcile warm numbers
@@ -9,7 +10,7 @@ import { getProvisioningStatus, retryProvisioning } from '@/lib/twilio-provision
  */
 export async function reconcileWarmNumbers() {
   const adminSecret = process.env.ADMIN_SECRET
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+  const appUrl = getAppBaseUrl()
 
   if (!adminSecret) {
     return { success: false, error: 'Admin secret not configured' }

@@ -1422,11 +1422,9 @@ export default function DashboardContent() {
                             <button
                               onClick={async () => {
                                 if (!business?.id) return;
-                                
-                                const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
-                                
+
                                 try {
-                                  const response = await fetch(`${appUrl}/api/business/retry-provisioning`, {
+                                  const response = await fetch('/api/business/retry-provisioning', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ business_id: business.id }),

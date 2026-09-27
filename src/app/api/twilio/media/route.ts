@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { verifyMmsMediaToken } from '@/lib/mms-media-token'
+import { getAppBaseUrlOrNull } from '@/lib/urls'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,11 @@ export async function GET(request: NextRequest) {
 
     const allowedTwilioHosts = new Set(['api.twilio.com', 'mcs.us1.twilio.com'])
     const allowedReplyFlowHosts = new Set(['replyflowhq.com', 'www.replyflowhq.com'])
+    // Permit this deployment's own host so QA media URLs validate too.
+    try {
+      const ownHost = getAppBaseUrlOrNull()
+      if (ownHost) allowedReplyFlowHosts.add(new URL(ownHost).hostname)
+    } catch { /* unparseable URL — prod hosts still allowed */ }
     const isAllowedTwilioHost = parsedMediaUrl.protocol === 'https:' && (
       allowedTwilioHosts.has(parsedMediaUrl.hostname) || parsedMediaUrl.hostname.endsWith('.twilio.com')
     )

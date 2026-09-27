@@ -1,6 +1,7 @@
 import Twilio, { Twilio as TwilioClient } from 'twilio'
 import { createClient } from '@supabase/supabase-js'
 import type { ServiceHealth } from './system-health'
+import { getAppBaseUrl } from './urls'
 
 export interface BusinessRow {
   id: string
@@ -439,7 +440,7 @@ export async function runAssignedNumberIntegrityCheck(): Promise<{ findings: Int
       // STEP 3: Trigger reprovisioning to acquire a replacement number.
       // Use internal HTTP call to the provisioning endpoint with admin secret.
       try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+        const appUrl = getAppBaseUrl()
         const response = await fetch(`${appUrl}/api/business/trigger-provisioning`, {
           method: 'POST',
           headers: {

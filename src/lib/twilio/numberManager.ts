@@ -1,6 +1,7 @@
 import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
 import { validateTwilioForVoice } from './env';
+import { getAppBaseUrl } from '../urls';
 
 // Validate Twilio environment for voice operations
 const voiceValidation = validateTwilioForVoice();
@@ -142,10 +143,11 @@ export async function provisionNumberForBusiness(businessId: string): Promise<Pr
     console.log('[Twilio Number Manager] Selected available number:', numberToPurchase.phoneNumber);
 
     // Purchase the number
+    const webhookBaseUrl = getAppBaseUrl();
     const purchasedNumber = await client.incomingPhoneNumbers.create({
       phoneNumber: numberToPurchase.phoneNumber,
-      voiceUrl: 'https://replyflowhq.com/api/twilio/voice',
-      smsUrl: 'https://replyflowhq.com/api/twilio/incoming-sms',
+      voiceUrl: `${webhookBaseUrl}/api/twilio/voice`,
+      smsUrl: `${webhookBaseUrl}/api/twilio/incoming-sms`,
     });
 
     console.log('[Twilio Number Manager] Provisioning: Successfully purchased number:', purchasedNumber.phoneNumber, 'for business:', businessId);

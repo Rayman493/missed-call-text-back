@@ -80,11 +80,9 @@ export default function AdminDiagnosticsPage() {
 
   const handleRetryProvisioning = async () => {
     if (!business?.id) return
-    
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
-    
+
     try {
-      const response = await fetch(`${appUrl}/api/business/retry-provisioning`, {
+      const response = await fetch('/api/business/retry-provisioning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ business_id: business.id }),

@@ -10,6 +10,7 @@
 
 import { generateMmsMediaToken } from './mms-media-token'
 import { assertValidOutboundMmsMediaUrl } from './mms-url-validator'
+import { getAppBaseUrl } from './urls'
 
 /**
  * Generate a fresh access URL for MMS media from a storage path
@@ -37,7 +38,7 @@ export async function createMmsMediaAccessUrl(storagePath: string): Promise<stri
   }
 
   // Build URL using URL object to avoid encoding issues
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'
+  const baseUrl = getAppBaseUrl()
   const serveUrl = new URL('/api/mms-media/serve', baseUrl)
   serveUrl.searchParams.set('path', storagePath)
   serveUrl.searchParams.set('token', token)

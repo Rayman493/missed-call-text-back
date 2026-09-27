@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { recoverBusinessWithInvalidTwilioNumber } from '@/lib/twilio-recovery'
+import { getAppBaseUrl } from '@/lib/urls'
 import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     // Trigger provisioning
     console.log('[ADMIN REPROVISION] Triggering provisioning')
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const appUrl = getAppBaseUrl()
     const response = await fetch(`${appUrl}/api/business/trigger-provisioning`, {
       method: 'POST',
       headers: {

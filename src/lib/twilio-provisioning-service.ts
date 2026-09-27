@@ -640,6 +640,7 @@ import Twilio from "twilio";
 import { createClient } from '@supabase/supabase-js';
 import { isSystemPhoneNumber } from './twilio-assignment';
 import { triggerBackgroundReplenishment } from './warm-number-manager';
+import { getAppBaseUrl } from './urls';
 
 // Initialize Supabase client for DB operations
 const supabase = createClient(
@@ -1280,7 +1281,7 @@ async function purchaseNumber(
     console.log('[PURCHASE NUMBER] No available numbers in inventory, purchasing new from Twilio');
 
     const client = Twilio(accountSid, authToken);
-    let appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+    let appUrl = getAppBaseUrl();
 
     // Ensure appUrl has a scheme (https://)
     if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
@@ -1756,7 +1757,7 @@ async function configureVoiceUrlOnExistingNumber(phoneNumberSid: string, correla
   console.log('[CONFIGURE VOICE URL] correlation_id:', correlationId);
 
   const client = Twilio(accountSid, authToken);
-  let appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+  let appUrl = getAppBaseUrl();
 
   // Ensure appUrl has a scheme (https://)
   if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {
@@ -1916,7 +1917,7 @@ export async function isNumberReadyForUse(businessId: string): Promise<boolean> 
     }
 
     const client = Twilio(accountSid, authToken);
-    let appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://www.replyflowhq.com';
+    let appUrl = getAppBaseUrl();
 
     // Ensure appUrl has a scheme (https://)
     if (!appUrl.startsWith('http://') && !appUrl.startsWith('https://')) {

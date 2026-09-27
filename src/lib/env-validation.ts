@@ -14,6 +14,8 @@
  * }
  */
 
+import { getAppBaseUrlOrNull } from './urls'
+
 export interface EnvVarConfig {
   name: string
   description: string
@@ -172,7 +174,7 @@ const ENV_VARIABLES: EnvVarConfig[] = [
     description: 'Application URL',
     required: true,
     category: 'system',
-    fallback: process.env.VERCEL_URL || 'https://www.replyflowhq.com',
+    fallback: getAppBaseUrlOrNull() ?? undefined,
   },
   {
     name: 'VERCEL_URL',

@@ -6,6 +6,7 @@ import { sendSms } from '@/lib/twilio';
 import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
 import { timelineEvents } from '@/lib/event-timeline';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
+import { getAppBaseUrl } from '@/lib/urls';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getSpokenBusinessName } from '@/lib/speech';
@@ -1400,7 +1401,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
             // Return TwiML with Media Stream to Fly.io
             // Parameters are passed as <Parameter> elements, not query params
             // leadId and conversationId are now passed so the AI service can update the same records.
-            const statusCallbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.APP_BASE_URL || 'https://www.replyflowhq.com'}/api/twilio/voice-status`;
+            const statusCallbackUrl = `${getAppBaseUrl()}/api/twilio/voice-status`;
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>

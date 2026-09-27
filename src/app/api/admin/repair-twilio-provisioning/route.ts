@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
+import { getAppBaseUrl } from '@/lib/urls'
 import Twilio from 'twilio'
 import { logAdminAction, getUserEmail } from '@/lib/admin-audit'
 
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
 
     // Configure voice webhook
     console.log('[Repair Twilio Provisioning] Configuring voice webhook')
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://replyflowhq.com'
+    const appUrl = getAppBaseUrl()
     const voiceWebhookUrl = `${appUrl}/api/twilio/voice`
     const voiceStatusWebhookUrl = `${appUrl}/api/twilio/voice-status`
 
