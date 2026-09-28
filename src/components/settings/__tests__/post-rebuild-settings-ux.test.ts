@@ -91,10 +91,16 @@ describe('B — Team Access identity handling', () => {
     expect(memberCard).toContain('key={m.membership_id}')
   })
 
-  it('consumed accepted invites are deduped only by verified phone match to a member', () => {
-    expect(teamAccess).toContain('memberPhones')
-    expect(teamAccess).toContain("i.status === 'accepted'")
-    expect(teamAccess).toContain("i.status !== 'pending'")
+  it('consumed accepted invites are deduped only by verified identity match to a member', () => {
+    // Dedup/reconciliation lives in the shared lib: strongest identity
+    // (accepted_by user_id, then normalized phone) decides whether a
+    // historical invite belongs to someone who still has access.
+    const history = readFileSync('src/lib/team-invite-history.ts', 'utf8')
+    expect(teamAccess).toContain('reconcileTeamHistory')
+    expect(history).toContain('inviteBelongsToActivePerson')
+    expect(history).toContain('accepted_by')
+    expect(history).toContain('normalizePhoneKey')
+    expect(history).toContain("i.status !== 'pending'")
     // Dedupe is invite-vs-member only — no member-to-member merging
     expect(teamAccess).not.toMatch(/members\.filter\(.*email/i)
   })

@@ -317,7 +317,10 @@ export function getDeletionSubscriptionNotice(
   }
   // provider='stripe' AND a Google Play token → ambiguous dual-provider state;
   // never classify as auto-cancellable Stripe.
-  if (provider === 'stripe' && !hasGooglePlayToken) {
+  // Also require a concrete stripe_subscription_id: the deletion backend only
+  // cancels subscriptions with an id, so promising "canceled automatically"
+  // without one would be untruthful.
+  if (provider === 'stripe' && !hasGooglePlayToken && business?.stripe_subscription_id) {
     return 'stripe'
   }
   return 'unknown'

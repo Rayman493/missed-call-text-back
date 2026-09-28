@@ -116,7 +116,9 @@ interface BriefSectionItemProps {
 function BriefSectionItem({ section }: BriefSectionItemProps) {
   const icon = getSectionIcon(section.type)
   const isHealthSection = section.type === 'health'
-  const itemCount = section.items.length
+  // Placeholder/empty-state rows are display text, not actionable items — they
+  // must not count toward the section badge.
+  const itemCount = section.items.filter(item => !isPlainItem(section, item)).length
 
   return (
     <div className="px-4 py-2.5">
@@ -138,7 +140,7 @@ function BriefSectionItem({ section }: BriefSectionItemProps) {
       {!isHealthSection && (
         <div className="mt-2 ml-9.5 space-y-1.5">
           {section.items.map(item => (
-            <BriefItem key={item.id} item={item} />
+            <BriefItem key={item.id} item={item} plain={isPlainItem(section, item)} />
           ))}
         </div>
       )}
@@ -155,16 +157,37 @@ function BriefSectionItem({ section }: BriefSectionItemProps) {
   )
 }
 
+// Empty-state/placeholder rows (e.g. "No events scheduled today") render as
+// plain summary text — no priority bullet — matching the Business Health
+// summary style. This covers both service-marked placeholders and empty-state
+// lines that arrive as regular items.
+const EMPTY_STATE_SUMMARY_RE = /^(no events scheduled|nothing scheduled|no appointments|nothing needs)/i
+
+function isPlainItem(section: BriefSection, item: { id: string; summary: string; isPlaceholder?: boolean }): boolean {
+  if (item.isPlaceholder || item.id.startsWith('placeholder-')) return true
+  return section.type === 'schedule' && EMPTY_STATE_SUMMARY_RE.test(item.summary.trim())
+}
+
 interface BriefItemProps {
   item: {
     id: string
     summary: string
     priority: 'urgent' | 'high' | 'medium' | 'low'
+    isPlaceholder?: boolean
   }
+  plain?: boolean
 }
 
-function BriefItem({ item }: BriefItemProps) {
+function BriefItem({ item, plain = false }: BriefItemProps) {
   const priorityColor = getPriorityColor(item.priority)
+
+  if (plain) {
+    return (
+      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+        {item.summary}
+      </p>
+    )
+  }
 
   return (
     <div className="flex items-start gap-2">

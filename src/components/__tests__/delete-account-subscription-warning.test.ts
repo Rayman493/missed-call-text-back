@@ -79,21 +79,35 @@ describe('getDeletionSubscriptionNotice', () => {
 })
 
 describe('Delete Account modal wiring', () => {
-  const src = readFileSync(join(__dirname, '..', 'SettingsContent.tsx'), 'utf8')
+  const settingsSrc = readFileSync(join(__dirname, '..', 'SettingsContent.tsx'), 'utf8')
+  const noticeSrc = readFileSync(
+    join(__dirname, '..', 'settings', 'DeleteAccountSubscriptionNotice.tsx'),
+    'utf8'
+  )
 
-  it('uses the classifier and never shows auto-cancel to google_play', () => {
-    expect(src).toContain('getDeletionSubscriptionNotice(business)')
-    expect(src).toContain("notice === 'google_play'")
-    expect(src).toContain("notice === 'stripe'")
-    expect(src).toContain("notice === 'none'")
+  it('SettingsContent renders the extracted subscription notice component', () => {
+    expect(settingsSrc).toContain('<DeleteAccountSubscriptionNotice')
+    expect(settingsSrc).toContain('business={business}')
+    expect(settingsSrc).toContain('onManageBilling={() => handleBillingActionClick(\'portal\')}')
+    // Refresh the business before opening the modal so the warning is not
+    // based on a stale cached business object.
+    expect(settingsSrc).toContain('await refreshBusiness(true)')
+    expect(settingsSrc).toContain('setShowDeleteModal(true)')
+  })
+
+  it('notice component uses the classifier and never shows auto-cancel to google_play', () => {
+    expect(noticeSrc).toContain('getDeletionSubscriptionNotice(business)')
+    expect(noticeSrc).toContain("notice === 'google_play'")
+    expect(noticeSrc).toContain("notice === 'stripe'")
+    expect(noticeSrc).toContain("notice === 'none'")
     // google_play branch precedes and never contains the auto-cancel sentence
-    const gpIdx = src.indexOf("notice === 'google_play'")
-    const stripeIdx = src.indexOf("notice === 'stripe'")
-    const autoCancelIdx = src.indexOf('will be canceled automatically')
+    const gpIdx = noticeSrc.indexOf("notice === 'google_play'")
+    const stripeIdx = noticeSrc.indexOf("notice === 'stripe'")
+    const autoCancelIdx = noticeSrc.indexOf('will be canceled automatically')
     expect(gpIdx).toBeGreaterThan(-1)
     expect(stripeIdx).toBeGreaterThan(gpIdx)
     expect(autoCancelIdx).toBeGreaterThan(stripeIdx)
-    expect(src).toContain('will not automatically cancel your Google Play subscription')
-    expect(src).toContain('Manage subscription in Google Play')
+    expect(noticeSrc).toContain('will not automatically cancel your Google Play subscription')
+    expect(noticeSrc).toContain('Manage subscription in Google Play')
   })
 })

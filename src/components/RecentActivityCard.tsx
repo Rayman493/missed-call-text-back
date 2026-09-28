@@ -48,6 +48,22 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
     return phone
   }
 
+  const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+  // If the activity title already identifies the person ("Marlene Kovac
+  // replied", "Message sent to Marlene Kovac"), repeating the same name in the
+  // metadata line is redundant. Word-boundary matching avoids false hits like
+  // "Jo" inside "Job"; formatted-phone names (starting with non-word chars)
+  // fall back to a plain containment check.
+  const titleIdentifiesCustomer = (title: string, customerName?: string): boolean => {
+    const name = customerName?.trim()
+    if (!name || name === 'Customer' || name === 'Unknown') return false
+    if (/^\w/.test(name)) {
+      return new RegExp(`\\b${escapeRegExp(name)}\\b`, 'i').test(title)
+    }
+    return title.toLowerCase().includes(name.toLowerCase())
+  }
+
   const getDisplayName = (customerName?: string, customerPhone?: string): string => {
     if (customerName && customerName !== 'Unknown') {
       return customerName
@@ -653,7 +669,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground mb-0.5">{activity.title}</p>
                     <div className="flex items-center gap-2 mb-0.5">
-                      {activity.customerName && (
+                      {activity.customerName && !titleIdentifiesCustomer(activity.title, activity.customerName) && (
                         <p className="text-xs font-medium text-foreground truncate">{activity.customerName}</p>
                       )}
                       <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>
@@ -678,7 +694,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground mb-0.5">{activity.title}</p>
                   <div className="flex items-center gap-2 mb-0.5">
-                    {activity.customerName && (
+                    {activity.customerName && !titleIdentifiesCustomer(activity.title, activity.customerName) && (
                       <p className="text-xs font-medium text-foreground truncate">{activity.customerName}</p>
                     )}
                     <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>

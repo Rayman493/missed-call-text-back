@@ -923,12 +923,18 @@ body[data-chrome-covered='true'] {
   }
 }
 
-/* Online Booking "Blocked dates" From/To inputs use the native picker
- * indicator (no custom icon). The indicator hugs the field's right edge by
- * default; a small inline-end margin nudges it inward while keeping it
- * vertically centered inside the existing padding. */
-.booking-exception-date::-webkit-calendar-picker-indicator {
-  margin-inline-end: 4px;
+/* Native date/time picker indicators hug the field's right edge on Android
+ * Chrome/WebView — padding-right does NOT move them because the indicator is
+ * laid out inside the padding box. The only reliable nudge is an inline-end
+ * margin on the ::-webkit-calendar-picker-indicator pseudo-element itself.
+ * ~10px pulls it visibly inward (was 4px, still flush against the border).
+ *
+ * Scoped classes keep this off pickers that already manage their own
+ * affordance (.hide-native-picker custom-icon inputs like DatePicker/
+ * TimePicker components render an absolutely-positioned icon instead). */
+.booking-exception-date::-webkit-calendar-picker-indicator,
+.native-picker-inset::-webkit-calendar-picker-indicator {
+  margin-inline-end: 10px;
   margin-inline-start: 4px;
   cursor: pointer;
 }

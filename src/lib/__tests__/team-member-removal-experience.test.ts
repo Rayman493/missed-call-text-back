@@ -71,12 +71,12 @@ describe('team member removal experience', () => {
     expect(callbackSrc).toContain("'/onboarding'")
   })
 
-  it('a removed member\'s consumed invite resurfaces labeled removed, not accepted', () => {
-    // Accepted invites dedupe against live member phones; after removal the
-    // invite re-enters pastInvites. Its chip must say "removed" so the owner
-    // does not read it as a still-active member.
-    expect(teamSectionSrc).toContain('memberPhones')
-    expect(teamSectionSrc).toContain("inv.status === 'accepted' ? 'removed' : inv.status")
+  it('a removed member\'s consumed invite resurfaces labeled Access removed, not accepted', () => {
+    // Accepted invites are suppressed while the person is active and re-enter
+    // the history list after removal, collapsed into one person record.
+    expect(teamSectionSrc).toContain('reconcileTeamHistory')
+    expect(teamSectionSrc).toContain('Access removed')
+    expect(teamSectionSrc).not.toContain("inv.status === 'accepted' ? 'Accepted' : inv.status")
   })
 
   it('list refetch happens after successful removal', () => {
