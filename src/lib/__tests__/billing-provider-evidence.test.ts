@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
 import { hasValidSubscription, hasInvalidTrialState } from '@/lib/subscription'
+import { mapPlayEntitlement, SUBSCRIPTION_STATE } from '@/lib/google-play/billing-service'
 
 /**
  * Regression: subscription_provider can read stale 'stripe' on a
@@ -101,6 +102,91 @@ describe('subscription identity helpers under ambiguous provider', () => {
         googlePlayPurchaseToken: 'tok',
       })
     ).toBe(false)
+  })
+})
+
+describe('RTDN stale-provider guard', () => {
+  const routeSrc = fs.readFileSync(
+    path.join(srcRoot, 'app', 'api', 'google-play', 'rtdn', 'route.ts'),
+    'utf8'
+  )
+
+  it('still short-circuits on the stripe label check', () => {
+    expect(routeSrc).toContain("business.subscription_provider === 'stripe'")
+  })
+
+  it('selects google_play_revoked_at for the definitive-dead fast path', () => {
+    expect(routeSrc).toContain('google_play_revoked_at')
+    expect(routeSrc).toContain('stripe_provider_gp_revoked')
+  })
+
+  it('verifies ambiguous state against Google before deciding', () => {
+    expect(routeSrc).toContain('fetchSubscription(subNotif.purchaseToken)')
+    expect(routeSrc).toContain('mapPlayEntitlement(sub, { isTrial: false })')
+    expect(routeSrc).toContain('stripe_provider_gp_dead')
+  })
+
+  it('does not blindly trust or blindly skip the stripe label', () => {
+    // The old unconditional skip returned skipped:'stripe_provider' without
+    // ever consulting Google; the new gate only skips after evidence.
+    expect(routeSrc).toContain('shouldProcess')
+    expect(routeSrc).not.toContain("skipped: 'stripe_provider' })")
+  })
+
+  // The liveness predicate the route uses: mapped status that grants or
+  // preserves access (not null, not 'canceled').
+  const live = (state: number, expiryTime?: string) => {
+    const mapped = mapPlayEntitlement(
+      { subscriptionState: state, lineItems: [{ expiryTime }] },
+      { isTrial: false }
+    )
+    return Boolean(mapped.status && mapped.status !== 'canceled')
+  }
+
+  it('live GP states pass the gate (stale-stripe events get processed)', () => {
+    const future = '2099-01-01T00:00:00Z'
+    expect(live(SUBSCRIPTION_STATE.ACTIVE, future)).toBe(true)
+    expect(live(SUBSCRIPTION_STATE.IN_GRACE_PERIOD, future)).toBe(true)
+    expect(live(SUBSCRIPTION_STATE.CANCELED, future)).toBe(true) // still in paid window
+    expect(live(SUBSCRIPTION_STATE.PAUSED, future)).toBe(true)
+    expect(live(SUBSCRIPTION_STATE.ON_HOLD, future)).toBe(true)
+  })
+
+  it('dead GP states fail the gate (genuine Stripe sub untouched)', () => {
+    const past = '2020-01-01T00:00:00Z'
+    const future = '2099-01-01T00:00:00Z'
+    expect(live(SUBSCRIPTION_STATE.EXPIRED, past)).toBe(false)
+    expect(live(SUBSCRIPTION_STATE.CANCELED, past)).toBe(false) // terminal
+    expect(live(SUBSCRIPTION_STATE.PENDING, future)).toBe(false)
+    expect(live(SUBSCRIPTION_STATE.UNSPECIFIED, future)).toBe(false)
+  })
+})
+
+describe('verifyAndApplyPurchase double-billing guard under stale provider', () => {
+  const svcSrc = fs.readFileSync(
+    path.join(srcRoot, 'lib', 'google-play', 'billing-service.ts'),
+    'utf8'
+  )
+
+  it('still guards Stripe-labeled businesses', () => {
+    expect(svcSrc).toContain("business.subscription_provider === 'stripe'")
+    expect(svcSrc).toContain('alreadyOwned')
+  })
+
+  it('consults the freshly fetched Play subscription before honoring the guard', () => {
+    // Without this, a stale 'stripe' label would swallow live GP events:
+    // the route gate could pass but the service guard would still no-op.
+    expect(svcSrc).toContain('mapPlayEntitlement(sub, { isTrial: false, revoked: args.forceRevoked })')
+    expect(svcSrc).toContain('gpStillLive')
+  })
+
+  it('a REVOKED event can never overwrite Stripe (revoked maps to canceled → not live)', () => {
+    const mapped = mapPlayEntitlement(
+      { subscriptionState: SUBSCRIPTION_STATE.ACTIVE, lineItems: [{ expiryTime: '2099-01-01T00:00:00Z' }] },
+      { isTrial: false, revoked: true }
+    )
+    expect(mapped.status).toBe('canceled')
+    // → guardMapped 'canceled' → !gpStillLive → early return, Stripe untouched
   })
 })
 
