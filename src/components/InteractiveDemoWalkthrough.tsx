@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import HomepageErrorBoundary from '@/components/HomepageErrorBoundary'
+import { clampStepIndex, nextStepIndex, prevStepIndex, createAutoplayScheduler } from '@/lib/demo-autoplay'
 import {
   Phone,
   PhoneOff,
@@ -658,10 +660,26 @@ interface InteractiveDemoWalkthroughProps {
 
 export default function InteractiveDemoWalkthrough({ compact = false, showHeader = true }: InteractiveDemoWalkthroughProps) {
   const [step, setStep] = useState(0)
-  const [autoPlay, setAutoPlay] = useState(false)
+  // Autoplay is the default state — it starts on mount and only stops on
+  // explicit pause, reduced-motion preference, or reaching the final step.
+  const [autoPlay, setAutoPlay] = useState(true)
   const [direction, setDirection] = useState(1)
-  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
+  // Single managed autoplay timer. The scheduler guarantees at most one
+  // pending timeout; onTick uses functional updates so it can never fire a
+  // stale closure or push the step out of range.
+  const compactRef = useRef(compact)
+  compactRef.current = compact
+  const [scheduler] = useState(() =>
+    createAutoplayScheduler({
+      getDelayMs: () => (compactRef.current ? 5500 : 6500),
+      onTick: () => {
+        setDirection(1)
+        setStep((s) => nextStepIndex(s, steps.length))
+      },
+    })
+  )
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -673,62 +691,54 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
   }, [])
 
   const goToStep = useCallback((newStep: number) => {
-    setDirection(newStep > step ? 1 : -1)
-    setStep(newStep)
-    // Pause auto-play on manual interaction
-    if (autoPlay) {
-      setAutoPlay(false)
-    }
-  }, [step, autoPlay])
+    const clamped = clampStepIndex(newStep, steps.length)
+    setDirection(clamped >= step ? 1 : -1)
+    setStep(clamped)
+  }, [step])
 
   const next = useCallback(() => {
-    if (step < steps.length - 1) {
-      setDirection(1)
-      setStep(s => s + 1)
-    }
-  }, [step])
+    setDirection(1)
+    setStep((s) => nextStepIndex(s, steps.length))
+  }, [])
 
   const previous = useCallback(() => {
-    if (step > 0) {
-      setDirection(-1)
-      setStep(s => s - 1)
-    }
-  }, [step])
+    setDirection(-1)
+    setStep((s) => prevStepIndex(s, steps.length))
+  }, [])
 
   const restart = useCallback(() => {
     setDirection(-1)
     setStep(0)
-    // Pause auto-play on manual interaction
-    if (autoPlay) {
-      setAutoPlay(false)
-    }
-  }, [autoPlay])
+    // autoPlay state is preserved: if playing, the timer effect reschedules
+    // and the walkthrough continues from step 1; if paused, it stays paused.
+  }, [])
 
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (timerId) {
-        clearTimeout(timerId)
+  const toggleAutoPlay = useCallback(() => {
+    if (prefersReducedMotion) return
+    setAutoPlay((playing) => {
+      if (playing) return false
+      // On the final step, "Play" restarts the walkthrough from step 1.
+      if (step >= steps.length - 1) {
+        setDirection(-1)
+        setStep(0)
       }
-    }
-  }, [timerId])
+      return true
+    })
+  }, [prefersReducedMotion, step])
 
+  // Autoplay driver: one pending timeout per (playing, step) state. Re-runs
+  // on step change reschedule the countdown; cleanup on re-run and unmount
+  // guarantees timers can never stack or outlive the component.
   useEffect(() => {
     if (!autoPlay || prefersReducedMotion) return
-    if (step === steps.length - 1) {
+    if (step >= steps.length - 1) {
+      // Landed on the final step — stop autoplay, never advance further.
       setAutoPlay(false)
       return
     }
-    // Prevent multiple timers
-    if (timerId) {
-      clearTimeout(timerId)
-    }
-    const newTimer = setTimeout(() => {
-      next()
-    }, compact ? 5500 : 6500)
-    setTimerId(newTimer)
-    return () => clearTimeout(newTimer)
-  }, [autoPlay, step, next, compact, timerId, prefersReducedMotion])
+    scheduler.schedule()
+    return () => scheduler.cancel()
+  }, [autoPlay, step, prefersReducedMotion, scheduler])
 
   const isFirst = step === 0
   const isLast = step === steps.length - 1
@@ -787,7 +797,19 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
                 </div>
               )}
               <div className="flex-1 flex items-center justify-center">
-                <StepContent step={step} />
+                {/* keyed boundary: a step whose animation throws shows the
+                    fallback for that step only — controls, progress, and the
+                    next step keep working */}
+                <HomepageErrorBoundary
+                  key={step}
+                  fallback={
+                    <p className="text-sm text-slate-500 dark:text-slate-400 py-10 text-center">
+                      This demo step is unavailable — use Next to continue.
+                    </p>
+                  }
+                >
+                  <StepContent step={step} />
+                </HomepageErrorBoundary>
               </div>
             </Card>
           </motion.div>
@@ -818,7 +840,7 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => !prefersReducedMotion && setAutoPlay(!autoPlay)}
+            onClick={toggleAutoPlay}
             disabled={prefersReducedMotion}
             className={`inline-flex items-center justify-center gap-1.5 h-10 rounded-lg font-medium transition-all border active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 ${
               autoPlay
