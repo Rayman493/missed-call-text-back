@@ -431,10 +431,11 @@ describe('Batch 1 — Part 4: Silent background refresh', () => {
   })
 
   it('case 28c: manual tap during background refresh is allowed (not silently ignored)', () => {
-    // handleRefresh dedup: manual refresh blocked only by manualRefreshing,
-    // not by refreshing (which tracks background too).
-    expect(pageClient).toContain('!silent && manualRefreshing')
-    expect(pageClient).toContain('silent && refreshing')
+    // handleRefresh dedup runs on the ref-backed refresh coordinator — a
+    // manual begin is blocked only by another MANUAL refresh in flight, not
+    // by background refreshes (see createRefreshCoordinator.begin).
+    expect(pageClient).toContain('refreshCoordinatorRef.current.begin(silent)')
+    expect(pageClient).toContain('requestId === null')
   })
 })
 

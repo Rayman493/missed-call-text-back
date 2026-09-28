@@ -30,6 +30,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime } from '@/lib/utils'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
+import { createRefreshCoordinator } from '@/lib/refresh-lifecycle'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { PhoneIncoming, UserPlus, RefreshCw, Plus } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel } from '@/lib/ai-field-mapping'
@@ -298,11 +299,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [composerError, setComposerError] = useState('')
   const [realtimeGeneration, setRealtimeGeneration] = useState(0)
   const [externalActionSuccess, setExternalActionSuccess] = useState<{ primary: string; secondary: string } | null>(null)
-  // `refreshing` tracks ANY refresh (manual or background) for deduplication.
-  // `manualRefreshing` tracks ONLY user-initiated refreshes for the visible
-  // "Refresh" / "Refreshing…" label. Background refreshes set `refreshing`
-  // but NOT `manualRefreshing`, so they stay silent in the UI.
-  const [refreshing, setRefreshing] = useState(false)
+  // `manualRefreshing` drives the visible "Refresh" / "Refreshing…" label for
+  // user-initiated refreshes. Background refreshes stay silent in the UI.
+  // Refresh dedup/in-flight bookkeeping lives in `refreshCoordinatorRef` (a
+  // ref-backed coordinator, NOT state) because realtime subscription and
+  // interval callbacks capture stale render-time closures — reading state
+  // there let a silent refresh bypass dedup, supersede a manual request, and
+  // strand the "Refreshing…" label forever.
+  const refreshCoordinatorRef = useRef(createRefreshCoordinator())
   const [manualRefreshing, setManualRefreshing] = useState(false)
   const [refreshMessage, setRefreshMessage] = useState('')
   const [showMoreActions, setShowMoreActions] = useState(false)
@@ -3994,20 +3998,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  // Refresh deduplication with request version tracking
-  const latestRefreshRequestRef = useRef<number>(0)
-
   const handleRefresh = async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false
-    // Dedup: a manual refresh cannot start while another MANUAL refresh is
-    // already in flight (prevents rapid-tap duplicates). Background refreshes
-    // are deduped by the `refreshing` flag. A manual tap during a background
-    // refresh is allowed to proceed so the user always gets visible feedback.
-    if (!silent && manualRefreshing) return
-    if (silent && refreshing) return
+    // Dedup runs on the coordinator's live ref counts, not render state, so a
+    // stale closure from a realtime/interval callback cannot sneak a silent
+    // refresh past the guard and supersede a manual request.
+    const requestId = refreshCoordinatorRef.current.begin(silent)
+    if (requestId === null) return
 
-    const requestId = ++latestRefreshRequestRef.current
-    setRefreshing(true)
     // Only user-initiated refreshes flip the visible "Refreshing…" label.
     // Background/automatic refreshes (realtime, channel recovery, stuck
     // message polling) pass { silent: true } so the manual action stays "Refresh".
@@ -4027,12 +4025,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const result = await getLeadDetails(params.id)
 
       // Check if this is still the latest refresh request (ignore stale responses)
-      if (requestId !== latestRefreshRequestRef.current) {
-        logRealtimeSms('refetch-stale-response', { requestId, latestRequestId: latestRefreshRequestRef.current })
-        console.log('[Refresh] Ignoring stale refresh result, newer refresh in progress:', {
-          requestId,
-          latestRequestId: latestRefreshRequestRef.current
-        })
+      if (refreshCoordinatorRef.current.isStale(requestId)) {
+        logRealtimeSms('refetch-stale-response', { requestId })
+        console.log('[Refresh] Ignoring stale refresh result, newer refresh in progress:', { requestId })
         return
       }
 
@@ -4076,13 +4071,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         setTimeout(() => setRefreshMessage(''), 3000)
       }
     } finally {
-      // Only clear refreshing if this is still the latest request
-      if (requestId === latestRefreshRequestRef.current) {
-        setRefreshing(false)
-        if (!silent) {
-          setManualRefreshing(false)
-        }
-      }
+      // Every begun request settles exactly once; the flag reflects work
+      // actually still in flight, so a superseded or stale request can neither
+      // clear the label early nor leave it stuck — the previous bug where a
+      // silent refresh's finally skipped setManualRefreshing(false).
+      const flags = refreshCoordinatorRef.current.settle(silent)
+      setManualRefreshing(flags.manualRefreshing)
     }
   }
 
