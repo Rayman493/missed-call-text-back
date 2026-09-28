@@ -156,7 +156,7 @@ export async function POST(request: Request) {
 
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id, caller_phone, raw_metadata, status')
+      .select('id, business_id, caller_phone, raw_metadata, status, contact_name, name')
       .eq('id', lead_id)
       .maybeSingle()
 
@@ -686,9 +686,11 @@ If you have questions, reply to this message.`
 
     // Create notification for payment request
     try {
-      const customerName = lead.raw_metadata?.customerName || 
-                          lead.raw_metadata?.callerName || 
-                          lead.raw_metadata?.name || 
+      const { getCanonicalCustomerDisplayName } = await import('@/lib/customer-context')
+      const customerName = getCanonicalCustomerDisplayName(lead) ||
+                          lead.raw_metadata?.customerName ||
+                          lead.raw_metadata?.callerName ||
+                          lead.raw_metadata?.name ||
                           null
       if (skip_sms) {
         await notificationServiceServer.notifyPaymentCreated(

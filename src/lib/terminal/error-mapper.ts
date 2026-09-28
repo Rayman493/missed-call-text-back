@@ -5,6 +5,8 @@
  * Technical codes are preserved in diagnostics but not shown to users.
  */
 
+import { Capacitor } from '@capacitor/core'
+
 export interface MappedTapToPayError {
   title: string
   message: string
@@ -444,8 +446,10 @@ export function mapTapToPayError(
     lowerMessage.includes('unsupported version')
   ) {
     return {
-      title: 'iOS Update Required',
-      message: 'Update your iPhone to use Tap to Pay on iPhone.',
+      title: Capacitor.getPlatform() === 'ios' ? 'iOS Update Required' : 'Update Required',
+      message: Capacitor.getPlatform() === 'ios'
+        ? 'Update your iPhone to use Tap to Pay on iPhone.'
+        : 'Update your device to use Tap to Pay.',
       action: 'back',
       technicalCode: code,
       technicalMessage: message,

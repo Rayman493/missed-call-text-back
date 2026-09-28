@@ -212,6 +212,17 @@ export async function PATCH(
         updateData.contact_name = contact_name
         setCorrected('callerName', MANUAL_FIELD_ALIASES.callerName, contact_name,
           effectiveFieldValue('callerName', currentLead.contact_name))
+        // The details cards arbitrate manual vs AI-captured names by
+        // timestamp (resolveCurrentCustomerName). setCorrected only stamps
+        // corrected_fields_updated_at when the value differs from the prior
+        // corrected value — so re-saving a name that already matches the
+        // column keeps the OLD timestamp and can lose to a newer AI call
+        // record, leaving the card showing the stale AI name after save.
+        // A non-empty submitted name is a fresh manual assertion and must
+        // always carry the newest timestamp.
+        if (typeof contact_name === 'string' && contact_name.trim()) {
+          correctedFieldsUpdatedAt.callerName = now
+        }
       }
       if (caller_phone !== undefined) {
         updateData.caller_phone = caller_phone ? normalizePhoneNumberForStorage(caller_phone) : null

@@ -469,11 +469,25 @@ export async function POST(request: NextRequest) {
     // Create notification for appointment creation
     try {
       const startStr = createdEvent.start?.dateTime || createdEvent.start?.date || ''
+      let customerName: string | null = null
+      if (lead_id) {
+        const { data: leadRow } = await supabase
+          .from('leads')
+          .select('id, contact_name, name, caller_phone, raw_metadata')
+          .eq('id', lead_id)
+          .eq('business_id', business.id)
+          .maybeSingle()
+        if (leadRow) {
+          const { getCanonicalCustomerDisplayName } = await import('@/lib/customer-context')
+          customerName = getCanonicalCustomerDisplayName(leadRow) || null
+        }
+      }
       await notificationServiceServer.notifyAppointmentCreated(
         business.id,
         createdEvent.summary || 'Appointment',
         startStr,
-        createdEvent.id
+        createdEvent.id,
+        { customerName, timeZone: businessTimezone }
       )
       console.log('[Calendar Create] Notification created successfully')
     } catch (notificationError) {

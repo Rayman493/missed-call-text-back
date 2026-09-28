@@ -2047,15 +2047,18 @@ export async function POST(request: Request) {
         
         // Update lead payment status if applicable
         let leadPhone = null
+        let leadName: string | null = null
         if (paymentRequest.lead_id) {
           const { data: lead } = await supabase
             .from('leads')
-            .select('id, status, caller_phone')
+            .select('id, status, caller_phone, contact_name, name, raw_metadata')
             .eq('id', paymentRequest.lead_id)
             .single()
-          
+
           if (lead) {
             leadPhone = lead.caller_phone
+            const { getCanonicalCustomerDisplayName } = await import('@/lib/customer-context')
+            leadName = getCanonicalCustomerDisplayName(lead) || null
             await supabase
               .from('leads')
               .update({
@@ -2107,7 +2110,8 @@ export async function POST(request: Request) {
             paymentRequest.lead_id,
             leadPhone || '',
             paymentRequest.amount_cents,
-            paymentRequest.id
+            paymentRequest.id,
+            leadName || undefined
           )
           console.log('[TERMINAL PAYMENT] Notification created successfully')
         } catch (notificationError) {
