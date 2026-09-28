@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
-import { hasActiveSubscription, hasActiveTrial, deriveSetupState } from '@/lib/subscription-utils'
+import { hasActiveSubscription, hasActiveTrial, deriveSetupState, hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
 import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Loader2, HelpCircle, X, Phone, RotateCcw, Check } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -115,7 +115,9 @@ export default function SetupStatusCard({
       // If user needs to subscribe, go to checkout
       if (hasSubscription) {
         // Google Play subscribers manage their subscription in the Play Store.
-        if (business?.subscription_provider === 'google_play') {
+        // hasGooglePlayBillingEvidence also catches stale-provider state where
+        // subscription_provider reads 'stripe' on a Google-Play-billed account.
+        if (hasGooglePlayBillingEvidence(business)) {
           const { Browser } = await import('@capacitor/browser')
           const { getPlaySubscriptionManageUrl } = await import('@/lib/google-play-billing')
           await Browser.open({ url: getPlaySubscriptionManageUrl() })

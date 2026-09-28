@@ -30,6 +30,7 @@ export interface Business {
   stripe_subscription_id?: string | null;
   subscription_provider?: string | null;
   google_play_purchase_token?: string | null;
+  google_play_revoked_at?: string | null;
   messaging_status?: string | null;
   a2p_status?: string | null;
   call_forwarding_enabled?: boolean | null;
@@ -137,10 +138,12 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
   }
   
   // Billing identity: Stripe accounts need customer + subscription; Google
-  // Play accounts carry a verified purchase token instead.
-  const hasBillingIdentity = business.subscription_provider === 'google_play'
-    ? Boolean(business.google_play_purchase_token)
-    : Boolean(business.stripe_customer_id) && Boolean(business.stripe_subscription_id)
+  // Play accounts carry a verified purchase token instead. A persisted token
+  // counts as Google Play identity regardless of the provider column, which
+  // can be stale 'stripe' after a checkout.session.completed write.
+  const hasBillingIdentity =
+    (Boolean(business.stripe_customer_id) && Boolean(business.stripe_subscription_id)) ||
+    Boolean(business.google_play_purchase_token)
   return (
     hasAccess &&
     hasNumber &&
@@ -253,6 +256,25 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
   })
 
   return 'complete'
+}
+
+/**
+ * Whether a business should manage its subscription through Google Play.
+ *
+ * A persisted, unrevoked google_play_purchase_token is stronger evidence of
+ * Google Play billing than subscription_provider, which can read stale
+ * 'stripe' after a checkout.session.completed write lands on an account that
+ * is actually billed by Google Play. In that ambiguous state the Play
+ * subscription-management page is the safe destination: it is read-only and
+ * shows real GP state, whereas the Stripe portal can mutate/resubscribe
+ * billing on the wrong provider.
+ */
+export function hasGooglePlayBillingEvidence(
+  business: Pick<Business, 'subscription_provider' | 'google_play_purchase_token'> & { google_play_revoked_at?: string | null } | null | undefined
+): boolean {
+  if (!business) return false
+  if (business.subscription_provider === 'google_play') return true
+  return Boolean(business.google_play_purchase_token) && !business.google_play_revoked_at
 }
 
 /**

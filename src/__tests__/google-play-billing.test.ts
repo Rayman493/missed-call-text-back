@@ -233,8 +233,12 @@ describe('billing.ts cannot start Stripe checkout on Android', () => {
     expect(src).toContain('maybeStartGooglePlaySubscription')
   })
 
-  it('opens the Play Store management page for google_play businesses', () => {
-    expect(src).toContain("subscription_provider === 'google_play'")
+  it('opens the Play Store management page for Google-Play-billed businesses', () => {
+    // Evidence-based check: covers provider='google_play' AND the ambiguous
+    // stale-'stripe' + live purchase token state.
+    expect(src).toContain('hasGooglePlayBillingEvidence(business)')
+    expect(src).toContain('google_play_purchase_token')
+    expect(src).toContain('google_play_revoked_at')
     expect(src).toContain('getPlaySubscriptionManageUrl')
   })
 
@@ -270,13 +274,13 @@ describe('shared purchase action', () => {
 describe('Android portal replacement', () => {
   it('billing.ts routes google_play subs to Play management', () => {
     const src = read('src/lib/billing.ts')
-    expect(src).toContain("subscription_provider === 'google_play'")
+    expect(src).toContain('hasGooglePlayBillingEvidence(business)')
     expect(src).toContain('getPlaySubscriptionManageUrl')
   })
 
   it('SetupStatusCard does the same for subscribed Play users', () => {
     const src = read('src/components/SetupStatusCard.tsx')
-    expect(src).toContain("subscription_provider === 'google_play'")
+    expect(src).toContain('hasGooglePlayBillingEvidence(business)')
     expect(src).toContain('getPlaySubscriptionManageUrl')
   })
 })

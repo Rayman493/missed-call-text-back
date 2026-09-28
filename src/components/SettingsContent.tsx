@@ -44,7 +44,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
-import { hasActiveSubscription, getDeletionSubscriptionNotice } from '@/lib/subscription-utils'
+import { hasActiveSubscription, getDeletionSubscriptionNotice, hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { openStripeConnectOnboarding } from '@/lib/stripe-connect'
@@ -5585,7 +5585,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Opening...' : 'Loading...'}</span>
                           </>
                         ) : (
-                          <span>{business?.subscription_provider === 'google_play' ? 'Manage Subscription' : (business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now')}</span>
+                          <span>{hasGooglePlayBillingEvidence(business) ? 'Manage Subscription' : (business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now')}</span>
                         )}
                       </button>
                     )}
@@ -5594,7 +5594,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 {/* Android-specific guidance for Billing Portal return */}
                 {typeof window !== 'undefined' && /Android/i.test(window.navigator.userAgent) && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    {business?.subscription_provider === 'google_play'
+                    {hasGooglePlayBillingEvidence(business)
                       ? "Manage or cancel your subscription in Google Play — when you're finished, return to ReplyFlow."
                       : "When you're finished in Stripe, tap X to return to ReplyFlow."}
                   </p>

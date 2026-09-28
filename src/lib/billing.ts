@@ -3,6 +3,7 @@
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { openNativeWebSession, isNativeIOS, isNativeAndroid } from '@/lib/native-web-session'
 import { setPendingStripeOperation } from '@/lib/external-return-handler'
+import { hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
 
 export interface BillingActionResult {
   success: boolean
@@ -67,7 +68,7 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
     // Determine action based on subscription status and Stripe data
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider')
+      .select('stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, google_play_revoked_at')
       .eq('user_id', session.user.id)
       .limit(1)
       .maybeSingle()
@@ -95,7 +96,12 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
 
     // GOOGLE PLAY: subscriptions are managed in the Play Store, not the
     // Stripe Billing Portal — open the Play subscription management page.
-    if (business?.subscription_provider === 'google_play') {
+    // A persisted, unrevoked purchase token counts as Google Play evidence
+    // even when subscription_provider is stale 'stripe' (a
+    // checkout.session.completed write can leave it so on a Play-billed
+    // account). Ambiguous Stripe+Google-Play state must never silently route
+    // into Stripe management; the Play page is read-only and safe.
+    if (hasGooglePlayBillingEvidence(business)) {
       console.log('[Billing Action] Google Play subscription - opening Play Store management')
       const { Browser } = await import('@capacitor/browser')
       const { getPlaySubscriptionManageUrl } = await import('@/lib/google-play-billing')

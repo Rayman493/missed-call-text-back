@@ -23,6 +23,7 @@ export interface Business {
   google_play_purchase_token?: string | null;
   google_play_product_id?: string | null;
   google_play_is_trial?: boolean | null;
+  google_play_revoked_at?: string | null;
   forwarding_phone_number?: string | null;
   carrier?: string | null;
   call_forwarding_enabled?: boolean | null;
