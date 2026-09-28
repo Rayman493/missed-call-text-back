@@ -30,6 +30,7 @@ export interface Business {
   stripe_subscription_id?: string | null;
   subscription_provider?: string | null;
   google_play_purchase_token?: string | null;
+  google_play_revoked_at?: string | null;
   messaging_status?: string | null;
   a2p_status?: string | null;
   call_forwarding_enabled?: boolean | null;
@@ -137,10 +138,12 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
   }
   
   // Billing identity: Stripe accounts need customer + subscription; Google
-  // Play accounts carry a verified purchase token instead.
-  const hasBillingIdentity = business.subscription_provider === 'google_play'
-    ? Boolean(business.google_play_purchase_token)
-    : Boolean(business.stripe_customer_id) && Boolean(business.stripe_subscription_id)
+  // Play accounts carry a verified purchase token instead. A persisted token
+  // counts as Google Play identity regardless of the provider column, which
+  // can be stale 'stripe' after a checkout.session.completed write.
+  const hasBillingIdentity =
+    (Boolean(business.stripe_customer_id) && Boolean(business.stripe_subscription_id)) ||
+    Boolean(business.google_play_purchase_token)
   return (
     hasAccess &&
     hasNumber &&
@@ -253,4 +256,69 @@ export function deriveSetupState(business: Business | null | undefined, leadCoun
   })
 
   return 'complete'
+}
+
+/**
+ * Whether a business should manage its subscription through Google Play.
+ *
+ * A persisted, unrevoked google_play_purchase_token is stronger evidence of
+ * Google Play billing than subscription_provider, which can read stale
+ * 'stripe' after a checkout.session.completed write lands on an account that
+ * is actually billed by Google Play. In that ambiguous state the Play
+ * subscription-management page is the safe destination: it is read-only and
+ * shows real GP state, whereas the Stripe portal can mutate/resubscribe
+ * billing on the wrong provider.
+ */
+export function hasGooglePlayBillingEvidence(
+  business: Pick<Business, 'subscription_provider' | 'google_play_purchase_token'> & { google_play_revoked_at?: string | null } | null | undefined
+): boolean {
+  if (!business) return false
+  if (business.subscription_provider === 'google_play') return true
+  return Boolean(business.google_play_purchase_token) && !business.google_play_revoked_at
+}
+
+/**
+ * Account-deletion subscription notice — the billing-provider source of truth
+ * for the Delete Account warning.
+ *
+ * businesses.subscription_provider can be stale: a Stripe
+ * checkout.session.completed write can leave provider='stripe' on an account
+ * that is actually billed through Google Play. A persisted
+ * google_play_purchase_token is stronger evidence of Google Play billing.
+ *
+ * - 'google_play'  → warn that deletion does NOT cancel the GP subscription
+ * - 'stripe'       → deletion cancels the Stripe subscription server-side
+ * - 'unknown'      → an active subscription exists but provider is ambiguous;
+ *                    never promise automatic cancellation
+ * - 'none'         → no active subscription; show no cancellation warning
+ */
+export type DeletionSubscriptionNotice = 'google_play' | 'stripe' | 'unknown' | 'none'
+
+const DELETION_ACTIVE_SUB_STATUSES = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete']
+
+export function getDeletionSubscriptionNotice(
+  business: Pick<Business, 'subscription_status' | 'subscription_provider' | 'stripe_subscription_id' | 'google_play_purchase_token'> | null | undefined
+): DeletionSubscriptionNotice {
+  const statusIsActive = Boolean(
+    business?.subscription_status && DELETION_ACTIVE_SUB_STATUSES.includes(business.subscription_status)
+  )
+  // Trust subscription_status when present; fall back to billing identifiers
+  // only when status is unknown so cancelled/expired rows don't warn.
+  const hasActiveBillingSubscription = statusIsActive || (
+    !business?.subscription_status &&
+    Boolean(business?.stripe_subscription_id || business?.google_play_purchase_token)
+  )
+  if (!hasActiveBillingSubscription) return 'none'
+
+  const provider = business?.subscription_provider
+  const hasGooglePlayToken = Boolean(business?.google_play_purchase_token)
+  if (provider === 'google_play' || (hasGooglePlayToken && provider !== 'stripe')) {
+    return 'google_play'
+  }
+  // provider='stripe' AND a Google Play token → ambiguous dual-provider state;
+  // never classify as auto-cancellable Stripe.
+  if (provider === 'stripe' && !hasGooglePlayToken) {
+    return 'stripe'
+  }
+  return 'unknown'
 }

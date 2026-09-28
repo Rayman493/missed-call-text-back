@@ -44,7 +44,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
-import { hasActiveSubscription } from '@/lib/subscription-utils'
+import { hasActiveSubscription, getDeletionSubscriptionNotice, hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { openStripeConnectOnboarding } from '@/lib/stripe-connect'
@@ -5585,7 +5585,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Opening...' : 'Loading...'}</span>
                           </>
                         ) : (
-                          <span>{business?.subscription_provider === 'google_play' ? 'Manage Subscription' : (business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now')}</span>
+                          <span>{hasGooglePlayBillingEvidence(business) ? 'Manage Subscription' : (business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now')}</span>
                         )}
                       </button>
                     )}
@@ -5594,7 +5594,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                 {/* Android-specific guidance for Billing Portal return */}
                 {typeof window !== 'undefined' && /Android/i.test(window.navigator.userAgent) && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    {business?.subscription_provider === 'google_play'
+                    {hasGooglePlayBillingEvidence(business)
                       ? "Manage or cancel your subscription in Google Play — when you're finished, return to ReplyFlow."
                       : "When you're finished in Stripe, tap X to return to ReplyFlow."}
                   </p>
@@ -5785,20 +5785,27 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           Subscription
                         </p>
                         {(() => {
-                          const provider = business?.subscription_provider
-                          const hasActiveSubscription = Boolean(
-                            business?.google_play_purchase_token ||
-                            business?.stripe_subscription_id ||
-                            (business?.subscription_status && ['active', 'trialing', 'past_due', 'unpaid', 'incomplete'].includes(business.subscription_status))
-                          )
-                          if (provider === 'google_play') {
+                          // Classified by getDeletionSubscriptionNotice — a
+                          // persisted Google Play purchase token is stronger
+                          // evidence of Google Play billing than the
+                          // subscription_provider column, which can be stale
+                          // 'stripe' on accounts now billed by Google Play.
+                          const notice = getDeletionSubscriptionNotice(business)
+                          if (notice === 'none') {
+                            return (
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                You don't have an active subscription to cancel.
+                              </p>
+                            )
+                          }
+                          if (notice === 'google_play') {
                             return (
                               <div className="mt-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-3">
                                 <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                                  Deleting your ReplyFlow account does not automatically cancel your subscription through Google Play.
+                                  Deleting your ReplyFlow account will not automatically cancel your Google Play subscription.
                                 </p>
                                 <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
-                                  To avoid future charges, cancel your subscription in Google Play before deleting your account. Uninstalling the app does not cancel it. Access continues until the end of your paid period.
+                                  To avoid future charges, cancel it separately through Google Play before deleting your account. Uninstalling the app does not cancel it.
                                 </p>
                                 <button
                                   type="button"
@@ -5810,14 +5817,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               </div>
                             )
                           }
-                          if (!hasActiveSubscription) {
-                            return (
-                              <p className="text-sm text-slate-600 dark:text-slate-400">
-                                You don't have an active subscription to cancel.
-                              </p>
-                            )
-                          }
-                          if (provider === 'stripe') {
+                          if (notice === 'stripe') {
                             return (
                               <p className="text-sm text-slate-600 dark:text-slate-400">
                                 Your active ReplyFlow subscription will be canceled automatically.
@@ -5826,7 +5826,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           }
                           return (
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                              If your subscription was purchased through Google Play, deleting your ReplyFlow account will not cancel it — cancel it in Google Play first. Stripe subscriptions are canceled automatically.
+                              If your subscription is managed through an app store or another billing provider, deleting your ReplyFlow account may not cancel it. Cancel any active subscription separately before deleting your account.
                             </p>
                           )
                         })()}

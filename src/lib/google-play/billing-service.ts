@@ -254,9 +254,21 @@ export async function verifyAndApplyPurchase(
 
   // Double-billing guard: an active Stripe subscriber must not be moved to
   // Play billing. Leave the Stripe entitlement fully intact.
+  // Exception: subscription_provider can be stale 'stripe' on a
+  // Google-Play-billed account (checkout.session.completed writes it without
+  // a provider guard). The freshly fetched subscription is authoritative —
+  // if Google still reports this token as a live billing relationship, the
+  // 'stripe' label is stale (or the account is genuinely dual-billed), and
+  // applying self-heals provider back to 'google_play'. A terminal/dead Play
+  // subscription still takes the early return, so a genuine Stripe
+  // subscription is never overwritten by an old token's events.
   if (business.subscription_provider === 'stripe' &&
       (business.subscription_status === 'active' || business.subscription_status === 'trialing')) {
-    return { ok: true, entitled: true, status: business.subscription_status, businessId, alreadyOwned: true }
+    const guardMapped = mapPlayEntitlement(sub, { isTrial: false, revoked: args.forceRevoked })
+    const gpStillLive = guardMapped.status !== null && guardMapped.status !== 'canceled'
+    if (!gpStillLive) {
+      return { ok: true, entitled: true, status: business.subscription_status, businessId, alreadyOwned: true }
+    }
   }
 
   // Trial continuity: once the trial flag is set, keep it until a renewal or
