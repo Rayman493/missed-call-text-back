@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 
   const { data: invites, error: inviteError } = await supabaseAdmin
     .from('team_invites')
-    .select('id, phone, status, expires_at, created_at, accepted_at, cancelled_at')
+    .select('id, phone, status, expires_at, created_at, accepted_at, cancelled_at, accepted_by')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
 
@@ -75,6 +75,7 @@ export async function GET(request: Request) {
       status: i.status === 'pending' && new Date(i.expires_at) < new Date() ? 'expired' : i.status,
       expires_at: i.expires_at,
       created_at: i.created_at,
+      accepted_by: i.accepted_by,
     })),
   })
 }

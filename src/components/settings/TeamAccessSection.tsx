@@ -5,6 +5,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber } from '@/lib/utils'
 import { MAX_PENDING_TEAM_INVITES_PER_BUSINESS } from '@/lib/team-limits'
+import { filterPastInvites } from '@/lib/team-invite-history'
 
 type MemberEntry = {
   membership_id: string
@@ -21,6 +22,7 @@ type InviteEntry = {
   status: 'pending' | 'accepted' | 'cancelled' | 'expired'
   expires_at: string
   created_at: string
+  accepted_by?: string | null
 }
 
 type TeamData = {
@@ -199,20 +201,13 @@ export default function TeamAccessSection() {
     (i) => i.status === 'pending' && new Date(i.expires_at) > new Date()
   )
   const pendingLimitReached = pendingInvites.length >= MAX_PENDING_TEAM_INVITES_PER_BUSINESS
-  // An 'accepted' invite was consumed by the membership it created
-  // (accept_team_invite writes both atomically), so when a member row exists
-  // for the same phone it IS the same person — keep the member card, drop the
-  // duplicate context row. Accepted invites with no matching member (member
-  // later removed, phone changed) stay listed as history.
-  const memberPhones = new Set(
-    [team?.owner, ...(team?.members || [])]
-      .filter((m): m is MemberEntry => Boolean(m?.phone))
-      .map((m) => (m.phone as string).replace(/\D/g, ''))
-  )
-  const pastInvites = (team?.invites || []).filter(
-    (i) => i.status !== 'pending' &&
-      !(i.status === 'accepted' && memberPhones.has(i.phone.replace(/\D/g, '')))
-  )
+  // Invite history is reconciled against active memberships by the strongest
+  // identity available (accepted_by user_id, then normalized phone). All
+  // historical rows for a person who currently has access are suppressed —
+  // accepted, cancelled, or expired — so an active owner/member can never
+  // appear as "Access removed". Rows are hidden from display only, never
+  // deleted.
+  const pastInvites = filterPastInvites(team?.invites, team?.owner, team?.members)
 
   return (
     <div id="team" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl section-border shadow-sm p-6 scroll-mt-[140px]">

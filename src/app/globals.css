@@ -346,6 +346,23 @@ select {
   }
 }
 
+/* Mobile WebView (observed on Android) renders the native date/time picker
+   indicator and the native <select> dropdown arrow flush against the right
+   border inside the padding box. Extra right padding insets those indicators
+   ~8–12px on small screens without changing field dimensions, values, or
+   desktop styling. Custom-chevron selects (appearance-none) are excluded so
+   their absolute/background icon positioning is untouched. */
+@media (max-width: 767px) {
+  input[type='date'],
+  input[type='time'],
+  input[type='datetime-local'] {
+    padding-right: 1.375rem; /* 22px */
+  }
+  select:not(.appearance-none) {
+    padding-right: 2rem; /* 32px — clears the native arrow + breathing room */
+  }
+}
+
 ::selection {
   background: rgba(59, 130, 246, 0.35);
   color: #ffffff;
