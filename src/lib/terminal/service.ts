@@ -726,7 +726,11 @@ export class TerminalBridgeService {
 
       // iOS version unsupported
       if (message.includes('ios_version_unsupported') || message.includes('unsupported ios') || message.includes('unsupported version')) {
-        return new Error('Update your iPhone to use Tap to Pay on iPhone.')
+        return new Error(
+          Capacitor.getPlatform() === 'ios'
+            ? 'Update your iPhone to use Tap to Pay on iPhone.'
+            : 'Update your device to use Tap to Pay.'
+        )
       }
 
       // Reader connection failure

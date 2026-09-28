@@ -446,6 +446,24 @@ export async function DELETE(
 
     const targetId = scope === 'series' ? masterEventId(eventId) : eventId
 
+    // Capture the event's summary/start BEFORE deleting so the notification
+    // can still identify which appointment was cancelled.
+    let deletedSummary: string | null = null
+    let deletedStart = ''
+    try {
+      const getRes = await fetchWithRetry(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(targetId)}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+      )
+      if (getRes.ok) {
+        const ev = await getRes.json()
+        deletedSummary = ev?.summary || null
+        deletedStart = ev?.start?.dateTime || ev?.start?.date || ''
+      }
+    } catch (lookupError) {
+      console.warn('[Google Calendar Delete] Could not fetch event details before delete:', lookupError)
+    }
+
     // Delete event from Google Calendar
     const deleteResponse = await fetchWithRetry(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(targetId)}`,
@@ -477,16 +495,51 @@ export async function DELETE(
 
     // Create timeline event for appointment deletion
     try {
-      await timelineEvents.appointmentDeleted(business.id, eventId, 'Appointment')
+      await timelineEvents.appointmentDeleted(business.id, eventId, deletedSummary || 'Appointment')
       console.log('[Google Calendar Delete] Timeline event created successfully')
     } catch (timelineError) {
       console.error('[Google Calendar Delete] Failed to create timeline event:', timelineError)
       // Non-critical error, continue
     }
 
+    // Resolve the linked customer (meeting_records.lead_id → leads) so the
+    // notification identifies who the cancelled appointment belonged to.
+    let deletedCustomerName: string | null = null
+    try {
+      const { data: meetingRecord } = await supabase
+        .from('meeting_records')
+        .select('lead_id')
+        .eq('business_id', business.id)
+        .eq('google_calendar_event_id', targetId)
+        .maybeSingle()
+      if (meetingRecord?.lead_id) {
+        const { data: leadRow } = await supabase
+          .from('leads')
+          .select('id, contact_name, name, caller_phone, raw_metadata')
+          .eq('id', meetingRecord.lead_id)
+          .eq('business_id', business.id)
+          .maybeSingle()
+        if (leadRow) {
+          const { getCanonicalCustomerDisplayName } = await import('@/lib/customer-context')
+          deletedCustomerName = getCanonicalCustomerDisplayName(leadRow) || null
+        }
+      }
+    } catch (lookupError) {
+      console.warn('[Google Calendar Delete] Could not resolve appointment customer:', lookupError)
+    }
+
     // Create notification for appointment deletion
     try {
-      await notificationServiceServer.notifyAppointmentDeleted(business.id, 'Appointment', eventId)
+      await notificationServiceServer.notifyAppointmentDeleted(
+        business.id,
+        deletedSummary || 'Appointment',
+        eventId,
+        {
+          customerName: deletedCustomerName,
+          date: deletedStart || undefined,
+          timeZone: business.business_hours_timezone || 'America/New_York'
+        }
+      )
       console.log('[Google Calendar Delete] Notification created successfully')
     } catch (notificationError) {
       console.warn('[Google Calendar Delete] Failed to create notification:', notificationError)

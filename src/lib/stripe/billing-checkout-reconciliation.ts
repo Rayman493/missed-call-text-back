@@ -155,7 +155,7 @@ export async function reconcilePaymentRequestCheckout(ctx: ReconciliationContext
 
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id, status, caller_phone')
+      .select('id, business_id, status, caller_phone, contact_name, name')
       .eq('id', paymentRequest.lead_id)
       .maybeSingle()
     if (leadError) return retryable('lead_lookup_failed')
@@ -255,7 +255,8 @@ export async function reconcilePaymentRequestCheckout(ctx: ReconciliationContext
         paymentRequest.lead_id,
         lead.caller_phone || '',
         paymentRequest.amount_cents,
-        paymentRequest.id
+        paymentRequest.id,
+        lead.contact_name || lead.name || undefined
       )
       console.log('[PAYMENT WEBHOOK] Notification created successfully')
     } catch (notificationError) {

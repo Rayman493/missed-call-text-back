@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendPushForNotification } from '@/lib/push-delivery'
 import { normalizePunctuation, capitalizeFirstAlpha } from '@/lib/utils'
 import { shouldSuppressNotification } from '@/lib/notification-preferences'
+import { appointmentNotificationMessage } from '@/lib/notification-format'
 
 /**
  * Resolve customer display name with fallback priority
@@ -218,19 +219,25 @@ export const NOTIFICATION_TEMPLATES = {
     action_text: 'View Calendar'
   }),
 
-  appointment_created: (data: { title: string, date: string }) => ({
-    title: 'Appointment Scheduled',
-    message: `${data.title} · ${new Date(data.date).toLocaleDateString()}`,
-    action_url: '/dashboard/calendar',
-    action_text: 'View Calendar'
-  }),
+  appointment_created: (data: { title: string, date: string, customerName?: string | null, timeZone?: string | null }) => {
+    const message = appointmentNotificationMessage(data.title, data.date, data.customerName, data.timeZone)
+    return {
+      title: 'Appointment Scheduled',
+      message: message || 'New appointment',
+      action_url: '/dashboard/calendar',
+      action_text: 'View Calendar'
+    }
+  },
 
-  appointment_deleted: (data: { title: string }) => ({
-    title: 'Appointment Cancelled',
-    message: data.title,
-    action_url: '/dashboard/calendar',
-    action_text: 'View Calendar'
-  }),
+  appointment_deleted: (data: { title: string, date?: string, customerName?: string | null, timeZone?: string | null }) => {
+    const message = appointmentNotificationMessage(data.title, data.date, data.customerName, data.timeZone)
+    return {
+      title: 'Appointment Cancelled',
+      message: message || 'Appointment cancelled',
+      action_url: '/dashboard/calendar',
+      action_text: 'View Calendar'
+    }
+  },
 
   personal_voicemail: (data: { callerPhone: string; voicemailId: string }) => {
     const formattedPhone = formatPhoneNumber(data.callerPhone)
@@ -244,9 +251,12 @@ export const NOTIFICATION_TEMPLATES = {
 
   booking_request: (data: { leadName?: string | null; event?: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName ?? null, null)
+    const action = data.event === 'customer_accepted' ? 'accepted the suggested time'
+      : data.event === 'customer_reselected' ? 'picked a different time'
+      : 'requested an online booking'
     return {
-      title: displayName === 'Customer' ? 'Booking Request' : `${displayName}`,
-      message: 'Online booking update',
+      title: 'Booking Request',
+      message: `${displayName} ${action}`,
       action_url: '/dashboard/calendar',
       action_text: 'View Schedule'
     }
@@ -682,12 +692,12 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyPaymentCompleted(businessId: string, leadId: string, leadPhone: string, amountCents: number, paymentId?: string): Promise<boolean> {
+  async notifyPaymentCompleted(businessId: string, leadId: string, leadPhone: string, amountCents: number, paymentId?: string, leadName?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'payment_completed',
       '',
-      { leadName: leadPhone, leadPhone, leadId, amountCents, paymentId }
+      { leadName: leadName || leadPhone, leadPhone, leadId, amountCents, paymentId }
     )
   }
 
@@ -709,21 +719,21 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyAppointmentCreated(businessId: string, title: string, date: string, appointmentId?: string): Promise<boolean> {
+  async notifyAppointmentCreated(businessId: string, title: string, date: string, appointmentId?: string, context?: { customerName?: string | null, timeZone?: string | null }): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'appointment_created',
       '',
-      { title, date, appointmentId }
+      { title, date, appointmentId, customerName: context?.customerName, timeZone: context?.timeZone }
     )
   }
 
-  async notifyAppointmentDeleted(businessId: string, title: string, appointmentId?: string): Promise<boolean> {
+  async notifyAppointmentDeleted(businessId: string, title: string, appointmentId?: string, context?: { customerName?: string | null, timeZone?: string | null, date?: string }): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'appointment_deleted',
       '',
-      { title, appointmentId }
+      { title, appointmentId, customerName: context?.customerName, timeZone: context?.timeZone, date: context?.date }
     )
   }
 }

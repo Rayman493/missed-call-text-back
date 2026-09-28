@@ -1205,7 +1205,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       <div className="space-y-2">
                         <h2 className="text-lg font-semibold text-foreground">Tap to Pay Guide</h2>
                         <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                          Before your first payment, please complete the quick setup guide to learn how to use Tap to Pay on your iPhone.
+                          Before your first payment, please complete the quick setup guide to learn how to use Tap to Pay on your {platform === 'ios' ? 'iPhone' : 'device'}.
                         </p>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1271,7 +1271,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       </div>
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-foreground">Ready for payment</p>
-                        <p className="text-xs text-muted-foreground">Hold the contactless card or device near the iPhone.</p>
+                        <p className="text-xs text-muted-foreground">Hold the contactless card or device near {platform === 'ios' ? 'the iPhone' : 'this device'}.</p>
                       </div>
                       <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
                       {/* Software update error - highest priority */}

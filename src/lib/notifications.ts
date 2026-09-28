@@ -2,6 +2,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { createClient } from '@supabase/supabase-js'
 import { Business } from '@/lib/types'
 import { normalizePunctuation, formatCurrency } from '@/lib/utils'
+import { appointmentNotificationMessage } from '@/lib/notification-format'
 
 /**
  * Resolve customer display name with fallback priority
@@ -294,23 +295,26 @@ export const NOTIFICATION_TEMPLATES = {
     action_text: 'View Calendar'
   }),
 
-  appointment_created: (data: { title: string, date: string, leadName?: string, leadPhone?: string }) => {
-    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
-    const formattedDate = new Date(data.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  appointment_created: (data: { title: string, date: string, leadName?: string, leadPhone?: string, customerName?: string | null, timeZone?: string | null }) => {
+    const resolved = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    const customerName = data.customerName || (resolved !== 'Customer' ? resolved : null)
+    const message = appointmentNotificationMessage(data.title, data.date, customerName, data.timeZone)
     return {
       title: 'Appointment Scheduled',
-      message: displayName !== 'Customer' ? `${displayName}: ${data.title}` : data.title,
+      message: message || 'New appointment',
       data: { ...data, leadName: data.leadName, leadPhone: data.leadPhone },
       action_url: '/dashboard/calendar',
       action_text: 'View Calendar'
     }
   },
 
-  appointment_deleted: (data: { title: string, leadName?: string, leadPhone?: string }) => {
-    const displayName = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+  appointment_deleted: (data: { title: string, date?: string, leadName?: string, leadPhone?: string, customerName?: string | null, timeZone?: string | null }) => {
+    const resolved = resolveCustomerDisplayName(data.leadName, data.leadPhone)
+    const customerName = data.customerName || (resolved !== 'Customer' ? resolved : null)
+    const message = appointmentNotificationMessage(data.title, data.date, customerName, data.timeZone)
     return {
       title: 'Appointment Cancelled',
-      message: displayName !== 'Customer' ? `${displayName}: ${data.title}` : data.title,
+      message: message || 'Appointment cancelled',
       data: { ...data, leadName: data.leadName, leadPhone: data.leadPhone },
       action_url: '/dashboard/calendar',
       action_text: 'View Calendar'
@@ -329,9 +333,12 @@ export const NOTIFICATION_TEMPLATES = {
 
   booking_request: (data: { leadName?: string | null; event?: string }) => {
     const displayName = resolveCustomerDisplayName(data.leadName ?? null, null)
+    const action = data.event === 'customer_accepted' ? 'accepted the suggested time'
+      : data.event === 'customer_reselected' ? 'picked a different time'
+      : 'requested an online booking'
     return {
-      title: displayName === 'Customer' ? 'Booking Request' : `${displayName}`,
-      message: 'Online booking update',
+      title: 'Booking Request',
+      message: `${displayName} ${action}`,
       action_url: '/dashboard/calendar',
       action_text: 'View Schedule'
     }
