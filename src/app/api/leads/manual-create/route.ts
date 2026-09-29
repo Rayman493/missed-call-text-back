@@ -6,12 +6,14 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 import { createFollowUpJobs } from '@/lib/follow-ups'
 import { LeadService } from '@/lib/services/LeadService'
 import { ConversationService } from '@/lib/services/ConversationService'
+import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
+import { getUserRoleForBusiness } from '@/lib/team-access'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
-      businessId,
+      businessId: requestedBusinessId,
       customerName,
       phoneNumber,
       email,
@@ -23,10 +25,28 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!businessId) {
+    if (!requestedBusinessId) {
       return NextResponse.json(
         { error: 'Missing required field: businessId is required' },
         { status: 400 }
+      )
+    }
+
+    // Authenticate the caller before any business lookup or write.
+    const user = await getAuthenticatedUser(request)
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    // Verify the caller is an owner/member of the requested business.
+    const role = await getUserRoleForBusiness(supabaseAdmin, user.id, requestedBusinessId)
+    if (!role) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
       )
     }
 
@@ -37,7 +57,7 @@ export async function POST(request: NextRequest) {
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('id, name')
-      .eq('id', businessId)
+      .eq('id', requestedBusinessId)
       .single()
 
     if (businessError || !business) {
@@ -51,7 +71,7 @@ export async function POST(request: NextRequest) {
     let existingLead = null
     if (normalizedPhone) {
       existingLead = await LeadService.findLead({
-        business_id: businessId,
+        business_id: business.id,
         caller_phone: normalizedPhone
       })
     }
@@ -76,7 +96,7 @@ export async function POST(request: NextRequest) {
     if (isNewLead || !existingLead) {
       // Create new lead with manual intake data using LeadService
       const newLead = await LeadService.createLead({
-        business_id: businessId,
+        business_id: business.id,
         caller_phone: normalizedPhone || undefined,
         name: customerName || undefined, // Compatibility getter maps to contact_name
         email: email || undefined, // Compatibility getter maps to metadata
@@ -161,7 +181,7 @@ export async function POST(request: NextRequest) {
       try {
         const result = await ConversationService.findOrCreateConversation({
           lead_id: leadId,
-          business_id: businessId,
+          business_id: business.id,
           status: 'active'
         })
         conversationId = result.conversationId
@@ -177,14 +197,14 @@ export async function POST(request: NextRequest) {
 
     // Create timeline event
     if (leadId && normalizedPhone) {
-      await timelineEvents.leadCreated(businessId, leadId, conversationId || '', normalizedPhone)
+      await timelineEvents.leadCreated(business.id, leadId, conversationId || '', normalizedPhone)
     }
 
     // Create notification for new lead (only if new)
     if (isNewLead && leadId && normalizedPhone) {
       try {
         await notificationServiceServer.notifyNewLead(
-          businessId,
+          business.id,
           customerName || 'Unknown',
           normalizedPhone,
           leadId
@@ -198,7 +218,7 @@ export async function POST(request: NextRequest) {
     if (isNewLead && leadId) {
       try {
         await createFollowUpJobs({
-          businessId,
+          businessId: business.id,
           leadId,
           conversationId: conversationId || undefined,
           businessName: business.name
