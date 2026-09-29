@@ -4,6 +4,37 @@ import { twilioClient } from './twilio'
 import { sendOffboardingEmail, sendAccountDeletionConfirmationEmail, sendJourneyEmail } from './email'
 import { isSystemPhoneNumber } from './twilio-assignment'
 import { logAdminAction, getUserEmail } from './admin-audit'
+import { getDeletionSubscriptionNotice, DeletionSubscriptionNotice } from './subscription-utils'
+import { getDeletionBillingMessage, DeletionBillingMessage } from './deletion-billing-message'
+
+/**
+ * Resolve a durable, Stripe-hosted billing-management destination for the
+ * post-deletion confirmation email.
+ *
+ * Portal *session* URLs (billingPortal.sessions.create) are short-lived and
+ * single-use — unsuitable for an email the customer may open hours later.
+ * The portal configuration's hosted `login_page.url` is a shareable,
+ * long-lived Stripe page where the customer enters their email and receives
+ * a portal link, and it does not depend on the (now deleted) ReplyFlow
+ * account or session. Returns null when the configuration does not expose a
+ * login page or the lookup fails — callers must use truthful fallback copy.
+ */
+async function resolveStripeBillingManageUrl(): Promise<string | null> {
+  const stripe = getStripe()
+  if (!stripe) return null
+  try {
+    const configs = await stripe.billingPortal.configurations.list({ active: true, limit: 1 })
+    const loginPage = configs.data[0]?.login_page
+    const url = loginPage?.enabled ? loginPage.url : null
+    if (!url) {
+      console.warn('[delete-account-lifecycle] Stripe portal login page URL not available; using fallback billing copy')
+    }
+    return url || null
+  } catch (error) {
+    console.warn('[delete-account-lifecycle] Failed to resolve Stripe portal login page URL (non-blocking):', error)
+    return null
+  }
+}
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
@@ -92,7 +123,7 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
   console.log('[delete-account-lifecycle] Step 1: find businesses')
   const { data: businesses, error: businessesError } = await supabaseAdmin
     .from('businesses')
-    .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number, is_protected_account')
+    .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number, is_protected_account')
     .eq('user_id', userId)
 
   if (businessesError) {
@@ -176,6 +207,16 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
     }
   }
   console.log('[delete-account-lifecycle] PREFLIGHT VALIDATION: All businesses validated successfully')
+
+  // Resolve the billing provider for the post-deletion confirmation email
+  // BEFORE any destructive step, using the same evidence rules as the
+  // Settings Delete Account warning. This in-memory classification survives
+  // the hard-delete of the businesses row below.
+  const deletionBillingNotice: DeletionSubscriptionNotice =
+    businesses && businesses.length > 0
+      ? getDeletionSubscriptionNotice(businesses[0])
+      : 'none'
+  console.log('[delete-account-lifecycle] Billing provider classification for deletion messaging:', deletionBillingNotice)
 
   // Gather analytics for journey email before deletion
   let analytics = {
@@ -315,6 +356,31 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
     cancellationSucceeded: summary.stripeResult.cancellationSucceeded,
     error: summary.stripeResult.error,
   })
+
+  // Capture provider-aware billing messaging BEFORE destructive deletion so
+  // the final confirmation email stays truthful even though the billing
+  // identifiers are about to be removed. A durable Stripe-hosted login-page
+  // link is fetched now (read-only); failure falls back to plain
+  // instructions and never blocks deletion.
+  let deletionBillingMessage: DeletionBillingMessage | null = null
+  if (businesses && businesses.length > 0) {
+    let stripeManageUrl: string | null = null
+    if (!dryRun && deletionBillingNotice === 'stripe') {
+      stripeManageUrl = await resolveStripeBillingManageUrl()
+    }
+    deletionBillingMessage = getDeletionBillingMessage({
+      notice: deletionBillingNotice,
+      stripeCancellationSucceeded:
+        summary.stripeResult.cancellationAttempted === true &&
+        summary.stripeResult.cancellationSucceeded === true,
+      stripeManageUrl,
+    })
+    summary.billingNotice = deletionBillingNotice
+    console.log('[delete-account-lifecycle] Deletion billing message resolved', {
+      notice: deletionBillingNotice,
+      hasActionUrl: Boolean(deletionBillingMessage?.actionUrl),
+    })
+  }
 
   // Send offboarding email before deletion (with idempotency check)
   let confirmationToken = null
@@ -1057,6 +1123,7 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
             businessName: business?.name,
             twilioNumberReserved: twilioNumberRecycled,
             twilioNumber: summary.twilioNumberRecycled,
+            billing: deletionBillingMessage,
           })
 
           if (emailResult.success) {
