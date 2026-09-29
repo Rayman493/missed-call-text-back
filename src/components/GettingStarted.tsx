@@ -461,8 +461,14 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       const result = await handleBillingAction()
 
       if (result.success && result.url) {
-        window.location.href = result.url
-      } else {
+        // Native sessions (Stripe portal / Play management) are opened by
+        // handleBillingAction itself — only web needs manual navigation.
+        const { isCapacitorNative } = await import('@/capacitor/init')
+        if (!isCapacitorNative()) {
+          window.location.href = result.url
+        }
+      } else if (!result.success) {
+        // success without url = Play management opened / user canceled
         console.error('[GettingStarted] Billing action failed:', result.error)
         // If billing action fails, stay on dashboard and show error
         setIsHandlingBilling(false)
