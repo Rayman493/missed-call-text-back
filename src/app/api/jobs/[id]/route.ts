@@ -14,6 +14,28 @@ import {
   createSeriesOnce,
   recurrenceMetaForRow,
 } from '@/lib/recurrence/service'
+import {
+  syncJobUpdateToGoogle,
+  syncJobDeleteToGoogle,
+  syncSeriesSplitToGoogle,
+  markJobSyncStatus,
+  type SyncOutcome,
+} from '@/lib/google/job-sync'
+
+/**
+ * Honest delete response: the local mutation already committed; a failed
+ * Google delete is reported (never silently) so callers can surface it.
+ */
+function syncResultPayload(sync: SyncOutcome | null) {
+  if (sync && !sync.synced && !sync.skipped) {
+    return {
+      success: true,
+      calendarSyncFailed: true,
+      calendarSyncError: sync.error ?? 'Calendar sync failed',
+    }
+  }
+  return { success: true }
+}
 
 async function getBusinessId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string) {
   const access = await resolveBusinessForUser(supabase, userId, 'id')
@@ -137,6 +159,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       )
       if (splitError) {
         return NextResponse.json({ error: 'Failed to update future occurrences' }, { status: 500 })
+      }
+      // Sync the split to Google: truncate the old master at the boundary and
+      // create a new recurring master for the continuation series.
+      try {
+        const sync = await syncSeriesSplitToGoogle(supabase, businessId, series, newSeries, occDate)
+        if (!sync.synced && !sync.skipped) {
+          return NextResponse.json({
+            ok: true,
+            series: newSeries,
+            calendarSyncFailed: true,
+            calendarSyncError: sync.error,
+          })
+        }
+      } catch (syncError) {
+        console.error('[Jobs API] split google sync failed:', syncError)
+        return NextResponse.json({
+          ok: true,
+          series: newSeries,
+          calendarSyncFailed: true,
+          calendarSyncError: 'Calendar sync failed',
+        })
       }
       return NextResponse.json({ ok: true, series: newSeries })
     }
@@ -271,10 +314,51 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       createdSeries = ns ?? null
     }
 
+    // Google Calendar sync for the updated job (PI-S1). Best-effort: the jobs
+    // row is canonical; failures are recorded on calendar_sync_status and
+    // reported to the caller instead of silently diverging.
+    const SYNC_FIELDS = ['scheduled_date', 'scheduled_time', 'scheduled_end_time', 'title', 'service_address']
+    const needsSync = !!createdSeries || SYNC_FIELDS.some(f => f in updates)
+    let calendarSyncFailed = false
+    let calendarSyncError: string | null = null
+    if (needsSync) {
+      try {
+        const syncSeries = createdSeries ?? series ?? virtualSeries ?? null
+        const sync = await syncJobUpdateToGoogle(supabase, businessId, job, {
+          // A one-time → recurring conversion must PATCH the existing event
+          // into a recurring master (RRULE), not create a second event.
+          editScope: createdSeries ? 'series' : editScope,
+          series: syncSeries,
+          occurrenceDate: virtual ? virtual.occurrenceDate : existing.scheduled_date,
+          recurrence: createdSeries
+            ? {
+                frequency: createdSeries.frequency,
+                end_type: createdSeries.end_type,
+                end_date: createdSeries.end_date,
+                max_occurrences: createdSeries.max_occurrences,
+              }
+            : editScope === 'series' ? (recurrence ?? null) : null,
+        })
+        if (sync.synced) {
+          await markJobSyncStatus(supabase, job.id, 'synced')
+        } else if (sync.error) {
+          calendarSyncFailed = true
+          calendarSyncError = sync.error
+          await markJobSyncStatus(supabase, job.id, 'failed', sync.error)
+        }
+      } catch (syncError) {
+        console.error('[Jobs API] google sync failed:', syncError)
+        calendarSyncFailed = true
+        calendarSyncError = 'Calendar sync failed'
+        await markJobSyncStatus(supabase, job.id, 'failed', calendarSyncError)
+      }
+    }
+
     console.log('[job_updated]', { jobId: job.id, fields: Object.keys(updates) })
     return NextResponse.json({
       job: { ...job, ...recurrenceMetaForRow(createdSeries ?? series ?? undefined) },
       ...(createdSeries ? { series: createdSeries } : {}),
+      ...(calendarSyncFailed ? { calendarSyncFailed: true, calendarSyncError } : {}),
     })
   } catch (error) {
     console.error('[Jobs API] PATCH unexpected error:', error)
@@ -306,22 +390,29 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       if (scope === 'series') {
         const { error } = await deleteSeries(supabase, businessId, series, 'jobs', todayStr)
         if (error) return NextResponse.json({ error: 'Failed to delete series' }, { status: 500 })
-        return NextResponse.json({ success: true })
+        const sync = await syncJobDeleteToGoogle(supabase, businessId, { scope: 'series', series })
+        return NextResponse.json(syncResultPayload(sync))
       }
       if (scope === 'future') {
         const { error } = await endSeriesBefore(supabase, businessId, series, virtual.occurrenceDate, 'jobs')
         if (error) return NextResponse.json({ error: 'Failed to delete future occurrences' }, { status: 500 })
-        return NextResponse.json({ success: true })
+        const sync = await syncJobDeleteToGoogle(supabase, businessId, {
+          scope: 'future', series, occurrenceDate: virtual.occurrenceDate,
+        })
+        return NextResponse.json(syncResultPayload(sync))
       }
       const { error } = await skipOccurrence(supabase, businessId, series.id, virtual.occurrenceDate)
       if (error) return NextResponse.json({ error: 'Failed to delete occurrence' }, { status: 500 })
-      return NextResponse.json({ success: true })
+      const sync = await syncJobDeleteToGoogle(supabase, businessId, {
+        scope: 'occurrence', series, occurrenceDate: virtual.occurrenceDate,
+      })
+      return NextResponse.json(syncResultPayload(sync))
     }
 
     // Series-aware scopes for real rows.
     const { data: jobRow } = await supabase
       .from('jobs')
-      .select('id, series_id, scheduled_date')
+      .select('id, series_id, scheduled_date, scheduled_time, google_calendar_event_id')
       .eq('id', id)
       .eq('business_id', businessId)
       .maybeSingle()
@@ -338,8 +429,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       const { error: seriesError } = await deleteSeries(supabase, businessId, series, 'jobs', todayStr)
       if (seriesError) return NextResponse.json({ error: 'Failed to delete series' }, { status: 500 })
       await supabase.from('jobs').delete().eq('id', id)
+      const sync = await syncJobDeleteToGoogle(supabase, businessId, {
+        scope: 'series', series, jobRow,
+      })
       console.log('[job_deleted]', { jobId: id, scope: 'series' })
-      return NextResponse.json({ success: true })
+      return NextResponse.json(syncResultPayload(sync))
     }
 
     if (scope === 'future' && series) {
@@ -347,8 +441,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       const { error: endError } = await endSeriesBefore(supabase, businessId, series, occDate, 'jobs')
       if (endError) return NextResponse.json({ error: 'Failed to delete future occurrences' }, { status: 500 })
       if (jobRow.series_id) await supabase.from('jobs').delete().eq('id', id)
+      const sync = await syncJobDeleteToGoogle(supabase, businessId, {
+        scope: 'future', series, jobRow, occurrenceDate: occDate,
+      })
       console.log('[job_deleted]', { jobId: id, scope: 'future' })
-      return NextResponse.json({ success: true })
+      return NextResponse.json(syncResultPayload(sync))
     }
 
     const { error } = await supabase
@@ -367,8 +464,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       await skipOccurrence(supabase, businessId, series.id, jobRow.scheduled_date)
     }
 
+    const sync = await syncJobDeleteToGoogle(supabase, businessId, {
+      scope: 'occurrence', series, jobRow,
+      occurrenceDate: jobRow.scheduled_date ?? occurrenceDate ?? null,
+    })
+
     console.log('[job_deleted]', { jobId: id })
-    return NextResponse.json({ success: true })
+    return NextResponse.json(syncResultPayload(sync))
   } catch (error) {
     console.error('[Jobs API] DELETE unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

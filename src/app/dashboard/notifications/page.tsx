@@ -38,24 +38,50 @@ export default function NotificationsPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  const fetchNotifications = async () => {
+    if (!business?.id) return
+    try {
+      const fetchedNotifications = await notificationService.getNotifications(business.id)
+      setNotifications(fetchedNotifications)
+      const count = await notificationService.getNotificationCount(business.id)
+      setNotificationCount(count)
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    }
+  }
+
   useEffect(() => {
     if (!business?.id) return
-
-    const fetchNotifications = async () => {
-      try {
-        const fetchedNotifications = await notificationService.getNotifications(business.id)
-        setNotifications(fetchedNotifications)
-        const count = await notificationService.getNotificationCount(business.id)
-        setNotificationCount(count)
-      } catch (error) {
-        console.error('Error fetching notifications:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchNotifications()
+    fetchNotifications().finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [business?.id])
+
+  // NotificationContext owns the realtime channel and focus reconcile for
+  // notifications. This page keeps its canonical full-list fetch, but re-reads
+  // it whenever the context-owned list changes (realtime INSERT/UPDATE/DELETE
+  // or reconcile), so rows, read state, and the unread count cannot diverge
+  // from the rest of the app while this page is open. Debounced so bursts of
+  // realtime events collapse into a single canonical refetch — no second
+  // realtime channel is created.
+  const fetchNotificationsRef = useRef(fetchNotifications)
+  useEffect(() => {
+    fetchNotificationsRef.current = fetchNotifications
+  })
+  const contextSyncInitializedRef = useRef(false)
+  useEffect(() => {
+    if (!contextSyncInitializedRef.current) {
+      // Skip the initial run — the [business?.id] effect above owns the
+      // first fetch, and contextNotifications may already be populated.
+      contextSyncInitializedRef.current = true
+      return
+    }
+    if (!business?.id) return
+    const timer = setTimeout(() => {
+      void fetchNotificationsRef.current()
+    }, 300)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextNotifications])
 
   const handleMarkAsRead = async (notificationId: string) => {
     // Use context's markAsRead which has optimistic updates

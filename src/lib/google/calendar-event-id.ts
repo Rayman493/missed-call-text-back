@@ -28,3 +28,32 @@ export function toGoogleCalendarEventId(requestId: string): string {
 
   return sanitized
 }
+
+// ---------------------------------------------------------------------------
+// Recurring-instance ids
+// ---------------------------------------------------------------------------
+
+/**
+ * Google expands a recurring master event into instance ids of the form
+ * `<masterId>_<YYYYMMDD>T<HHMMSS>Z` (the instance's original UTC start).
+ * Stripping that suffix yields the master event id; non-instance ids pass
+ * through unchanged.
+ */
+const INSTANCE_SUFFIX_RE = /_\d{8}T\d{6}Z$/
+
+export function googleEventMasterId(eventId: string): string {
+  return eventId.replace(INSTANCE_SUFFIX_RE, '')
+}
+
+/**
+ * True when a Google event id refers to the same logical event as a stored
+ * google_calendar_event_id — either the exact (standalone/exception) id or
+ * any expanded instance of the same recurring master.
+ */
+export function eventMatchesGoogleId(
+  eventId: string,
+  storedId: string | null | undefined,
+): boolean {
+  if (!storedId) return false
+  return eventId === storedId || googleEventMasterId(eventId) === storedId
+}

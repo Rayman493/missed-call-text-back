@@ -105,6 +105,31 @@ export async function GET(request: NextRequest) {
       supabase, business.id!, 'job', rangeFrom, rangeTo,
     )
 
+    // Link each active series to its synced Google master event id (anchor
+    // row's stored id, or the continuation master recorded at split time) so
+    // calendar surfaces can dedupe virtual occurrences against expanded
+    // Google instances of the same master.
+    const anchorIds = [...seriesById.values()].map(s => s.template_id).filter(Boolean) as string[]
+    const anchorEventByTemplate = new Map<string, string>()
+    if (anchorIds.length > 0) {
+      const { data: anchors } = await supabase
+        .from('jobs')
+        .select('id, google_calendar_event_id')
+        .in('id', anchorIds)
+        .eq('business_id', business.id!)
+      for (const a of anchors ?? []) {
+        if (a.google_calendar_event_id) anchorEventByTemplate.set(a.id, a.google_calendar_event_id)
+      }
+    }
+    const masterBySeriesId = new Map<string, string>()
+    for (const s of seriesById.values()) {
+      const snapKey = (s.template_snapshot as any)?._google_master_id
+      const masterId =
+        (s.template_id ? anchorEventByTemplate.get(s.template_id) : null) ??
+        (typeof snapKey === 'string' && snapKey ? snapKey : null)
+      if (masterId) masterBySeriesId.set(s.id, masterId)
+    }
+
     const virtualJobs = occurrences
       .filter(({ series }) => {
         const snap = series.template_snapshot || {}
@@ -112,8 +137,13 @@ export async function GET(request: NextRequest) {
         if (status && snap.status !== status && !(snap.status == null && status === 'scheduled')) return false
         return true
       })
-      .map(({ series, date, virtualId }) => ({
-        ...(series.template_snapshot || {}),
+      .map(({ series, date, virtualId }) => {
+        const snap = { ...(series.template_snapshot || {}) }
+        // Internal sync bookkeeping, not a jobs column — never expose it.
+        delete snap._google_master_id
+        return {
+        google_calendar_event_id: masterBySeriesId.get(series.id) ?? null,
+        ...snap,
         id: virtualId,
         business_id: business.id,
         scheduled_date: date,
@@ -122,7 +152,8 @@ export async function GET(request: NextRequest) {
         occurrence_date: date,
         time_summary: { completed_ms: 0, has_active_timer: false },
         ...recurrenceMetaForRow(series),
-      }))
+        }
+      })
 
     const annotated = jobsWithSummary.map((j: any) => ({
       ...j,

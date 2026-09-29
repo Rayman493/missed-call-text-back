@@ -7,6 +7,8 @@ import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { isValidCoordinate, getMarkerTapAction } from '@/lib/map-utils'
 import { isNonPhysicalLocation } from '@/lib/geocoding'
+import { findJobForCalendarEvent } from '@/lib/calendar-ownership'
+import { eventMatchesGoogleId } from '@/lib/google/calendar-event-id'
 import { Capacitor } from '@capacitor/core'
 import { formatEventTimeRange, formatTime12Hour } from '@/lib/calendar-date-utils'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -893,7 +895,7 @@ useEffect(() => {
   // Helper function to resolve customer information from calendar event
   const getCustomerFromCalendarEvent = useCallback((event: any): { customerName: string | null; customerPhone: string | null; leadId: string | null } => {
     // First try to find a linked job
-    const linkedJob = jobs.find(job => job.google_calendar_event_id === event.id)
+    const linkedJob = findJobForCalendarEvent(jobs, event)
     if (linkedJob) {
       // Use job.customer_name as primary, but fall back to lead metadata if needed
       let customerName = linkedJob.customer_name
@@ -1246,7 +1248,7 @@ useEffect(() => {
 
     // Check events for replyflow_lead_id without linked job
     for (const event of filteredEvents) {
-      const hasLinkedJob = jobs.some(job => job.google_calendar_event_id === event.id)
+      const hasLinkedJob = jobs.some(job => eventMatchesGoogleId(event.id, job.google_calendar_event_id))
       if (!hasLinkedJob) {
         // @ts-ignore
         const replyLeadId = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined

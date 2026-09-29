@@ -389,6 +389,13 @@ export class NotificationServiceServer {
           ? `ai_intake_completed:record:${data.aiCallRecordId}`
           : null
       useAtomicIdempotency = !!idempotencyKey
+    } else if (data && data.callSid && type === 'new_lead') {
+      // New lead: dedupe by Twilio CallSid. Concurrent/retried deliveries of the
+      // same voice/voicemail webhook both resolve to the same lead via
+      // createLead's callSid guard but would otherwise each insert a row.
+      // Paths without a CallSid (e.g. manual-create) keep the plain insert.
+      idempotencyKey = `new_lead:${data.callSid}`
+      useAtomicIdempotency = true
     } else if (data && data.messageSid && type === 'sms_failed') {
       // SMS failure: dedupe by Twilio MessageSid
       idempotencyKey = `sms_${data.messageSid}`

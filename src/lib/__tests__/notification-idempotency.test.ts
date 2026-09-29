@@ -249,3 +249,73 @@ describe('Notification 23505 duplicate/push contract', () => {
     expect(notificationsServerContent).toMatch(/\[PUSH\] delivery skipped - existing notification reused/)
   })
 })
+// ---------------------------------------------------------------------------
+// new_lead CallSid idempotency (Audit #4 PI-2)
+// Concurrent/retried deliveries of the same Twilio voice/voicemail webhook both
+// resolve to the same lead via createLead's callSid guard, but each invocation
+// still reached notifyNewLead. Without an idempotency key that meant duplicate
+// notification rows and duplicate pushes.
+// ---------------------------------------------------------------------------
+
+const voiceRoute = readFileSync('src/app/api/twilio/voice/route.ts', 'utf8')
+const voicemailRoute = readFileSync('src/app/api/twilio/voicemail/route.ts', 'utf8')
+const manualCreateRoute = readFileSync('src/app/api/leads/manual-create/route.ts', 'utf8')
+
+describe('new_lead CallSid idempotency', () => {
+  it('dedupes new_lead by CallSid when present', () => {
+    expect(notificationsServerContent).toMatch(/data\.callSid && type === 'new_lead'/)
+    expect(notificationsServerContent).toMatch(/`new_lead:\$\{data\.callSid\}`/)
+  })
+
+  it('same business + same CallSid produces exactly one key', () => {
+    const callSid = 'CAconcurrent00000000000000000001'
+    const key1 = `new_lead:${callSid}`
+    const key2 = `new_lead:${callSid}`
+    expect(key1).toBe(key2)
+  })
+
+  it('distinct CallSids produce distinct keys (returning callers still notify)', () => {
+    const key1 = 'new_lead:CAfirst0000000000000000000001'
+    const key2 = 'new_lead:CAsecond0000000000000000000002'
+    expect(key1).not.toBe(key2)
+  })
+
+  it('voice webhook passes CallSid to notifyNewLead', () => {
+    const idx = voiceRoute.indexOf('notifyNewLead(')
+    expect(idx).toBeGreaterThan(-1)
+    const call = voiceRoute.substring(idx, voiceRoute.indexOf(');', idx))
+    expect(call).toMatch(/CallSid/)
+  })
+
+  it('voicemail webhook passes CallSid to notifyNewLead', () => {
+    const idx = voicemailRoute.indexOf('notifyNewLead(')
+    expect(idx).toBeGreaterThan(-1)
+    const call = voicemailRoute.substring(idx, voicemailRoute.indexOf(');', idx))
+    expect(call).toMatch(/[cC]allSid/i)
+  })
+
+  it('manual-create has no CallSid and still uses the non-idempotent insert path', () => {
+    // notifyNewLead without callSid → idempotencyKey stays null → regular
+    // insert, preserving pre-existing intended behavior.
+    const idx = manualCreateRoute.indexOf('notifyNewLead(')
+    expect(idx).toBeGreaterThan(-1)
+    const call = manualCreateRoute.substring(idx, manualCreateRoute.indexOf(');', idx))
+    expect(call).not.toMatch(/[cC]allSid/i)
+  })
+
+  it('other idempotent types are unchanged', () => {
+    for (const key of [
+      '`ai_intake_completed:${data.callSid}`',
+      '`sms_${data.messageSid}`',
+      '`reply_${data.messageId}`',
+      '`pay_${data.paymentId}`',
+      '`appt_${data.appointmentId}`',
+      '`appt_del_${data.appointmentId}`',
+      '`vm_${data.voicemailId}`',
+      '`vmr_${data.voicemailId}`',
+      '`bookreq_${data.bookingRequestId}_${data.event || \'event\'}`',
+    ]) {
+      expect(notificationsServerContent).toContain(key.replace(/`/g, ''))
+    }
+  })
+})
