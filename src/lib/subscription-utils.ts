@@ -31,6 +31,8 @@ export interface Business {
   subscription_provider?: string | null;
   google_play_purchase_token?: string | null;
   google_play_revoked_at?: string | null;
+  google_play_last_verified_at?: string | null;
+  checkout_completed_at?: string | null;
   messaging_status?: string | null;
   a2p_status?: string | null;
   call_forwarding_enabled?: boolean | null;
@@ -278,6 +280,40 @@ export function hasGooglePlayBillingEvidence(
 }
 
 /**
+ * Whether the business's CURRENT billing entitlement is Google Play-managed.
+ *
+ * Stripe webhook handlers use this to refuse stale Stripe subscription
+ * events on a Play-billed business. verifyAndApplyPurchase retains a
+ * historical stripe_subscription_id when it applies Google Play billing, so
+ * the old Stripe subscription can keep emitting events (updated, deleted,
+ * invoice.paid, invoice.payment_failed) that would otherwise overwrite a
+ * live Play entitlement — including scheduling Twilio number release.
+ *
+ * Evidence rules (strongest persisted evidence first):
+ * - hasGooglePlayBillingEvidence: subscription_provider='google_play' OR an
+ *   unrevoked persisted google_play_purchase_token (the token survives a
+ *   stale provider='stripe' label).
+ * - Genuine Stripe switch-back escape: a Stripe checkout that completed
+ *   AFTER the last authoritative Google Play verification
+ *   (checkout_completed_at > google_play_last_verified_at) means Stripe is
+ *   now the current provider — Play evidence is stale, not live. When no
+ *   Play verification timestamp exists at all, a completed checkout is the
+ *   most recent known billing action and likewise wins.
+ */
+export function isGooglePlayManagedBilling(
+  business: Pick<Business, 'subscription_provider' | 'google_play_purchase_token' | 'google_play_revoked_at' | 'google_play_last_verified_at' | 'checkout_completed_at'> | null | undefined
+): boolean {
+  if (!business || !hasGooglePlayBillingEvidence(business)) return false
+
+  const checkoutAt = business.checkout_completed_at ? Date.parse(business.checkout_completed_at) : NaN
+  const gpVerifiedAt = business.google_play_last_verified_at ? Date.parse(business.google_play_last_verified_at) : NaN
+  if (!Number.isNaN(checkoutAt) && (Number.isNaN(gpVerifiedAt) || checkoutAt > gpVerifiedAt)) {
+    return false
+  }
+  return true
+}
+
+/**
  * Account-deletion subscription notice — the billing-provider source of truth
  * for the Delete Account warning.
  *
@@ -317,7 +353,10 @@ export function getDeletionSubscriptionNotice(
   }
   // provider='stripe' AND a Google Play token → ambiguous dual-provider state;
   // never classify as auto-cancellable Stripe.
-  if (provider === 'stripe' && !hasGooglePlayToken) {
+  // Also require a concrete stripe_subscription_id: the deletion backend only
+  // cancels subscriptions with an id, so promising "canceled automatically"
+  // without one would be untruthful.
+  if (provider === 'stripe' && !hasGooglePlayToken && business?.stripe_subscription_id) {
     return 'stripe'
   }
   return 'unknown'

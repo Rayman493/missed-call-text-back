@@ -702,7 +702,7 @@ Related articles
     id: 'billing-portal-issues',
     question: 'Billing portal not accessible or not working',
     summary: 'Stripe billing portal troubleshooting.',
-    answer: 'If you can\'t access the billing portal: 1) Go to Dashboard → Settings → Subscription, 2) Click "Manage Subscription" to access Stripe, 3) Ensure you\'re logged into the correct Stripe account, 4) Try clearing your browser cache and cookies, 5) If the Stripe portal shows an error, it may be a temporary Stripe issue - try again later. For persistent billing portal issues, contact support at support@replyflowhq.com.',
+    answer: 'If you can\'t access the billing portal: 1) Go to Dashboard → Settings → Subscription, 2) Click "Manage Subscription" to open your billing provider (Stripe — or Google Play if you subscribed in the Android app), 3) Ensure you\'re logged into the correct Stripe account, 4) Try clearing your browser cache and cookies, 5) If the Stripe portal shows an error, it may be a temporary Stripe issue - try again later. For persistent billing portal issues, contact support at support@replyflowhq.com.',
     category: 'Troubleshooting',
     source: 'Support Guide',
     keywords: ['billing portal', 'stripe portal', 'can\'t access billing', 'subscription not showing', 'stripe error'],
@@ -960,7 +960,7 @@ Self-serve subscription management.
 
 Step-by-step instructions
 1) Go to Dashboard → Settings → Subscription.
-2) Click Manage Subscription to open the Stripe portal.
+2) Click Manage Subscription to open your billing portal (Stripe — or Google Play if you subscribed in the Android app).
 3) From the portal you can:
    - Update payment method
    - View/download invoices and receipts
@@ -991,7 +991,7 @@ Open your Stripe portal to manage payment details and invoices.
 
 Step-by-step instructions
 1) Dashboard → Settings → Subscription → Manage Subscription.
-2) In the Stripe portal, choose the action you need (update card, receipts, cancel, etc.).
+2) In your billing portal (Stripe — or Google Play for Android-app subscriptions), choose the action you need (update card, receipts, cancel, etc.).
 
 Tips / Best Practices
 - Use a modern browser; allow pop-ups for the portal domain.
@@ -1930,9 +1930,9 @@ To view a specific customer's payment history:
 Account payment history
 To view your ReplyFlow account's payment history:
 1) Go to Settings.
-2) Click "Billing Portal" or "Manage Subscription."
-3) This opens the Stripe billing portal.
-4) View your subscription payment history in Stripe.
+2) Click "Manage Subscription."
+3) This opens your billing provider's portal (Stripe — or Google Play for Android-app subscriptions).
+4) View your subscription payment history there.
 
 What payment history shows
 - Payment request date and time
@@ -2491,8 +2491,7 @@ Important notes
 If you get "lost" in Stripe
 - Use your browser's back button.
 - Close the Stripe tab and return to ReplyFlow.
-- Navigate to Settings > Manage Subscription.
-- Click "Billing Portal" to return to Stripe.`,
+- Navigate to Settings > Subscription and click "Manage Subscription" to return to Stripe.`,
     category: 'Payments',
     source: 'Payments Guide',
     keywords: ['stripe return', 'stripe redirect', 'stripe checkout', 'billing portal return', 'stripe onboarding'],

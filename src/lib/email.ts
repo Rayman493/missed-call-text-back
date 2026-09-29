@@ -19,6 +19,15 @@ interface AccountDeletionConfirmationParams {
   businessName?: string
   twilioNumberReserved?: boolean
   twilioNumber?: string
+  /**
+   * Provider-aware billing copy resolved before destructive deletion.
+   * Never derived from billing identifiers after the fact.
+   */
+  billing?: {
+    text: string
+    actionUrl?: string
+    actionLabel?: string
+  } | null
 }
 
 interface OffboardingReminderEmailParams {
@@ -240,7 +249,7 @@ export function isEmailServiceAvailable(): boolean {
  * Generate account deletion confirmation email HTML content
  */
 function generateAccountDeletionConfirmationHTML(params: AccountDeletionConfirmationParams): string {
-  const { businessName, twilioNumberReserved, twilioNumber } = params
+  const { businessName, twilioNumberReserved, twilioNumber, billing } = params
 
   const businessNameSection = businessName 
     ? `<p><strong>Business name:</strong><br>${businessName}</p>`
@@ -252,6 +261,14 @@ function generateAccountDeletionConfirmationHTML(params: AccountDeletionConfirma
 
   const twilioReservationSection = twilioNumber
     ? `<p><strong>Number status:</strong><br>Your ReplyFlow number has been released immediately and is no longer associated with your account.</p>`
+    : ''
+
+  const billingAction = billing?.actionUrl
+    ? `<br><a href="${billing.actionUrl}" style="color: #2563eb;">${billing.actionLabel || 'Manage billing'}</a>`
+    : ''
+
+  const billingSection = billing
+    ? `<p><strong>Billing:</strong><br>${billing.text}${billingAction}</p>`
     : ''
 
   return `
@@ -290,6 +307,7 @@ function generateAccountDeletionConfirmationHTML(params: AccountDeletionConfirma
               ${businessNameSection}
               ${twilioNumberSection}
               ${twilioReservationSection}
+              ${billingSection}
             </div>
             
             <p>If you did not request this deletion or if you believe this was done in error, please contact our support team immediately at <a href="mailto:support@replyflowhq.com" style="color: #2563eb;">support@replyflowhq.com</a>.</p>

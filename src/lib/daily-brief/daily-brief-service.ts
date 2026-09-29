@@ -111,12 +111,12 @@ class DailyBriefService implements DailyBriefServiceInterface {
       money.items.forEach(i => { if (!i.id.startsWith('placeholder-')) usedIds.add(i.id) })
     }
 
-    // Schedule section (exclude duplicates, only include if real items exist)
+    // Schedule section (exclude duplicates; the empty-state placeholder line
+    // still renders so the section communicates "nothing today")
     const schedule = this.buildScheduleSection(focusItems, usedIds)
-    const hasRealSchedule = schedule.items.some(i => !i.isPlaceholder)
-    if (hasRealSchedule) {
+    if (schedule.items.length > 0) {
       sections.push(schedule)
-      schedule.items.filter(i => !i.isPlaceholder).forEach(i => usedIds.add(i.id))
+      schedule.items.filter(i => !i.isPlaceholder && !i.id.startsWith('placeholder-')).forEach(i => usedIds.add(i.id))
     }
 
     // Customers section (exclude anything already shown)
@@ -193,8 +193,18 @@ class DailyBriefService implements DailyBriefServiceInterface {
     })
 
     const mapped = filtered.slice(0, 3).map(item => this.mapFocusToBriefItem(item))
-    // Return empty array if no schedule items (no placeholder)
-    const items: BriefItem[] = mapped
+    // Empty state renders as a single non-bulleted placeholder line so the
+    // section still communicates "nothing today" without pretending to be an
+    // actionable item (isPlaceholder keeps it out of badges/usedIds).
+    const items: BriefItem[] = mapped.length > 0
+      ? mapped
+      : [{
+          id: 'placeholder-schedule-empty',
+          summary: 'No events scheduled today',
+          priority: 'low',
+          category: 'scheduling',
+          isPlaceholder: true,
+        }]
 
     return {
       type: 'schedule',
@@ -262,7 +272,8 @@ class DailyBriefService implements DailyBriefServiceInterface {
       id: item.id,
       summary: item.summary,
       priority: item.priority,
-      category: item.category
+      category: item.category,
+      isPlaceholder: (item as any).isPlaceholder === true || item.id.startsWith('placeholder-') || undefined
     }
   }
 

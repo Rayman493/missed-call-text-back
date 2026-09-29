@@ -183,15 +183,23 @@ describe('job details customer row', () => {
 /* ------------------------------------------------------------------ */
 describe('team access history', () => {
   const s = src('src/components/settings/TeamAccessSection.tsx')
+  const history = src('src/lib/team-invite-history.ts')
 
   it('labels consumed invites as Access removed with an explanation', () => {
-    expect(s).toContain("'Access removed'")
+    expect(s).toContain('Access removed')
     expect(s).toContain('sign-in was revoked')
     expect(s).toContain('Invite history')
+    // One unified record per removed person — reconciliation is centralized
+    expect(s).toContain('reconcileTeamHistory')
+    expect(s).toContain('person.statusLabel')
   })
 
   it('keeps other invite statuses untouched', () => {
-    expect(s).toContain("inv.status === 'accepted' ? 'Access removed' : inv.status")
+    // Reconciler labels groups: accepted → "Access removed", cancelled/expired
+    // keep their own status label.
+    expect(history).toContain("statusLabel = 'Access removed'")
+    expect(history).toContain("statusLabel = 'Cancelled'")
+    expect(history).toContain("statusLabel = 'Expired'")
   })
 })
 

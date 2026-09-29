@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { SUBSCRIPTION_STATES, isEligibleForProvisioning } from '@/lib/subscription'
+import { isGooglePlayManagedBilling } from '@/lib/subscription-utils'
 // Legacy numberManager removed - only provisionTwilioNumber should be used for provisioning
 import getStripe from '@/lib/stripe'
 import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclamation'
@@ -87,6 +88,40 @@ const PROCESSING_LEASE_MS = 5 * 60 * 1000
  * - { claimed: false, isNew: false, status: 'processing', leaseValid: false } - Stale processing claim (lease expired)
  * - { claimed: false, isNew: false, status: 'failed' } - Previously failed, can retry
  */
+/**
+ * Business columns needed by isGooglePlayManagedBilling(). Every
+ * subscription-scoped lookup below must select these so a stale Stripe event
+ * cannot silently mutate a Google Play-managed entitlement.
+ */
+const GP_GUARD_BUSINESS_FIELDS =
+  'subscription_provider, google_play_purchase_token, google_play_revoked_at, google_play_last_verified_at, checkout_completed_at'
+
+/**
+ * Shared provider guard: when the business's current billing entitlement is
+ * Google Play-managed, a Stripe subscription event (which may belong to a
+ * retained historical Stripe subscription) must not mutate entitlement state,
+ * schedule Twilio release, or emit payment-failure notifications. The event
+ * is still marked processed so Stripe does not retry it forever.
+ *
+ * Returns true when the caller must skip all entitlement mutations.
+ */
+async function skipIfGooglePlayManaged(
+  supabase: any,
+  business: any,
+  event: Stripe.Event,
+  logPrefix: string
+): Promise<boolean> {
+  if (!isGooglePlayManagedBilling(business)) return false
+  console.log(`${logPrefix} Business is Google Play-managed - skipping Stripe subscription mutation`, {
+    eventId: event.id,
+    eventType: event.type,
+    businessId: business.id,
+    subscriptionProvider: business.subscription_provider,
+  })
+  await markEventProcessed(supabase, event.id)
+  return true
+}
+
 async function claimEvent(
   supabase: any,
   eventId: string,
@@ -554,13 +589,13 @@ async function findBusinessForSubscription(
   subscriptionId: string,
   customerId: string,
   opts: { repair?: boolean } = {}
-): Promise<{ business: { id: string } | null; lookupMethod: string }> {
-  let business: { id: string } | null = null
+): Promise<{ business: any | null; lookupMethod: string }> {
+  let business: any | null = null
   let lookupMethod = 'subscription_id'
 
   const { data: bySubId } = await supabase
     .from('businesses')
-    .select('id')
+    .select(`id, ${GP_GUARD_BUSINESS_FIELDS}`)
     .eq('stripe_subscription_id', subscriptionId)
     .limit(1)
     .single()
@@ -571,14 +606,17 @@ async function findBusinessForSubscription(
     lookupMethod = 'customer_id'
     const { data: byCustId } = await supabase
       .from('businesses')
-      .select('id')
+      .select(`id, ${GP_GUARD_BUSINESS_FIELDS}`)
       .eq('stripe_customer_id', customerId)
       .limit(1)
       .single()
 
     if (byCustId) {
       business = byCustId
-      if (opts.repair) {
+      // Do not repair-link a stale Stripe subscription id onto a Google
+      // Play-managed business - that would re-associate the retained
+      // historical subscription before the entitlement guard can run.
+      if (opts.repair && !isGooglePlayManagedBilling(byCustId)) {
         console.log('[stripe-webhook] repairing missing stripe_subscription_id for business:', byCustId.id)
         await supabase
           .from('businesses')
@@ -861,6 +899,7 @@ export async function POST(request: Request) {
             current_period_end: checkoutCurrentPeriodEnd,
             cancel_at: checkoutCancelAt,
             cancel_at_period_end: subscription?.cancel_at_period_end ?? false,
+            subscription_provider: 'stripe', // A completed Stripe checkout is a genuine Stripe activation (incl. Play→Stripe switch-back); mark the provider truthfully
             checkout_completed_at: new Date().toISOString(), // Mark checkout as completed to gate subscription event activation
           }
 
@@ -1112,7 +1151,7 @@ export async function POST(request: Request) {
         // Find business by stripe_customer_id
         const { data: business, error: lookupError } = await supabase
           .from('businesses')
-          .select('id, checkout_completed_at, subscription_status')
+          .select(`id, checkout_completed_at, subscription_status, ${GP_GUARD_BUSINESS_FIELDS}`)
           .eq('stripe_customer_id', customerId)
           .limit(1)
           .single()
@@ -1120,6 +1159,13 @@ export async function POST(request: Request) {
         if (!business) {
           logOrphanedSubscriptionWarning(subscriptionId, customerId, subscription?.metadata ?? null)
           return NextResponse.json({ received: true, warning: 'No matching business found' }, { status: 200 })
+        }
+
+        // GOOGLE PLAY GUARD: a stale subscription.created (e.g. replayed for a
+        // retained historical Stripe subscription) must not mutate a
+        // Google Play-managed entitlement.
+        if (await skipIfGooglePlayManaged(supabase, business, event, '[STRIPE WEBHOOK] SUBSCRIPTION.CREATED')) {
+          break
         }
 
         // CRITICAL: Only activate if checkout was completed
@@ -1171,6 +1217,7 @@ export async function POST(request: Request) {
 
           const updatePayload = {
             subscription_status: subscription.status,
+            subscription_provider: 'stripe',
             stripe_customer_id: typeof subscription.customer === 'string'
               ? subscription.customer
               : subscription.customer?.id,
@@ -1405,6 +1452,13 @@ export async function POST(request: Request) {
         })
 
         if (business) {
+          // GOOGLE PLAY GUARD: a stale subscription.updated for a retained
+          // historical Stripe subscription must not overwrite Google
+          // Play-managed entitlement/period state.
+          if (await skipIfGooglePlayManaged(supabase, business, event, '[stripe-webhook] SUBSCRIPTION.UPDATED')) {
+            break
+          }
+
           // Fetch business to check checkout_completed_at
           const { data: businessDetails } = await supabase
             .from('businesses')
@@ -1463,6 +1517,7 @@ export async function POST(request: Request) {
 
           const updatePayload = {
             subscription_status: subscription.status,
+            subscription_provider: 'stripe',
             stripe_customer_id: customerId,
             stripe_subscription_id: subscription.id,
             subscription_price_id: priceId,
@@ -1512,14 +1567,14 @@ export async function POST(request: Request) {
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
           .from('businesses')
-          .select('id, user_id, carrier, stripe_subscription_id, subscription_status')
+          .select(`id, user_id, carrier, stripe_subscription_id, subscription_status, ${GP_GUARD_BUSINESS_FIELDS}`)
           .eq('stripe_subscription_id', subscription.id)
           .limit(1)
           .single()
 
         if (business) {
           console.log('[STRIPE CANCEL] Business found:', business.id)
-          
+
           // OUT-OF-ORDER PROTECTION: Verify this is still the business's current subscription
           // If the business has been reactivated with a new subscription, don't clear fields
           if (business.stripe_subscription_id !== subscription.id) {
@@ -1528,6 +1583,12 @@ export async function POST(request: Request) {
             console.log('[STRIPE CANCEL] Event subscription_id:', subscription.id)
             console.log('[STRIPE CANCEL] This is an out-of-order deletion event, ignoring')
             await markEventProcessed(supabase, event.id)
+            break
+          }
+
+          // GOOGLE PLAY GUARD: a deletion for the retained historical Stripe
+          // subscription must not cancel a live Google Play entitlement.
+          if (await skipIfGooglePlayManaged(supabase, business, event, '[STRIPE CANCEL]')) {
             break
           }
 
@@ -1624,14 +1685,22 @@ export async function POST(request: Request) {
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
           .from('businesses')
-          .select('id, subscription_status, manual_access_enabled, manual_access_expires_at')
+          .select(`id, subscription_status, manual_access_enabled, manual_access_expires_at, ${GP_GUARD_BUSINESS_FIELDS}`)
           .eq('stripe_subscription_id', subscriptionId)
           .limit(1)
           .single()
 
         if (business) {
           console.log('[STRIPE PAYMENT FAILED] Business found:', business.id)
-          
+
+          // GOOGLE PLAY GUARD: a payment failure on a retained historical
+          // Stripe subscription must not mark a Google Play-managed business
+          // past_due, emit a false failure notification, or schedule Twilio
+          // number release.
+          if (await skipIfGooglePlayManaged(supabase, business, event, '[STRIPE PAYMENT FAILED]')) {
+            break
+          }
+
           // Update subscription status to past_due
           const { error: updateError } = await supabase
             .from('businesses')
@@ -1696,7 +1765,7 @@ export async function POST(request: Request) {
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
           .from('businesses')
-          .select('id, subscription_status, twilio_phone_number, twilio_phone_number_sid, manual_access_enabled, manual_access_expires_at, provisioning_status')
+          .select(`id, subscription_status, twilio_phone_number, twilio_phone_number_sid, manual_access_enabled, manual_access_expires_at, provisioning_status, ${GP_GUARD_BUSINESS_FIELDS}`)
           .eq('stripe_subscription_id', subscriptionId)
           .limit(1)
           .single()
@@ -1704,7 +1773,14 @@ export async function POST(request: Request) {
         if (business) {
           console.log('[STRIPE PAYMENT RECOVERY] Business found:', business.id)
           console.log('[STRIPE PAYMENT RECOVERY] Current subscription status:', business.subscription_status)
-          
+
+          // GOOGLE PLAY GUARD: an invoice.paid for a retained historical
+          // Stripe subscription must not overwrite Google Play-managed
+          // entitlement/period state or trigger Twilio recovery/provisioning.
+          if (await skipIfGooglePlayManaged(supabase, business, event, '[STRIPE PAYMENT RECOVERY]')) {
+            break
+          }
+
           // CRITICAL: Retrieve full subscription from Stripe to get current_period_end
           // This is needed for trial conversions and renewals where current_period_end changes
           let subscription: Stripe.Subscription | null = null

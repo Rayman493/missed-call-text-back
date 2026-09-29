@@ -64,6 +64,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to load invites' }, { status: 500 })
   }
 
+  // Resolve accepted-by identities so removed people can be displayed with
+  // their email alongside their phone whenever the data is available.
+  const acceptedByIds = [...new Set((invites || []).filter((i: any) => i.accepted_by).map((i: any) => i.accepted_by))]
+  const acceptedByUsers = new Map<string, { email: string | null; phone: string | null }>()
+  await Promise.all(
+    acceptedByIds.map(async (userId) => {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId)
+      acceptedByUsers.set(userId, {
+        email: userData?.user?.email ?? null,
+        phone: userData?.user?.phone ?? null,
+      })
+    })
+  )
+
   return NextResponse.json({
     role: 'owner',
     business_name: auth.business.name ?? null,
@@ -76,6 +90,8 @@ export async function GET(request: Request) {
       expires_at: i.expires_at,
       created_at: i.created_at,
       accepted_by: i.accepted_by,
+      accepted_email: i.accepted_by ? acceptedByUsers.get(i.accepted_by)?.email ?? null : null,
+      accepted_phone: i.accepted_by ? acceptedByUsers.get(i.accepted_by)?.phone ?? null : null,
     })),
   })
 }
