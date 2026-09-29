@@ -1,6 +1,7 @@
 import CalendarDayCell from './CalendarDayCell'
 import { ReactNode, useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { eventMatchesGoogleId } from '@/lib/google/calendar-event-id'
 
 interface CalendarGridProps {
   month: Date
@@ -179,8 +180,17 @@ export default function CalendarGrid({
     jobs.filter(job => {
       if (job.scheduled_date !== dayKey) return false
       if (job.status === 'cancelled') return false
-      // Deduplicate: exclude jobs linked to calendar events
-      const isLinkedToEvent = events.some(e => e.id === job.google_calendar_event_id)
+      // Deduplicate: exclude jobs linked to calendar events. Recurring Google
+      // instances carry `<masterId>_<instant>` ids, so the match must strip
+      // the instance suffix AND stay day-scoped — otherwise a job would hide
+      // on a day whose own instance was removed while another instance of the
+      // series still exists in the loaded events.
+      const jid = job.google_calendar_event_id
+      if (!jid) return true
+      const isLinkedToEvent = events.some(e => {
+        const eDay = (e.start?.dateTime || e.start?.date || '').split('T')[0]
+        return eDay === dayKey && eventMatchesGoogleId(e.id, jid)
+      })
       return !isLinkedToEvent
     }).forEach(job => {
       dayEvents.push({

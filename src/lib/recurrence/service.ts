@@ -350,6 +350,9 @@ export async function materializeOccurrence(
   delete insert.id
   delete insert.created_at
   delete insert.updated_at
+  // Internal sync bookkeeping lives in the snapshot for continuation series —
+  // it is not a real column on the entity table.
+  delete insert._google_master_id
 
   const { data: row, error } = await supabase.from(table).insert(insert).select().single()
   if (error) return { error: error.message }

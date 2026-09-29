@@ -7,6 +7,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import type { Job } from '@/components/jobs/JobComposer'
 import { formatTime12Hour, formatDate } from '@/lib/time-format'
 import { partitionAgendaItems, classifyAgendaItem } from '@/lib/agenda-classification'
+import { findJobForCalendarEvent } from '@/lib/calendar-ownership'
+import { eventMatchesGoogleId } from '@/lib/google/calendar-event-id'
 
 // Mount/unmount diagnostics
 if (typeof window !== 'undefined') {
@@ -93,7 +95,7 @@ export default function TodayCommandCenter({
   // Helper function to resolve customer information from calendar event
   const getCustomerFromCalendarEvent = (event: CalendarEvent): string | null => {
     // Try to find a linked job
-    const linkedJob = jobs.find(job => job.google_calendar_event_id === event.id)
+    const linkedJob = findJobForCalendarEvent(jobs, event)
     if (linkedJob && linkedJob.customer_name) {
       return linkedJob.customer_name
     }
@@ -244,7 +246,7 @@ export default function TodayCommandCenter({
     if (eventDate !== todayStr) return false
     
     // Deduplicate: exclude calendar events that are linked to today's jobs
-    const isLinkedToJob = todayJobs.some(job => job.google_calendar_event_id === event.id)
+    const isLinkedToJob = todayJobs.some(job => eventMatchesGoogleId(event.id, job.google_calendar_event_id))
     return !isLinkedToJob
   })
 

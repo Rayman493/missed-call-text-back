@@ -475,11 +475,33 @@ export async function DELETE(
       }
     )
 
+    // PI-S2: clear booking_requests.appointment_id once the linked Google
+    // event is gone so the request can be re-converted instead of pointing
+    // at a deleted event forever. Business-scoped — a caller can only touch
+    // their own business's rows.
+    const clearAppointmentLink = async (): Promise<boolean> => {
+      const { error } = await supabase
+        .from('booking_requests')
+        .update({ appointment_id: null, updated_at: new Date().toISOString() })
+        .eq('business_id', business.id)
+        .eq('appointment_id', targetId)
+      if (error) {
+        console.error('[Google Calendar Delete] Failed to clear booking appointment link:', error)
+        return false
+      }
+      return true
+    }
+
     // Google 404/410 means the event is already gone — the desired end state.
     // Treat as success so stale UI entries reconcile instead of erroring.
     if (deleteResponse.status === 404 || deleteResponse.status === 410) {
       console.log('[Google Calendar Delete] Event already absent, treating as success:', eventId)
-      return NextResponse.json({ success: true, alreadyDeleted: true })
+      const linkCleared = await clearAppointmentLink()
+      return NextResponse.json(
+        linkCleared
+          ? { success: true, alreadyDeleted: true }
+          : { success: true, alreadyDeleted: true, appointment_link_failed: true }
+      )
     }
 
     if (!deleteResponse.ok) {
@@ -492,6 +514,8 @@ export async function DELETE(
     }
 
     console.log('[Google Calendar Delete] Successfully deleted event:', eventId)
+
+    const appointmentLinkCleared = await clearAppointmentLink()
 
     // Create timeline event for appointment deletion
     try {
@@ -546,7 +570,11 @@ export async function DELETE(
       // Non-critical error, continue
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json(
+      appointmentLinkCleared
+        ? { success: true }
+        : { success: true, appointment_link_failed: true }
+    )
   } catch (error) {
     console.error('[Google Calendar Delete] Error:', error)
     return NextResponse.json(

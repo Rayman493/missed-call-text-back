@@ -1,3 +1,5 @@
+import { eventMatchesGoogleId } from '@/lib/google/calendar-event-id'
+
 /**
  * Calendar ownership helpers.
  *
@@ -53,7 +55,7 @@ export function isReplyFlowOwnedEvent(
   const linkedJob = context?.linkedJob
   const linkedMeeting = context?.linkedMeeting
 
-  const hasLocalJob = !!linkedJob && linkedJob.google_calendar_event_id === event.id
+  const hasLocalJob = !!linkedJob && !!event.id && eventMatchesGoogleId(event.id, linkedJob.google_calendar_event_id)
   const hasLocalMeeting = !!linkedMeeting && linkedMeeting.google_calendar_event_id === event.id
   const hasPrivateMetadata = !!(
     event.extendedProperties?.private?.replyflow_created ||
@@ -62,4 +64,45 @@ export function isReplyFlowOwnedEvent(
   )
 
   return hasLocalJob || hasLocalMeeting || hasPrivateMetadata
+}
+
+// ---------------------------------------------------------------------------
+// Job ↔ Google event linkage (recurrence-aware)
+// ---------------------------------------------------------------------------
+
+/** Local day key (YYYY-MM-DD) of a Google event's own wall-clock start. */
+export function calendarEventDayKey(
+  event: { start?: { dateTime?: string | null; date?: string | null } | null } | null | undefined,
+): string | null {
+  const raw = event?.start?.dateTime || event?.start?.date
+  return raw ? String(raw).slice(0, 10) : null
+}
+
+/**
+ * Find the job linked to a Google calendar event.
+ *
+ * Handles recurring masters: Google-expanded instance ids end in
+ * `_YYYYMMDDTHHMMSSZ`, so a bare `===` never matches the stored master id.
+ * The match is occurrence-precise when possible — a job whose own
+ * occurrence/scheduled date equals the event's local day wins — so a
+ * recurring instance links to THAT occurrence (virtual or materialized),
+ * falling back to the real anchor row.
+ */
+export function findJobForCalendarEvent<
+  T extends {
+    google_calendar_event_id?: string | null
+    scheduled_date?: string | null
+    occurrence_date?: string | null
+    virtual?: boolean
+  },
+>(jobs: T[], event: { id?: string | null; start?: { dateTime?: string | null; date?: string | null } | null } | null | undefined): T | null {
+  if (!event?.id) return null
+  const dayKey = calendarEventDayKey(event)
+  const matches = jobs.filter(j => eventMatchesGoogleId(event.id!, j.google_calendar_event_id))
+  return (
+    matches.find(j => (j.occurrence_date || j.scheduled_date) === dayKey) ??
+    matches.find(j => !j.virtual) ??
+    matches[0] ??
+    null
+  )
 }

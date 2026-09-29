@@ -41,7 +41,7 @@ import { openOAuthFlow } from '@/capacitor/oauth'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { formatEventTimeRange } from '@/lib/calendar-date-utils'
 import { formatPhoneNumber, isDomNode } from '@/lib/utils'
-import { isReplyFlowOwnedEvent } from '@/lib/calendar-ownership'
+import { isReplyFlowOwnedEvent, findJobForCalendarEvent } from '@/lib/calendar-ownership'
 import { openExternalLink } from '@/lib/external-link'
 import { formatDuration, JOB_TIME_CHANGED_EVENT, notifyJobTimeChanged } from '@/lib/job-time-utils'
 import { suppressNextHistoryBackCleanup } from '@/lib/modalBackButton'
@@ -365,7 +365,7 @@ function MeetingsTab({
   // detection (badges, ownership labels) but no longer gates visibility.
   const isEligible = (ev: CalendarEvent) => {
     if (ev.isHoliday || ev.source === 'holiday') return false
-    const job = jobs.find(j => j.google_calendar_event_id === ev.id)
+    const job = findJobForCalendarEvent(jobs, ev)
     return isReplyFlowOwnedEvent(ev as any, { linkedJob: job }) || !!ev.meetingUrl || !!ev.location
   }
 
@@ -413,7 +413,7 @@ function MeetingsTab({
       <div className="space-y-2">
         {list.map(ev => {
           // Resolve job/lead for quick labels (client-side best-effort)
-          const job = jobs.find(j => j.google_calendar_event_id === ev.id)
+          const job = findJobForCalendarEvent(jobs, ev)
           const customerName = job?.customer_name || null
           const typeLabel = labelType(ev)
           const isMeet = typeLabel === 'Google Meet'
@@ -1004,7 +1004,7 @@ export default function SchedulePage() {
       // Clear previous event's lead immediately — never flash a stale customer
       setSelectedEventLead(null)
       // Job by google_calendar_event_id
-      const job = jobs.find(j => j.google_calendar_event_id === selectedEvent.id) || null
+      const job = findJobForCalendarEvent(jobs, selectedEvent) || null
       setSelectedEventJob(job)
       // Lead precedence: job.lead_id then extendedProperties.private.replyflow_lead_id
       // @ts-ignore
@@ -1634,7 +1634,7 @@ export default function SchedulePage() {
     if (!event) return
 
     // Job-linked calendar events are owned by the job; open job details
-    const linkedJob = jobs.find(j => j.google_calendar_event_id === event.id)
+    const linkedJob = findJobForCalendarEvent(jobs, event)
     if (linkedJob) {
       setSelectedJob(linkedJob)
       setIsJobDetailsOpen(true)
@@ -1903,10 +1903,17 @@ export default function SchedulePage() {
   // updated_at is the closest completion timestamp).
   const appointmentCompletedMap = (() => {
     const map = new Map<string, { completed_at: string }>()
-    for (const j of jobs) {
-      if (j.google_calendar_event_id && j.status === 'completed') {
-        map.set(j.google_calendar_event_id, { completed_at: j.updated_at || j.created_at })
-      }
+    const completedJobs = jobs.filter(j => j.google_calendar_event_id && j.status === 'completed')
+    for (const j of completedJobs) {
+      map.set(j.google_calendar_event_id!, { completed_at: j.updated_at || j.created_at })
+    }
+    // Recurring Google instances carry <masterId>_<instant> ids — resolve
+    // them through the job linkage helper so completed-series instances
+    // also land in "Recently Completed".
+    for (const ev of allFetchedEvents) {
+      if (map.has(ev.id)) continue
+      const job = findJobForCalendarEvent(completedJobs, ev)
+      if (job) map.set(ev.id, { completed_at: job.updated_at || job.created_at })
     }
     return map
   })()
@@ -2591,7 +2598,7 @@ export default function SchedulePage() {
                                     if (item.type === 'event') {
                                       const event = item.data as CalendarEvent
                                       const time = formatEventTimeRange(event.start.dateTime, event.end.dateTime, event.start.date)
-                                      const job = jobs.find(j => j.google_calendar_event_id === event.id)
+                                      const job = findJobForCalendarEvent(jobs, event)
                                       const isReplyFlow = isReplyFlowOwnedEvent(event as any, { linkedJob: job })
                                       const isEditable = !event.isHoliday && event.source !== 'holiday' && isReplyFlow
                                       const customerName = job?.customer_name || null

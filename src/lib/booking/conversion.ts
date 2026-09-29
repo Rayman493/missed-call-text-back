@@ -41,6 +41,26 @@ async function loadOwnedRequest(businessId: string, requestId: string): Promise<
   return (data as BookingRequest | null) ?? null
 }
 
+/**
+ * Verify a linked Google event still exists.
+ *   true  → event is live
+ *   false → definitive 404/410 (event is gone)
+ *   null  → could not verify (no integration, API/network error) — caller
+ *           must treat this as "exists" to avoid creating a duplicate.
+ */
+async function linkedAppointmentExists(businessId: string, eventId: string): Promise<boolean | null> {
+  const { accessToken } = await getGoogleAccessToken(businessId).catch(() => ({ accessToken: null }))
+  if (!accessToken) return null
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  ).catch(() => null)
+  if (!res) return null
+  if (res.status === 404 || res.status === 410) return false
+  if (!res.ok) return null
+  return true
+}
+
 async function appendConversionEvent(
   request: Pick<BookingRequest, 'id' | 'business_id'>,
   type: 'lead_linked' | 'appointment_created' | 'job_created' | 'sms_sent' | 'sms_failed',
@@ -87,9 +107,30 @@ export async function createAppointmentForBookingRequest(
     return { ok: false, status: 409, error: 'Only an accepted booking can become an appointment.' }
   }
 
-  // Idempotent reconcile — a prior attempt that already linked wins.
+  // Idempotent reconcile — a prior attempt that already linked wins, but only
+  // if the linked Google event still exists. An appointment deleted through
+  // the calendar (or directly in Google) leaves a stale appointment_id that
+  // would otherwise wedge this request in "converted" forever (PI-S2).
   if (request.appointment_id) {
-    return { ok: true, alreadyCreated: true, kind: 'appointment', recordId: request.appointment_id, leadId: request.lead_id ?? '' }
+    const stillExists = await linkedAppointmentExists(businessId, request.appointment_id)
+    if (stillExists !== false) {
+      // Live event — or verification was impossible (no integration / API
+      // error), in which case we must not risk creating a duplicate.
+      return { ok: true, alreadyCreated: true, kind: 'appointment', recordId: request.appointment_id, leadId: request.lead_id ?? '' }
+    }
+    // Definitive 404/410 — clear the stale link (guarded so a concurrent
+    // link write wins) and fall through to create a replacement.
+    const { error } = await bookingAdmin()
+      .from('booking_requests')
+      .update({ appointment_id: null, updated_at: new Date().toISOString() })
+      .eq('id', request.id)
+      .eq('business_id', businessId)
+      .eq('appointment_id', request.appointment_id)
+    if (error) {
+      console.error('[BOOKING] stale appointment link clear failed:', error)
+      return { ok: false, status: 500, error: 'Could not reconcile the deleted appointment link. Please try again.' }
+    }
+    request.appointment_id = null
   }
 
   // Customer conversion first — retry-safe; preserves lead_id on later retries.
