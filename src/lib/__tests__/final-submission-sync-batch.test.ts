@@ -261,6 +261,7 @@ describe('Realtime publication covers every subscribed table', () => {
     '20260928000000_team_access_foundation.sql',
     '20261001000000_recurrence_series.sql',
     '20261002000000_final_submission_realtime_publication.sql',
+    '20261005000000_booking_requests_realtime_publication.sql',
   ].map(f => {
     try { return readFileSync(`supabase/migrations/${f}`, 'utf8') } catch { return '' }
   }).join('\n')
@@ -271,6 +272,7 @@ describe('Realtime publication covers every subscribed table', () => {
     'messages', 'leads', 'conversations', 'payment_requests', 'jobs',
     'billing_documents', 'business_memberships',
     'tasks', 'call_events', 'notifications', 'ai_call_records',
+    'booking_requests',
   ])('supabase_realtime publishes %s', (table) => {
     expect(migrations).toMatch(new RegExp(`ADD TABLE (public\\.)?${table}\\b`, 'i'))
   })
@@ -280,5 +282,31 @@ describe('Realtime publication covers every subscribed table', () => {
       'supabase/migrations/20261002000000_final_submission_realtime_publication.sql', 'utf8'
     )
     expect(migration.match(/pg_publication_tables/g)?.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('booking_requests publication migration is idempotent and adds the table exactly once', () => {
+    const migration = readFileSync(
+      'supabase/migrations/20261005000000_booking_requests_realtime_publication.sql', 'utf8'
+    )
+    // IF NOT EXISTS guard on pg_publication_tables → redeploy-safe
+    expect(migration).toContain('IF NOT EXISTS')
+    expect(migration).toContain('pg_publication_tables')
+    // Exactly one ADD TABLE for booking_requests, no other table touched
+    const adds = [...migration.matchAll(/ADD TABLE\s+(\w+)/gi)].map(m => m[1])
+    expect(adds).toEqual(['booking_requests'])
+  })
+
+  it('booking_requests SELECT policy is membership-scoped before publication', () => {
+    // Realtime honors RLS: the table must only be published if rows are
+    // already scoped to the subscriber's business.
+    const cutover = readFileSync(
+      'supabase/migrations/20260928010000_team_access_rls_cutover.sql', 'utf8'
+    )
+    const block = cutover.substring(
+      cutover.indexOf('-- booking_requests'),
+      cutover.indexOf('-- booking_request_events')
+    )
+    expect(block).toContain('on public.booking_requests')
+    expect(block).toContain('business_memberships where user_id = auth.uid()')
   })
 })
