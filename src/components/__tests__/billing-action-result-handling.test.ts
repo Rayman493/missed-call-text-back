@@ -29,6 +29,7 @@ const readSrc = (p: string) => readFileSync(join(__dirname, '../../..', p), 'utf
 const billingSrc = readSrc('src/lib/billing.ts')
 const bannerSrc = readSrc('src/components/PaymentIssueBanner.tsx')
 const gettingStartedSrc = readSrc('src/components/GettingStarted.tsx')
+const knowledgeBaseSrc = readSrc('src/lib/assistant/knowledge-base.ts')
 
 const consumers: Array<[string, string, string, RegExp]> = [
   // [name, source, handler name, failure-surface pattern]
@@ -94,5 +95,30 @@ describe.each(consumers)('%s handleBillingAction result handling', (name, src, h
       block.lastIndexOf('!result.success', errorAt),
       `${name}: error surface must be gated on !result.success`
     ).toBeGreaterThan(-1)
+  })
+})
+
+describe('help copy for provider-variable subscription CTAs', () => {
+  // "Manage Subscription" is provider-variable: it opens Stripe for
+  // Stripe-billed businesses and Google Play for Play-billed ones. Help
+  // copy must not assert a Stripe-only destination without a Play note.
+  it('no knowledge-base answer sends every Manage Subscription user to Stripe unconditionally', () => {
+    const misleading = [
+      /Click "Manage Subscription" to access Stripe[.,]/,
+      /Click Manage Subscription to open the Stripe portal/,
+      /opens the Stripe billing portal\./,
+    ]
+    for (const pattern of misleading) {
+      expect(knowledgeBaseSrc, `knowledge base must not match ${pattern}`).not.toMatch(pattern)
+    }
+  })
+
+  it('acknowledges Google Play wherever a billing-portal instruction could reach a Play subscriber', () => {
+    expect(knowledgeBaseSrc).toContain('Google Play if you subscribed in the Android app')
+    expect(knowledgeBaseSrc).toContain('Google Play for Android-app subscriptions')
+  })
+
+  it('references the real Settings button label, not a nonexistent "Billing Portal" button', () => {
+    expect(knowledgeBaseSrc).not.toMatch(/Click "Billing Portal"/)
   })
 })
