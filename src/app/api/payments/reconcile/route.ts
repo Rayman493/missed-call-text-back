@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
 
       const { data: paymentRequest, error: paymentRequestError } = await supabase
         .from('payment_requests')
-        .select('stripe_connect_account_id, status')
+        .select('id, stripe_connect_account_id, status')
         .eq('stripe_checkout_session_id', session_id)
         .single()
 
@@ -58,9 +59,11 @@ export async function GET(request: Request) {
 
       console.log('[PAYMENT RECONCILE] Found payment request with connected account:', paymentRequest.stripe_connect_account_id)
 
-      // If already paid, no need to reconcile
+      // If already paid, no need to reconcile — but ensure completion side
+      // effects in case a non-webhook path marked it paid first.
       if (paymentRequest.status === 'paid') {
         console.log('[PAYMENT RECONCILE] Payment request already paid')
+        await ensurePaymentCompletedSideEffects(paymentRequest.id)
         return NextResponse.json({ status: 'already_paid' })
       }
 
@@ -110,9 +113,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
     }
 
-    // If already paid, no need to update
+    // If already paid, no need to update — but ensure completion side
+    // effects in case a non-webhook path marked it paid first.
     if (paymentRequest.status === 'paid') {
       console.log('[PAYMENT RECONCILE] Payment request already paid')
+      await ensurePaymentCompletedSideEffects(paymentRequest.id)
       return NextResponse.json({ status: 'already_paid' })
     }
 
@@ -199,26 +204,9 @@ export async function GET(request: Request) {
 
     console.log('[PAYMENT RECONCILE] Successfully updated payment request to paid')
 
-    // Update lead status to paid (optional)
-    try {
-      const { data: lead } = await supabase
-        .from('leads')
-        .select('id, status')
-        .eq('id', paymentRequest.lead_id)
-        .single()
-
-      if (lead) {
-        if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
-          await supabase
-            .from('leads')
-            .update({ status: 'paid' })
-            .eq('id', paymentRequest.lead_id)
-          console.log('[PAYMENT RECONCILE] Updated lead status to paid')
-        }
-      }
-    } catch (leadError) {
-      console.error('[PAYMENT RECONCILE] Exception during lead update (non-critical):', leadError)
-    }
+    // Canonical completion side effects: linked invoice paid transition, lead
+    // reconciliation, timeline event, and payment_completed notification.
+    await ensurePaymentCompletedSideEffects(paymentRequest.id)
 
     return NextResponse.json({ status: 'paid' })
   } catch (error) {

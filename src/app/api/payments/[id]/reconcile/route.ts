@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 import { getUserRoleForBusiness } from '@/lib/team-access'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 export const dynamic = 'force-dynamic'
 
@@ -224,9 +225,13 @@ async function reconcilePaymentIntent(
         })
     }
 
-    // If local status already matches, no update needed
+    // If local status already matches, no update needed — but ensure
+    // completion side effects in case a prior path marked it paid without them.
     if (localStatus === newStatus) {
       console.log('[PAYMENT RECONCILE] Local status already matches Stripe:', localStatus)
+      if (newStatus === 'paid') {
+        await ensurePaymentCompletedSideEffects(paymentRequest.id)
+      }
       return NextResponse.json({
         status: localStatus,
         stripeStatus: paymentIntent.status,
@@ -279,27 +284,10 @@ async function reconcilePaymentIntent(
 
     console.log('[PAYMENT RECONCILE] Successfully reconciled payment:', action, paymentRequest.id, localStatus, '→', newStatus)
 
-    // Update lead status if payment succeeded
+    // Canonical completion side effects: linked invoice paid transition, lead
+    // reconciliation, timeline event, and payment_completed notification.
     if (newStatus === 'paid') {
-      try {
-        const { data: lead } = await supabase
-          .from('leads')
-          .select('id, status')
-          .eq('id', paymentRequest.lead_id)
-          .single()
-
-        if (lead) {
-          if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
-            await supabase
-              .from('leads')
-              .update({ status: 'paid' })
-              .eq('id', paymentRequest.lead_id)
-            console.log('[PAYMENT RECONCILE] Updated lead status to paid')
-          }
-        }
-      } catch (leadError) {
-        console.error('[PAYMENT RECONCILE] Exception during lead update (non-critical):', leadError)
-      }
+      await ensurePaymentCompletedSideEffects(paymentRequest.id)
     }
 
     return NextResponse.json({
@@ -370,9 +358,13 @@ async function reconcileCheckoutSession(
       })
     }
 
-    // If local status already matches, no update needed
+    // If local status already matches, no update needed — but ensure
+    // completion side effects in case a prior path marked it paid without them.
     if (localStatus === newStatus) {
       console.log('[PAYMENT RECONCILE] Local status already matches Stripe:', localStatus)
+      if (newStatus === 'paid') {
+        await ensurePaymentCompletedSideEffects(paymentRequest.id)
+      }
       return NextResponse.json({
         status: localStatus,
         stripeStatus: session.payment_status,
@@ -420,27 +412,10 @@ async function reconcileCheckoutSession(
 
     console.log('[PAYMENT RECONCILE] Successfully reconciled payment:', localStatus, '→', newStatus)
 
-    // Update lead status if payment succeeded
+    // Canonical completion side effects: linked invoice paid transition, lead
+    // reconciliation, timeline event, and payment_completed notification.
     if (newStatus === 'paid') {
-      try {
-        const { data: lead } = await supabase
-          .from('leads')
-          .select('id, status')
-          .eq('id', paymentRequest.lead_id)
-          .single()
-
-        if (lead) {
-          if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
-            await supabase
-              .from('leads')
-              .update({ status: 'paid' })
-              .eq('id', paymentRequest.lead_id)
-            console.log('[PAYMENT RECONCILE] Updated lead status to paid')
-          }
-        }
-      } catch (leadError) {
-        console.error('[PAYMENT RECONCILE] Exception during lead update (non-critical):', leadError)
-      }
+      await ensurePaymentCompletedSideEffects(paymentRequest.id)
     }
 
     return NextResponse.json({

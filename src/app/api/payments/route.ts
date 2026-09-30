@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import getStripe from '@/lib/stripe'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 export const dynamic = 'force-dynamic'
 
@@ -140,23 +141,10 @@ async function reconcileRecentTapToPay(
           else if (newStatus === 'failed') payment.failed_at = newTimestamp
           else if (newStatus === 'cancelled') payment.cancelled_at = newTimestamp
 
-          // Update lead status if paid
-          if (newStatus === 'paid' && payment.lead_id) {
-            try {
-              const { data: lead } = await supabase
-                .from('leads')
-                .select('id, status')
-                .eq('id', payment.lead_id)
-                .single()
-              if (lead && (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active')) {
-                await supabase
-                  .from('leads')
-                  .update({ status: 'paid' })
-                  .eq('id', payment.lead_id)
-              }
-            } catch (leadError) {
-              console.error('[PAYMENTS API] Lead update failed (non-critical):', leadError)
-            }
+          // Canonical completion side effects (invoice reconcile, lead status,
+          // timeline, payment_completed notification — all idempotent).
+          if (newStatus === 'paid') {
+            await ensurePaymentCompletedSideEffects(payment.id)
           }
         }
       }

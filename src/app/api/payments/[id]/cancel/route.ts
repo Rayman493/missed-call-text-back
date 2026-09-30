@@ -5,6 +5,7 @@ import Stripe from 'stripe'
 import getStripe from '@/lib/stripe'
 import { timelineEvents } from '@/lib/event-timeline'
 import { getUserRoleForBusiness } from '@/lib/team-access'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,16 +129,9 @@ export async function POST(
             return NextResponse.json({ error: 'Payment already completed but failed to update local status' }, { status: 500 })
           }
 
-          // Update lead status to paid
-          try {
-            await supabase
-              .from('leads')
-              .update({ status: 'paid' })
-              .eq('id', paymentRequest.lead_id)
-            console.log('[PAYMENT CANCEL] Updated lead status to paid')
-          } catch (leadError) {
-            console.error('[PAYMENT CANCEL] Exception during lead update (non-critical):', leadError)
-          }
+          // Canonical completion side effects (invoice reconcile, lead status,
+          // timeline, payment_completed notification — all idempotent).
+          await ensurePaymentCompletedSideEffects(id)
 
           return NextResponse.json({
             error: 'Payment already completed',
@@ -322,15 +316,9 @@ export async function POST(
           console.error('[PAYMENT CANCEL] Failed to reconcile to paid:', paidUpdateError)
         }
 
-        // Update lead status to paid
-        try {
-          await supabase
-            .from('leads')
-            .update({ status: 'paid' })
-            .eq('id', paymentRequest.lead_id)
-        } catch (leadError) {
-          console.error('[PAYMENT CANCEL] Exception during lead update (non-critical):', leadError)
-        }
+        // Canonical completion side effects (invoice reconcile, lead status,
+        // timeline, payment_completed notification — all idempotent).
+        await ensurePaymentCompletedSideEffects(id)
 
         return NextResponse.json({
           error: 'Payment already completed',

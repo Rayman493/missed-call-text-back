@@ -18,6 +18,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import getStripe from '@/lib/stripe'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 interface RecoveryOptions {
   /** Age threshold in hours - attempts older than this will be processed */
@@ -176,6 +177,7 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
                 paid_at: new Date().toISOString(),
               })
               .eq('id', attempt.id)
+            await ensurePaymentCompletedSideEffects(attempt.id)
           }
           result.updated.paid++
           result.details.push({
@@ -345,6 +347,7 @@ export async function recoverSpecificAttempt(terminalAttemptId: string, dryRun =
           .from('payment_requests')
           .update({ status: 'paid', paid_at: new Date().toISOString() })
           .eq('id', attempt.id)
+        await ensurePaymentCompletedSideEffects(attempt.id)
       }
       result.updated.paid++
     } else if (paymentIntent.status === 'canceled') {

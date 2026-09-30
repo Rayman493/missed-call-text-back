@@ -1,5 +1,6 @@
 import getStripe from '@/lib/stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 /**
  * Resolve or create the canonical conversation for a lead/business pair.
@@ -135,10 +136,10 @@ export async function prepareInvoicePayment(
         return { ok: false, error: 'Invoice payment currency does not match the invoice', status: 409 }
       }
       if (existingPr.status === 'paid') {
-        await supabase
-          .from('billing_documents')
-          .update({ status: 'paid', paid_at: new Date().toISOString() })
-          .eq('id', invoice.id)
+        // Canonical completion side effects: reconciles this invoice to paid
+        // (business/amount/currency verified) plus lead, timeline, and the
+        // idempotent payment_completed notification if missing.
+        await ensurePaymentCompletedSideEffects(existingPr.id)
         return { ok: true, alreadyPaid: true }
       }
       if ((existingPr.stripe_checkout_session_id || existingPr.checkout_url) && !existingPr.stripe_connect_account_id) {

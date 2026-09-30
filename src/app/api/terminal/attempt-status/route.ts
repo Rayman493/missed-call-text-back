@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { validateStateTransition } from '@/lib/terminal/state-transition-guards'
 import { getUserRoleForBusiness } from '@/lib/team-access'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 /**
  * GET /api/terminal/attempt-status?terminalAttemptId=...
@@ -68,8 +69,10 @@ export async function GET(request: NextRequest) {
 
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=local_record_found local_status=' + paymentRequest.status)
 
-    // If local status is already terminal, return it
+    // If local status is already terminal, return it — but ensure completion
+    // side effects in case a prior path marked it paid without them.
     if (paymentRequest.status === 'paid') {
+      await ensurePaymentCompletedSideEffects(paymentRequest.id)
       return NextResponse.json({
         status: 'paid',
         paymentIntentId: paymentRequest.stripe_payment_intent_id,
@@ -136,6 +139,10 @@ export async function GET(request: NextRequest) {
               paid_at: new Date().toISOString(),
             })
             .eq('id', paymentRequest.id)
+
+          // Canonical completion side effects (invoice reconcile, lead status,
+          // timeline, payment_completed notification — all idempotent).
+          await ensurePaymentCompletedSideEffects(paymentRequest.id)
 
           return NextResponse.json({
             status: 'paid',
