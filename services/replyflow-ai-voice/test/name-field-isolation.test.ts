@@ -1,11 +1,11 @@
-const { expect } = require('chai');
+import { expect } from 'chai';
 
 process.env.PORT = process.env.PORT || '0';
 
 // Use the compiled dist to avoid ts-node extension-resolution issues when
 // importing the full service entrypoint.
-const { enrichIntakeFromTranscript } = require('../dist/intake-skip-ahead');
-const { buildCanonicalExtractedInfo } = require('../dist/index');
+const { enrichIntakeFromTranscript } = await import('../src/intake-skip-ahead');
+const { buildCanonicalExtractedInfo } = await import('../src/index');
 
 describe('enrichIntakeFromTranscript name field ownership', () => {
   it('does not contaminate serviceAddress or serviceRequested for bare "Evan Parker"', () => {

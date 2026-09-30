@@ -1,11 +1,11 @@
-const { expect } = require('chai');
+import { expect } from 'chai';
 const {
   enrichIntakeFromTranscript,
   isNameRefusal,
   isLocationRefusal,
   extractPartialLocation,
-} = require('../src/intake-skip-ahead');
-const { resolveNextRequiredStage, resolveNextSimpleModeStage, selectSimpleModePromptKey, isNameRequirementSatisfied } = require('../src/intake-validation');
+} = await import('../src/intake-skip-ahead');
+const { resolveNextRequiredStage, resolveNextSimpleModeStage, selectSimpleModePromptKey, isNameRequirementSatisfied } = await import('../src/intake-validation');
 
 describe('Refusal and partial-location handling', () => {
   it('detects a name refusal and does not store the refusal text as customerName', () => {

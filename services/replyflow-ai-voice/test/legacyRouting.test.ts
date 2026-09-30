@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Legacy routing regression test for service-location modes
  * Tests the legacy getNextStage function to ensure it respects service_location_type
@@ -96,7 +97,7 @@ function fullSequence(serviceLocationType: string): string[] {
 const expectEqual = (a: any, b: any, label: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
     console.error(`[FAIL] ${label}\n  expected: ${JSON.stringify(b)}\n  actual:   ${JSON.stringify(a)}`);
-    process.exit(1);
+    throw new Error('[TEST] assertion failure');
   } else {
     console.log(`[PASS] ${label}`);
   }
@@ -225,3 +226,8 @@ expectEqual(
 );
 
 console.log('\n✓ All legacy routing regression tests passed');
+
+
+// Vitest suite registration: all assertions above run at module load
+// and throw on failure; this test simply confirms the script completed.
+it('script assertions passed', () => {});

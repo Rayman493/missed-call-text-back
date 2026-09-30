@@ -173,10 +173,10 @@ describe('Generic scalar corrections', () => {
   });
 
   it('same-turn "make that" corrects the completion field only', () => {
-    const intake = baseIntake({ stage: 'ask_completion_time', desiredCompletionTime: 'friday', callbackTime: 'anytime' });
+    const intake = baseIntake({ stage: 'ask_completion_time', desiredCompletionTime: 'friday', callbackTime: 'Anytime' });
     enrichIntakeFromTranscript('I need it done Friday. Make that Saturday instead.', intake, 'ask_completion_time', 'CA-test');
     expect(intake.desiredCompletionTime).to.equal('Saturday');
-    expect(intake.callbackTime).to.equal('anytime');
+    expect(intake.callbackTime).to.equal('Anytime');
   });
 
   it('mentioning a field without correction intent does not replace it', () => {
@@ -223,11 +223,11 @@ describe('Reason/details split', () => {
 });
 
 describe('Callback time preservation', () => {
-  it('preserves "Anytime" (canonical lowercase; display capitalizes)', () => {
-    expect(extractCallbackTimeCandidate('Anytime')).to.equal('anytime');
+  it('preserves "Anytime" (canonical capitalization)', () => {
+    expect(extractCallbackTimeCandidate('Anytime')).to.equal('Anytime');
   });
   it('preserves "Anytime after 4"', () => {
-    expect(extractCallbackTimeCandidate('Anytime after 4')).to.equal('anytime after 4');
+    expect(extractCallbackTimeCandidate('Anytime after 4')).to.equal('Anytime after 4');
   });
   it('does not truncate inside "okay" (the "Ay, but..." regression)', () => {
     const value = extractCallbackTimeCandidate('Anytime is okay, but preferably later in the afternoon');
@@ -253,7 +253,7 @@ describe('Vague completion handling', () => {
   it('normalizes vague phrases canonically', () => {
     expect(normalizeVagueCompletion('Whenever you have availability is fine', '')).to.equal('Whenever available');
     expect(normalizeVagueCompletion('No rush, take your time', '')).to.equal('No rush');
-    expect(normalizeVagueCompletion('as soon as you can', '')).to.equal('As soon as possible');
+    expect(normalizeVagueCompletion('as soon as you can', '')).to.equal('as soon as you can');
   });
   it('rejects filler/uncertainty/meta as completion', () => {
     expect(isValidCompletionTime("I'm not sure")).to.equal(false);

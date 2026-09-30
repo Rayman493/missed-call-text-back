@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Integration-level state machine tests for transcription lifecycle
  * Tests the complete flow from transcription acceptance to prompt routing
@@ -494,8 +495,12 @@ console.log(`Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`)
 
 if (failed === 0) {
   console.log('\n✓ All integration tests passed!');
-  process.exit(0);
 } else {
   console.log('\n✗ Some integration tests failed.');
-  process.exit(1);
+  throw new Error('[TEST] assertion failure');
 }
+
+
+// Vitest suite registration: all assertions above run at module load
+// and throw on failure; this test simply confirms the script completed.
+it('script assertions passed', () => {});

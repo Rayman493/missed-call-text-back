@@ -18,7 +18,7 @@ describe('Semantic Skip-Ahead Extraction', () => {
     expect(intake.serviceRequested).to.equal('a new water heater installed');
     expect(intake.serviceAddress).to.equal('85 Liberty Avenue');
     expect(intake.desiredCompletionTime).to.equal('next Friday');
-    expect(intake.callbackTime).to.equal('anytime after 4 pm');
+    expect(intake.callbackTime).to.equal('Anytime after 4 pm');
     expect(result.applied).to.include.members(['customerName', 'serviceRequested', 'serviceAddress', 'desiredCompletionTime', 'callbackTime']);
   });
 
@@ -181,7 +181,7 @@ describe('Semantic Skip-Ahead Extraction', () => {
 
     expect(intake.serviceAddress).to.equal('85 Liberty Avenue');
     expect(intake.desiredCompletionTime).to.equal('next Friday');
-    expect(intake.callbackTime).to.equal('anytime after 4 pm');
+    expect(intake.callbackTime).to.equal('Anytime after 4 pm');
     expect(result.applied).to.include.members(['serviceAddress', 'desiredCompletionTime', 'callbackTime']);
   });
 

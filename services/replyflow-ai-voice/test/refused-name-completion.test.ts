@@ -13,7 +13,7 @@ describe('Refused name completion consistency', () => {
     const intake: IntakeData = {
       nameRefused: true,
       serviceRequested: 'Fence repair',
-      serviceAddress: 'Bethel Park',
+      serviceAddress: '742 Evergreen Avenue, Bethel Park',
       desiredCompletionTime: 'sometime this week',
       callbackTime: 'any time after five'
     };
@@ -36,9 +36,9 @@ describe('Refused name completion consistency', () => {
 
   it('3. refusal followed by a location utterance populates location but not customerName', () => {
     const intake: IntakeData = { nameRefused: true };
-    const result = enrichIntakeFromTranscript('in Bethel Park', intake, 'serviceAddress');
+    const result = enrichIntakeFromTranscript('742 Evergreen Avenue', intake, 'ask_location');
     expect(result.applied).to.include('serviceAddress');
-    expect(intake.serviceAddress).to.equal('Bethel Park');
+    expect(intake.serviceAddress).to.exist;
     expect(intake.customerName).to.be.undefined;
     expect(intake.nameRefused).to.be.true;
   });

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Audio Mapping Validation Tests
  * Tests that cached audio assets are correctly mapped and not duplicated
@@ -328,8 +329,8 @@ if (validationWouldPass) {
 
 // Test 14: Verify session transcription model is gpt-realtime-whisper (not gpt-4o-transcribe)
 console.log('\nTest 14: Verify session transcription model is gpt-realtime-whisper');
-const fs = require('fs');
-const path = require('path');
+const fs = await import('fs');
+const path = await import('path');
 const indexPath = path.join(__dirname, '../src/index.ts');
 let indexContent: string | undefined;
 try {
@@ -392,8 +393,12 @@ console.log(`Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`)
 
 if (failed === 0) {
   console.log('\n✓ All audio mapping tests passed!');
-  process.exit(0);
 } else {
   console.log('\n✗ Some audio mapping tests failed. Please run: npx ts-node scripts/generate-realtime-cached-audio.ts');
-  process.exit(1);
+  throw new Error('[TEST] assertion failure');
 }
+
+
+// Vitest suite registration: all assertions above run at module load
+// and throw on failure; this test simply confirms the script completed.
+it('script assertions passed', () => {});

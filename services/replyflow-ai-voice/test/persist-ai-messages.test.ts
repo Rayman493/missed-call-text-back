@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { persistAiCallConversationMessages } = require('../src/lib/persist-ai-messages');
+import { expect } from 'chai';
+const { persistAiCallConversationMessages } = await import('../src/lib/persist-ai-messages');
 
 interface FakeRow {
   id?: string;

@@ -14,21 +14,21 @@
  */
 
 // Keep the AI voice service module from exiting during test load — must run
-// before the require('../src/index') below.
+// before the await import('../src/index') below.
 process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-openai-key';
 process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'https://test.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key';
 
-const assert = require('assert').strict;
+import { strict as assert } from 'node:assert';
 const {
   resolveNextSimpleModeStage,
   resolveNextRequiredStage,
-} = require('../src/intake-validation');
-const { enrichIntakeFromTranscript } = require('../src/intake-skip-ahead');
+} = await import('../src/intake-validation');
+const { enrichIntakeFromTranscript } = await import('../src/intake-skip-ahead');
 const {
   finalizeSimpleModeSettledAnswer,
   nextRepromptDeliveryAttempt,
-} = require('../src/index');
+} = await import('../src/index');
 
 const enrich = (t: string, stage: string, over: any = {}) => {
   const i: any = { stage, ...over };

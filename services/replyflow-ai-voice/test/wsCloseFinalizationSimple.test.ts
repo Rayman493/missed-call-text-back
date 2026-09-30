@@ -1,8 +1,8 @@
 // Keep the AI voice service from exiting during test load.
 process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-openai-key';
 
-const assert = require('assert').strict;
-const { finalizeIncompleteOnWebsocketCloseSimple } = require('../src/index');
+import { strict as assert } from 'node:assert';
+const { finalizeIncompleteOnWebsocketCloseSimple } = await import('../src/index');
 
 describe('Simple Mode - WebSocket close finalization handoff', () => {
   it('awaits finalizeIncompleteIntake with required context and is idempotent by success flag', async () => {

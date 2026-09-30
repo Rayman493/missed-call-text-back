@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Stage routing unit tests for service-location modes (production helper)
  */
@@ -19,13 +20,16 @@ function fullSequence(mode: ServiceLocationType): string[] {
 const expectEqual = (a: any, b: any, label: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
     console.error(`[FAIL] ${label}\n  expected: ${JSON.stringify(b)}\n  actual:   ${JSON.stringify(a)}`);
-    process.exit(1);
+    throw new Error('[TEST] assertion failure');
   } else {
     console.log(`[PASS] ${label}`);
   }
 }
 
 console.log('=== STAGE ROUTING TESTS ===');
+
+describe('stage routing by service-location mode', () => {
+it('walks the full intake sequence for each mode', () => {
 
 // Normalization tests
 const norm = normalizeServiceLocationType
@@ -39,22 +43,24 @@ expectEqual(norm('invalid' as any), 'onsite', 'normalize invalid → onsite')
 // TEST 1 — Onsite routing
 expectEqual(
   fullSequence('onsite'),
-  ['ask_name_reason','ask_details','ask_location','ask_completion_time','ask_callback_time','complete'],
+  ['ask_name_reason','ask_location','ask_completion_time','ask_callback_time','complete'],
   'Onsite routing sequence'
 );
 
 // TEST 2 — Customer-comes routing
 expectEqual(
   fullSequence('customer_comes_to_business'),
-  ['ask_name_reason','ask_details','ask_completion_time','ask_callback_time','complete'],
+  ['ask_name_reason','ask_completion_time','ask_callback_time','complete'],
   'Customer-comes routing sequence'
 );
 
 // TEST 3 — Remote routing
 expectEqual(
   fullSequence('remote'),
-  ['ask_name_reason','ask_details','ask_completion_time','ask_callback_time','complete'],
+  ['ask_name_reason','ask_completion_time','ask_callback_time','complete'],
   'Remote routing sequence'
 );
 
 console.log('\n✓ All stage routing tests passed');
+});
+});

@@ -573,9 +573,9 @@ describe('Sarah Thompson Physical Test Regression', () => {
       expect(intake.customerName).to.equal('Sarah Thompson');
       expect(intake.serviceRequested).to.be.undefined;
 
-      // Resolver should ask for service/reason
+      // Resolver should ask for service/reason (ask_request is the reason stage)
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
     });
   });
 
@@ -696,9 +696,9 @@ describe('Name-Only Continuation Identity Detection', () => {
       expect(intake.customerName).to.equal('David Reynolds');
       expect(intake.serviceRequested).to.be.undefined;
 
-      // Resolver should stay on ask_name_reason (service still missing)
+      // Resolver should route to ask_request (reason stage) while service is missing
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
     });
 
     it('should reject "I already told you my name is David Reynolds" as service when name is valid', () => {
@@ -709,7 +709,7 @@ describe('Name-Only Continuation Identity Detection', () => {
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
     });
 
     it('should reject "My name is David Reynolds" as service when name is already valid', () => {
@@ -720,7 +720,7 @@ describe('Name-Only Continuation Identity Detection', () => {
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
     });
 
     it('should reject "This is David Reynolds" as service when name is already valid', () => {
@@ -731,7 +731,7 @@ describe('Name-Only Continuation Identity Detection', () => {
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
     });
 
     it('should reject "David Reynolds" as service when name is already valid', () => {
@@ -742,7 +742,7 @@ describe('Name-Only Continuation Identity Detection', () => {
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
     });
   });
 
@@ -854,14 +854,14 @@ describe('Prompt Selection and Dispatch', () => {
       const intake: IntakeData = {
         customerName: 'David Reynolds',
         serviceRequested: undefined,
-        stage: 'ask_name_reason'
+        stage: 'ask_request'
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
       const isSameStage = nextStage === intake.stage;
       const needsReprompt = true;
 
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
       expect(isSameStage).to.equal(true);
       expect(needsReprompt).to.equal(true);
 
@@ -873,14 +873,14 @@ describe('Prompt Selection and Dispatch', () => {
       const intake: IntakeData = {
         customerName: 'David Reynolds',
         serviceRequested: undefined,
-        stage: 'ask_name_reason'
+        stage: 'ask_request'
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
       const isSameStage = nextStage === intake.stage;
       const needsReprompt = false;
 
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
       expect(isSameStage).to.equal(true);
       expect(needsReprompt).to.equal(false);
 
@@ -890,15 +890,15 @@ describe('Prompt Selection and Dispatch', () => {
   });
 
   describe('Identity-Only Reprompt Sequence', () => {
-    it('should stay on ask_name_reason after identity-only utterance', () => {
+    it('should route to ask_request after identity-only utterance (reason still needed)', () => {
       const intake: IntakeData = {
         customerName: 'David Reynolds',
         serviceRequested: undefined,
-        stage: 'ask_name_reason'
+        stage: 'ask_request'
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_name_reason');
+      expect(nextStage).to.equal('ask_request');
     });
 
     it('should advance after valid service provided', () => {
@@ -1303,7 +1303,7 @@ describe('Prompt Selection and Dispatch', () => {
       const settleWindowTimeout = true;
       const pendingAnswerStage = 'ask_name_reason';
 
-      const shouldPrevent = settleWindowTimeout && pendingAnswerStage;
+      const shouldPrevent = !!(settleWindowTimeout && pendingAnswerStage);
       expect(shouldPrevent).to.equal(true);
     });
 
@@ -1321,14 +1321,15 @@ describe('Prompt Selection and Dispatch', () => {
       const settleWindowTimeout = null;
       const pendingAnswerStage = null;
 
-      const shouldPrevent =
+      const shouldPrevent = !!(
         inSpeechSegment ||
         (currentSpeechGeneration !== watchdogGeneration) ||
         (currentStage !== watchdogStage) ||
         (currentTurnId !== watchdogTurnId) ||
         (answerAcceptedForStage === watchdogStage) ||
         assistantSpeaking ||
-        (settleWindowTimeout && pendingAnswerStage);
+        (settleWindowTimeout && pendingAnswerStage)
+      );
 
       expect(shouldPrevent).to.equal(false);
     });
@@ -1547,7 +1548,7 @@ describe('Prompt Selection and Dispatch', () => {
       };
 
       const nextStage = resolveNextSimpleModeStage(intake, 'onsite');
-      expect(nextStage).to.equal('ask_location_or_context');
+      expect(nextStage).to.equal('ask_location');
     });
 
     it('David: resolver should skip ask_location when valid address is present', () => {
