@@ -66,40 +66,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/personal-voicemails - Create a personal voicemail (used by Twilio webhook)
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { business_id, caller_phone, caller_name, recording_url, recording_sid, duration_seconds, transcription } = body;
-
-    // Validate required fields
-    if (!business_id || !caller_phone || !recording_url || !recording_sid || duration_seconds === undefined) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    // Create personal voicemail
-    const { data: voicemail, error: voicemailError } = await supabaseAdmin
-      .from('personal_voicemails')
-      .insert({
-        business_id,
-        caller_phone,
-        caller_name: caller_name || null,
-        recording_url,
-        recording_sid,
-        duration_seconds,
-        transcription: transcription || null,
-      })
-      .select()
-      .single();
-
-    if (voicemailError) {
-      console.error('[Personal Voicemails POST] Error:', voicemailError);
-      return NextResponse.json({ error: 'Failed to create voicemail' }, { status: 500 });
-    }
-
-    return NextResponse.json({ voicemail }, { status: 201 });
-  } catch (error) {
-    console.error('[Personal Voicemails POST] Exception:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+// POST is intentionally not implemented. Personal voicemails are created only by
+// the Twilio-signature-validated webhook at /api/twilio/personal-voicemail.
+// An unauthenticated insert here would allow forging voicemail rows with
+// arbitrary recording_url values, which the audio proxy could fetch with
+// Twilio credentials attached.

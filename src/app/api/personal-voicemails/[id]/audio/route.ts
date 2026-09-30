@@ -86,14 +86,20 @@ export async function GET(
     }
 
     const url = new URL(recordingUrl);
-    // Validate URL is from Twilio's API domain
-    if (!url.hostname.includes('api.twilio.com') && !url.hostname.includes('twilio.com')) {
-      console.log('[PERSONAL VOICEMAIL AUDIO] Invalid recording URL hostname:', url.hostname);
+    // Validate URL is from Twilio's API domain. Exact allowlist — substring
+    // matching would accept lookalike hosts like twilio.com.attacker.example
+    // and leak Twilio Basic credentials to them.
+    const isTwilioHost = url.hostname === 'api.twilio.com' || url.hostname.endsWith('.twilio.com')
+    if (url.protocol !== 'https:' || !isTwilioHost) {
+      console.log('[PERSONAL VOICEMAIL AUDIO] Invalid recording URL origin:', {
+        protocol: url.protocol,
+        hostname: url.hostname
+      });
       return NextResponse.json({ error: 'Invalid recording URL' }, { status: 400 });
     }
 
     // Validate URL path contains recording
-    if (!url.pathname.includes('Recording')) {
+    if (!url.pathname.includes('/Recordings/')) {
       console.log('[PERSONAL VOICEMAIL AUDIO] Invalid recording URL path:', url.pathname);
       return NextResponse.json({ error: 'Invalid recording URL' }, { status: 400 });
     }

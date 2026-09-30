@@ -1132,8 +1132,10 @@ async function purchaseNumber(
         return { success: false, error: `Failed to configure voice URL: ${voiceConfigResult.error}` };
       }
 
-      // Reclaim the reserved number for the business
-      const { error: reclaimError } = await supabase
+      // Reclaim the reserved number for the business.
+      // Compare-and-swap: only claim if the row is still 'reserved' for the
+      // same previous business. A concurrent claim returns zero rows.
+      const { data: reclaimedRows, error: reclaimError } = await supabase
         .from('twilio_numbers')
         .update({
           business_id: businessId,
@@ -1150,12 +1152,23 @@ async function purchaseNumber(
           detached_at: null,
           detached_reason: null,
         })
-        .eq('id', reservedNumber.id);
+        .eq('id', reservedNumber.id)
+        .eq('status', 'reserved')
+        .eq('reserved_for_business_id', reservedNumber.reserved_for_business_id)
+        .select('id');
 
       if (reclaimError) {
         console.error('[PURCHASE NUMBER] Failed to reclaim reserved number:', reclaimError);
         return { success: false, error: 'Failed to reclaim reserved number' };
       }
+
+      if (!reclaimedRows || reclaimedRows.length === 0) {
+        console.log('[PURCHASE NUMBER] Reserved number claim lost (concurrent claim or expired) - falling through to normal provisioning', {
+          phoneNumber: reservedNumber.phone_number,
+          reservedNumberId: reservedNumber.id,
+        });
+        // Fall through to the warm-inventory/new-purchase flow below
+      } else {
 
       // Update businesses table
       const { error: updateError } = await supabase
@@ -1189,6 +1202,7 @@ async function purchaseNumber(
         phoneNumberSid: reservedNumber.twilio_sid,
         status: 'ready'
       };
+      }
     }
 
     // No strong reclaim found, continue with normal flow
@@ -1220,8 +1234,12 @@ async function purchaseNumber(
           return { success: false, error: `Failed to configure voice URL: ${voiceConfigResult.error}` };
         }
 
-        // Assign the available number to the business
-        const { error: assignError } = await supabase
+        // Assign the available number to the business.
+        // Compare-and-swap: only claim if the row is still 'available' and
+        // unassigned. A concurrent provisioner claiming the same row first
+        // makes this update return zero rows — we then fall through to the
+        // new-purchase path instead of overwriting the winner.
+        const { data: claimedRows, error: assignError } = await supabase
           .from('twilio_numbers')
           .update({
             business_id: businessId,
@@ -1230,13 +1248,23 @@ async function purchaseNumber(
             detached_at: null,
             detached_reason: null,
           })
-          .eq('id', availableNumber.id);
+          .eq('id', availableNumber.id)
+          .eq('status', 'available')
+          .is('business_id', null)
+          .select('id');
 
         if (assignError) {
           console.error('[PURCHASE NUMBER] Failed to assign available number:', assignError);
           return { success: false, error: 'Failed to assign available number' };
         }
 
+        if (!claimedRows || claimedRows.length === 0) {
+          console.log('[PURCHASE NUMBER] Warm inventory claim lost to concurrent provisioner - falling through to new purchase', {
+            phoneNumber: availableNumber.phone_number,
+            numberId: availableNumber.id,
+            businessId,
+          });
+        } else {
         // Update businesses table
         const { error: updateError } = await supabase
           .from('businesses')
@@ -1273,6 +1301,7 @@ async function purchaseNumber(
           status: 'ready',
           fromWarmInventory: true // Flag to indicate this came from warm inventory
         };
+        }
       }
     }
 
