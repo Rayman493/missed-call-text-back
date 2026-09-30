@@ -325,3 +325,7 @@ for (const n of negative) {
 }
 
 console.log(`\nSummary: ${pass} passed, ${fail} failed`);
+
+
+// Assertions above run at module load and throw on failure; this registers the suite.
+it('script assertions passed', () => {});

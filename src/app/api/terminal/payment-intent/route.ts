@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import getStripe from '@/lib/stripe'
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 /**
  * POST /api/terminal/payment-intent
@@ -200,27 +201,9 @@ export async function POST(request: NextRequest) {
           .update({ status: 'paid', paid_at: new Date().toISOString() })
           .eq('id', attempt.id)
 
-        if (attempt.lead_id) {
-          const { data: lead } = await supabaseAdmin
-            .from('leads')
-            .select('id, status')
-            .eq('id', attempt.lead_id)
-            .single()
-
-          if (lead) {
-            await supabaseAdmin
-              .from('leads')
-              .update({ payment_status: 'paid', last_payment_paid_at: new Date().toISOString() })
-              .eq('id', lead.id)
-
-            if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
-              await supabaseAdmin
-                .from('leads')
-                .update({ status: 'paid' })
-                .eq('id', lead.id)
-            }
-          }
-        }
+        // Canonical completion side effects (invoice reconcile, lead status,
+        // timeline, payment_completed notification — all idempotent).
+        await ensurePaymentCompletedSideEffects(attempt.id)
       }
 
       for (const attempt of unresolvedAttempts) {

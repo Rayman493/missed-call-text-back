@@ -10,9 +10,8 @@
  */
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { timelineEvents } from '@/lib/event-timeline'
-import { notificationServiceServer } from '@/lib/notifications-server'
 import { isAuthoritativePaidCorrection, validateStateTransition } from '@/lib/terminal/state-transition-guards'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 interface ReconciliationContext {
   supabase: SupabaseClient
@@ -165,7 +164,10 @@ export async function reconcilePaymentRequestCheckout(ctx: ReconciliationContext
     console.log('[PAYMENT WEBHOOK] Payment request current status:', paymentRequest.status)
 
     if (paymentRequest.status === 'paid') {
-      console.log('[PAYMENT WEBHOOK] Payment request already paid — skipping (idempotent)')
+      console.log('[PAYMENT WEBHOOK] Payment request already paid — ensuring completion side effects (idempotent)')
+      // The request may have been marked paid by a non-webhook reconcile path
+      // that did not perform invoice/lead/notification side effects. Repair them.
+      await ensurePaymentCompletedSideEffects(paymentRequest.id)
       return processed('already_paid')
     }
 
@@ -211,57 +213,19 @@ export async function reconcilePaymentRequestCheckout(ctx: ReconciliationContext
         .eq('id', paymentRequest.id)
         .maybeSingle()
       if (currentPaymentError) return retryable('payment_request_status_lookup_failed')
-      if (currentPayment?.status === 'paid') return processed('already_paid')
+      if (currentPayment?.status === 'paid') {
+        await ensurePaymentCompletedSideEffects(paymentRequest.id)
+        return processed('already_paid')
+      }
       return processed('concurrent_status_transition')
     }
 
     console.log('[PAYMENT WEBHOOK] Successfully updated payment request to paid')
 
-    if (linkedInvoice && linkedInvoice.status !== 'paid') {
-      try {
-        await supabase
-          .from('billing_documents')
-          .update({ status: 'paid', paid_at: new Date().toISOString() })
-          .eq('id', linkedInvoice.id)
-        console.log('[PAYMENT WEBHOOK] Reconciled billing invoice to paid:', linkedInvoice.id)
-      } catch (invoiceReconcileErr) {
-        console.error('[PAYMENT WEBHOOK] Invoice reconciliation failed (non-fatal):', invoiceReconcileErr)
-      }
-    } else if (linkedInvoice?.status === 'paid') {
-      console.log('[PAYMENT WEBHOOK] Billing invoice already paid — skipping (idempotent)')
-    }
-
-    try {
-      const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
-      const nextStatus = applyCustomerStatusEvent(lead.status, 'payment_succeeded')
-      if (nextStatus) {
-        await supabase.from('leads').update({ status: nextStatus }).eq('id', paymentRequest.lead_id)
-        console.log('[PAYMENT WEBHOOK] Updated lead status:', { leadId: lead.id, previousStatus: lead.status, newStatus: nextStatus })
-      }
-    } catch (leadUpdateError) {
-      console.error('[PAYMENT WEBHOOK] Exception during lead update (non-critical):', leadUpdateError)
-    }
-
-    try {
-      await timelineEvents.paymentCompleted(paymentRequest.business_id, paymentRequest.lead_id, paymentRequest.id, paymentRequest.amount_cents)
-      console.log('[PAYMENT WEBHOOK] Timeline event created successfully')
-    } catch (timelineError) {
-      console.error('[PAYMENT WEBHOOK] Failed to create timeline event:', timelineError)
-    }
-
-    try {
-      await notificationServiceServer.notifyPaymentCompleted(
-        paymentRequest.business_id,
-        paymentRequest.lead_id,
-        lead.caller_phone || '',
-        paymentRequest.amount_cents,
-        paymentRequest.id,
-        lead.contact_name || lead.name || undefined
-      )
-      console.log('[PAYMENT WEBHOOK] Notification created successfully')
-    } catch (notificationError) {
-      console.error('[PAYMENT WEBHOOK] Failed to create notification:', notificationError)
-    }
+    // Canonical completion side effects: linked invoice paid transition, lead
+    // reconciliation, paymentCompleted timeline event, and the
+    // payment_completed notification (idempotent via pay_{paymentRequestId}).
+    await ensurePaymentCompletedSideEffects(paymentRequest.id)
 
     const result = await processed()
     console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED END ==========')

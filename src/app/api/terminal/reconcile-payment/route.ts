@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 import { validateStateTransition, isAuthoritativePaidCorrection } from '@/lib/terminal/state-transition-guards'
 import { resolveBusinessForUser, getUserRoleForBusiness } from '@/lib/team-access'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 /**
  * POST /api/terminal/reconcile-payment
@@ -269,6 +270,9 @@ export async function POST(request: NextRequest) {
     // If already paid, return success (idempotent)
     if (paymentRequest.status === 'paid') {
       console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete reason=already_paid')
+      // Ensure completion side effects in case a prior path marked it paid
+      // without them (invoice reconcile, timeline, notification are idempotent).
+      await ensurePaymentCompletedSideEffects(paymentRequest.id)
       return NextResponse.json({
         status: 'paid',
         paymentRequestId: paymentRequest.id,
@@ -367,44 +371,13 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Failed to update payment request' }, { status: 500 })
         }
 
-        // Update lead payment status if applicable
-        if (paymentRequest.lead_id) {
-          console.log('[TERMINAL_RECONCILIATION] stage=lead_update_start lead_id=' + paymentRequest.lead_id)
-          const { data: lead } = await supabaseAdmin
-            .from('leads')
-            .select('id, status, caller_phone')
-            .eq('id', paymentRequest.lead_id)
-            .single()
-
-          if (lead) {
-            const { error: leadPaymentStatusError } = await supabaseAdmin
-              .from('leads')
-              .update({
-                payment_status: 'paid',
-                last_payment_paid_at: new Date().toISOString(),
-              })
-              .eq('id', paymentRequest.lead_id)
-
-            if (leadPaymentStatusError) {
-              console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=lead_payment_status_update_failed error=' + leadPaymentStatusError.message)
-              return NextResponse.json({ error: 'Failed to update lead payment status' }, { status: 500 })
-            }
-
-            // Update lead status to paid if appropriate
-            if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
-              const { error: leadStatusError } = await supabaseAdmin
-                .from('leads')
-                .update({ status: 'paid' })
-                .eq('id', paymentRequest.lead_id)
-
-              if (leadStatusError) {
-                console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=lead_status_update_failed error=' + leadStatusError.message)
-                return NextResponse.json({ error: 'Failed to update lead status' }, { status: 500 })
-              }
-            }
-            console.log('[TERMINAL_RECONCILIATION] stage=lead_update_complete')
-          }
-        }
+        // Canonical completion side effects: linked invoice paid transition,
+        // lead reconciliation (payment_status + lifecycle status), timeline
+        // event, and payment_completed notification — all idempotent and
+        // non-fatal, so the confirmed payment is never blocked by them.
+        console.log('[TERMINAL_RECONCILIATION] stage=side_effects_start lead_id=' + paymentRequest.lead_id)
+        await ensurePaymentCompletedSideEffects(paymentRequest.id)
+        console.log('[TERMINAL_RECONCILIATION] stage=side_effects_complete')
 
         console.log('[TERMINAL_RECONCILIATION] stage=reconciliation_complete status=paid local_status_after=paid duration_ms=' + (Date.now() - requestStart))
         return NextResponse.json({

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Regression tests for separated ask_name/ask_reason flow
  * Tests the new two-stage intake flow replacing the combined ask_name_reason stage
@@ -6,7 +7,7 @@
 const expectEqual = (a: any, b: any, label: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
     console.error(`[FAIL] ${label}\n  expected: ${JSON.stringify(b)}\n  actual:   ${JSON.stringify(a)}`);
-    process.exit(1);
+    throw new Error('[TEST] assertion failure');
   } else {
     console.log(`[PASS] ${label}`);
   }
@@ -252,3 +253,8 @@ expectEqual(finalizationCount, 1, 'idempotent finalization prevents duplicate ca
 expectEqual(completionPersistenceStarted, true, 'completionPersistenceStarted flag set after first call');
 
 console.log('\n✓ All separated name/reason flow regression tests passed');
+
+
+// Vitest suite registration: all assertions above run at module load
+// and throw on failure; this test simply confirms the script completed.
+it('script assertions passed', () => {});

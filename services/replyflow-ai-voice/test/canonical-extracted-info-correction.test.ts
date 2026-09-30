@@ -1,7 +1,7 @@
-const { expect } = require('chai');
+import { expect } from 'chai';
 
 // NOTE: requiring ../src/index bootstraps the service. Use PORT=0 to avoid collisions.
-const { buildCanonicalExtractedInfo } = require('../src/index');
+const { buildCanonicalExtractedInfo } = await import('../src/index');
 
 describe('buildCanonicalExtractedInfo correction precedence', () => {
   it('trusts explicit corrected service over raw request transcript', async () => {

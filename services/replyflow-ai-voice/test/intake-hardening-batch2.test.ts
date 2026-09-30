@@ -320,7 +320,7 @@ describe('K. vague but valid completion timing', () => {
   it.each([
     ['No rush.', 'No rush'],
     ["Whenever you're available.", 'Whenever available'],
-    ['As soon as you can.', 'As soon as possible'],
+    ['As soon as you can.', 'As soon as you can'],
     ['Whenever works.', 'Whenever'],
     ['Later this week.', 'Later this week'],
   ])('"%s" → "%s"', (t, expected) => {

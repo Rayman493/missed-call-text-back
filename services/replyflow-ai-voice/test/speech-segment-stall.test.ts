@@ -14,7 +14,7 @@
  * legitimately long answer); otherwise it reprompts the current stage.
  */
 
-import { describe, it } from 'mocha';
+
 import { expect } from 'chai';
 import { readFileSync } from 'fs';
 import { join } from 'path';

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { timelineEvents } from '@/lib/event-timeline'
 import { getUserRoleForBusiness } from '@/lib/team-access'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
 export const dynamic = 'force-dynamic'
 
@@ -134,59 +134,10 @@ export async function POST(
 
     console.log('[PAYMENT MARK-PAID] Successfully updated payment request to paid')
 
-    // Reconcile linked billing invoice (if any)
-    try {
-      const { data: linkedInvoice } = await supabase
-        .from('billing_documents')
-        .select('id, status')
-        .eq('payment_request_id', id)
-        .eq('document_type', 'invoice')
-        .maybeSingle()
-      if (linkedInvoice && linkedInvoice.status !== 'paid') {
-        await supabase
-          .from('billing_documents')
-          .update({ status: 'paid', paid_at: new Date().toISOString() })
-          .eq('id', linkedInvoice.id)
-        console.log('[PAYMENT MARK-PAID] Reconciled billing invoice to paid:', linkedInvoice.id)
-      }
-    } catch (invoiceReconcileErr) {
-      console.error('[PAYMENT MARK-PAID] Invoice reconciliation failed (non-fatal):', invoiceReconcileErr)
-    }
-
-    // Update lead status to paid (following Stripe reconcile pattern)
-    try {
-      const { data: lead } = await supabase
-        .from('leads')
-        .select('id, status')
-        .eq('id', paymentRequest.lead_id)
-        .single()
-
-      if (lead) {
-        if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
-          await supabase
-            .from('leads')
-            .update({ status: 'paid' })
-            .eq('id', paymentRequest.lead_id)
-          console.log('[PAYMENT MARK-PAID] Updated lead status to paid')
-        }
-      }
-    } catch (leadError) {
-      console.error('[PAYMENT MARK-PAID] Exception during lead update (non-critical):', leadError)
-    }
-
-    // Create timeline event for manual payment confirmation
-    try {
-      await timelineEvents.paymentCompleted(
-        paymentRequest.business_id,
-        paymentRequest.lead_id,
-        paymentRequest.id,
-        paymentRequest.amount_cents
-      )
-      console.log('[PAYMENT MARK-PAID] Timeline event created')
-    } catch (timelineError) {
-      console.error('[PAYMENT MARK-PAID] Failed to create timeline event:', timelineError)
-      // Non-critical error, continue
-    }
+    // Canonical completion side effects: linked invoice paid transition, lead
+    // reconciliation, paymentCompleted timeline event, and the
+    // payment_completed notification (idempotent via pay_{paymentRequestId}).
+    await ensurePaymentCompletedSideEffects(id)
 
     console.log('[PAYMENT MARK-PAID] Payment request manually marked as paid successfully')
 

@@ -55,22 +55,38 @@ export async function GET(
 
     const presentation = await buildDocumentPresentation(supabase, doc)
 
-    // For invoices, include payment URL if linked
+    // For invoices, include payment URL if linked, plus a coarse payment
+    // state so the customer-facing page can distinguish "being prepared"
+    // from a payment request that is terminal (cancelled/expired/failed)
+    // or already paid. No Stripe IDs or internal metadata are exposed.
     let paymentUrl: string | null = null
+    let paymentState: 'none' | 'pending' | 'preparing' | 'terminal' | 'paid' = 'none'
     if (doc.document_type === 'invoice' && doc.payment_request_id) {
       const { data: paymentRequest } = await supabase
         .from('payment_requests')
         .select('checkout_url, status, stripe_connect_account_id')
         .eq('id', doc.payment_request_id)
         .maybeSingle()
-      if (paymentRequest?.checkout_url && paymentRequest.status === 'pending' && paymentRequest.stripe_connect_account_id) {
-        paymentUrl = paymentRequest.checkout_url
+      if (paymentRequest) {
+        if (paymentRequest.status === 'paid') {
+          paymentState = 'paid'
+        } else if (['cancelled', 'canceled', 'expired', 'failed'].includes(paymentRequest.status)) {
+          paymentState = 'terminal'
+        } else if (paymentRequest.checkout_url && paymentRequest.status === 'pending' && paymentRequest.stripe_connect_account_id) {
+          paymentState = 'pending'
+          paymentUrl = paymentRequest.checkout_url
+        } else {
+          // Payment request exists but is not payable yet (e.g. still being
+          // prepared or processing).
+          paymentState = 'preparing'
+        }
       }
     }
 
     return NextResponse.json({
       document: presentation,
       payment_url: paymentUrl,
+      payment_state: paymentState,
     })
   } catch (err) {
     console.error('[PUBLIC DOCUMENT] Unexpected error:', err)

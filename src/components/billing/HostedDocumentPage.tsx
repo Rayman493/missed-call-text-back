@@ -12,6 +12,7 @@ interface HostedDocumentPageProps {
 export default function HostedDocumentPage({ token }: HostedDocumentPageProps) {
   const [doc, setDoc] = useState<DocumentPresentation | null>(null)
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+  const [paymentState, setPaymentState] = useState<'none' | 'pending' | 'preparing' | 'terminal' | 'paid'>('none')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -29,6 +30,7 @@ export default function HostedDocumentPage({ token }: HostedDocumentPageProps) {
         const json = await res.json()
         setDoc(json.document)
         setPaymentUrl(json.payment_url)
+        setPaymentState(json.payment_state || 'none')
       } catch {
         setError('Failed to load document')
       } finally {
@@ -89,7 +91,9 @@ export default function HostedDocumentPage({ token }: HostedDocumentPageProps) {
   const status = effectiveStatus(doc)
   const isQuote = doc.document_type === 'quote'
   const isCancelled = status === 'cancelled'
-  const isPaid = status === 'paid'
+  // The linked payment request is authoritative for money: if it is paid the
+  // invoice is effectively paid even if its row has not reconciled yet.
+  const isPaid = status === 'paid' || paymentState === 'paid'
   const isExpired = status === 'expired'
   const isOverdue = status === 'overdue'
   const canRespond = isQuote && (status === 'sent')
@@ -162,7 +166,11 @@ export default function HostedDocumentPage({ token }: HostedDocumentPageProps) {
           )}
 
           {!isQuote && !isPaid && !isCancelled && !paymentUrl && (
-            <p className="text-sm text-center text-slate-500">Payment is being prepared. Please check back shortly.</p>
+            <p className="text-sm text-center text-slate-500">
+              {paymentState === 'terminal'
+                ? 'This payment link is no longer active. Please contact the business for a new payment request.'
+                : 'Payment is being prepared. Please check back shortly.'}
+            </p>
           )}
         </div>
       </div>

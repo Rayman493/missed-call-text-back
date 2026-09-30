@@ -128,6 +128,7 @@ const NON_NAME_WORDS = new Set([
   'good', 'bad', 'great', 'nice', 'fine', 'busy', 'free', 'available',
   'sounds', 'sound', 'seems', 'seem', 'looks', 'look', 'feel', 'feels',
   'mean', 'meant', 'matter', 'mind', 'care', 'prefer', 'rather',
+  'absolutely', 'definitely', 'certainly', 'totally', 'obviously',
   'to', 'for', 'of', 'in', 'at', 'by', 'with', 'from', 'into', 'onto',
   'out', 'up', 'down', 'over', 'under', 'off', 'per', 'via',
   // Contractions with apostrophes stripped ("that's" -> "thats")
@@ -261,6 +262,9 @@ export function isValidServiceAddress(text: string): boolean {
  */
 function looksLikePersonNameOnly(text: string): boolean {
   const trimmed = text.trim();
+  // Directional/area lead-ins mark a place answer, not a person name
+  // ("Downtown Pittsburgh", "the South Side").
+  if (/^(?:downtown|uptown|midtown|the|north|south|east|west|lower|upper)\s+\S/i.test(trimmed)) return false;
   // If the text contains address indicators, it's not a person-name-only answer.
   const addressIndicators = /\b(?:\d+\s|street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl|apartment|apt|suite|unit|in|near|at|located)\b/i;
   if (addressIndicators.test(trimmed)) return false;
@@ -293,8 +297,43 @@ export function isUsableServiceAddress(intake: IntakeData): boolean {
   // Explicit refusal flags mean address is not usable even if raw text exists
   if (intake.locationRefused) return false;
   if ((intake as any).locationUnknown) return false;
+  const addr = (intake.serviceAddress || '').trim();
+  if (!addr) return false;
   // Must pass semantic validation
-  return isValidServiceAddress(intake.serviceAddress || '');
+  if (isValidServiceAddress(addr)) return true;
+  // A caller-supplied partial location ("Pittsburgh", "Bethel Park",
+  // "the South Side") answers the location question even though it is not a
+  // street address and can resemble a person name. Never accept the caller's
+  // own name as their location.
+  if (
+    isPlaceLikeLocationValue(addr) &&
+    addr.toLowerCase() !== (intake.customerName || '').trim().toLowerCase()
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Whether a value is a usable partial location: a city, neighborhood, or
+ * area name the caller gave when asked where the job is. Unlike
+ * isValidServiceAddress this accepts short place names that structurally
+ * resemble person names ("Bethel Park") — the capture context (the location
+ * question, or an explicit "I'm in X" scaffold) disambiguates them.
+ */
+export function isPlaceLikeLocationValue(text: string): boolean {
+  const trimmed = (text || '').trim();
+  if (!trimmed) return false;
+  if (isRefusal(trimmed) || isMetaUtterance(trimmed) || isConversationalFragment(trimmed) || isUncertaintyNonAnswer(trimmed)) return false;
+  // Pure place-name shape: alphabetic words only, at most four of them.
+  if (!/^[A-Za-z][A-Za-z'’ .-]*$/.test(trimmed)) return false;
+  if (trimmed.split(/\s+/).length > 4) return false;
+  // Single-word vague/directional or day-time words are not places.
+  const NON_PLACE_WORDS = /^(?:here|there|somewhere|nearby|close|around|home|house|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|afternoon|evening|night|tonight|today|tomorrow|yesterday|yes|yeah|okay|ok|whenever|anytime|weekend|week)$/i;
+  if (NON_PLACE_WORDS.test(trimmed)) return false;
+  // A pure timing answer belongs to a timing field, not the location field.
+  if (isValidCompletionTime(trimmed) || isValidCallbackTime(trimmed)) return false;
+  return true;
 }
 
 /**
@@ -355,6 +394,10 @@ export function isValidCompletionTime(text: string): boolean {
     return false;
   }
 
+  // Require actual timing semantics or explicit flexibility — a bare
+  // acknowledgment like "Absolutely can" is not a completion-time answer.
+  if (!hasTimingOrFlexibility(trimmed)) return false;
+
   return true;
 }
 
@@ -364,18 +407,58 @@ export function isValidCompletionTime(text: string): boolean {
  */
 function hasTimingSemantics(text: string): boolean {
   const lower = text.toLowerCase();
+  const SPOKEN_NUM = '(?:\\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|noon|midnight|morning|afternoon|evening|tonight)';
   // Time units and temporal expressions
   const timingPatterns = [
     /\b(?:today|tomorrow|tonight)\b/,
     /\b(?:this|next|coming|upcoming|following)\s+(?:week|month|year|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|afternoon|evening)\b/,
-    /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
-    /\b(?:morning|afternoon|evening|night)\b/,
-    /\b(?:in|within|by|before|after|until)\s+\d/i,
-    /\b(?:asap|as soon as possible|right away|immediately|urgent|urgently|no rush|whenever)\b/,
+    /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b/,
+    /\b(?:morning|afternoon|evening|night)s?\b/,
+    new RegExp(`\\b(?:in|within|by|before|after|until|at|around|about|til)\\s+${SPOKEN_NUM}`, 'i'),
+    new RegExp(`\\bbetween\\s+${SPOKEN_NUM}\\b`, 'i'),
+    /\b\d{1,2}\s*(?::\d{2})?\s*(?:a\.?\s?m\.?|p\.?\s?m\.?|o'?clock)\b/i,
+    /\b\d{1,2}(?:st|nd|rd|th)\b/i,
+    /\b(?:asap|as soon as\b|right away|immediately|urgent|urgently|no rush|whenever)\b/,
     /\b(?:in|within)\s+(?:a\s+|the\s+|one|two|three|four|five|couple|few|several|\d+)\s+(?:day|week|month|hour)s?\b/,
+    /\b(?:next|this|coming|upcoming|following)\s+(?:couple|few|several|one|two|three|four|five|six|seven|\d+)\s+(?:day|days|week|weeks|month|months|hour|hours)\b/i,
     /\b(?:early|late)\s+(?:next|this)\s+(?:week|month|year)\b/,
+    /\b(?:lunch(?:time)?|noon(?:ish)?|midday|midnight|dinner(?:time)?|breakfast|supper|after\s+work|before\s+work|end of (?:the\s+)?(?:day|week|month)|eod|close of business|weekend|sometime|some\s+time)\b/i,
   ];
   return timingPatterns.some(pattern => pattern.test(lower));
+}
+
+/**
+ * Explicit flexibility statements that are valid timing answers even though
+ * they contain no concrete clock/day reference: "anytime", "whenever works",
+ * "no preference", "it doesn't matter", "sometime", "later".
+ */
+const FLEXIBLE_TIMING_PATTERNS = [
+  /\bany\s?time\b/i,
+  /\bwhenever\b/i,
+  /\bno\s+(?:rush|hurry|preference|pressure)\b/i,
+  /\bdoesn'?t\s+matter\b/i,
+  /\b(?:whatever|whenever)\s+works\b/i,
+  /\bflexible\b/i,
+  /\bup\s+to\s+(?:you|them|him|her)\b/i,
+  /\bwhen(?:ever)?\s+(?:it'?s|its|is)\s+convenient\b/i,
+  /\bnot\s+(?:urgent|an?\s+emergency)\b/i,
+  /\btake\s+your\s+time\b/i,
+  /\bthe\s+sooner\s+the\s+better\b/i,
+  /\bwhen\s+you\s+(?:can|could|get\s+a\s+chance)\b/i,
+];
+
+function hasFlexibilitySemantics(text: string): boolean {
+  const lower = text.toLowerCase();
+  return FLEXIBLE_TIMING_PATTERNS.some(pattern => pattern.test(lower));
+}
+
+/**
+ * A timing field is only satisfied by an answer with real timing semantics
+ * or explicit flexibility. Bare acknowledgments ("Absolutely can", "sure",
+ * "that's fine") must never satisfy a timing field.
+ */
+function hasTimingOrFlexibility(text: string): boolean {
+  return hasTimingSemantics(text) || hasFlexibilitySemantics(text);
 }
 
 /**
@@ -398,6 +481,10 @@ export function isValidCallbackTime(text: string): boolean {
   if (unusableAnswers.includes(trimmed.toLowerCase())) return false;
   if (isUncertaintyNonAnswer(trimmed)) return false;
   if (CONVERSATIONAL_ACK.test(trimmed)) return false;
+
+  // Require actual timing semantics or explicit flexibility — a bare
+  // acknowledgment like "Absolutely can" is not a callback preference.
+  if (!hasTimingOrFlexibility(trimmed)) return false;
 
   return true;
 }

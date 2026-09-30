@@ -16,34 +16,21 @@ import VoiceResponse from 'twilio/lib/twiml/VoiceResponse'
  * 3. Returns TwiML with WebSocket URL for Fly.io service
  * 4. Falls back to voicemail on any error
  * 
- * Supports both POST (direct from Twilio) and GET (redirect from /api/twilio/voice)
+ * POST only, direct from Twilio. GET is not exported: no caller uses it and
+ * an unsigned GET could forge ai_call_sessions.
  */
 async function handlePOCStart(request: NextRequest, method: string) {
   try {
     console.log('[AI POC START] method:', method)
 
-    // Read Twilio params from searchParams (GET) or body (POST)
-    let params: Record<string, string>
-    let rawBody = ''
-    let contentType = ''
+    // POST only: read Twilio params from body
+    const rawBody = await request.text()
+    const contentType = request.headers.get('content-type') || ''
+    const params = Object.fromEntries(new URLSearchParams(rawBody))
 
-    if (method === 'GET') {
-      // GET: read from URL searchParams
-      const url = new URL(request.url)
-      params = Object.fromEntries(url.searchParams)
-    } else {
-      // POST: read from body
-      rawBody = await request.text()
-      contentType = request.headers.get('content-type') || ''
-      params = Object.fromEntries(new URLSearchParams(rawBody))
-    }
+    // Always validate Twilio signature
+    const isValid = requireTwilioAuth(request, params, rawBody.length, contentType)
 
-    // Validate Twilio signature (skip for GET redirects - already validated at source)
-    let isValid = true
-    if (method === 'POST') {
-      isValid = requireTwilioAuth(request, params, rawBody.length, contentType)
-    }
-    
     if (!isValid) {
       console.log('[AI POC START] Invalid Twilio signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
@@ -127,9 +114,9 @@ async function handlePOCStart(request: NextRequest, method: string) {
   }
 }
 
-export async function GET(request: NextRequest) {
-  return handlePOCStart(request, 'GET')
-}
+// GET is intentionally not exported. Nothing calls poc-start via GET (the voice
+// route redirects to /api/twilio/ai-assistant/start), and an unsigned GET would
+// let anyone create ai_call_sessions with caller-supplied From/To/CallSid.
 
 export async function POST(request: NextRequest) {
   return handlePOCStart(request, 'POST')

@@ -476,7 +476,7 @@ describe('Raw Request Transcript for Additional Details', () => {
   });
 
   describe('MULTIPLE REQUEST CAPTURES / CORRECTION SCENARIO', () => {
-    it('should select first non-blocked request capture when multiple exist', () => {
+    it('should select the non-blocked request capture when a later capture is blocked', () => {
       const stageCaptures = [
         {
           stage: 'ask_name_reason',
@@ -507,6 +507,36 @@ describe('Raw Request Transcript for Additional Details', () => {
 
       console.log('[PASS] First non-blocked capture selected when multiple exist');
       console.log('[PASS] Blocked second capture (correction) is skipped');
+    });
+
+    it('should select the LATEST non-blocked request capture (explicit correction wins)', () => {
+      const stageCaptures = [
+        {
+          stage: 'ask_name_reason',
+          rawTranscript: 'I need help with plumbing.',
+          capturedAnswer: 'I need help with plumbing',
+          extractedField: 'serviceRequested',
+          source: 'semantic',
+          timestamp: '2024-01-01T00:00:00Z'
+        },
+        {
+          stage: 'ask_name_reason',
+          rawTranscript: 'Actually I need help with electrical work.',
+          capturedAnswer: 'Actually I need help with electrical work',
+          extractedField: 'serviceRequested',
+          source: 'semantic',
+          timestamp: '2024-01-01T00:00:01Z'
+        }
+      ];
+
+      const rawRequestTranscript = extractRawRequestTranscriptFromStageCaptures(stageCaptures);
+
+      // Latest explicit correction is canonical — never the stale first value.
+      if (rawRequestTranscript !== 'Actually I need help with electrical work.') {
+        throw new Error(`Expected latest non-blocked capture, got: ${rawRequestTranscript}`);
+      }
+
+      console.log('[PASS] Latest non-blocked capture (correction) wins');
     });
 
     it('should handle scenario where all request captures are blocked', () => {

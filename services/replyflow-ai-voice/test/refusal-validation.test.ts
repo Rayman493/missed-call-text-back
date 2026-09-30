@@ -1,10 +1,10 @@
-const { expect } = require('chai');
+import { expect } from 'chai';
 const {
   isValidServiceRequest,
   isValidCompletionTime,
   isValidCallbackTime,
   isValidServiceAddress
-} = require('../src/intake-validation');
+} = await import('../src/intake-validation');
 
 describe('Refusal / non-answer validation', () => {
   describe('isValidServiceRequest', () => {

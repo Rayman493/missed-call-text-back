@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Simple Mode lifecycle regression tests for service_location_type initialization
  * Verifies correct routing after Twilio start provides businessId
@@ -52,7 +53,7 @@ function simulateSimpleModeLifecycle(db: MockDbResult, startingBusinessId: strin
 function expectEqual(a: any, b: any, label: string) {
   if (JSON.stringify(a) !== JSON.stringify(b)) {
     console.error(`[FAIL] ${label}\n  expected: ${JSON.stringify(b)}\n  actual:   ${JSON.stringify(a)}`);
-    process.exit(1);
+    throw new Error('[TEST] assertion failure');
   } else {
     console.log(`[PASS] ${label}`);
   }
@@ -87,3 +88,8 @@ console.log('=== SIMPLE MODE LIFECYCLE TESTS ===');
 }
 
 console.log('\n✓ All Simple Mode lifecycle tests passed');
+
+
+// Vitest suite registration: all assertions above run at module load
+// and throw on failure; this test simply confirms the script completed.
+it('script assertions passed', () => {});

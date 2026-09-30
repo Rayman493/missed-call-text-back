@@ -15,6 +15,7 @@ import {
   isValidCallbackTime,
   isValidCustomerName,
   isMetaUtterance,
+  isPlaceLikeLocationValue,
   cleanDisplayIntakeText,
 } from './intake-validation';
 import {
@@ -317,12 +318,14 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean | 'sp
       /\b(\d+(?:[\s-]+\d+)*\s+(?:[a-z0-9'-]+\s+){1,6}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)(?:\s+(?:north|south|east|west|northeast|northwest|southeast|southwest|n|s|e|w|ne|nw|se|sw|apartment|apt|suite|ste|unit|#)(?:\s*[a-z0-9#-]+)?)?(?:\s*,?\s*(?:in\s+)?[A-Za-z][A-Za-z\s,]+?)?)(?=\s*(?:,?\s*(?:and\b|i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b)|[.!?](?:\s|$)|;|$))/i,
     type: 'street-address',
   },
-  // Privacy-aware partial location: city, neighborhood, or broad area.
-  // Accepts phrases like "I'm in Pittsburgh", "Near Squirrel Hill", "Bethel Park".
+  // Privacy-aware partial location behind an explicit location scaffold:
+  // "I'm in Pittsburgh", "Near Squirrel Hill", "in the area of Bethel Park".
+  // The scaffold makes the span unambiguously a place, so a capitalized
+  // city/neighborhood name is accepted even though it resembles a person name.
   {
     pattern:
       /\b(?:i['"]?m\s+in|i\s+am\s+in|we['"]?re\s+in|we\s+are\s+in|located\s+in|somewhere\s+in|in\s+the\s+area\s+of|near)\s+([a-z][a-z\s\-]+?)(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
-    type: 'area',
+    type: 'area-scaffold',
   },
   // Standalone city/neighborhood area (e.g. "Bethel Park", "Just Pittsburgh for now").
   // The prefix is case-insensitive by hand; the city tokens must be capitalized
@@ -338,14 +341,20 @@ function isConfidentEarlyServiceAddress(
   text: string,
   type: string
 ): boolean {
-  if (!isValidServiceAddress(text)) return false;
+  if (!isValidServiceAddress(text)) {
+    // A location scaffold ("I'm in X", "near X") already disambiguates the
+    // span as a place — accept capitalized city/neighborhood names that the
+    // generic validator rejects as potential person names. Bare capitalized
+    // spans ("area") stay strict so a name is never pulled into the address.
+    if (type !== 'area-scaffold' || !isPlaceLikeLocationValue(text)) return false;
+  }
   const trimmed = text.trim().toLowerCase();
   if (type === 'explicit' || type === 'explicit-correction') return true;
   if (type === 'street-address') return true;
   if (type === 'bare-numbered') {
     return /^\d/.test(trimmed) || /\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl)\b/.test(trimmed);
   }
-  if (type === 'area') {
+  if (type === 'area' || type === 'area-scaffold') {
     // A usable partial location must be more than a vague directional word
     // and should not be a day/time word that commonly appears in other answers.
     const nonLocationWords = /^(here|there|somewhere|nearby|close|around|monday|tuesday|wednesday|thursday|friday|saturday|sunday|morning|afternoon|evening|night|today|tomorrow|yes|yeah|okay|ok|whenever|anytime)$/i;
@@ -461,6 +470,24 @@ export function extractPartialLocation(transcript: string): string | null {
   return match?.value || null;
 }
 
+// A serviceAddress value is acceptable when it is either a full street-style
+// address or a caller-supplied partial location ("Pittsburgh", "Bethel Park",
+// "the South Side") that the location question / "I'm in X" scaffold made
+// unambiguous.
+const isAcceptableServiceAddress = (v: string): boolean =>
+  isValidServiceAddress(v) || isPlaceLikeLocationValue(v);
+
+// Strip answer scaffolding from a direct location-stage answer so the stored
+// value is the place itself: "I'm in Pittsburgh" → "Pittsburgh",
+// "Just Pittsburgh for now" → "Pittsburgh", "Near Squirrel Hill" →
+// "Squirrel Hill". A leading "the" is part of the name ("the South Side").
+const stripLocationLeadIn = (v: string): string =>
+  v
+    .replace(/^(?:i'?m|i am|we'?re|we are|it'?s|it is)\s+(?:in|at|near|around)\s+/i, '')
+    .replace(/^(?:in|at|near|around|just|only|basically)\s+/i, '')
+    .replace(/\s+(?:for now|for the moment|right now|yet|though)\.?\s*$/i, '')
+    .trim();
+
 export function hasUsableLocation(transcript: string): boolean {
   return extractPartialLocation(transcript) !== null;
 }
@@ -487,7 +514,7 @@ const COMPLETION_PATTERNS: RegExp[] = [
   // "sometime later this week", "later this week".
   /\b((?:(?:sometime|later)\s+)*(?:this|next)\s+(?:week|month|weekend))(?:\s+(?:is|works|would|will|'d|'ll)\s+(?:be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
   /\b((?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:is|works?|would|will|'d|'ll|sounds?|seems?)\s+(?:be\s+|to\s+be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?)(?=\s*[.!?;,]|\s+\band\b|$)/i,
-  /\b((?:today|tomorrow|tonight))(?:\s+(?:would|will|is|works|'d|'ll)\s+(?:be\s+)?(?:great|good|fine|best|ok(?:ay)?|better|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
+  /\b((?:today|tomorrow|tonight)(?:\s+(?:morning|afternoon|evening))?)(?:\s+(?:would|will|is|works|'d|'ll)\s+(?:be\s+)?(?:great|good|fine|best|ok(?:ay)?|better|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
   // Vague completion phrases: keep the full semantic phrase, e.g. "Whenever you can".
   /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
   ...EARLY_COMPLETION_PATTERNS,
@@ -664,12 +691,12 @@ function normalizeCallbackTime(value: string): string {
         .replace(/^but\s+/i, '')
         .trim();
     } while (tail !== prev);
-    if (tail.length === 0) return 'anytime';
+    if (tail.length === 0) return 'Anytime';
     // Constraint tails keep their phrasing: "after 4", "in the afternoon".
     if (/^(?:after|before|between|from|until|at|in|on|by)\b/i.test(tail)) {
-      return `anytime ${tail}`.replace(/[.,;]\s*$/, '').trim();
+      return `Anytime ${tail}`.replace(/[.,;]\s*$/, '').trim();
     }
-    return `anytime, ${tail}`.replace(/[.,;]\s*$/, '').trim();
+    return `Anytime, ${tail}`.replace(/[.,;]\s*$/, '').trim();
   }
   // Preserve explicit constraints such as "after 4".
   if (/\b(after|before|between|from|until)\b/.test(lower) || /\d/.test(lower)) {
@@ -1168,15 +1195,18 @@ export function normalizeVagueCompletion(value: string, transcript: string): str
   const t = (transcript || '').toLowerCase();
   const vLower = v.toLowerCase();
   // "whenever ..." / "anytime ..." lead-ins with conversational scaffold tails
-  // ("is fine", "works best", "you can") normalize to a canonical short value.
+  // ("is fine", "works best") normalize to a canonical short value. Phrases
+  // that carry the caller's own constraint wording ("whenever you can") are
+  // preserved verbatim.
   if (/^(?:whenever|any\s?time)\b/.test(vLower)) {
     if (/\b(?:availability|available|the ability|abilities)\b/.test(vLower + ' ' + t)) {
       return 'Whenever available';
     }
+    if (/^whenever\s+you\s+(?:can|could)\b/.test(vLower)) return v;
     return 'Whenever';
   }
   if (/^no\s+rush\b/.test(vLower)) return 'No rush';
-  if (/^as\s+soon\s+as\s+(?:possible|you\s+can)\b|^asap\b/.test(vLower)) return 'As soon as possible';
+  if (/^as\s+soon\s+as\s+possible\b|^asap\b/.test(vLower)) return 'As soon as possible';
   return v;
 }
 
@@ -1747,10 +1777,15 @@ export function enrichIntakeFromTranscript(
   const scalarFullMatches = [addressMatch, completionMatch, callbackMatch, fullAddress, fullCompletion, fullCallback]
     .filter((m): m is ExtractedMatch => !!m)
     .map(m => m.fullMatch);
+  // A direct location-stage answer ("in Bethel Park", "I'm in Pittsburgh") is
+  // owned by serviceAddress — never let it be absorbed into Details.
+  const stageLocationAnswer = currentStageField === 'serviceAddress'
+    ? stripLocationLeadIn((correctionTail || transcript).trim())
+    : null;
   const transcriptDetails = extractDetailSentences(transcript, {
     customerName: name || intake.customerName,
     scalarFullMatches,
-    alreadyExtracted: [issueDescription?.value || '', validCleanedService || '', detailFromService || ''],
+    alreadyExtracted: [issueDescription?.value || '', validCleanedService || '', detailFromService || '', stageLocationAnswer || ''],
   });
   // Merge detail sources: service-split details, regex detail, sentence details.
   // Parts that only restate the service request are Reason content, not
@@ -1840,7 +1875,7 @@ export function enrichIntakeFromTranscript(
     intake,
     'serviceAddress',
     addressMatch?.value,
-    isValidServiceAddress,
+    isAcceptableServiceAddress,
     applied,
     skippedBecauseAlreadyPresent,
     correctionFor('serviceAddress', tailMatches?.serviceAddress || null),
@@ -1920,11 +1955,21 @@ export function enrichIntakeFromTranscript(
     // utterance ("call me after 5" at ask_location → callback), the stage
     // fallback must not raw-write that text into this field.
     if (!correctionTail && ['serviceAddress', 'desiredCompletionTime', 'callbackTime'].some(f => f !== field && applied.includes(f as string))) return;
-    const source = (correctionTail || transcript).trim();
+    let source = (correctionTail || transcript).trim();
+    // "I don't want to give the exact address yet, but I'm in Pittsburgh." —
+    // the clause after a refusal pivot is the caller's real location answer.
+    // A refusal with no pivot clause stays uncaptured.
+    if (field === 'serviceAddress' && locationRefused) {
+      const pivot = source.split(/\b(?:but|however|though)\b/i);
+      source = pivot.length > 1 ? pivot[pivot.length - 1].trim() : '';
+    }
     const cleaned = source
       .replace(/^[\s,.\-—–]+/, '')
       .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
-      .replace(/[.,;!?\s]+$/, '');
+      .replace(/[.,;!?\s]+$/, '')
+      // Conversational lead-ins ("Um, yeah,") are not part of the answer.
+      .replace(/^(?:(?:um|uh|yeah|yep|yes|okay|ok|sure|well|so|right|alright)[,.\s]*)+/i, '')
+      .trim();
     // Never raw-write clause-laden or negated prose ("within two weeks, not in
     // next month") — the fallback only stores clean single-value scalars.
     // Exception: "not before noon" / "not after 5" are valid negated timing
@@ -1956,7 +2001,7 @@ export function enrichIntakeFromTranscript(
     }
   };
   if (currentStageField === 'serviceAddress') {
-    stageScalarFallback('serviceAddress', isValidServiceAddress);
+    stageScalarFallback('serviceAddress', isAcceptableServiceAddress, stripLocationLeadIn);
   } else if (currentStageField === 'desiredCompletionTime') {
     stageScalarFallback('desiredCompletionTime', isValidCompletionTime);
   } else if (currentStageField === 'callbackTime') {

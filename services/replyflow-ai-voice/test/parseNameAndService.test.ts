@@ -222,7 +222,9 @@ const parseNameAndService = (text: string, existingService?: string): { customer
     return input.replace(fillerPattern, '').trim();
   };
 
-  const parseText = normalizeFillerPrefix(trimmed);
+  const parseText = normalizeFillerPrefix(trimmed)
+    // Collapse fillers inside a name intro: "my name is, uh, Ryan" -> "my name is Ryan"
+    .replace(/(my name is|my name's|name is|i am|i'm|this is)[,\s]+(?:(?:uh|um|yeah|well|actually)[,\s]+)+/gi, '$1 ');
 
   // Split on sentence boundaries for two-sentence patterns
   const sentenceSplitPatterns = [/\.\s+/i, /\.\n/i, /\n/i];
@@ -280,17 +282,35 @@ const parseNameAndService = (text: string, existingService?: string): { customer
   // Safety: Left side must look like a plausible human name, not a service/problem statement
   const commaIndex = parseText.indexOf(',');
   if (commaIndex > 0 && commaIndex < parseText.length - 1) {
-    const leftSide = parseText.slice(0, commaIndex).trim();
-    const rightSide = parseText.slice(commaIndex + 1).trim();
+    let leftSide = parseText.slice(0, commaIndex).trim();
+    let rightSide = parseText.slice(commaIndex + 1).trim();
+
+    // "My name is, uh, Ryan, and I need..." — a bare intro prefix left of the
+    // first comma means the name sits between the first and second comma.
+    if (/^(?:(?:hi|hello|hey)[,\s]+)?(?:my name is|my name's|name is|i am|i'm|this is)\s*$/i.test(leftSide)) {
+      const nextComma = parseText.indexOf(',', commaIndex + 1);
+      if (nextComma > commaIndex) {
+        leftSide = parseText.slice(0, nextComma).trim();
+        rightSide = parseText.slice(nextComma + 1).trim();
+      }
+    }
     
     // Safety check: Left side must look like a plausible name
     const looksLikeName = (candidate: string): boolean => {
       const trimmedCandidate = candidate.trim();
       const lowerCandidate = trimmedCandidate.toLowerCase();
-      
-      // Must be short (2-4 words typical for names)
+
+      // Single-word left side is allowed only for capitalized name-like
+      // tokens that are not conversational fillers ("Ryan, ..." -> name "Ryan",
+      // but "Yeah, ..." must not become a name).
+      const commaFillers = ['yeah', 'yep', 'yes', 'uh', 'um', 'well', 'so', 'okay', 'ok', 'alright', 'hi', 'hey', 'sure', 'right'];
       const wordCount = trimmedCandidate.split(/\s+/).length;
-      if (wordCount < 2 || wordCount > 4) return false;
+      if (wordCount === 1) {
+        if (!/^[A-Z][a-z'-]+$/.test(trimmedCandidate)) return false;
+        if (commaFillers.includes(lowerCandidate)) return false;
+      } else {
+        if (wordCount < 2 || wordCount > 4) return false;
+      }
       
       // Must be primarily alphabetic (allow apostrophes, hyphens, spaces)
       const alphaRatio = (trimmedCandidate.match(/[a-z]/gi) || []).length / trimmedCandidate.length;
@@ -337,6 +357,25 @@ const parseNameAndService = (text: string, existingService?: string): { customer
       return true;
     };
     
+    // If the left side is a name intro ("my name is Ryan"), extract the inner
+    // name and treat the right side as the service answer.
+    const introMatch = leftSide.match(/^(?:(?:hi|hello|hey)[,\s]+)?(?:my name is|my name's|name is|i am|i'm|this is)\s+(.+)$/i);
+    const rightHasServicePrefix = /^(?:and\s+)?(?:i\s+(?:need|want|would\s+like|am\s+looking(?:\s+for|\s+to)?)|i'm\s+(?:looking|trying)(?:\s+for|\s+to)?|looking for|looking to)\b/i.test(rightSide);
+    if (introMatch && introMatch[1] && rightHasServicePrefix) {
+      const introName = introMatch[1]
+        .replace(/^[,\s]+/, '')
+        .replace(/^(?:(?:uh|um|yeah|well|actually)[,\s]+)+/i, '')
+        .replace(/[.,;]\s*$/, '')
+        .trim();
+      const introService = rightSide
+        .replace(/^(?:and\s+)?(?:i\s+(?:need|want|would\s+like|am\s+looking(?:\s+for|\s+to)?)|i'm\s+(?:looking|trying)(?:\s+for|\s+to)?|looking for|looking to)\s+/i, '')
+        .replace(/[.,;]\s*$/, '')
+        .trim();
+      if (introName && introService) {
+        return { customerName: introName, serviceRequested: introService };
+      }
+    }
+
     // If both sides pass safety checks, use the comma-separated split
     if (looksLikeName(leftSide) && looksLikeService(rightSide)) {
       const nameCandidate = leftSide;
@@ -366,13 +405,19 @@ const parseNameAndService = (text: string, existingService?: string): { customer
   }
 
   const servicePatterns = [
-    /(?:i'm calling because|i am calling because|calling about|looking for|i need|i want to|i would like)\s+(.+)/i
+    { re: /(?:i'm calling because|i am calling because|calling about)\s+(.+)/i, stripTrailingPunct: false },
+    { re: /(?:looking for|i need|i want to|i would like)\s+(.+)/i, stripTrailingPunct: true }
   ];
 
   for (const pattern of servicePatterns) {
-    const match = parseText.match(pattern);
+    const match = parseText.match(pattern.re);
     if (match && match[1] && !service) {
       service = match[1].trim();
+      // When a name and a service were co-extracted from one sentence,
+      // drop cosmetic trailing punctuation from "i need"-style service text.
+      if (name && pattern.stripTrailingPunct) {
+        service = service.replace(/[.,;!?\s]+$/, '');
+      }
       break;
     }
   }
@@ -386,6 +431,9 @@ const parseNameAndService = (text: string, existingService?: string): { customer
       left = left.replace(/[.,;:]+\s*$/i, '').trim();
       left = left.replace(/^(?:hi|hello|hey)[,\s]+/i, '').trim();
       left = left.replace(/^(?:my name is|my name's|name is|i am|i'm|this is|i need)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*/i, '').trim();
+      // Strip service-intro phrases so they never land in the name slot
+      // ("Hey, calling about a broken water heater" -> name "")
+      left = left.replace(/^(?:(?:i'?m|i am)\s+)?(?:calling (?:about|because)|looking (?:for|to)|i need|i want|i would like|need someone to|to get my|get my)\b[,\s]*/i, '').trim();
       name = left;
     }
   }
@@ -510,7 +558,7 @@ const testCases = [
     description: "Filler then name + reason in two sentences: Uh, my name is Ryan. I need my lawn cut.",
     input: "Uh, my name is Ryan. I need my lawn cut.",
     expectedName: "Ryan",
-    expectedService: "I need my lawn cut."
+    expectedService: "my lawn cut."
   },
   {
     description: "I'm NAME with reason: I'm Ryan, and I'm calling because my sink is leaking.",
@@ -1405,3 +1453,7 @@ console.log('\n=== IMMEDIATE POST-TRANSCRIPTION REPROMPT TESTS COMPLETE ===\n');
 if (failed > 0) {
   throw new Error(`${failed} parseNameAndService test assertion(s) failed`);
 }
+
+
+// Assertions above run at module load and throw on failure; this registers the suite.
+it('script assertions passed', () => {});

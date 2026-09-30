@@ -10,11 +10,13 @@ function validateStageAnswer(stage: string, transcript: string, existingIntakeDa
   
   // Helper to check if text is filler-only
   const isFillerOnly = (text: string): boolean => {
-    const fillerWords = ['yeah', 'yep', 'yes', 'uh', 'um', 'okay', 'ok', 'alright', 'sure', 'fine', 'sorry', 'well', 'so', 'hold on', 'one second', 'let me think', 'a minute'];
+    const fillerWords = ['yeah', 'yep', 'yes', 'uh', 'um', 'okay', 'ok', 'alright', 'sure', 'fine', 'sorry', 'well', 'so', 'hold on', 'one second', 'let me think', 'a minute', 'right', 'mm-hmm', 'uh-huh', 'hmm', 'oh', 'hey', 'hi', 'hello', 'thanks', 'thank you'];
+    if (fillerWords.includes(text.replace(/[.,!?]/g, '').trim())) return true;
     const words = text.replace(/[.,!?]/g, '').split(/\s+/).filter(w => w.length > 0);
     if (words.length === 0) return true;
     if (words.length > 3) return false; // More than 3 words is likely not just filler
-    return words.every(w => fillerWords.some(f => w === f || w.startsWith(f)));
+    // All words are known fillers or stray single letters ("yeah a", "ok i")
+    return words.every(w => w.length <= 1 || fillerWords.some(f => w === f || w.startsWith(f)));
   };
   
   // Helper to check if text has service-like content

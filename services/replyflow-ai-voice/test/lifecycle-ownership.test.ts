@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { getOrCreateLeadByBusinessAndCaller, finalizeIncompleteOnWebsocketCloseSimple } = require('../src/index');
+import { expect } from 'chai';
+const { getOrCreateLeadByBusinessAndCaller, finalizeIncompleteOnWebsocketCloseSimple } = await import('../src/index');
 
 describe('Lead get-or-create helper', () => {
   it('returns an existing lead when one is found', async () => {

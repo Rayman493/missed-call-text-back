@@ -10,6 +10,7 @@ import { scheduleTwilioRelease, cancelTwilioRelease } from '@/lib/twilio-reclama
 import { normalizeStripeCustomerId } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 import { validateStateTransition, isAuthoritativePaidCorrection } from '@/lib/terminal/state-transition-guards'
 import { isPaymentRequestCheckoutSession, reconcilePaymentRequestCheckout } from '@/lib/stripe/billing-checkout-reconciliation'
 import { verifyStripeWebhookEvent } from '@/lib/stripe/webhook-signature'
@@ -2077,9 +2078,12 @@ export async function POST(request: Request) {
           break
         }
         
-        // If already paid, no need to update
+        // If already paid, no need to update — but ensure completion side
+        // effects in case a non-webhook reconcile path marked it paid first
+        // (invoice reconcile, timeline, notification are all idempotent).
         if (paymentRequest.status === 'paid') {
-          console.log('[TERMINAL PAYMENT] Payment request already paid')
+          console.log('[TERMINAL PAYMENT] Payment request already paid — ensuring completion side effects')
+          await ensurePaymentCompletedSideEffects(paymentRequest.id)
           await markEventProcessed(supabase, event.id)
           break
         }
@@ -2120,80 +2124,12 @@ export async function POST(request: Request) {
         }
         
         console.log('[TERMINAL PAYMENT] Payment request updated to paid:', paymentRequest.id)
-        
-        // Update lead payment status if applicable
-        let leadPhone = null
-        let leadName: string | null = null
-        if (paymentRequest.lead_id) {
-          const { data: lead } = await supabase
-            .from('leads')
-            .select('id, status, caller_phone, contact_name, name, raw_metadata')
-            .eq('id', paymentRequest.lead_id)
-            .single()
 
-          if (lead) {
-            leadPhone = lead.caller_phone
-            const { getCanonicalCustomerDisplayName } = await import('@/lib/customer-context')
-            leadName = getCanonicalCustomerDisplayName(lead) || null
-            await supabase
-              .from('leads')
-              .update({
-                payment_status: 'paid',
-                last_payment_paid_at: new Date().toISOString(),
-              })
-              .eq('id', paymentRequest.lead_id)
-            
-            // Update lead status to paid if appropriate
-            const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
-            const nextStatus = applyCustomerStatusEvent(lead.status, 'payment_succeeded')
+        // Canonical completion side effects: linked invoice paid transition,
+        // lead reconciliation, paymentCompleted timeline event, and the
+        // payment_completed notification (idempotent via pay_{paymentRequestId}).
+        await ensurePaymentCompletedSideEffects(paymentRequest.id)
 
-            if (nextStatus) {
-              await supabase
-                .from('leads')
-                .update({ status: nextStatus })
-                .eq('id', paymentRequest.lead_id)
-              console.log('[TERMINAL PAYMENT] Lead status updated via transition helper:', {
-                leadId: lead.id,
-                previousStatus: lead.status,
-                newStatus: nextStatus
-              })
-            } else {
-              console.log('[TERMINAL PAYMENT] Status transition not allowed:', {
-                leadId: lead.id,
-                currentStatus: lead.status
-              })
-            }
-          }
-        }
-        
-        // Create timeline event
-        try {
-          await timelineEvents.paymentCompleted(
-            paymentRequest.business_id,
-            paymentRequest.lead_id,
-            paymentRequest.id,
-            paymentRequest.amount_cents
-          )
-          console.log('[TERMINAL PAYMENT] Timeline event created successfully')
-        } catch (timelineError) {
-          console.error('[TERMINAL PAYMENT] Failed to create timeline event:', timelineError)
-        }
-        
-        // Create notification
-        try {
-          await notificationServiceServer.notifyPaymentCompleted(
-            paymentRequest.business_id,
-            paymentRequest.lead_id,
-            leadPhone || '',
-            paymentRequest.amount_cents,
-            paymentRequest.id,
-            leadName || undefined
-          )
-          console.log('[TERMINAL PAYMENT] Notification created successfully')
-        } catch (notificationError) {
-          console.error('[TERMINAL PAYMENT] Failed to create notification:', notificationError)
-        }
-        
         await markEventProcessed(supabase, event.id)
         console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.SUCCEEDED END ==========')
         break

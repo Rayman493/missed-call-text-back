@@ -17,7 +17,7 @@
  * as a pending fragment and a settle window is started to allow the continuation transcription to arrive.
  */
 
-import { describe, it } from 'mocha';
+
 import { expect } from 'chai';
 
 // Mock state interface matching the actual implementation

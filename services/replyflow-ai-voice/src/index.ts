@@ -184,7 +184,8 @@ export function handleImmediateAdvanceIfMultiFieldCaptured(
   }
 ): boolean {
   const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim() !== '';
-  const hasValidRequest = !!state.intakeData.request && state.intakeData.request.trim() !== '';
+  const requestValue = state.intakeData.request || state.intakeData.serviceRequested;
+  const hasValidRequest = !!requestValue && requestValue.trim() !== '';
   if (originatingStage === 'ask_name' && hasValidCustomerName && hasValidRequest) {
     const previousStage = state.currentStage;
     // Skip ask_request and go straight to next stage
@@ -240,7 +241,7 @@ export function nextRepromptDeliveryAttempt(
 
 // Helper function to build turn-by-turn transcript from Simple Mode stageCaptures
 // Uses canonical questions from intake templates and verbatim customer answers
-function buildSimpleModeTranscript(
+export function buildSimpleModeTranscript(
   stageCaptures: Array<{
     stage: string;
     rawTranscript: string;
@@ -275,9 +276,18 @@ function buildSimpleModeTranscript(
   };
 
   for (const capture of stageCaptures) {
-    // Skip blocked captures - they don't represent valid question/answer pairs
+    // Blocked captures are real caller utterances that arrived after a stage
+    // finalized (e.g. a late correction). They are blocked from *field
+    // overwrite* only — the caller's words must still appear in the transcript.
     if (capture.blocked) {
-      console.log('[SIMPLE MODE TRANSCRIPT BUILD] Skipping blocked capture:', capture.stage, capture.blockReason);
+      if (capture.rawTranscript && capture.rawTranscript.trim()) {
+        transcript.push({
+          role: 'user',
+          text: capture.rawTranscript,
+          timestamp: capture.timestamp
+        });
+      }
+      console.log('[SIMPLE MODE TRANSCRIPT BUILD] Included blocked caller utterance:', capture.stage, capture.blockReason);
       continue;
     }
 
@@ -1463,7 +1473,8 @@ function getMissingRequiredFields(intake: IntakeData): string[] {
   const missing: string[] = [];
   if (!isNameRequirementSatisfied(intake)) missing.push('customer name');
   if (!intake.serviceRequested) missing.push('service requested');
-  if (!intake.issueDescription) missing.push('issue description');
+  // issueDescription / additional details are intentionally NOT required:
+  // they are optional caller-supplied context, not a mandatory field.
 
   // Location validation: accept flexible responses based on location type
   // For service_address type, require actual address
@@ -4549,171 +4560,61 @@ function sanitizeEnglishIntakeField(fieldName: string, value: string): string {
   return trimmed;
 }
 
-// Model-based semantic extraction for AI intake request title and additional details
-// Uses OpenAI structured output for reliable semantic separation
+// Semantic model extraction for the request title was removed: the Reason for
+// Calling must be the caller's own words (light deterministic cleanup only),
+// never a model-authored title or paraphrase.
 
-interface SemanticExtractionResult {
-  requestTitle: string;
-  additionalDetails: string;
+// Short factual summary assembled from the deterministic intake fields only.
+// Never adds urgency, diagnosis, or information the caller did not state.
+export function buildDeterministicCallSummary(intake: any): string {
+  const name = (intake?.customerName || '').trim();
+  const reason = (intake?.serviceRequested || intake?.request || '').trim();
+  const location = (intake?.serviceAddress || '').trim();
+  const completion = (intake?.desiredCompletionTime || '').trim();
+  const callback = (intake?.callbackTime || '').trim();
+  if (!name && !reason && !location && !completion && !callback) return '';
+  const subject = name || 'Caller';
+  const parts: string[] = [];
+  parts.push(reason ? `${subject} called about ${reason}.` : `${subject} called.`);
+  if (location) parts.push(`The work is at ${location}.`);
+  if (completion) parts.push(`They would like it completed ${completion}.`);
+  if (callback) parts.push(`Best callback time: ${callback}.`);
+  return parts.join(' ');
 }
 
-const SEMANTIC_EXTRACTION_MODEL = 'gpt-4o-mini';
-const SEMANTIC_EXTRACTION_TIMEOUT_MS = 5000;
-const SEMANTIC_EXTRACTION_MAX_RETRIES = 1;
-
-// In-memory cache for semantic extraction results to prevent duplicate invocations WITHIN THE SAME PROCESS
-// Key: callSid, Value: { rawRequestHash, result, timestamp }
-// Note: This cache is in-memory only. Across process restarts or different instances, duplicate extraction may occur.
-// This is acceptable because: (1) duplicate extraction cannot corrupt source data, (2) canonical persistence is idempotent,
-// (3) raw request remains available, (4) each extraction is inexpensive, (5) correctness does not depend on exactly-once model billing.
-const semanticExtractionCache = new Map<string, { rawRequestHash: string; result: SemanticExtractionResult; timestamp: number }>();
-
-function getSemanticExtractionCacheKey(callSid: string, rawRequest: string): string {
-  // Create a simple hash of the raw request to detect if it changed
-  const rawRequestHash = Buffer.from(rawRequest).toString('base64').slice(0, 32);
-  return `${callSid}:${rawRequestHash}`;
+// Build structured extracted fields deterministically from the in-call intake
+// state. Persisted extracted_info must equal the values captured during the
+// call — never a post-call model re-read of the transcript. Emits both key
+// families (callerName/customerName, reasonForCalling/serviceRequested, etc.)
+// so every downstream consumer keeps working without a schema change.
+export function buildDeterministicExtractedFields(intake: any): any {
+  const src: any = intake || {};
+  const customerName = src.customerName || null;
+  const serviceRequested = src.serviceRequested || src.request || null;
+  const issueDescription = src.issueDescription || null;
+  const serviceAddress = src.serviceAddress || null;
+  const desiredCompletionTime = src.desiredCompletionTime || null;
+  const callbackTime = src.callbackTime || null;
+  return {
+    callerName: customerName,
+    customerName,
+    reasonForCalling: serviceRequested,
+    serviceRequested,
+    request: src.request || serviceRequested,
+    issueDescription,
+    importantDetails: issueDescription,
+    additionalDetails: issueDescription,
+    addressOrLocation: serviceAddress,
+    serviceAddress,
+    desiredCompletionTime,
+    desiredCompletion: desiredCompletionTime,
+    preferredCallbackTime: callbackTime,
+    callbackTime,
+    nameRefused: !!src.nameRefused,
+    locationRefused: !!src.locationRefused,
+    summary: buildDeterministicCallSummary(src),
+  };
 }
-
-let semanticExtractionClient: OpenAI | null = null;
-
-function getSemanticExtractionClient(): OpenAI {
-  if (!semanticExtractionClient) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY is required for semantic extraction');
-    }
-    semanticExtractionClient = new OpenAI({ apiKey });
-  }
-  return semanticExtractionClient;
-}
-
-async function extractRequestTitleAndDetailsWithModel(
-  rawRequest: string,
-  callSid: string
-): Promise<{ result: SemanticExtractionResult; fallbackUsed: boolean }> {
-  const startTime = Date.now();
-
-  console.log('[AI REQUEST SEMANTIC EXTRACTION START] =========================================');
-  console.log('[AI REQUEST SEMANTIC EXTRACTION START] callSid:', callSid);
-  console.log('[AI REQUEST SEMANTIC EXTRACTION START] rawRequestLength:', rawRequest.length);
-  console.log('[AI REQUEST SEMANTIC EXTRACTION START] Timestamp:', new Date().toISOString());
-  console.log('[AI REQUEST SEMANTIC EXTRACTION START] =========================================');
-
-  if (!rawRequest || rawRequest.trim() === '') {
-    return {
-      result: { requestTitle: '', additionalDetails: '' },
-      fallbackUsed: true
-    };
-  }
-
-  // Check cache for idempotency
-  const cacheKey = getSemanticExtractionCacheKey(callSid, rawRequest);
-  const cached = semanticExtractionCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp < 60000)) { // Cache valid for 1 minute
-    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] =========================================');
-    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] callSid:', callSid);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] cachedAt:', cached.timestamp);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] Timestamp:', new Date().toISOString());
-    console.log('[AI REQUEST SEMANTIC EXTRACTION CACHE HIT] =========================================');
-    return { result: cached.result, fallbackUsed: false };
-  }
-
-  try {
-    const client = getSemanticExtractionClient();
-
-    const response = await client.chat.completions.create({
-      model: SEMANTIC_EXTRACTION_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'You extract structured service-request information from a caller\'s answer. Return a concise Request Title describing what the customer needs and Additional Details containing ALL materially useful job context mentioned by the caller. The title should preserve the complete core service intent, including compound work when necessary. Additional Details should include facts, conditions, symptoms, preferences, history, reasons, clarifications, size/scale, access limitations, equipment concerns, obstacles, special requests, property conditions, urgency nuance, or relevant prior work. Do NOT omit relevant constraints, access issues, size, obstacles, equipment concerns, or special requests merely for brevity. Preserve uncertainty and qualifiers: words like "might", "may", "could", "probably", "possibly", "unsure", "don\'t know" must remain uncertain. Do not convert possibility into certainty. Do not convert predictions into requirements. Do not convert preferences into requirements. Do not turn "probably" into "must" or "required". Do not turn "I\'d prefer" into "must use". Do not infer solutions, diagnoses, causes, required equipment, repair methods, or contractor conclusions. If the caller states "I don\'t need to let in the dog", do not infer "the dog will remain outside during service" unless explicitly stated. If a statement is ambiguous, preserve the ambiguity or omit it rather than confidently resolving it. Do not invent information. Do not repeat the title in Additional Details. Do not include unrelated chit-chat or filler. If there are no meaningful additional details beyond the title, return an empty string. Prefer 1-3 natural sentences when the caller provided multiple meaningful facts.'
-        },
-        {
-          role: 'user',
-          content: rawRequest
-        }
-      ],
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
-          name: 'semantic_extraction',
-          strict: true,
-          schema: {
-            type: 'object',
-            properties: {
-              requestTitle: {
-                type: 'string',
-                description: 'Concise title describing the service requested'
-              },
-              additionalDetails: {
-                type: 'string',
-                description: 'All materially useful job context not needed in the title (empty if none)'
-              }
-            },
-            required: ['requestTitle', 'additionalDetails'],
-            additionalProperties: false
-          }
-        }
-      },
-      temperature: 0,
-      max_tokens: 300
-    }, {
-      timeout: SEMANTIC_EXTRACTION_TIMEOUT_MS
-    });
-
-    const durationMs = Date.now() - startTime;
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error('No content returned from semantic extraction');
-    }
-
-    const parsed = JSON.parse(content) as SemanticExtractionResult;
-
-    if (!parsed.requestTitle || parsed.requestTitle.trim() === '') {
-      throw new Error('Empty requestTitle returned');
-    }
-
-    const result = {
-      requestTitle: parsed.requestTitle.trim(),
-      additionalDetails: parsed.additionalDetails.trim()
-    };
-
-    // Cache the result
-    semanticExtractionCache.set(cacheKey, { rawRequestHash: cacheKey.split(':')[1], result, timestamp: Date.now() });
-
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] =========================================');
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] callSid:', callSid);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] requestTitle:', parsed.requestTitle);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] additionalDetailsPresent:', !!parsed.additionalDetails);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] additionalDetailsLength:', parsed.additionalDetails.length);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] durationMs:', durationMs);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] fallbackUsed:', false);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] Timestamp:', new Date().toISOString());
-    console.log('[AI REQUEST SEMANTIC EXTRACTION RESULT] =========================================');
-
-    return {
-      result,
-      fallbackUsed: false
-    };
-
-  } catch (error: any) {
-    const durationMs = Date.now() - startTime;
-    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] =========================================');
-    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] callSid:', callSid);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] error:', error.message);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] durationMs:', durationMs);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] fallbackUsed:', true);
-    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] Timestamp:', new Date().toISOString());
-    console.log('[AI REQUEST SEMANTIC EXTRACTION FALLBACK] =========================================');
-
-    return {
-      result: { requestTitle: '', additionalDetails: '' },
-      fallbackUsed: true
-    };
-  }
-}
-
 
 // Build canonical extracted_info for leads.raw_metadata and ai_call_records.
 // Keeps field names aligned with getLeadAIIntake expectations.
@@ -4826,50 +4727,16 @@ export async function buildCanonicalExtractedInfo(
   let importantDetails: string;
 
   if (hasExplicitService) {
-    // Trust the canonical fields. Do not let the original raw request transcript overwrite a correction.
-    // Split a multi-sentence explicit service into a concise reason plus
-    // supporting details so persisted/pill values stay concise while no
-    // volunteered fact is dropped.
-    const serviceSplit = splitServiceAndDetails(explicitService);
-    const conciseService = serviceSplit.details && serviceSplit.reason
-      ? serviceSplit.reason
-      : explicitService;
-    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', conciseService);
-    // Merge service-split details ahead of any captured details (deduped).
-    let mergedDetails = rawImportantDetails;
-    if (serviceSplit.details) {
-      const existing = (rawImportantDetails || '').trim();
-      const existingLower = existing.toLowerCase().replace(/[.,;!?]+$/, '');
-      const newDetail = serviceSplit.details.trim().replace(/[.,;!?]+$/, '');
-      if (!existing || existingLower !== newDetail.toLowerCase()) {
-        mergedDetails = existing
-          ? (existing.toLowerCase().includes(newDetail.toLowerCase()) ? existing : `${existing.replace(/[.,;!?]+$/, '')}. ${newDetail}`)
-          : newDetail;
-      }
-      console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
-      console.log('[CANONICAL REQUEST DIAGNOSTIC] event: service_details_split');
-      console.log('[CANONICAL REQUEST DIAGNOSTIC] conciseService:', conciseService);
-      console.log('[CANONICAL REQUEST DIAGNOSTIC] mergedDetails:', mergedDetails);
-      console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
-    }
-    importantDetails = sanitizeEnglishIntakeField('importantDetails', mergedDetails);
+    // Trust the canonical fields. The caller's full explanation is the Reason
+    // for Calling — no model rewrite, no title-ification, no forced split into
+    // a separate details field. Light deterministic cleanup only.
+    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', explicitService);
+    importantDetails = sanitizeEnglishIntakeField('importantDetails', rawImportantDetails);
   } else if (rawRequestText.trim() !== '') {
-    // No explicit canonical service - perform model-based semantic extraction from the raw text
-    const semanticExtraction = await extractRequestTitleAndDetailsWithModel(rawRequestText, callSid || 'unknown');
-
-    if (!semanticExtraction.fallbackUsed && semanticExtraction.result.requestTitle) {
-      serviceRequested = sanitizeEnglishIntakeField('serviceRequested', semanticExtraction.result.requestTitle);
-      importantDetails = sanitizeEnglishIntakeField('importantDetails', semanticExtraction.result.additionalDetails);
-    } else {
-      // Fallback: preserve original text if semantic extraction fails
-      console.log('[AI REQUEST SEMANTIC EXTRACTION] =========================================');
-      console.log('[AI REQUEST SEMANTIC EXTRACTION] event: semantic_extraction_fallback');
-      console.log('[AI REQUEST SEMANTIC EXTRACTION] reason: model_extraction_failed_or_timeout');
-      console.log('[AI REQUEST SEMANTIC EXTRACTION] Timestamp:', new Date().toISOString());
-      console.log('[AI REQUEST SEMANTIC EXTRACTION] =========================================');
-      serviceRequested = sanitizeEnglishIntakeField('serviceRequested', rawRequestText);
-      importantDetails = '';
-    }
+    // No explicit canonical service — preserve the caller's raw request wording
+    // verbatim (filler cleanup only). Never reinterpreted by a model.
+    serviceRequested = sanitizeEnglishIntakeField('serviceRequested', rawRequestText);
+    importantDetails = sanitizeEnglishIntakeField('importantDetails', rawImportantDetails);
   } else {
     serviceRequested = '';
     importantDetails = '';
@@ -8518,6 +8385,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
     }
 
+    // Run semantic enrichment BEFORE the finalized-stage gate so late
+    // corrections and multi-field utterances still resolve into canonical
+    // values. The gate below only prevents the stage-local raw overwrite —
+    // it must never discard a caller's correction.
+    const enrichResult = stage !== 'ask_name_reason'
+      ? enrichIntakeFromTranscript(
+          rawTranscript,
+          state.intakeData,
+          stage,
+          state.callSid,
+          state.currentTurnId
+        )
+      : null;
+
     // FIELD WRITE INVARIANT PROTECTION
     // Prevent late transcriptions from overwriting finalized fields
     const stageFinalized = state.answerAcceptedForStage && state.answerAcceptedForStage !== stage;
@@ -8560,19 +8441,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[FIELD WRITE INVARIANT] action: write_proceeding');
     console.log('[FIELD WRITE INVARIANT] timestamp:', new Date().toISOString());
     console.log('[FIELD WRITE INVARIANT] =========================================');
-
-    // Run semantic enrichment BEFORE writing the stage-local field so corrections
-    // and multi-field utterances resolve into canonical values before the raw
-    // transcript can pollute the current stage.
-    const enrichResult = stage !== 'ask_name_reason'
-      ? enrichIntakeFromTranscript(
-          rawTranscript,
-          state.intakeData,
-          stage,
-          state.callSid,
-          state.currentTurnId
-        )
-      : null;
 
     if (!stage || stage !== 'ask_name_reason') {
       // For location, never fall back to the raw transcript if the caller explicitly
@@ -9857,38 +9725,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return normalized || 'Not collected';
     };
 
-    // Helper function to generate canonical request title for SMS
-    const generateCanonicalTitle = (text: string | null | undefined): string => {
+    // Display helper: the SMS shows the caller's reason verbatim (filler-cleaned
+    // upstream) — no title-ification or truncation of the caller's words.
+    const displayReasonText = (text: string | null | undefined): string => {
       if (!text || text.trim() === '') return 'Not collected';
-
-      const original = text.trim().toLowerCase();
-      let processed = original;
-
-      // Remove conversational prefixes
-      const prefixes = [
-        /^i would like /i,
-        /^i'd like /i,
-        /^i want /i,
-        /^i need /i,
-        /^i'?m /i,
-        /^i am /i,
-        /^looking for /i,
-        /^need help with /i,
-        /^help with /i,
-      ];
-
-      for (const pattern of prefixes) {
-        processed = processed.replace(pattern, '');
-      }
-
-      // Extract key service words (simple heuristic for canonical title)
-      const words = processed.split(/\s+/).filter(w => w.length > 0);
-      if (words.length === 0) return 'Not collected';
-
-      // Take first 3-5 meaningful words
-      const titleWords = words.slice(0, 5);
-      return titleWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return text.trim();
     };
+
 
     // Capitalize the first alphabetic character of a displayed value without
     // altering the rest of the string (preserves acronyms, brand casing,
@@ -9904,7 +9747,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const formatAiIntakeSummary = (intakeData: any, callerPhone: string, businessName?: string): string => {
       const customerName = capitalizeDisplayValue(sanitizeEnglishIntakeField('customerName', intakeData.customerName || '') || 'Not collected');
       const serviceRequested = capitalizeDisplayValue(sanitizeEnglishIntakeField('serviceRequested', intakeData.serviceRequested || '') || 'Not collected');
-      const canonicalRequest = generateCanonicalTitle(serviceRequested);
+      const canonicalRequest = displayReasonText(serviceRequested);
       const serviceAddress = capitalizeDisplayValue(sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '') || 'Not collected');
       const desiredCompletionTime = capitalizeDisplayValue(sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '') || 'Not collected');
       const callbackTime = capitalizeDisplayValue(sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '') || 'Not collected');
@@ -15161,36 +15004,11 @@ wss.on('connection', (ws, req) => {
         console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
 
         try {
-          // Extract structured fields from transcript
-          console.log('[AI INGEST] extracting fields...');
-          const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
-
-The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Water is actively leaking. Caller requested callback this afternoon."
-
-Transcript:
-${fullTranscript}
-
-Return only JSON, no other text.`;
-
-          const extractionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: 'gpt-4',
-              messages: [
-                { role: 'system', content: 'You are a data extraction assistant. Return only valid JSON.' },
-                { role: 'user', content: extractionPrompt },
-              ],
-              temperature: 0,
-            }),
-          });
-
-          const extractionData = await extractionResponse.json();
-          const extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
-          console.log('[AI EXTRACTION RESULT]', extractedFields);
+          // Structured fields come from the deterministic in-call intake state —
+          // the transcript is already persisted verbatim and must not be
+          // re-interpreted by a model to produce stored field values.
+          const extractedFields = buildDeterministicExtractedFields(callSessionState.intakeData || (ws as any).intakeData);
+          console.log('[AI EXTRACTION RESULT] deterministic fields:', extractedFields);
 
           // Update existing AI call record
           const { error: updateError } = await supabase
@@ -15381,62 +15199,12 @@ Return only JSON, no other text.`;
       }
 
       try {
-        // Extract structured fields from transcript
-        console.log('[AI INGEST] extracting fields...');
-        const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, desiredCompletionTime, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
-
-The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Issue appears urgent because water is actively leaking. Caller requested callback this afternoon."
-
-Transcript:
-${fullTranscript}
-
-Return only JSON, no other text.`;
-
-        const extractionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4',
-            messages: [
-              { role: 'system', content: 'You are a data extraction assistant. Return only valid JSON.' },
-              { role: 'user', content: extractionPrompt },
-            ],
-            temperature: 0,
-          }),
-        });
-
-        // Log final transcript state before extraction
-        console.log('[FINAL TRANSCRIPT FOR EXTRACTION]', {
-          transcriptLength: transcript.length,
-          first10Entries: transcript.slice(0, 10).map(t => `${t.role}: ${t.text}`),
-          userEntries: transcript.filter(t => t.role === 'user').length,
-          assistantEntries: transcript.filter(t => t.role === 'assistant').length,
-          hasUserContent: transcript.some(t => t.role === 'user' && t.text.trim() !== '')
-        });
-
-        const extractionData = await extractionResponse.json();
-        console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
-
-        let extractedFields;
-        try {
-          extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
-          console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
-        } catch (parseError) {
-          console.log('[AI INGEST EXTRACTION PARSE FAILED]', parseError);
-          console.log('[AI INGEST EXTRACTION PARSE FAILED] using fallback values');
-          // Create fallback extracted fields
-          extractedFields = {
-            callerName: null,
-            reasonForCalling: null,
-            urgencyLevel: null,
-            importantDetails: null,
-            addressOrLocation: null,
-            preferredCallbackTime: null,
-            summary: fullTranscript || 'AI call completed'
-          };
+        // Structured fields come from the deterministic in-call intake state —
+        // the transcript is already persisted verbatim and must not be
+        // re-interpreted by a model to produce stored field values.
+        const extractedFields = buildDeterministicExtractedFields(callSessionState.intakeData || (ws as any).intakeData);
+        if (!extractedFields.summary) {
+          extractedFields.summary = fullTranscript || 'AI call completed';
         }
 
         // Create lead and conversation BEFORE inserting ai_call_records
@@ -16990,37 +16758,14 @@ Business Name: ${businessName || 'Unknown'}
 ${businessType ? `Business Type: ${businessType}` : ''}
 ${businessTypeOther ? `Custom Business Type: ${businessTypeOther}` : ''}
 
-EXTRACTION FIELDS TO COLLECT:
+INTAKE FIELDS THE APP COLLECTS (context only — the app extracts them, not you):
 - Name
-- Reason for calling
-- Additional details
+- Reason for calling (the caller's own words, including any details they volunteer)
 - Location
 - When work should be completed
 - Best callback time
 
-EXTRACTION NORMALIZATION RULES:
-When extracting information from caller responses, return ONLY the normalized value:
-
-Customer Name:
-- Return ONLY the person's name
-- Remove conversational prefixes: "My name is", "Name is", "This is", "I'm", "I am"
-- Never include the beginning of the next sentence or request text
-- Example: "My name is Ryan." → "Ryan"
-
-Service Address:
-- Return ONLY the address
-- Remove conversational prefixes: "At", "It's at", "It'll be at", "Located at", "The address is"
-- Example: "It'll be at 1632 South Pine Drive" → "1632 South Pine Drive"
-
-Issue Details:
-- Return ONLY the details
-- Remove conversational framing: "We need", "I need", "I'd like", "Can you", "It is going to be"
-- Example: "We need 10 outlets throughout the house." → "10 outlets throughout the house."
-
-Service Requested:
-- Return only the service itself
-- Remove conversational framing: "I need", "I'd like", "I want"
-- Example: "I need some outlets installed." → "Outlets installed"
+Do not rewrite, summarize, or categorize what the caller says. Do not add urgency or details the caller did not state.
 
 CRITICAL: The app controls ALL spoken responses.
 You will receive exact text to speak via response.create instructions.
@@ -19740,53 +19485,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 }
 
                 try {
-                  // Extract structured fields from transcript
-                  console.log('[AI INGEST] extracting fields...');
-                  const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: callerName, reasonForCalling, urgencyLevel, importantDetails, addressOrLocation, preferredCallbackTime, summary. If a field is not found, set it to null.
-
-The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Issue appears urgent because water is actively leaking. Caller requested callback this afternoon."
-
-Transcript:
-${fullTranscript}
-
-Return only JSON, no other text.`;
-
-                  const extractionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    },
-                    body: JSON.stringify({
-                      model: 'gpt-4',
-                      messages: [
-                        { role: 'system', content: 'You are a data extraction assistant. Return only valid JSON.' },
-                        { role: 'user', content: extractionPrompt },
-                      ],
-                      temperature: 0,
-                    }),
-                  });
-
-                  const extractionData = await extractionResponse.json();
-                  console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
-
-                  let extractedFields;
-                  try {
-                    extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
-                    console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
-                  } catch (parseError) {
-                    console.log('[AI INGEST EXTRACTION PARSE FAILED]', parseError);
-                    console.log('[AI INGEST EXTRACTION PARSE FAILED] using fallback transcript');
-                    // Create fallback extracted fields from transcript
-                    extractedFields = {
-                      callerName: null,
-                      reasonForCalling: null,
-                      urgencyLevel: null,
-                      importantDetails: null,
-                      addressOrLocation: null,
-                      preferredCallbackTime: null,
-                      summary: `AI call transcript: ${fullTranscript}`
-                    };
+                  // Structured fields come from the deterministic in-call intake
+                  // state — the transcript is already persisted verbatim and
+                  // must not be re-interpreted by a model for stored values.
+                  const extractedFields = buildDeterministicExtractedFields(callSessionState.intakeData || (ws as any).intakeData);
+                  if (!extractedFields.summary) {
+                    extractedFields.summary = `AI call transcript: ${fullTranscript}`;
                   }
 
                   // Update existing AI call record
@@ -19894,63 +19598,18 @@ Return only JSON, no other text.`;
               }
 
               try {
-                // Extract structured fields from transcript
-                console.log('[AI INGEST] extracting fields...');
-                const extractionPrompt = `Extract the following information from this AI call transcript. Return JSON with these keys: customerName, serviceRequested, issueDescription, serviceAddress, desiredCompletionTime, callbackTime, summary. If a field is not found, set it to null.
+                // Structured fields come from the deterministic in-call intake
+                // state — the transcript is already persisted verbatim and
+                // must not be re-interpreted by a model for stored values.
+                const extractedFields = buildDeterministicExtractedFields(callSessionState.intakeData || (ws as any).intakeData);
+                if (!extractedFields.summary) {
+                  extractedFields.summary = `AI call transcript: ${fullTranscript}`;
+                }
 
-The summary should be concise and business-facing. Example: "John Smith called regarding a leaking water heater. Caller requested callback this afternoon."
-
-Transcript:
-${fullTranscript}
-
-Return only JSON, no other text.`;
-
-                const extractionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                  },
-                  body: JSON.stringify({
-                    model: 'gpt-4',
-                    messages: [
-                      { role: 'system', content: 'You are a data extraction assistant. Return only valid JSON.' },
-                      { role: 'user', content: extractionPrompt },
-                    ],
-                    temperature: 0,
-                  }),
-                });
-
-                const extractionData = await extractionResponse.json();
-                console.log('[AI INGEST EXTRACTION RAW]', (extractionData as any).choices[0].message.content);
-
-                let extractedFields;
-                try {
-                  extractedFields = JSON.parse((extractionData as any).choices[0].message.content);
-                  console.log('[AI INGEST EXTRACTION PARSED]', extractedFields);
-
-                  // Validate customerName to prevent non-name values from being saved
-                  if (extractedFields.customerName && !isValidCustomerName(extractedFields.customerName)) {
-                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] =========================================');
-                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] Invalid customerName detected:', extractedFields.customerName);
-                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] Setting customerName to null');
-                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] Timestamp:', new Date().toISOString());
-                    console.log('[AI INGEST CUSTOMER NAME BLOCKED] =========================================');
-                    extractedFields.customerName = null;
-                  }
-                } catch (parseError) {
-                  console.log('[AI INGEST EXTRACTION PARSE FAILED]', parseError);
-                  console.log('[AI INGEST EXTRACTION PARSE FAILED] using fallback transcript');
-                  // Create fallback extracted fields from transcript
-                  extractedFields = {
-                    customerName: null,
-                    serviceRequested: null,
-                    issueDescription: null,
-                    serviceAddress: null,
-                    desiredCompletionTime: null,
-                    callbackTime: null,
-                    summary: `AI call transcript: ${fullTranscript}`
-                  };
+                // Validate customerName to prevent non-name values from being saved
+                if (extractedFields.customerName && !isValidCustomerName(extractedFields.customerName)) {
+                  console.log('[AI INGEST CUSTOMER NAME BLOCKED] Invalid customerName detected:', extractedFields.customerName);
+                  extractedFields.customerName = null;
                 }
 
                 // Create new AI call record
