@@ -37,3 +37,21 @@ describe('normalizeAddress - leading spoken number words', () => {
     })
   }
 })
+
+describe('normalizeAddress - mixed digit+word street number composition', () => {
+  const cases: Array<[string, string]> = [
+    ["500 and three Spacebar Avenue", "503 Spacebar Avenue"],
+    ["500 and three spacebar avenue", "503 spacebar avenue"],
+    ["700 and twelve Oak Drive", "712 Oak Drive"],
+    ["200 and five Main Street", "205 Main Street"],
+    // already-correct or ambiguous forms stay untouched
+    ["503 Spacebar Avenue", "503 Spacebar Avenue"],
+    ["500 and three", "500 and three"],
+    ["500 West and three oaks lane", "500 West and three oaks lane"],
+  ];
+  for (const [input, expected] of cases) {
+    it(`"${input}" -> "${expected}"`, () => {
+      expect(normalizeAddress(input)).toBe(expected);
+    });
+  }
+});
