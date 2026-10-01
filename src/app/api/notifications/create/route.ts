@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { notificationServiceServer } from '@/lib/notifications-server'
-import { capitalizeFirstAlpha, normalizePunctuation } from '@/lib/utils'
+import { aiIntakeNotificationBody } from '@/lib/notification-format'
 import crypto from 'crypto'
 
 /**
@@ -121,16 +121,14 @@ export async function POST(request: NextRequest) {
         callSid
       }
       finalTitle = title || 'New Request'
-      const nameLabel = customerName || null
-      // Match the ai_intake_completed template's presentation: the raw
-      // transcript phrase arrives lowercase ("someone to repair…") and must be
-      // normalized/capitalized for display. Stored data is untouched.
-      const serviceLabel = serviceRequested ? capitalizeFirstAlpha(normalizePunctuation(serviceRequested)) : null
-      const preview = nameLabel && serviceLabel
-        ? `${nameLabel} \u2022 ${serviceLabel}`
-        : serviceLabel || nameLabel || 'New customer request'
+      // The customer's name already renders as the notification TITLE (the
+      // ai_intake_completed template resolves displayName from leadName). The
+      // message body must carry only the caller's reason — prepending the
+      // name here produced "Ryan Ryan · <reason>" on push/in-app surfaces
+      // that display title and body together.
+      const preview = aiIntakeNotificationBody(serviceRequested)
       finalMessage = message || preview
-      console.log('[notification_preview_generated]', { nameLabel, serviceLabel, preview, hasIdempotencyKey: !!(callSid || aiCallRecordId) })
+      console.log('[notification_preview_generated]', { nameLabel: customerName || null, preview, hasIdempotencyKey: !!(callSid || aiCallRecordId) })
       finalActionUrl = actionUrl || `/dashboard/leads/${leadId}`
       finalActionText = actionText || 'View Customer'
     } else if (type === 'new_lead') {

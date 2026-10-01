@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { notificationServiceServer } from '@/lib/notifications-server';
+import { resolveVoicemailCallerName } from '@/lib/notification-format';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
@@ -532,9 +533,28 @@ export async function POST(request: NextRequest) {
 
     // Create notification for voicemail
     try {
+      // Resolve the caller's display name from the business-scoped lead so a
+      // known customer shows their name instead of the raw phone number. The
+      // lead may be a full row (getLeadByPhone) or a stub { id } from the
+      // trusted intake path — fetch identity fields when needed.
+      let leadIdentityRow: any = lead;
+      if (!lead.caller_phone && !lead.contact_name && !lead.raw_metadata) {
+        const { data: identityRow } = await supabaseAdmin
+          .from('leads')
+          .select('*')
+          .eq('id', lead.id)
+          .eq('business_id', business.id)
+          .maybeSingle();
+        if (identityRow) leadIdentityRow = identityRow;
+      }
+      const voicemailCallerName = resolveVoicemailCallerName(leadIdentityRow) || '';
+      console.log('[VOICEMAIL NOTIFICATION NAME]', {
+        leadId: lead.id,
+        resolvedName: voicemailCallerName || null
+      });
       await notificationServiceServer.notifyVoicemailReceived(
         business.id,
-        (lead.name && lead.name !== 'Not collected') ? lead.name : '',
+        voicemailCallerName,
         normalizedCallerPhone,
         lead.id,
         voicemail.id
