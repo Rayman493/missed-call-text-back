@@ -26,6 +26,22 @@ export function generateConciseRequestTitle(reasonForCalling: string | undefined
   return title === 'Not collected' ? '' : title
 }
 
+// Parse an ISO timestamp to epoch ms; returns 0 when missing/unparseable.
+// Postgres/Supabase timestamps arrive with a bare "+00" offset which
+// Date.parse rejects — normalize it to "+00:00" before parsing.
+function parseTimestampMs(v: any): number {
+  if (v === null || v === undefined || v === '') return 0
+  if (typeof v === 'number') return v
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? 0 : v.getTime()
+  if (typeof v !== 'string') return 0
+  let t = Date.parse(v)
+  if (Number.isNaN(t)) {
+    const fixed = v.replace(/([+-]\d{2})(\d{2})?$/, (_m, h, m) => `${h}:${m || '00'}`)
+    if (fixed !== v) t = Date.parse(fixed)
+  }
+  return Number.isNaN(t) ? 0 : t
+}
+
 // Helper function to detect if a string looks like a phone number
 function looksLikePhoneNumber(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
@@ -333,6 +349,44 @@ export interface LeadAIIntake {
 }
 
 /**
+ * Canonical completed-intake outcomes. Matches the 'complete' arm of
+ * getAIIntakeStatus: 'completed' (voice service) and 'completed_intake'
+ * (web outcome classifier). partial_intake, incomplete, ai_failed,
+ * caller_hung_up, voicemail_fallback and every other non-completed outcome
+ * are NOT intake authority.
+ */
+const COMPLETED_INTAKE_OUTCOMES = new Set(['completed', 'completed_intake'])
+
+/** True when the record's outcome is a canonical completed intake. */
+export function isCompletedIntakeOutcome(outcome: unknown): boolean {
+  return COMPLETED_INTAKE_OUTCOMES.has(String(outcome || '').toLowerCase())
+}
+
+/**
+ * Select the authoritative AI intake record for current-state display: the
+ * NEWEST USABLE COMPLETED ai_call_record — outcome is a completed intake and
+ * extracted_info is non-empty. A newer non-completed record (partial,
+ * incomplete, ai_failed, hangup, voicemail_fallback, ...) must never shadow
+ * the last completed intake.
+ */
+export function selectAuthoritativeAiCallRecord(records: any[] | undefined | null): any | null {
+  return [...(records || [])]
+    .sort((a: any, b: any) => {
+      const aTime = new Date(a?.created_at || 0).getTime()
+      const bTime = new Date(b?.created_at || 0).getTime()
+      return bTime - aTime
+    })
+    .find((r: any) => {
+      if (!COMPLETED_INTAKE_OUTCOMES.has(String(r?.outcome || '').toLowerCase())) return false
+      const info = r?.extracted_info
+      if (!info || typeof info !== 'object') return false
+      return Object.values(info).some((v) =>
+        typeof v === 'string' ? v.trim().length > 0 : v !== null && v !== undefined
+      )
+    }) || null
+}
+
+/**
  * Resolve canonical AI intake fields from a lead.
  *
  * CRITICAL: This function represents CURRENT-CALL intake only.
@@ -361,12 +415,13 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   const hasAiCallRecord = sortedAiCallRecords.length > 0
   const isManualCustomer = lead?.source === 'manual' || rawMetadata?.creation_source === 'manual'
 
-  // Extracted info from CURRENT ai_call_record if present.
-  // If there is no current call record, fall back to raw_metadata.extracted_info so
-  // genuine existing data is not reported as "Not collected".
-  const latestCallRecord = sortedAiCallRecords[0]
+  // Extracted info from the authoritative ai_call_record: the NEWEST usable
+  // completed call — ai_failed/empty records newer than it must not shadow it.
+  // If there is no usable call record, fall back to raw_metadata.extracted_info
+  // so genuine existing data is not reported as "Not collected".
+  const authoritativeCallRecord = selectAuthoritativeAiCallRecord(sortedAiCallRecords)
   const extractedInfoRaw =
-    latestCallRecord?.extracted_info ||
+    authoritativeCallRecord?.extracted_info ||
     (!hasAiCallRecord ? rawMetadata.extracted_info : {}) ||
     {}
 
@@ -380,8 +435,37 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   const effectiveExtractedInfo = isManualCustomer ? { ...extractedInfoRaw, ...manualExtractedInfo } : extractedInfoRaw
   const effectiveNormalized = isManualCustomer ? { ...normalized, ...manualNormalized } : normalized
 
-  // Customer corrections override extracted info when present
+  // Customer corrections override extracted info when present — but only when
+  // the correction is NEWER than the authoritative AI call. An older manual
+  // edit must not shadow newer completed-call data forever.
   const corrected = rawMetadata.corrected_fields || {}
+  const correctedTimestamps = rawMetadata.corrected_fields_updated_at || {}
+  const authoritativeCallTs = parseTimestampMs(
+    authoritativeCallRecord?.completed_at || authoritativeCallRecord?.created_at
+  )
+
+  const parseTs = (v: any): number => parseTimestampMs(v)
+
+  // Latest correction timestamp for a canonical field: check every alias key
+  // (corrected_fields_updated_at is keyed by canonical names, but legacy rows
+  // may carry alias keys), then the global last_correction_at stamp.
+  const correctionTimestampFor = (canonical: string): number => {
+    let newest = parseTs(correctedTimestamps[canonical])
+    for (const [aliasKey, canonicalKey] of Object.entries(FIELD_ALIASES)) {
+      if (canonicalKey !== canonical) continue
+      newest = Math.max(newest, parseTs(correctedTimestamps[aliasKey]))
+    }
+    return newest || parseTs(rawMetadata.last_correction_at)
+  }
+
+  // A correction outranks the AI call only when provably newer. Untimestamped
+  // corrections keep their historical precedence — staleness cannot be proven.
+  const correctionOutranks = (canonical: string): boolean => {
+    if (!authoritativeCallTs) return true
+    const ts = correctionTimestampFor(canonical)
+    if (!ts) return true
+    return ts > authoritativeCallTs
+  }
 
   // CANONICAL MERGE CONTRACT:
   // Call-scoped intake fields (reason, details, location, completion, callback)
@@ -393,9 +477,12 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   const findLatestNonEmptyField = (
     fieldPaths: string[]
   ): string | null => {
-    // CUSTOMER NAME ONLY: scan historical records for a non-empty name.
+    // CUSTOMER NAME ONLY: scan historical COMPLETED intake records for a
+    // non-empty name. Non-completed records (partial/failed/hangup) are not
+    // intake authority and must never shadow the last completed call.
     // Call-scoped fields no longer use this fallback.
     for (const record of sortedAiCallRecords) {
+      if (!isCompletedIntakeOutcome(record?.outcome)) continue
       const info = record?.extracted_info
       if (!info) continue
       const norm = normalizeExtractedInfo(info)
@@ -407,13 +494,13 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     return null
   }
 
-  // LATEST-CALL-ONLY resolver for call-scoped fields. Uses only the most recent
-  // ai_call_record's extracted_info. If empty, returns null (no historical fallback).
+  // LATEST-CALL-ONLY resolver for call-scoped fields. Uses only the
+  // authoritative (newest usable) ai_call_record's extracted_info. If empty,
+  // returns null (no historical fallback).
   const findLatestCallField = (
     fieldPaths: string[]
   ): string | null => {
-    const record = sortedAiCallRecords[0]
-    const info = record?.extracted_info
+    const info = authoritativeCallRecord?.extracted_info
     if (!info) return null
     const norm = normalizeExtractedInfo(info)
     for (const path of fieldPaths) {
@@ -468,9 +555,9 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   // Priority: manual corrections > current-call normalized > current-call raw
   // > historical call records (newest non-empty first)
   const serviceRequestedValue = normalizeServiceReason(traceFieldSelection('serviceRequested', [
-    corrected.serviceRequested,
-    corrected.reason,
-    corrected.reasonForCalling,
+    ...(correctionOutranks('reasonForCalling')
+      ? [corrected.serviceRequested, corrected.reason, corrected.reasonForCalling]
+      : []),
     effectiveNormalized.reasonForCalling,
     effectiveExtractedInfo.serviceRequested,
     // Latest-call-only: do not inherit reason from older calls
@@ -489,10 +576,9 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     customerName: nameRefused
       ? null
       : normalizeCustomerName(traceFieldSelection('customerName', [
-          corrected.name,
-          corrected.callerName,
-          corrected.customerName,
-          corrected.caller_name,
+          ...(correctionOutranks('callerName')
+            ? [corrected.name, corrected.callerName, corrected.customerName, corrected.caller_name]
+            : []),
           effectiveNormalized.callerName,
           effectiveExtractedInfo.customerName,
           findLatestNonEmptyField(['callerName', 'customerName']),
@@ -514,9 +600,9 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     // Priority: manual corrections > current-call normalized > current-call raw
     // NO historical raw_metadata fallback
     additionalDetails: normalizeAdditionalDetails(pick(
-      corrected.details,
-      corrected.issueDescription,
-      corrected.importantDetails,
+      ...(correctionOutranks('importantDetails')
+        ? [corrected.details, corrected.issueDescription, corrected.importantDetails]
+        : []),
       effectiveNormalized.importantDetails,
       effectiveExtractedInfo.additionalDetails,
       // Latest-call-only: do not inherit details from older calls
@@ -524,37 +610,36 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     )),
     // Service address: latest-call-only (call-scoped)
     serviceAddress: normalizeAddress(pick(
-      corrected.address,
-      corrected.serviceAddress,
-      corrected.addressOrLocation,
+      ...(correctionOutranks('addressOrLocation')
+        ? [corrected.address, corrected.serviceAddress, corrected.addressOrLocation]
+        : []),
       effectiveNormalized.addressOrLocation,
       effectiveExtractedInfo.serviceAddress,
       findLatestCallField(['addressOrLocation', 'serviceAddress'])
     )),
     // Desired completion time: latest-call-only (call-scoped)
     desiredCompletion: normalizeTiming(pick(
-      corrected.desiredCompletion,
-      corrected.urgency,
-      corrected.urgencyLevel,
-      corrected.desiredCompletionTime,
+      ...(correctionOutranks('desiredCompletionTime')
+        ? [corrected.desiredCompletion, corrected.urgency, corrected.urgencyLevel, corrected.desiredCompletionTime]
+        : []),
       effectiveNormalized.desiredCompletionTime,
       effectiveExtractedInfo.desiredCompletion,
       findLatestCallField(['desiredCompletionTime', 'desiredCompletion'])
     )),
     // Callback time: latest-call-only (call-scoped)
     callbackTime: normalizeTiming(pick(
-      corrected.callbackTime,
-      corrected.callback_time,
-      corrected.preferredCallbackTime,
+      ...(correctionOutranks('preferredCallbackTime')
+        ? [corrected.callbackTime, corrected.callback_time, corrected.preferredCallbackTime]
+        : []),
       effectiveNormalized.preferredCallbackTime,
       effectiveExtractedInfo.callbackTime,
       findLatestCallField(['preferredCallbackTime', 'callbackTime'])
     )),
     conciseRequestTitle: generateConciseRequestTitle(
       serviceRequestedValue ||
-      corrected.serviceRequested ||
-      corrected.reason ||
-      corrected.reasonForCalling ||
+      (correctionOutranks('reasonForCalling')
+        ? (corrected.serviceRequested || corrected.reason || corrected.reasonForCalling)
+        : null) ||
       effectiveNormalized.reasonForCalling ||
       effectiveExtractedInfo.serviceRequested
     ),

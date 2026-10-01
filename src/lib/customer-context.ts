@@ -1,4 +1,4 @@
-import { getLeadAIIntake } from './ai-field-mapping'
+import { getLeadAIIntake, isCompletedIntakeOutcome } from './ai-field-mapping'
 import { isPlaceholderValue } from '@/components/payments/customer-search-helpers'
 import { formatForDisplay } from '@/utils/phone-formatting'
 
@@ -39,7 +39,13 @@ function firstClean(...values: unknown[]): string {
 
 function parseTimestamp(value: unknown): number | null {
   if (!value || typeof value !== 'string') return null
-  const ms = new Date(value).getTime()
+  let ms = new Date(value).getTime()
+  if (isNaN(ms)) {
+    // Postgres/Supabase timestamps may carry a bare "+00" offset which
+    // Date.parse rejects — normalize it to "+00:00".
+    const fixed = value.replace(/([+-]\d{2})(\d{2})?$/, (_m, h, m) => `${h}:${m || '00'}`)
+    if (fixed !== value) ms = new Date(fixed).getTime()
+  }
   return isNaN(ms) ? null : ms
 }
 
@@ -104,6 +110,8 @@ function getAICustomerNameSource(lead: any): NameSource | null {
     })
 
   if (records.length > 0) {
+    const completedCandidates: NameSource[] = []
+    const otherCandidates: NameSource[] = []
     for (const record of records) {
       const extracted = record.extracted_info || {}
       // A name-refused intake must not contribute a customer name candidate.
@@ -116,12 +124,18 @@ function getAICustomerNameSource(lead: any): NameSource | null {
         extracted.name
       )
       if (value && !isNameRefusalLike(value)) {
-        candidates.push({
+        // Newest usable COMPLETED record is the name authority; names from
+        // non-completed records (partial/failed) are fallback only and can
+        // never shadow a completed intake.
+        const bucket = isCompletedIntakeOutcome(record.outcome) ? completedCandidates : otherCandidates
+        bucket.push({
           value,
           timestamp: parseTimestamp(record.completed_at || record.created_at)
         })
       }
     }
+    candidates.push(...completedCandidates)
+    if (completedCandidates.length === 0) candidates.push(...otherCandidates)
   }
 
   const extracted = raw.extracted_info || {}
@@ -214,9 +228,13 @@ export function getCanonicalCustomerDisplayName(lead: any): string {
  * values remain immutable and are not overwritten by later edits.
  */
 export function getHistoricalJobRequestContext(record: any): CustomerContext {
+  // Request History renders THIS record's captured values verbatim — including
+  // partial/legacy records that are not intake authority. Route through
+  // raw_metadata.extracted_info (the no-record fallback) so the authoritative-
+  // record filter never blanks a historical snapshot.
   return getCurrentCustomerContext({
-    aiCallRecords: [record],
-    raw_metadata: {},
+    aiCallRecords: [],
+    raw_metadata: { extracted_info: record?.extracted_info || {} },
     name: null,
     contact_name: null,
     caller_phone: record?.caller_phone || null
