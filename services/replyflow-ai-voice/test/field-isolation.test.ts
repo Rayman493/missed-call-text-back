@@ -109,3 +109,61 @@ describe('field isolation — stage scalar answers never leak into Details', () 
     expect(intake.callbackTime).to.equal('in the afternoons');
   });
 });
+
+describe('callback windows — connector-joined constraints stay in callbackTime', () => {
+  it('production case: "call me back after 2 pm. but before 5 pm" → whole window, no Details leak', () => {
+    const intake = baseIntake();
+    intake.issueDescription =
+      "As you guys did it for one of my neighbors before. I thought it looked good. I'd like you guys to do some landscaping for my backyard";
+    const res = enrichIntakeFromTranscript(
+      'You can call me back after 2 pm. but before 5 pm',
+      intake,
+      'ask_callback_time',
+      'CA-test'
+    );
+    expect(intake.callbackTime).to.equal('after 2 pm but before 5 pm');
+    expect(intake.issueDescription).to.not.contain('before 5 pm');
+    expect(intake.issueDescription).to.not.contain('after 2 pm');
+    expect(res.applied).to.not.include('issueDescription');
+  });
+
+  it('bare callback window without trigger wording → whole window captured', () => {
+    for (const [utterance, expected] of [
+      ['after 2 pm but before 5 pm', 'after 2 pm but before 5 pm'],
+      ['between 2 and 5 pm', 'between 2 and 5 pm'],
+      ['call me back after 2 pm but before 5 pm', 'after 2 pm but before 5 pm'],
+    ] as const) {
+      const intake = baseIntake();
+      enrichIntakeFromTranscript(utterance, intake, 'ask_callback_time', 'CA-test');
+      expect(intake.callbackTime).to.equal(expected);
+      expect(intake.issueDescription).to.be.undefined;
+    }
+  });
+
+  it('callback-only examples never reach Details', () => {
+    for (const utterance of [
+      'after 2 pm',
+      'before 5',
+      'call me before noon',
+      'anytime but before 5 pm',
+    ]) {
+      const intake = baseIntake();
+      enrichIntakeFromTranscript(utterance, intake, 'ask_callback_time', 'CA-test');
+      expect(intake.callbackTime).to.be.a('string');
+      expect(intake.issueDescription).to.be.undefined;
+    }
+  });
+
+  it('genuine non-timing detail in a callback utterance is preserved', () => {
+    const intake = baseIntake();
+    enrichIntakeFromTranscript(
+      'Call me after 4, and one other thing, the gate is locked',
+      intake,
+      'ask_callback_time',
+      'CA-test'
+    );
+    expect(intake.callbackTime).to.equal('after 4');
+    expect(intake.callbackTime).to.not.contain('gate');
+    expect(intake.issueDescription).to.contain('gate is locked');
+  });
+});

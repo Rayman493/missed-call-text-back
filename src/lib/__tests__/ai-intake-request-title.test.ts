@@ -372,3 +372,29 @@ describe('generateCanonicalRequestTitle', () => {
     expect(generateCanonicalRequestTitle('I need my grass cut')).toBe('Lawn Mowing')
   })
 })
+
+describe('compact title — service identity cannot be hijacked by context', () => {
+  it('shower install with "new house" context -> Shower Installation', () => {
+    expect(generateCanonicalRequestTitle('get a new shower installed for my bathroom'))
+      .toBe('Shower Installation')
+  })
+
+  it('fence install with "house" in request -> Fence Installation', () => {
+    expect(generateCanonicalRequestTitle('get a fence installed for my house for the backyard'))
+      .toBe('Fence Installation')
+  })
+
+  it('toilet install -> Toilet Installation', () => {
+    expect(generateCanonicalRequestTitle('I need a toilet installed')).toBe('Toilet Installation')
+  })
+
+  it('landscaping help request -> Landscaping Service', () => {
+    expect(generateCanonicalRequestTitle('I was just looking for some landscaping help with my backyard'))
+      .toBe('Landscaping Service')
+  })
+
+  it('ambiguous request keeps a safe fallback, not a wrong label', () => {
+    expect(generateCanonicalRequestTitle('I need some help around the house'))
+      .toBe('Some help around the house')
+  })
+})

@@ -406,30 +406,30 @@ export const validateRequestTitle = (title: string | null | undefined): string |
 function normalizeSemanticService(servicePair: string): string | null {
   const [verb, object] = servicePair.split(' ').map(w => w.toLowerCase());
   // Lawn/yard services
-  if (['cut', 'mow', 'trim'].includes(verb) && ['lawn', 'yard', 'grass'].includes(object)) {
+  if (['cut', 'mow', 'mowed', 'trim', 'trimmed'].includes(verb) && ['lawn', 'yard', 'grass'].includes(object)) {
     return 'Lawn Mowing';
   }
   if (verb === 'maintain' && ['lawn', 'yard', 'grass'].includes(object)) {
     return 'Lawn Maintenance';
   }
-  if (['trim', 'maintain'].includes(verb) && ['tree', 'shrub', 'hedge'].includes(object)) {
+  if (['trim', 'trimmed', 'maintain'].includes(verb) && ['tree', 'shrub', 'hedge'].includes(object)) {
     return 'Tree Trimming';
   }
-  if (['remove', 'clear'].includes(verb) && object === 'tree') {
+  if (['remove', 'removed', 'clear', 'cleared'].includes(verb) && object === 'tree') {
     return 'Tree Removal';
   }
   // Fence/deck services
-  if (['install', 'set', 'setup', 'put'].includes(verb) && object === 'fence') {
+  if (['install', 'installed', 'set', 'setup', 'put'].includes(verb) && object === 'fence') {
     return 'Fence Installation';
   }
-  if (['repair', 'fix'].includes(verb) && object === 'fence') {
+  if (['repair', 'repaired', 'fix', 'fixed'].includes(verb) && object === 'fence') {
     return 'Fence Repair';
   }
   // Roofing services
-  if (['repair', 'fix'].includes(verb) && object === 'roof') {
+  if (['repair', 'repaired', 'fix', 'fixed'].includes(verb) && object === 'roof') {
     return 'Roof Repair';
   }
-  if (['replace'].includes(verb) && object === 'roof') {
+  if (['replace', 'replaced'].includes(verb) && object === 'roof') {
     return 'Roof Replacement';
   }
   // "is roof" pattern
@@ -437,22 +437,24 @@ function normalizeSemanticService(servicePair: string): string | null {
     return 'Roof Repair';
   }
   // Plumbing services (including leak/drip patterns)
-  if (['repair', 'fix', 'unclog', 'clear', 'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged'].includes(verb) &&
+  if (['repair', 'repaired', 'fix', 'fixed', 'unclog', 'clear', 'leak', 'leaking', 'leaked', 'drip', 'dripping', 'dripped', 'clog', 'clogged'].includes(verb) &&
       ['drain', 'pipe', 'sink', 'toilet', 'faucet', 'kitchen'].includes(object)) {
     return 'Plumbing Repair';
   }
-  if (['install', 'set', 'setup'].includes(verb) && ['pipe', 'sink', 'toilet', 'faucet'].includes(object)) {
-    return 'Plumbing Installation';
+  // Object-specific installation keeps the real service identity ("toilet
+  // installed" -> "Toilet Installation", not a generic plumbing label).
+  if (['install', 'installed', 'set', 'setup'].includes(verb) && ['pipe', 'sink', 'toilet', 'faucet', 'shower', 'tub'].includes(object)) {
+    return `${object.charAt(0).toUpperCase() + object.slice(1)} Installation`;
   }
   // "is [plumbing object]" pattern
   if (['is', 'are', 'was', 'were'].includes(verb) && ['drain', 'pipe', 'sink', 'toilet', 'faucet'].includes(object)) {
     return 'Plumbing Repair';
   }
   // HVAC services
-  if (['repair', 'fix'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
+  if (['repair', 'repaired', 'fix', 'fixed'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
     return 'HVAC Repair';
   }
-  if (['install', 'set', 'setup'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
+  if (['install', 'installed', 'set', 'setup'].includes(verb) && ['ac', 'air', 'conditioner', 'heater', 'furnace', 'hvac'].includes(object)) {
     return 'HVAC Installation';
   }
   // "is [hvac object]" pattern
@@ -460,18 +462,18 @@ function normalizeSemanticService(servicePair: string): string | null {
     return 'HVAC Repair';
   }
   // Cleaning services
-  if (['clean', 'wash', 'pressure'].includes(verb) && ['driveway', 'sidewalk', 'deck', 'patio'].includes(object)) {
+  if (['clean', 'cleaned', 'wash', 'washed', 'pressure'].includes(verb) && ['driveway', 'sidewalk', 'deck', 'patio'].includes(object)) {
     return 'Pressure Washing';
   }
-  if (['clean', 'wash'].includes(verb) && ['carpet', 'floor', 'window'].includes(object)) {
+  if (['clean', 'cleaned', 'wash', 'washed'].includes(verb) && ['carpet', 'floor', 'window'].includes(object)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Cleaning`;
   }
   // Painting services
-  if (['paint', 'painting', 'stain'].includes(verb) && ['deck', 'fence', 'interior', 'exterior'].includes(object)) {
+  if (['paint', 'painted', 'painting', 'stain', 'stained'].includes(verb) && ['deck', 'fence', 'interior', 'exterior'].includes(object)) {
     return 'Painting';
   }
   // Automotive services
-  if (['repair', 'fix'].includes(verb) && ['car', 'truck', 'vehicle', 'brake', 'tire'].includes(object)) {
+  if (['repair', 'repaired', 'fix', 'fixed'].includes(verb) && ['car', 'truck', 'vehicle', 'brake', 'tire'].includes(object)) {
     return 'Auto Repair';
   }
   // Lessons
@@ -483,13 +485,13 @@ function normalizeSemanticService(servicePair: string): string | null {
     return 'Locksmith Service';
   }
   // Generic fallback for other verb+object pairs
-  if (['repair', 'fix', 'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged'].includes(verb)) {
+  if (['repair', 'repaired', 'fix', 'fixed', 'leak', 'leaking', 'leaked', 'drip', 'dripping', 'dripped', 'clog', 'clogged'].includes(verb)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Repair`;
   }
-  if (['install', 'set', 'setup', 'put'].includes(verb)) {
+  if (['install', 'installed', 'set', 'setup', 'put'].includes(verb)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Installation`;
   }
-  if (['clean', 'wash'].includes(verb)) {
+  if (['clean', 'cleaned', 'wash', 'washed'].includes(verb)) {
     return `${object.charAt(0).toUpperCase() + object.slice(1)} Cleaning`;
   }
   // "is [object]" pattern for other objects
@@ -674,7 +676,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'Moving Service': [/\b(?:move|moving)\s*(?:service|help|company)/i],
     'Tree Removal': [/\btree\s*(?:remove|removal|clear)/i, /\b(?:remove|clear)\s*(?:the\s+)?tree\b/i],
     'Tree Service': [/\btree\s*(?:trim|prune|remove|removal|cut|service)/i],
-    'Landscaping': [/\blandscape\s*(?:design|install|maintenance|service)/i, /\bgarden\s*(?:service|maintenance|design)/i],
+    'Landscaping Service': [/\blandscap(?:e|ing)\s*(?:design|install|installation|maintenance|service|help|work|care)?/i, /\bgarden\s*(?:service|maintenance|design)/i],
     'Gutter Cleaning': [/\bgutter\s*(?:clean|cleaning|clear|remove)/i],
     'Handyman Service': [/\bhandyman\s*(?:service|work|repair)/i],
     'General Contractor': [/\bgeneral\s*contractor/i, /\b(?:remodel|renovation|renovate|construction)/i],
@@ -801,13 +803,13 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'but now', 'but now i',
   ];
   const serviceVerbs = [
-    'cut', 'mow', 'trim', 'maintain', 'care', 'service',
-    'install', 'installation', 'set', 'setup', 'put', 'replace', 'repair', 'fix',
-    'clean', 'wash', 'scrub', 'pressure', 'sweep',
-    'paint', 'painting', 'stain',
-    'plumb', 'plumbing', 'unclog', 'clear', 'drain',
+    'cut', 'mow', 'mowed', 'trim', 'trimmed', 'maintain', 'care', 'service',
+    'install', 'installed', 'installation', 'set', 'setup', 'put', 'replace', 'replaced', 'repair', 'repaired', 'fix', 'fixed',
+    'clean', 'cleaned', 'wash', 'washed', 'scrub', 'pressure', 'sweep',
+    'paint', 'painted', 'painting', 'stain', 'stained',
+    'plumb', 'plumbing', 'unclog', 'clear', 'cleared', 'drain',
     'inspect', 'check', 'look', 'assess', 'evaluate',
-    'remove', 'removal', 'haul', 'demolition', 'teardown',
+    'remove', 'removed', 'removal', 'haul', 'demolition', 'teardown',
     'build', 'construct', 'construct', 'frame', 'erect',
     'lesson', 'learn', 'teach', 'train', 'tutor',
     'move', 'moving', 'pack', 'unpack',
@@ -816,7 +818,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'photograph', 'photo', 'video', 'film',
     'consult', 'advice', 'advise',
     // Nouns that imply action
-    'leak', 'leaking', 'drip', 'dripping', 'clog', 'clogged', 'block', 'blocked',
+    'leak', 'leaking', 'leaked', 'drip', 'dripping', 'dripped', 'clog', 'clogged', 'block', 'blocked',
     // Helper verb for "is [adjective]" patterns
     'is', 'are', 'was', 'were',
   ];
@@ -855,7 +857,12 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     hasHistoricalMarker: boolean,
     hasNegation: boolean,
     isAfterCorrection: boolean,
+    isPassiveObjectVerb: boolean,
   }> = [];
+  // Past-participle service verbs ("installed", "fixed") are passive forms —
+  // in "a new shower installed for my bathroom" the service is the object
+  // immediately before the verb, not the object after it.
+  const isPassiveVerbForm = (w: string) => /(?:ed|en)$/.test(w);
   const maxDistance = 4; // Look for object within 4 words of verb
   // Scan for verb+object pairs
   for (let i = 0; i < words.length; i++) {
@@ -905,13 +912,16 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
             hasHistoricalMarker,
             hasNegation,
             isAfterCorrection,
+            isPassiveObjectVerb: false,
           });
         }
       }
     }
   }
-  // If no candidates found, try object before verb pattern
-  if (serviceCandidates.length === 0) {
+  // Also scan object-before-verb order ("a new shower installed") — callers
+  // often name the object first, and this ordering must compete on score
+  // rather than only being used when no verb-first pair exists.
+  {
     for (let i = 0; i < words.length; i++) {
       const word = words[i].toLowerCase();
       if (serviceObjects.includes(word)) {
@@ -959,6 +969,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
               hasHistoricalMarker,
               hasNegation,
               isAfterCorrection,
+              isPassiveObjectVerb: j === i + 1 && isPassiveVerbForm(nextWord),
             });
           }
         }
@@ -975,6 +986,16 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     if (candidate.isAfterCorrection) candidate.score += 15;
     // Prefer later occurrences (current request likely comes later)
     candidate.score += (candidate.verbIndex * 0.1);
+    // Copula candidates ("the yard is hilly") are weak ownership hints — they
+    // must not outscore a real action verb via position bonuses.
+    const isCopula = ['is', 'are', 'was', 'were'].includes(candidate.verb);
+    // Strongly prefer adjacent verb+object pairs — "shower installed" or
+    // "install fence" is a tighter service signal than a distant object
+    // ("installed ... bathroom" loses to the adjacent "shower installed").
+    if (!isCopula && Math.abs(candidate.objectIndex - candidate.verbIndex) === 1) candidate.score += 5;
+    // Passive "object verb-ed" construction ("shower installed") — the object
+    // before the participle is the service itself and outranks adjacency alone.
+    if (candidate.isPassiveObjectVerb) candidate.score += 4;
   });
   // Sort by score descending
   serviceCandidates.sort((a, b) => b.score - a.score);
@@ -983,7 +1004,13 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     const bestCandidate = serviceCandidates[0];
     const normalizedService = normalizeSemanticService(`${bestCandidate.verb} ${bestCandidate.object}`);
     if (normalizedService) {
-      return normalizedService;
+      // A multi-service enumeration ("fence repair and installation") must not
+      // be compressed to the first service — the tail is meaningful. Keep the
+      // caller's wording via the verbatim fallback instead.
+      const enumerationTail = /\band\s+(?:installation|installations|repair|repairs|removal|removals|replacement|replacements|cleaning|cleanings|inspection|inspections|maintenance|painting|service|services|upgrade|upgrades|work)\b/i.test(processed);
+      if (!enumerationTail) {
+        return normalizedService;
+      }
     }
   }
   // Fallback for short noun-phrase service names (1-5 words)
@@ -1184,6 +1211,16 @@ export const normalizeAddress = (text: string | null | undefined): string => {
   // into digits, preserving the remainder of the address as-is (aside from
   // minimal whitespace cleanup). This runs BEFORE split-digit joining.
   normalized = convertLeadingSpokenStreetNumber(normalized);
+  // Compose obvious mixed digit+word street numbers: "500 and three" -> "503".
+  // Only an exact hundreds digit followed by "and" + a unit/teen word, and only
+  // when a plausible street remainder follows — ambiguous text is left as-is.
+  normalized = normalized.replace(/^(\d+00)\s+and\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\b([\s,].*)$/i, (m, hundreds: string, unitWord: string, rest: string) => {
+    const tail = rest.trim().replace(/^,\s*/, '');
+    if (!looksLikeStreetRemainder(tail)) return m;
+    const unit = UNITS[unitWord.toLowerCase()];
+    if (unit === undefined) return m;
+    return `${parseInt(hundreds, 10) + unit} ${tail}`;
+  });
   // Join obvious split street numbers at the very beginning of the address.
   // Examples: "16 32 South Pines Drive" -> "1632 South Pines Drive"
   //           "1 632 South Pine Drive" -> "1632 South Pine Drive"

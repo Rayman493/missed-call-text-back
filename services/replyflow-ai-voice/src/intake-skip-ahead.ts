@@ -618,17 +618,22 @@ const CALLBACK_PATTERN_ENTRIES: { pattern: RegExp; valueIsFullMatch: boolean; re
   // "anytime" answers including comma-qualified constraints
   // ("Anytime, but preferably later in the afternoon"). "ok" is word-bounded
   // via ok(?:ay)? so it cannot truncate mid-word.
-  { pattern: /\b(any(?:\s)?time(?:\s+(?:is|works|best|good|fine|ok(?:ay)?|after|before|between|today|tomorrow|tonight|morning|afternoon|evening|this\s+week|next\s+week|(?:mon|tues|wednes|thurs|fri|satur|sun)day)(?:\s+[^.,;]+?)?)?(?:\s*,\s*(?:but\s+)?[^.,;]+?)?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
+  { pattern: /\b(any(?:\s)?time(?:\s+(?:is|works|best|good|fine|ok(?:ay)?|after|before|between|today|tomorrow|tonight|morning|afternoon|evening|this\s+week|next\s+week|(?:mon|tues|wednes|thurs|fri|satur|sun)day)(?:\s+[^.,;]+?)?)?(?:\s*,\s*(?:but\s+)?[^.,;]+?)?)(?=\s*,?\s*\b(?:and|but)\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   { pattern: /\b((?:call me(?: back)?|you can call me(?: back)?|reach me|contact me)?\s+whenever(?:\s+(?:is|works|best|good|fine|ok(?:ay)?))?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   { pattern: /\b((?:best time|good time)\s+(?:to|at|in|on|after|before|between|is)\s+[^.,;]+?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   { pattern: /\b((?:you can reach me|reach me|contact me)\s+(?:at|in|on|after|before|between|anytime|morning|afternoon|evening|night)\s+([^.,;]+?))(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false },
   // Bare temporal callback answers: "tomorrow after 2", "this afternoon",
   // "tomorrow morning" — common at the ask_callback_time stage.
-  { pattern: /\b((?:today|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening)(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:after|before|around|at|by)\s+\d+(?::\d+)?\s*(?:am|pm|a\.m\.?|p\.m\.?)?)?)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByCompletionIntent: true, rejectIfPrecededByIncident: true },
+  { pattern: /\b((?:today|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day|morning|afternoon|evening)(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:after|before|around|at|by)\s+\d+(?::\d+)?\s*(?:am|pm|a\.m\.?|p\.m\.?)?)?)(?=\s*,?\s*\b(?:and|but)\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: false, rejectIfPrecededByCompletionIntent: true, rejectIfPrecededByIncident: true },
   // Daypart callback answers the bare-temporal pattern misses: "in the
   // afternoon(s)", "mornings", "early evening" — the "in the" lead-in and the
   // plural suffix are not covered by the shapes above.
-  { pattern: /\b(in\s+the\s+(?:morning|afternoon|evening|night)s?|(?:early|mid|late)[-\s]+(?:morning|afternoon|evening)s?|(?:morning|afternoon|evening)s\b)(?=\s*,?\s*\band\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: true, rejectIfPrecededByCompletionIntent: true, rejectIfPrecededByIncident: true },
+  { pattern: /\b(in\s+the\s+(?:morning|afternoon|evening|night)s?|(?:early|mid|late)[-\s]+(?:morning|afternoon|evening)s?|(?:morning|afternoon|evening)s\b)(?=\s*,?\s*\b(?:and|but)\b|[.!?](?:\s|$)|;|$)/i, valueIsFullMatch: true, rejectIfPrecededByCompletionIntent: true, rejectIfPrecededByIncident: true },
+  // Bare numeric callback WINDOWS spoken without trigger wording: "after 2 pm
+  // but before 5 pm", "between 2 and 5 pm". A single-bound bare scalar ("after
+  // 2") is intentionally NOT matched here — it belongs to the stage scalar
+  // fallback so the current stage keeps ownership.
+  { pattern: /\b(between\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?\s+and\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?|(?:after|before|around|at|by|until|till)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?|o'?clock)?[\s,]*(?:but|and)\s+(?:not\s+)?(?:before|after|until|till|no\s+later\s+than)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)/i, valueIsFullMatch: true, rejectIfPrecededByCompletionIntent: true, rejectIfPrecededByIncident: true, rejectIfPrecededByNegation: true },
   ...EARLY_CALLBACK_PATTERNS.map((pattern) => ({ pattern, valueIsFullMatch: true })),
 ];
 
@@ -738,12 +743,17 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
       if (CLAUSE_NEGATION_RE.test(clauseContaining(transcript, match.index || 0))) {
         continue;
       }
-      const rawValue = (valueIsFullMatch ? match[0] : (match[2] || match[1])).trim();
+      const matchEnd = (match.index || 0) + match[0].length;
+      const contMatch = transcript.slice(matchEnd).match(CALLBACK_TIME_CONTINUATION_RE);
+      const rawValue = (
+        (valueIsFullMatch ? match[0] : (match[2] || match[1])).trim()
+        + (contMatch ? ` ${contMatch[1].trim()}` : '')
+      ).trim();
       const value = normalizeCallbackTime(rawValue)
         .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
         .replace(/[.,;]\s*$/, '')
         .trim();
-      const fullMatch = match[0].trim();
+      const fullMatch = (match[0] + (contMatch ? contMatch[0] : '')).trim();
       if (isValidCallbackTime(value) && value.length > 1) {
         return {
           value,
@@ -1263,11 +1273,16 @@ const CORRECTION_SCAFFOLD_CLAUSE_RE = /\b(?:i\s+(?:gave|told)\s+you\s+the\s+wron
 // A clause that is ONLY a timing expression (no problem/incident content) is a
 // timing-field answer, not a detail. Incident-history wording ("it shut off
 // around 2 pm yesterday") stays eligible as a detail.
-const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh|ideally|hopefully|preferably|maybe)[,.\s]*)*(?:the\s+)?(?:sometimes?|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|in\s+the\s+(?:morning|afternoon|evening|night)s?|mornings?|afternoons?|evenings?|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|in\s+(?:the\s+)?next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend)|in\s+(?:(?:a|an|the)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?|years?)|within\s+(?:the\s+)?(?:next\s+)?(?:(?:a|an)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?)|by\s+(?:the\s+end\s+of\s+(?:the\s+)?(?:week|month|year)|end\s+of\s+(?:the\s+)?(?:week|month|year)|next\s+(?:week|month|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(?:week|weekend|month)|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|as\s+soon\s+as\s+(?:possible|you\s+can|he\s+can|she\s+can|they\s+can|convenient)|before\s+(?:the\s+)?(?:weekend|next\s+week|the\s+end\s+of\s+(?:the\s+)?(?:week|month)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|not\s+(?:before|until)\b[^.!?]*|(?:early|late|later)\s+(?:next|this)\s+(?:week|month|weekend)|the\s+sooner\s+the\s+better|sooner\s+the\s+better|no\s+rush|no\s+hurry|when\s+it'?s\s+convenient|at\s+your\s+(?:earliest\s+)?convenience|asap)\b[^.!?]*$/i;
+const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh|ideally|hopefully|preferably|maybe|but|and)[,.\s]*)*(?:the\s+)?(?:sometimes?|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|in\s+the\s+(?:morning|afternoon|evening|night)s?|mornings?|afternoons?|evenings?|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|in\s+(?:the\s+)?next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend)|in\s+(?:(?:a|an|the)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?|years?)|within\s+(?:the\s+)?(?:next\s+)?(?:(?:a|an)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?)|by\s+(?:the\s+end\s+of\s+(?:the\s+)?(?:week|month|year)|end\s+of\s+(?:the\s+)?(?:week|month|year)|next\s+(?:week|month|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(?:week|weekend|month)|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|as\s+soon\s+as\s+(?:possible|you\s+can|he\s+can|she\s+can|they\s+can|convenient)|before\s+(?:the\s+)?(?:weekend|next\s+week|the\s+end\s+of\s+(?:the\s+)?(?:week|month)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|not\s+(?:before|until)\b[^.!?]*|(?:early|late|later)\s+(?:next|this)\s+(?:week|month|weekend)|the\s+sooner\s+the\s+better|sooner\s+the\s+better|no\s+rush|no\s+hurry|when\s+it'?s\s+convenient|at\s+your\s+(?:earliest\s+)?convenience|asap)\b[^.!?]*$/i;
 
 // A clause that is ONLY a callback scalar answer — "after 3 PM", "anytime",
 // "around noon" — is callback field content, not a supporting detail.
-const CALLBACK_SCALAR_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh)[,.\s]*)*(?:any\s?time|whenever|in\s+the\s+(?:morning|afternoon|evening|night)s?|mornings?|afternoons?|evenings?|tonight|noon|midnight|(?:after|before|around|at|by|from|until|between)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?(?:\s+(?:or\s+so|ish|at\s+the\s+latest))?|\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?))\b[^.!?]*$/i;
+// A punctuation-separated timing constraint that continues a callback window:
+// "call me back after 2 pm. but before 5 pm" / "after 2, and before 5". Only
+// numeric timing constraints are absorbed, so non-timing trailing clauses stay
+// free for Details.
+const CALLBACK_TIME_CONTINUATION_RE = /^[\s.,;:—\-–]*\b((?:but|and)\s+(?:not\s+)?(?:before|after|around|by|until|till|no\s+later\s+than)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?|o'?clock|sharp)?)/i;
+const CALLBACK_SCALAR_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh|but|and)[,.\s]*)*(?:any\s?time|whenever|in\s+the\s+(?:morning|afternoon|evening|night)s?|mornings?|afternoons?|evenings?|tonight|noon|midnight|(?:after|before|around|at|by|from|until|between)\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?(?:\s+(?:or\s+so|ish|at\s+the\s+latest))?|\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?))\b[^.!?]*$/i;
 
 // Conversational scaffolding that may trail a real clause ("..., hello",
 // "..., are you there"). Stripped only as a trailing run or standalone phrase —
@@ -1307,7 +1322,7 @@ function extractDetailSentences(
     // Skip the name carrier sentence
     if (consumed.customerName && sLower.includes(consumed.customerName.toLowerCase())) continue;
     // Skip sentences overlapping an extracted scalar match
-    if (consumedScalars.some(m => m && sLower.includes(m))) continue;
+    if (consumedScalars.some(m => m && (sLower.includes(m) || m.includes(sLower)))) continue;
     // Skip sentences whose information is already captured by the regex detail
     // extractor or the concise service reason (prevents "behind the toilet.
     // There is water dripping behind the toilet" duplication).
