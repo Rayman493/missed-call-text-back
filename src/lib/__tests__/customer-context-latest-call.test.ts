@@ -80,8 +80,8 @@ describe('customer context — latest completed call wins', () => {
   it('stale legacy alias keys in raw_metadata cannot shadow the current call', () => {
     const lead = leadWithSecondCall()
     // Post-merge invariant: any pre-existing alias carries the CURRENT value.
-    lead.raw_metadata.reasonForCalling = SECOND_CALL.serviceRequested
-    lead.raw_metadata.addressOrLocation = SECOND_CALL.serviceAddress
+    ;(lead.raw_metadata as any).reasonForCalling = SECOND_CALL.serviceRequested
+    ;(lead.raw_metadata as any).addressOrLocation = SECOND_CALL.serviceAddress
     delete (lead as any).aiCallRecords
     const ctx = getCurrentCustomerContext(lead)
     expect(ctx.reasonForCalling).toBe('Calling because I need my gutters cleaned')
