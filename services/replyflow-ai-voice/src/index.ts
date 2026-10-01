@@ -88,6 +88,7 @@ import {
 import { extractRawRequestTranscriptFromStageCaptures } from './request-transcript-selection';
 import { EARLY_COMPLETION_PATTERNS, EARLY_CALLBACK_PATTERNS } from './early-timing-patterns';
 import { enrichIntakeFromTranscript, hasUsableLocation, isNameRefusal, isLocationRefusal, detectCorrectionIntent, extractExplicitNameCorrection, extractCompletionTimeCandidate, extractCallbackTimeCandidate, splitServiceAndDetails } from './intake-skip-ahead';
+import { mergeAiIntakeIntoRawMetadata } from './lead-metadata-merge';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -5053,9 +5054,7 @@ async function finalizeIncompleteIntake(
             .from('leads')
             .update({
               raw_metadata: {
-                ...(lead.raw_metadata || {}),
-                ...canonicalInfo,
-                extracted_info: canonicalInfo,
+                ...mergeAiIntakeIntoRawMetadata(lead.raw_metadata, canonicalInfo),
                 ai_intake_completed: isCompleted,
                 ai_intake_completed_at: isCompleted ? new Date().toISOString() : (lead.raw_metadata?.ai_intake_completed_at || undefined),
                 ai_intake_outcome: incompleteOutcome,
@@ -5108,9 +5107,7 @@ async function finalizeIncompleteIntake(
             .update({
               status: 'new',
               raw_metadata: {
-                ...(existingLead.raw_metadata || {}),
-                ...canonicalInfo,
-                extracted_info: canonicalInfo,
+                ...mergeAiIntakeIntoRawMetadata(existingLead.raw_metadata, canonicalInfo),
                 ai_intake_completed: isCompleted,
                 ai_intake_completed_at: isCompleted ? new Date().toISOString() : (existingLead.raw_metadata?.ai_intake_completed_at || undefined),
                 ai_intake_outcome: incompleteOutcome,
@@ -8657,8 +8654,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         .from('leads')
         .update({
           raw_metadata: {
-            ...(lead.raw_metadata || {}),
-            // Only update partial intake metadata, NOT extracted_info fields
+            // Merge only the AI-owned fields this call actually captured;
+            // empty current-call values never erase prior captured values and
+            // unrelated metadata is preserved untouched.
+            ...mergeAiIntakeIntoRawMetadata(lead.raw_metadata, canonicalExtractedInfo),
             ai_intake_completed: false,
             ai_intake_partial: true,
             ai_intake_partial_updated_at: new Date().toISOString(),
@@ -10020,7 +10019,9 @@ Reply to this message if you'd like to update or add any information.
         }
 
         if (existingLead) {
-          // Existing lead: preserve raw_metadata, only update status and completion timestamp
+          // Existing lead (repeat caller): merge the CURRENT call's canonical
+          // AI intake fields into raw_metadata so customer context reflects the
+          // latest call. Non-AI metadata keys are preserved untouched.
           const { data: updatedLead, error: updateError } = await retrySupabaseOperation(
             async () => {
               return await supabase
@@ -10028,8 +10029,7 @@ Reply to this message if you'd like to update or add any information.
                 .update({
                   status: 'new', // Reset to 'new' for new intake
                   raw_metadata: {
-                    ...(existingLead.raw_metadata || {}),
-                    // Only update completion metadata, NOT extracted_info fields
+                    ...mergeAiIntakeIntoRawMetadata(existingLead.raw_metadata, canonicalExtractedInfo),
                     ai_intake_completed: true,
                     ai_intake_completed_at: new Date().toISOString(),
                     ai_intake_latest_call_sid: state.callSid,
@@ -10051,7 +10051,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: simple_mode_lead_updated_preserving_history');
             console.log('[SIMPLE MODE] leadId:', lead?.id);
-            console.log('[SIMPLE MODE] action: preserved_existing_raw_metadata');
+            console.log('[SIMPLE MODE] action: merged_current_call_ai_fields');
             console.log('[SIMPLE MODE] =========================================');
           }
         } else {
@@ -10214,10 +10214,11 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] conversationId:', conversation.id);
         console.log('[SIMPLE MODE] =========================================');
 
-        // ── A: Update leads.raw_metadata with completion metadata only ───────
-        // CRITICAL: Do NOT overwrite extracted_info fields - preserve historical intake data
-        // ai_call_records is the authoritative intake history
-        // lead.raw_metadata only stores completion timestamps and latest call_sid reference
+        // ── A: Update leads.raw_metadata with the latest call's AI fields ────
+        // ai_call_records remains the immutable per-call history; raw_metadata
+        // is the latest-snapshot surface. Merge only the AI-owned fields this
+        // call captured so repeat callers see current context while unrelated
+        // metadata and prior values for uncaptured fields are preserved.
         console.log('[simple_mode_lead_summary_update_start]', { leadId: lead.id, callSid: state.callSid });
         try {
           const { data: currentLead } = await retrySupabaseOperation(
@@ -10238,8 +10239,7 @@ Reply to this message if you'd like to update or add any information.
                 .from('leads')
                 .update({
                   raw_metadata: {
-                    ...(currentLead?.raw_metadata || {}),
-                    // Only update completion metadata, NOT extracted_info fields
+                    ...mergeAiIntakeIntoRawMetadata(currentLead?.raw_metadata, canonicalExtractedInfo),
                     ai_intake_completed: true,
                     ai_intake_completed_at: new Date().toISOString(),
                     ai_intake_latest_call_sid: state.callSid,
@@ -10257,7 +10257,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[simple_mode_lead_summary_update_success]', {
               leadId: lead.id,
               callSid: state.callSid,
-              action: 'preserved_existing_raw_metadata',
+              action: 'merged_current_call_ai_fields',
             });
           }
         } catch (metaError: any) {
@@ -15125,9 +15125,7 @@ wss.on('connection', (ws, req) => {
               .from('leads')
               .update({
                 raw_metadata: {
-                  ...(lead.raw_metadata || {}),
-                  ...canonicalExtractedInfo,
-                  extracted_info: canonicalExtractedInfo,
+                  ...mergeAiIntakeIntoRawMetadata(lead.raw_metadata, canonicalExtractedInfo),
                   ai_intake_completed: true,
                 }
               })
@@ -15394,12 +15392,13 @@ wss.on('connection', (ws, req) => {
         console.log('[COMPLETE FINALIZATION STEP 6 SUCCESS] =========================================');
 
         // Write normalized canonical fields back to the lead so getLeadAIIntake sees clean values.
+        // Merge (not replace) so unrelated raw_metadata (corrections, attribution,
+        // billing) survives and empty fields cannot erase prior captured values.
         const { error: leadMetaUpdateError } = await supabase
           .from('leads')
           .update({
             raw_metadata: {
-              ...canonicalCallRecordInfo,
-              extracted_info: canonicalCallRecordInfo,
+              ...mergeAiIntakeIntoRawMetadata(lead.raw_metadata, canonicalCallRecordInfo),
               ai_intake_completed: outcome === 'completed',
             },
           })
