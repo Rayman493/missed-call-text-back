@@ -33,6 +33,7 @@ import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { PhoneIncoming, UserPlus, RefreshCw, Plus } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel } from '@/lib/ai-field-mapping'
+import { generateCanonicalRequestTitle } from '@/lib/ai-intake-formatter'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { CustomerStatus, normalizeCustomerStatus, getCustomerStatusStyle } from '@/lib/customer-status'
@@ -1346,8 +1347,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       leadData.aiCallRecords.forEach((aiCall: any) => {
         const outcome = aiCall.outcome
         const intakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCall] })
-        const serviceRequested = getLeadRequestTitle(leadData) || 'Unknown request'
-        const extractedInfo = aiCall.extracted_info || leadData?.raw_metadata?.extracted_info || {}
+        // Each timeline event describes THIS call only. The request label must
+        // come from this record's own captured service — never the lead-level
+        // authoritative title or raw_metadata, which would relabel an empty or
+        // incomplete call with an older completed request.
+        const extractedInfo = aiCall.extracted_info || {}
 
         // Determine which fields are present for observability
         const hasName = Boolean(extractedInfo.customerName || extractedInfo.callerName || extractedInfo.name)
@@ -1360,10 +1364,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const serviceRaw = extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request || ''
         const serviceLooksLikeQuestion = hasService && /^(how much|what do you charge|what are your|when are you|do you|can you|who|what|when|where|why|how)\s/i.test(serviceRaw)
 
+        const callTitle = serviceRaw ? generateCanonicalRequestTitle(serviceRaw) : ''
+        const serviceRequested = callTitle && callTitle !== 'Not collected' && callTitle !== 'General Service'
+          ? callTitle
+          : ''
+
         // Determine message based on actual outcome
         let intakeMessage = ''
         if (intakeStatus === 'complete') {
-          intakeMessage = `Intake Complete: ${serviceRequested}`
+          intakeMessage = serviceRequested
+            ? `Intake Complete: ${serviceRequested}`
+            : 'Intake Complete'
         } else if (intakeStatus === 'partial') {
           // For partial intakes, show what was captured to improve trust
           const capturedFields = []
@@ -1377,14 +1388,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             ? ` (${capturedFields.join(', ')})` 
             : ' (no fields captured)'
 
-          intakeMessage = `Partial Intake: ${serviceRequested}${capturedText}`
+          intakeMessage = `Partial Intake${serviceRequested ? `: ${serviceRequested}` : ''}${capturedText}`
         } else if (outcome === 'early_hangup') {
-          intakeMessage = `Caller Hung Up: ${serviceRequested}`
+          intakeMessage = `Caller Hung Up${serviceRequested ? `: ${serviceRequested}` : ''}`
         } else if (outcome === 'no_speech') {
           intakeMessage = 'No Speech Detected'
         } else if (outcome === 'ai_connection_failed') {
           intakeMessage = 'AI Connection Failed'
         } else {
+          // The generic "Request:" event asserts this call asked for a service.
+          // A record that captured none must not emit one — there is no
+          // neutral stand-in label; the call simply produces no request event.
+          if (!serviceRequested) return
           intakeMessage = `Request: ${serviceRequested}`
         }
 

@@ -210,6 +210,7 @@ const SINGLE_LEAD_SELECT = `
   ai_call_records (
     id,
     extracted_info,
+    outcome,
     caller_phone,
     business_id,
     lead_id,
@@ -399,6 +400,7 @@ export default function LeadsPage() {
           ai_call_records (
             id,
             extracted_info,
+            outcome,
             caller_phone,
             business_id,
             lead_id,

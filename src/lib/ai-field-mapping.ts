@@ -4,7 +4,7 @@
  * Provides canonical field names and backward compatibility for reading extracted_info
  */
 
-import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize, generateCanonicalRequestTitle, validateRequestTitle } from './ai-intake-formatter'
+import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize, generateCanonicalRequestTitle, validateRequestTitle, removeReasonEchoFromDetails } from './ai-intake-formatter'
 import { isCompleteAIIntake } from './ai-intake-completion'
 
 /**
@@ -599,15 +599,24 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     // Additional details: current-call only, preserve multi-part facts
     // Priority: manual corrections > current-call normalized > current-call raw
     // NO historical raw_metadata fallback
-    additionalDetails: normalizeAdditionalDetails(pick(
-      ...(correctionOutranks('importantDetails')
-        ? [corrected.details, corrected.issueDescription, corrected.importantDetails]
-        : []),
-      effectiveNormalized.importantDetails,
-      effectiveExtractedInfo.additionalDetails,
-      // Latest-call-only: do not inherit details from older calls
-      findLatestCallField(['importantDetails', 'additionalDetails'])
-    )),
+    // When an authoritative completed call exists, suppress a verbatim leading
+    // echo of the reason ("installed in my bathroom because..." → "because
+    // ..."). No authoritative record means this resolution is a historical/
+    // metadata snapshot (Request History) — those render verbatim.
+    additionalDetails: (() => {
+      const resolved = normalizeAdditionalDetails(pick(
+        ...(correctionOutranks('importantDetails')
+          ? [corrected.details, corrected.issueDescription, corrected.importantDetails]
+          : []),
+        effectiveNormalized.importantDetails,
+        effectiveExtractedInfo.additionalDetails,
+        // Latest-call-only: do not inherit details from older calls
+        findLatestCallField(['importantDetails', 'additionalDetails'])
+      ))
+      return authoritativeCallRecord
+        ? removeReasonEchoFromDetails(resolved, serviceRequestedValue)
+        : resolved
+    })(),
     // Service address: latest-call-only (call-scoped)
     serviceAddress: normalizeAddress(pick(
       ...(correctionOutranks('addressOrLocation')
