@@ -132,6 +132,12 @@ export async function POST(request: NextRequest) {
           : session.subscription?.id
         
         console.log('[Billing Success Fallback Recovery] subscriptionId:', subscriptionId)
+
+        // Normalize customer ID safely - session.customer is expanded, so it may
+        // be a Stripe Customer object rather than a 'cus_...' string
+        const stripeCustomerId = typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id || null
         
         // Use expanded object if available, otherwise retrieve from Stripe
         let subscription: any
@@ -170,13 +176,18 @@ export async function POST(request: NextRequest) {
         // Repair business state
         const repairData: any = {
           subscription_status: subscription.status,
-          stripe_customer_id: session.customer as string,
           stripe_subscription_id: subscription.id,
           trial_ends_at: trialEndsAt,
           trial_started_at: new Date().toISOString(),
           current_period_end: currentPeriodEnd,
         }
-        
+
+        // Persist only a canonical 'cus_...' string; if the session has no
+        // resolvable customer ID, leave the existing value untouched
+        if (stripeCustomerId) {
+          repairData.stripe_customer_id = stripeCustomerId
+        }
+
         if (subscription.items && subscription.items.data[0]) {
           repairData.subscription_price_id = subscription.items.data[0].price.id
         }
