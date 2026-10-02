@@ -442,7 +442,7 @@ function AuthContent() {
             body: JSON.stringify({
               checkout_mode: 'trial',
               checkout_source: 'auth-signup',
-              return_to_app: checkNativeIOS,
+              return_to_app: checkNativeIOS(),
             }),
           })
 
@@ -817,7 +817,7 @@ function AuthContent() {
         body: JSON.stringify({
           checkout_mode: 'trial',
           checkout_source: 'auth-signup',
-          return_to_app: checkNativeIOS,
+          return_to_app: checkNativeIOS(),
         }),
       })
 
