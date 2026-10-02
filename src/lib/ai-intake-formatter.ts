@@ -139,7 +139,8 @@ function normalizeForComparison(text: string): string {
 // Always returns a non-empty string; falls back to a customer-friendly placeholder.
 function resolveDetailsValue(
   intakeData: any,
-  serviceRequested: string
+  serviceRequested: string,
+  echoSource?: string
 ): { detailsValue: string; hasDetails: boolean } {
   const FALLBACK = 'No additional details provided';
   if (!intakeData || typeof intakeData !== 'object') {
@@ -170,7 +171,7 @@ function resolveDetailsValue(
   ];
   for (const candidate of detailFields) {
     if (isUsableDetails(candidate) && !isDuplicateOfRequest(candidate)) {
-      return { detailsValue: candidate.trim(), hasDetails: true };
+      return { detailsValue: removeReasonEchoFromDetails(candidate.trim(), echoSource || serviceRequested), hasDetails: true };
     }
   }
 
@@ -184,7 +185,7 @@ function resolveDetailsValue(
       !isPlaceholderValue(normalizedReason, PLACEHOLDER_SERVICES) &&
       !isDuplicateOfRequest(normalizedReason)
     ) {
-      return { detailsValue: normalizedReason, hasDetails: true };
+      return { detailsValue: removeReasonEchoFromDetails(normalizedReason, echoSource || serviceRequested), hasDetails: true };
     }
   }
 
@@ -1658,6 +1659,73 @@ export const normalizeAdditionalDetails = (text: string | null | undefined): str
   normalized = sanitizeAdditionalDetails(normalized);
   return normalized;
 };
+
+// --- Reason echo suppression for Details -----------------------------------
+// When Details begins by restating a phrase already owned by Reason (e.g.
+// Reason: "get a new toilet installed in my bathroom", Details: "installed in
+// my bathroom because the old one broke"), drop only that verbatim leading
+// echo and keep the incremental context. Strictly conservative:
+//   * the removed prefix must be a contiguous, word-aligned phrase that also
+//     appears verbatim in the request text (no token subtraction, no stemming)
+//   * the prefix must be at least MIN_ECHO_WORDS words long
+//   * a suffix is kept only when it begins after punctuation or a clause
+//     connector — otherwise the original Details text is preserved untouched
+const MIN_ECHO_WORDS = 3;
+const ECHO_SUFFIX_CONNECTORS = new Set([
+  'because', 'since', 'as', 'so', 'and', 'but', 'which', 'that',
+  'however', 'although', 'though', 'also', 'plus', 'due',
+  'the', 'a', 'an', 'it', 'this', 'there', 'they', 'we', 'i', 'he', 'she', 'my',
+]);
+
+export const removeReasonEchoFromDetails = (
+  details: string | null | undefined,
+  request: string | null | undefined
+): string => {
+  if (typeof details !== 'string') return '';
+  const original = details.trim();
+  const reasonNorm = normalizeForComparison(request || '');
+  if (!original || !reasonNorm) return details || '';
+
+  // Tokenize the ORIGINAL details so stripped output preserves caller wording.
+  const tokens = Array.from(original.matchAll(/\S+/g)).map((m) => ({
+    text: m[0],
+    start: m.index as number,
+    end: (m.index as number) + m[0].length,
+    norm: normalizeForComparison(m[0]),
+  }));
+  const wordTokens = tokens.filter((t) => t.norm !== '');
+  if (wordTokens.length < MIN_ECHO_WORDS) return details;
+
+  const paddedReason = ` ${reasonNorm} `;
+  // Find the LONGEST leading word-run that appears verbatim inside Reason.
+  let echoEnd = -1;
+  let echoNextTokenStart = -1;
+  let echoNextNorm = '';
+  for (let k = wordTokens.length - 1; k >= MIN_ECHO_WORDS; k--) {
+    const prefix = wordTokens.slice(0, k).map((t) => t.norm).join(' ');
+    if (paddedReason.includes(` ${prefix} `)) {
+      echoEnd = wordTokens[k - 1].end;
+      const next = wordTokens[k];
+      echoNextTokenStart = next ? next.start : -1;
+      echoNextNorm = next ? next.norm : '';
+      break;
+    }
+  }
+  if (echoEnd === -1) return details;
+
+  // Determine whether the boundary after the echo is trustworthy.
+  const between = echoNextTokenStart === -1 ? '' : original.slice(echoEnd, echoNextTokenStart);
+  const boundaryIsPunctuation = /[.,!?;:—–-]/.test(between);
+  const boundaryIsConnector = echoNextNorm !== '' && ECHO_SUFFIX_CONNECTORS.has(echoNextNorm);
+  // No remainder, or a boundary that cannot be confidently isolated → keep original.
+  if (echoNextTokenStart === -1) return details;
+  if (!boundaryIsPunctuation && !boundaryIsConnector) return details;
+
+  const remainder = original.slice(echoNextTokenStart).trim();
+  if (!remainder) return details;
+  return safeTrimAndCapitalize(remainder);
+};
+
 // Legacy function for backward compatibility
 // Maps to field-specific functions based on context
 // DEPRECATED: Use field-specific functions instead
@@ -1821,8 +1889,9 @@ export const formatAiIntakeSummary = (
     if (detailsValue && normalizeForComparison(detailsValue) === normalizeForComparison(serviceRequested)) {
       detailsValue = '';
     }
+    detailsValue = removeReasonEchoFromDetails(detailsValue, serviceRequestedRaw);
   } else {
-    detailsValue = resolveDetailsValue(intakeData, serviceRequested).detailsValue;
+    detailsValue = resolveDetailsValue(intakeData, serviceRequested, serviceRequestedRaw).detailsValue;
   }
   // Determine which fields have actual meaningful values
   const hasName = (customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES)) || !!intakeData?.nameRefused;
