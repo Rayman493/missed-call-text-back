@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { resolveBusinessForUser } from '@/lib/team-access'
@@ -89,8 +90,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Get calendar integration
-    const { data: integration, error: integrationError } = await supabase
+    // Get calendar integration via service role — OAuth token columns are
+    // not selectable by user JWTs; authorization happened above.
+    const { data: integration, error: integrationError } = await supabaseAdmin
       .from('calendar_integrations')
       .select('*')
       .eq('business_id', business.id)
@@ -137,7 +139,7 @@ export async function PATCH(
       console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token refreshed successfully for business:', business.id)
 
       // Update integration with new token
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('calendar_integrations')
         .update({
           access_token: accessToken,
@@ -338,8 +340,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Get calendar integration
-    const { data: integration, error: integrationError } = await supabase
+    // Get calendar integration via service role — OAuth token columns are
+    // not selectable by user JWTs; authorization happened above.
+    const { data: integration, error: integrationError } = await supabaseAdmin
       .from('calendar_integrations')
       .select('*')
       .eq('business_id', business.id)
@@ -386,7 +389,7 @@ export async function DELETE(
       console.log('[GOOGLE CALENDAR TOKEN REFRESH] Token refreshed successfully for business:', business.id)
 
       // Update integration with new token
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('calendar_integrations')
         .update({
           access_token: accessToken,

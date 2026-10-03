@@ -96,6 +96,24 @@ export async function POST(request: NextRequest) {
         })
         return NextResponse.json({ error: 'Forbidden: You do not have access to this business' }, { status: 403 })
       }
+
+      // Verify leadId belongs to the same business — prevents cross-tenant
+      // follow-up/job association with a known lead UUID from another business
+      const { data: lead, error: leadError } = await supabaseAdmin
+        .from('leads')
+        .select('id')
+        .eq('id', leadId)
+        .eq('business_id', business.id)
+        .maybeSingle()
+
+      if (leadError || !lead) {
+        console.error('[FOLLOWUP API ERROR] Lead not found in this business:', {
+          businessId,
+          leadId,
+          leadError
+        })
+        return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
+      }
     }
 
     console.log('[FOLLOWUP JOB CREATE ATTEMPT - API]', {

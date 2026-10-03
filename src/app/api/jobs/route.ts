@@ -534,8 +534,9 @@ export async function POST(request: NextRequest) {
     let googleCalendarEventId = null
     if (scheduled_date && scheduled_time) {
       try {
-        // Check if Google Calendar is connected
-        const { data: integration, error: integrationError } = await supabase
+        // Check if Google Calendar is connected via service role — OAuth token
+        // columns are not selectable by user JWTs; job was already authorized.
+        const { data: integration, error: integrationError } = await supabaseAdmin
           .from('calendar_integrations')
           .select('*')
           .eq('business_id', business.id)
@@ -582,7 +583,7 @@ export async function POST(request: NextRequest) {
 
                 // Update the integration with new token
                 const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-                await supabase
+                await supabaseAdmin
                   .from('calendar_integrations')
                   .update({
                     access_token: tokenData.access_token,

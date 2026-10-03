@@ -47,10 +47,11 @@ export async function GET(request: NextRequest) {
 
     const business = authResult.business;
 
-    // Query calendar_integrations
+    // Query calendar_integrations — safe columns only; OAuth token columns
+    // are not selectable by user JWTs and are not needed for status.
     const { data: integration, error: integrationError } = await supabase
       .from('calendar_integrations')
-      .select('*')
+      .select('id, business_id, provider, calendar_email, expires_at, scope, created_at, updated_at')
       .eq('business_id', business.id)
       .eq('provider', provider)
       .single()
