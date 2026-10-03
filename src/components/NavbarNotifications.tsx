@@ -284,22 +284,25 @@ export default function NavbarNotifications() {
                                null
 
       if (serviceRequested) {
-        // Validate the stored request to reject conversational filler
+        // Validate the stored request to reject conversational filler.
+        // Display-only sentence casing — stored values are never mutated;
+        // the raw data.serviceRequested can begin lowercase after transcript
+        // cleanup while push already sends the capitalized stored message.
         const validated = validateRequestTitle(serviceRequested)
         if (validated) {
-          return validated
+          return capitalizeFirstAlpha(validated)
         }
         // If invalid, regenerate from additionalDetails
         if (additionalDetails) {
           const regenerated = generateCanonicalRequestTitle(additionalDetails)
           if (regenerated !== 'Not collected') {
-            return regenerated
+            return capitalizeFirstAlpha(regenerated)
           }
         }
         // Fallback to canonicalizing the raw value
         const canonicalTitle = generateCanonicalRequestTitle(serviceRequested)
         if (canonicalTitle !== 'Not collected') {
-          return canonicalTitle
+          return capitalizeFirstAlpha(canonicalTitle)
         }
       }
 
