@@ -1319,6 +1319,32 @@ const CALLBACK_SCALAR_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|u
 // never mid-clause — so real service wording containing common words survives.
 const META_TAIL_RE = /(?:[\s,]+(?:hello|hi|hey|okay|ok|thanks|thank you|are you (?:still )?there|can you hear me|still there)\??\s*)+$/i;
 
+// A scalar-stage residual may append to the canonical Request only when it is a
+// complete, independently meaningful clause. Scalar scaffolding left behind by
+// extraction — "Any time in the", "sometime around", "you can call me", "in the
+// morning" — is leftover grammar of the scalar answer, not service context.
+// Residuals starting with scalar scaffolding (timing words, bare prepositions,
+// callback triggers, meta politeness, digits) are field content, never context.
+const RESIDUAL_SCALAR_SCAFFOLD_START_RE = /^(?:\d|any\s?time\b|sometime\b|some\s+time\b|whenever\b|whatever\b|whichever\b|mornings?\b|afternoons?\b|evenings?\b|nights?\b|tonights?\b|tomorrow\b|today\b|tonite\b|noon\b|midnight\b|next\b|this\b|last\b|every\b|each\b|asap\b|as\s+soon\s+as\b|in\s+the\s+(?:morning|afternoon|evening|night)s?\b|at\b|on\b|in\b|by\b|after\b|before\b|around\b|about\b|until\b|till\b|during\b|between\b|from\b|for\b|to\b|with\b|of\b|call\b|text\b|reach\b|contact\b|phone\b|you\s+can\b|if\s+you\b|when\s+you\b|yes\b|yeah\b|yep\b|no\b|nope\b|okay\b|ok\b|sure\b|maybe\b|probably\b|hopefully\b|preferably\b|ideally\b|well\b|um\b|uh\b|hello\b|hi\b|hey\b|thanks\b|thank\s+you\b)/i;
+// A residual ending on a function word is a clause cut mid-thought ("Any time
+// in the", "sometime around", "you can") — never complete context. Content
+// words (nouns, verbs, adjectives, adverbs like "afterward/locked/narrow")
+// still pass.
+const RESIDUAL_DANGLING_END_RE = /\b(?:the|a|an|in|on|at|of|to|for|my|your|his|her|our|their|its|and|or|but|if|when|that|which|who|whom|whose|is|are|was|were|be|been|am|have|has|had|do|does|did|will|would|can|could|should|may|might|must|shall|with|around|about|by|from|after|before|until|till|during|between|so|as|than|then|me|you|him|us|them|it|this|these|those|any|some|not|just|also|too|very|really|please|well|um|uh)s?$/i;
+
+// Conservative invariant: a residual from a scalar-stage answer may only append
+// to the canonical Request when it forms a complete, independently meaningful
+// clause. When uncertain, the residual is dropped rather than polluting Request.
+const isCompleteResidualClause = (text: string): boolean => {
+  const t = (text || '').trim();
+  if (!t) return false;
+  const words = (t.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
+  if (words < 3) return false;
+  if (RESIDUAL_SCALAR_SCAFFOLD_START_RE.test(t)) return false;
+  if (RESIDUAL_DANGLING_END_RE.test(t)) return false;
+  return true;
+};
+
 /**
  * Extract detail sentences from a transcript: sentences that carry supporting
  * facts but are not the name carrier, not the service carrier, and do not
@@ -1367,16 +1393,19 @@ function extractDetailSentences(
         .replace(/[.,;!?\s]+$/, '')
         .replace(/^\s*(?:and|but|so|then|also|too)\s+/i, '')
         .trim();
-      const rWords = (residual.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
-      const isScaffold = /\b(?:i'?d like|i need|i want|i'?m looking|call me|you can call|my name is|this is|please)\b/i.test(residual)
+      const isScaffold = /\b(?:i'?d like|i need|i want|i'?m looking|call me|you can call|my name is|this is)\b/i.test(residual)
         || (consumed.isCorrection && CORRECTION_SCAFFOLD_CLAUSE_RE.test(residual))
         || CALLBACK_OWNED_CLAUSE_RE.test(residual)
         || ADDRESS_OWNED_CLAUSE_RE.test(residual)
         || TIMING_OWNED_CLAUSE_RE.test(residual)
+        || CALLBACK_SCALAR_CLAUSE_RE.test(residual)
         || isMetaUtterance(residual);
-      if (rWords >= 3 && !isScaffold) {
+      if (!isScaffold) {
         const cleanedResidual = cleanDisplayIntakeText(residual).replace(/[.,;!?\s]+$/, '');
-        if (cleanedResidual) details.push(cleanedResidual);
+        // Only a complete, independently meaningful clause may append to the
+        // canonical Request — scalar scaffolding fragments ("Any time in
+        // the") and function-word stubs never qualify.
+        if (isCompleteResidualClause(cleanedResidual)) details.push(cleanedResidual);
       }
       continue;
     }
