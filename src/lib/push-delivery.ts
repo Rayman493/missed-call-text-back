@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendApnsToTokens, PushPayload as ApnsPayload } from '@/lib/apns-sender'
 import { sendToFcmTokens, PushPayload as FcmPayload } from '@/lib/fcm-sender'
+import { capitalizeFirstAlpha } from '@/lib/utils'
 
 // Retry configuration
 const MAX_RETRY_ATTEMPTS = 3
@@ -167,6 +168,10 @@ export async function sendPushForNotification(notification: {
     leadId: notification.data?.leadId,
   }
 
+  // Display-only sentence casing for the push body — matches in-app
+  // Notification Center rendering; the stored message is never mutated.
+  const displayBody = capitalizeFirstAlpha(notification.message)
+
   // Track per-token state across retry attempts
   const tokenState = new Map<string, TokenResult>()
 
@@ -223,7 +228,7 @@ export async function sendPushForNotification(notification: {
         if (retryAndroidTokens.length === 0) return { attempted: 0, successful: 0, failed: 0, results: [] }
         const result = await sendToFcmTokens(retryAndroidTokens, {
           title: notification.title,
-          body: notification.message,
+          body: displayBody,
           payload: payload as FcmPayload,
         })
 
@@ -245,7 +250,7 @@ export async function sendPushForNotification(notification: {
         if (retryIosTokens.length === 0) return { attempted: 0, successful: 0, failed: 0, disabled: 0, results: [] }
         const result = await sendApnsToTokens(retryIosTokens, {
           title: notification.title,
-          body: notification.message,
+          body: displayBody,
           payload,
         })
 
