@@ -7,7 +7,7 @@ android {
         applicationId "com.replyflowhq.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode 4
         versionName "1.0"
         // Endpoint for fire-and-forget Tap to Pay process lifecycle telemetry
         buildConfigField "String", "TTP_DIAGNOSTICS_ENDPOINT", '"https://www.replyflowhq.com/api/diagnostics/ttp-retry-stage"'
