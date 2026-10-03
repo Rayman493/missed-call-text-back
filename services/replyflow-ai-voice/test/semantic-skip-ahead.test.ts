@@ -6,6 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { enrichIntakeFromTranscript } from '../src/intake-skip-ahead';
+import { resolveNextRequiredStage } from '../src/intake-validation';
 import type { IntakeData } from '../src/intake-skip-ahead';
 
 describe('Semantic Skip-Ahead Extraction', () => {
@@ -432,5 +433,59 @@ describe('Semantic Skip-Ahead Extraction', () => {
     // It should stay part of the request and not become an issueDescription.
     expect(intake.serviceRequested).to.include('in the living room');
     expect(intake.issueDescription).to.be.oneOf([undefined, '']);
+  });
+});
+
+describe('Job-site detail phrases must not satisfy serviceAddress', () => {
+  const falsePositives = [
+    'I need the lawn cut near the back fence.',
+    'The backyard is fenced, please mow it.',
+    'There is a gate on the left side of the yard to be careful around.',
+    'Watch out for sprinkler heads near the back fence.',
+    'The work is around the garage and behind the shed.',
+    'Please mow the front lawn.',
+  ];
+
+  for (const transcript of falsePositives) {
+    it(`does not extract a serviceAddress from "${transcript}"`, () => {
+      const intake: IntakeData = { stage: 'ask_request' };
+      enrichIntakeFromTranscript(transcript, intake, 'ask_request', 'CA-test');
+      expect(intake.serviceAddress).to.be.oneOf([undefined, '']);
+    });
+  }
+
+  const truePositives: Array<[string, string]> = [
+    ['The address is 123 Main Street.', '123 Main Street'],
+    ['It is at 153 Pine Nut Road, apartment number four.', '153 Pine Nut Road, apartment number four'],
+    ['The job is at my house at 42 Oak Avenue.', 'my house at 42 Oak Avenue'],
+    // Job-site detail AND a real address in one utterance: the address still wins.
+    [
+      'I need the grass cut at 123 Main Street. Be careful around the back fence.',
+      '123 Main Street',
+    ],
+  ];
+
+  for (const [transcript, expected] of truePositives) {
+    it(`still extracts "${expected}" from "${transcript}"`, () => {
+      const intake: IntakeData = { stage: 'ask_request' };
+      enrichIntakeFromTranscript(transcript, intake, 'ask_request', 'CA-test');
+      expect(intake.serviceAddress).to.equal(expected);
+    });
+  }
+
+  it('reproduces production call CA494ffb: job details never satisfy location, ask_location still runs', () => {
+    const intake: IntakeData = { stage: 'ask_request', customerName: 'Jacksawer' };
+    const transcript =
+      "I'm looking to have the grass cut and cleaned up my property. The yard is about a quarter acre and it's gotten pretty overgrown after I was away for a couple of weeks. The backyard is fenced in and the gate on the left side is a little narrow, so a large riding mower probably won't fit through it. There are also a few sprinkler heads near the back fence that I want you to be careful around. If possible, I'd like the grass clippings bagged and taken away instead of left on the lawn.";
+    enrichIntakeFromTranscript(transcript, intake, 'ask_request', 'CA-test');
+
+    // Reason + Details preserved; no phantom address.
+    expect(intake.serviceRequested).to.exist;
+    expect(intake.issueDescription).to.exist;
+    expect(intake.serviceAddress).to.be.oneOf([undefined, '']);
+
+    // With no genuine location supplied, the location stage must still run —
+    // completion cannot be reached until location is supplied or refused.
+    expect(resolveNextRequiredStage(intake, 'onsite')).to.equal('ask_location_or_context');
   });
 });
