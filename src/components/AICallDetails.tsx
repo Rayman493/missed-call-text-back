@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, capitalizeFirstAlpha } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, Pencil, MapPin, Info, FileText, CalendarDays, PhoneCall } from 'lucide-react'
-import { normalizeExtractedInfo, getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus } from '@/lib/ai-field-mapping'
+import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, MapPin, Info, FileText, CalendarDays, PhoneCall } from 'lucide-react'
+import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { CallTranscriptCard } from '@/components/CallTranscriptCard'
 import { normalizeAICallRecord, getIntakeBadgeLabel, sortAndDeduplicateRecords, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
@@ -236,7 +236,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   // Unified intake field rendering for both desktop and mobile
   const renderIntakeFields = () => {
     const intake = getLeadAIIntake(leadData || {})
-    const conciseTitle = getLeadRequestTitle(leadData || {}) || intake.serviceRequested || ''
 
     // Returns the value if it's meaningful (not a placeholder like 'Not collected'),
     // otherwise undefined. Used so manually-corrected fields stay visible and
@@ -274,33 +273,22 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
         ) : null}
 
-        {/* Concise Request Title - Prominent in view mode */}
-        {!isEditMode && conciseTitle && (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
-                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-0.5">Request</p>
-                <p className="text-sm font-semibold text-foreground leading-tight">{capitalizeFirstAlpha(conciseTitle)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Request Details - Combined field */}
-        {isEditMode || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.details ? (
+        {/* Canonical Request - the full captured request/job context. Compact
+            titles are for cards/headers only, never the authoritative Request
+            inside the details view. Dedicated legacy details on historical
+            records still append below the canonical request so old captured
+            info stays visible. */}
+        {isEditMode || meaningful(intake.serviceRequested) || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.serviceRequested || correctedFields?.details ? (
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Details</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Request</span>
               </div>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
-              {!isEditMode && ((correctedFields?.details?.length > 200 || (extractedInfo?.reasonForCalling?.length || 0) > 200 || (extractedInfo?.importantDetails?.length || 0) > 200)) && (
+              {!isEditMode && ((correctedFields?.serviceRequested?.length > 200 || correctedFields?.details?.length > 200 || (extractedInfo?.reasonForCalling?.length || 0) > 200 || (extractedInfo?.importantDetails?.length || 0) > 200)) && (
                 <button
                   onClick={() => setDetailsExpanded(!detailsExpanded)}
                   className="inline-flex items-center gap-1 text-primary hover:text-primary/80 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -329,14 +317,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="What can we help you with? Feel free to include any details."
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6 whitespace-pre-line break-words">
                 {(() => {
-                  const reason = correctedFields?.serviceRequested ? capitalizeFirstAlpha(correctedFields.serviceRequested) : (extractedInfo?.reasonForCalling ? capitalizeFirstAlpha(extractedInfo.reasonForCalling) : '');
+                  // Canonical Request: manual correction wins, then the canonical
+                  // intake request, then the record-level value for historical
+                  // records viewed outside the current-lead canonical state.
+                  const reason = correctedFields?.serviceRequested ? capitalizeFirstAlpha(correctedFields.serviceRequested) : (extractedInfo?.reasonForCalling ? capitalizeFirstAlpha(extractedInfo.reasonForCalling) : (meaningful(intake.serviceRequested) ? capitalizeFirstAlpha(intake.serviceRequested) : ''));
                   const details = correctedFields?.details ? capitalizeFirstAlpha(correctedFields.details) : (extractedInfo?.importantDetails ? capitalizeFirstAlpha(extractedInfo.importantDetails) : '');
 
                   // Only concatenate details if it contains a real value (not a placeholder)
                   const isPlaceholder = (text: string) => !text || text === 'Not collected' || text === 'Not Provided' || text === 'Unknown' || text === 'N/A';
-                  const combined = reason && !isPlaceholder(details) ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : <span className="text-muted-foreground italic">Not provided</span>));
+                  const detailsAddInfo = !isPlaceholder(details) && !reason.toLowerCase().includes(details.toLowerCase());
+                  const combined = reason && detailsAddInfo ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : <span className="text-muted-foreground italic">Not provided</span>));
 
                   if (!detailsExpanded && typeof combined === 'string' && combined.length > 200) {
                     return combined.substring(0, 200) + '...';
@@ -672,19 +664,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 {(() => {
                   const intake = getLeadAIIntake(leadData || {})
                   const hasRequest = intake.serviceRequested && intake.serviceRequested !== 'Not collected' && intake.serviceRequested.trim() !== ''
-                  const hasDetails = intake.additionalDetails && intake.additionalDetails !== 'Not collected' && intake.additionalDetails.trim() !== ''
                   const hasAddress = intake.serviceAddress && intake.serviceAddress !== 'Not collected' && intake.serviceAddress.trim() !== ''
                   const hasCompletion = intake.desiredCompletion && intake.desiredCompletion !== 'Not collected' && intake.desiredCompletion.trim() !== ''
                   const hasCallback = intake.callbackTime && intake.callbackTime !== 'Not collected' && intake.callbackTime.trim() !== ''
 
                   // Canonical completion condition from voice flow:
-                  // - Always required: request, details, timing, callback
+                  // - Always required: request, timing, callback
                   // - Conditional (onsite only): address
                   const serviceLocationType = leadData?.raw_metadata?.serviceLocationType ||
                     leadData?.business?.service_location_type ||
                     'onsite'
                   const isOnsite = serviceLocationType === 'onsite'
-                  const isComplete = hasRequest && hasDetails && hasCompletion && hasCallback && (!isOnsite || hasAddress)
+                  const isComplete = hasRequest && hasCompletion && hasCallback && (!isOnsite || hasAddress)
 
                   return (
                     <div className={`w-7 h-7 rounded-lg ${isComplete ? 'bg-green-100 dark:bg-green-900/40' : 'bg-amber-100 dark:bg-amber-900/40'} flex items-center justify-center flex-shrink-0 mt-0.5`}>

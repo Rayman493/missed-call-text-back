@@ -217,7 +217,7 @@ describe('AI intake customer polish', () => {
   const pageClientSrc = readSrc('app/dashboard/leads/[id]/page-client.tsx')
 
   it('uses the shared neutral field-card surface for Request', () => {
-    const requestCard = aiCallDetailsSrc.match(/!isEditMode && conciseTitle[\s\S]*?\{\/\* Request Details/)
+    const requestCard = aiCallDetailsSrc.match(/\{\/\* Canonical Request[\s\S]*?\{\/\* Address - only show/)
     expect(requestCard).toBeTruthy()
     expect(requestCard?.[0]).toContain('border-border/25 bg-background/25')
     expect(requestCard?.[0]).not.toContain('bg-gradient-to-r')

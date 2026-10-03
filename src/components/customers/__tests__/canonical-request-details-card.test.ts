@@ -26,6 +26,24 @@ describe('Canonical Request — no standalone Details card in current Customer C
     expect(src).toContain("label: 'Reason for calling'")
   })
 
+  it('AICallDetails renders the canonical Request — no compact-title card, no standalone Details card', () => {
+    const src = readFileSync(join(__dirname, '../../AICallDetails.tsx'), 'utf8')
+    // No standalone Details label in the unified intake fields.
+    expect(src).not.toContain('>Details</span>')
+    // Request card present and sourced from the canonical request — the
+    // compact display title must never render as the authoritative Request
+    // inside the intake details view.
+    expect(src).toContain('>Request</span>')
+    expect(src).not.toContain('getLeadRequestTitle')
+    // Completeness indicator must not require a legacy details field.
+    expect(src).not.toContain('hasDetails')
+    // Canonical request still resolves through the canonical intake helper.
+    expect(src).toContain('intake.serviceRequested')
+    // Manual corrections and legacy details still readable for compatibility.
+    expect(src).toContain('correctedFields?.serviceRequested')
+    expect(src).toContain('extractedInfo?.importantDetails')
+  })
+
   it('RequestDetailsModal keeps legacy historical Details read path', () => {
     const src = readFileSync(join(__dirname, '../../RequestDetailsModal.tsx'), 'utf8')
     // Historical records may carry a separate Details value — the legacy

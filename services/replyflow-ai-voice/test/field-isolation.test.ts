@@ -170,3 +170,93 @@ describe('callback windows — connector-joined constraints stay in callbackTime
     expect(intake.issueDescription).to.be.undefined;
   });
 });
+
+describe('scalar-stage residual completeness — fragments never contaminate the canonical Request', () => {
+  const seededRequestIntake = (): IntakeData => ({
+    stage: 'ask_callback_time',
+    customerName: 'John',
+    serviceRequested: 'Need the lawn cut. Backyard gate is narrow',
+    serviceAddress: '1632 South Pine Drive, South Park, PA',
+    desiredCompletionTime: 'Next week',
+  });
+
+  it('production CA5391c05: "Any time in the morning after 9 am" at ask_callback_time leaves Request unchanged', () => {
+    const intake = seededRequestIntake();
+    const before = intake.serviceRequested;
+    enrichIntakeFromTranscript(
+      'Any time in the morning after 9 am',
+      intake,
+      'ask_callback_time',
+      'CA5391c05e78232910bec014080102f8aa'
+    );
+    expect(intake.callbackTime).to.be.a('string');
+    expect(intake.serviceRequested).to.equal(before);
+    expect(intake.issueDescription).to.be.undefined;
+  });
+
+  it('completion scalar answer leaves Request unchanged', () => {
+    const intake = seededRequestIntake();
+    delete intake.desiredCompletionTime;
+    const before = intake.serviceRequested;
+    enrichIntakeFromTranscript('Any time next week', intake, 'ask_completion_time', 'CA-test');
+    expect(intake.desiredCompletionTime).to.be.a('string');
+    expect(intake.serviceRequested).to.equal(before);
+  });
+
+  it('address scalar answer leaves Request unchanged', () => {
+    const intake = seededRequestIntake();
+    delete intake.serviceAddress;
+    const before = intake.serviceRequested;
+    enrichIntakeFromTranscript('1632 South Pine Drive, South Park, PA', intake, 'ask_location', 'CA-test');
+    expect(intake.serviceAddress).to.be.a('string');
+    expect(intake.serviceRequested).to.equal(before);
+  });
+
+  it('name scalar answer leaves Request unchanged', () => {
+    const intake = seededRequestIntake();
+    delete intake.customerName;
+    const before = intake.serviceRequested;
+    enrichIntakeFromTranscript('My name is John', intake, 'ask_name', 'CA-test');
+    expect(intake.customerName).to.be.a('string');
+    expect(intake.serviceRequested).to.equal(before);
+  });
+
+  it('dangling scalar scaffolding never appends to Request', () => {
+    for (const utterance of [
+      'sometime around noon works',
+      'in the morning please',
+      'you can call me anytime',
+    ]) {
+      const intake = seededRequestIntake();
+      const before = intake.serviceRequested;
+      enrichIntakeFromTranscript(utterance, intake, 'ask_callback_time', 'CA-test');
+      expect(intake.serviceRequested, `Request contaminated by "${utterance}"`).to.equal(before);
+    }
+  });
+
+  it('independent service instruction volunteered at a scalar stage still appends', () => {
+    const intake = seededRequestIntake();
+    enrichIntakeFromTranscript(
+      'Call me after 9 am, and please make sure the gate is closed afterward',
+      intake,
+      'ask_callback_time',
+      'CA-test'
+    );
+    expect(intake.callbackTime).to.be.a('string');
+    expect(intake.callbackTime).to.not.contain('gate');
+    expect(intake.serviceRequested).to.contain('gate is closed');
+  });
+
+  it('independent service instruction at ask_completion_time still appends', () => {
+    const intake = seededRequestIntake();
+    delete intake.desiredCompletionTime;
+    enrichIntakeFromTranscript(
+      'Next week would be good, and please bag the clippings',
+      intake,
+      'ask_completion_time',
+      'CA-test'
+    );
+    expect(intake.desiredCompletionTime).to.be.a('string');
+    expect(intake.serviceRequested).to.contain('clippings');
+  });
+});

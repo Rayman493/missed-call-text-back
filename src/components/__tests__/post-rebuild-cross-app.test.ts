@@ -137,9 +137,9 @@ describe('D — activity row alignment', () => {
 })
 
 describe('E — Customer Context request icon is neutral', () => {
-  it('Request title icon well uses muted background/foreground', () => {
-    const card = slice(aiCallDetails, 'Concise Request Title', 'Request Details - Combined')
-    expect(card).toContain('bg-muted flex items-center justify-center')
+  it('Canonical Request card uses muted background/foreground', () => {
+    const card = slice(aiCallDetails, 'Canonical Request', 'Address - only show')
+    expect(card).toContain('border-border/25 bg-background/25')
     expect(card).toContain('text-muted-foreground')
     expect(card).not.toContain('text-blue-600')
     expect(card).not.toContain('bg-blue-500/10')
