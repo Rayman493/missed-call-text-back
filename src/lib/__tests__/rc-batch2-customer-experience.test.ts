@@ -109,7 +109,7 @@ describe('RC Batch 2 — Customer Experience Regression Suite', () => {
     })
 
     it('Desired Completion display uses canonical intake value', () => {
-      const desiredBlock = aiCallDetails.match(/Desired Completion[\s\S]*?Not specified/)
+      const desiredBlock = aiCallDetails.match(/Desired Completion Time[\s\S]*?No information yet/)
       expect(desiredBlock).toBeTruthy()
       expect(desiredBlock![0]).toContain('meaningful(intake.desiredCompletion)')
     })
@@ -123,7 +123,7 @@ describe('RC Batch 2 — Customer Experience Regression Suite', () => {
     })
 
     it('Preferred Callback display uses canonical intake value', () => {
-      const callbackBlock = aiCallDetails.match(/Preferred Callback[\s\S]*?Not specified/)
+      const callbackBlock = aiCallDetails.match(/Preferred Callback Time[\s\S]*?No information yet/)
       expect(callbackBlock).toBeTruthy()
       expect(callbackBlock![0]).toContain('meaningful(intake.callbackTime)')
     })

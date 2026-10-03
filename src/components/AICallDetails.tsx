@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, capitalizeFirstAlpha } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, MapPin, Info, FileText, CalendarDays, PhoneCall } from 'lucide-react'
+import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, MapPin, Info, MessageSquare, CalendarDays, PhoneCall } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { CallTranscriptCard } from '@/components/CallTranscriptCard'
@@ -244,14 +244,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       v && v.trim() && v !== 'Not collected' ? v : undefined
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-3">
         {/* Name - Customer first on mobile and desktop */}
         {isEditMode || meaningful(intake.customerName) || extractedInfo?.callerName ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-2">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Customer</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Customer Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -266,8 +266,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Customer name"
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
-                {meaningful(intake.customerName) || extractedInfo?.callerName || <span className="text-muted-foreground italic">Not provided</span>}
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6 break-words">
+                {meaningful(intake.customerName) || extractedInfo?.callerName || <span className="text-muted-foreground italic">No information yet</span>}
               </p>
             )}
           </div>
@@ -279,11 +279,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             records still append below the canonical request so old captured
             info stays visible. */}
         {isEditMode || meaningful(intake.serviceRequested) || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.serviceRequested || correctedFields?.details ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-2">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Request</span>
+                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Reason for Calling</span>
               </div>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -328,7 +328,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   // Only concatenate details if it contains a real value (not a placeholder)
                   const isPlaceholder = (text: string) => !text || text === 'Not collected' || text === 'Not Provided' || text === 'Unknown' || text === 'N/A';
                   const detailsAddInfo = !isPlaceholder(details) && !reason.toLowerCase().includes(details.toLowerCase());
-                  const combined = reason && detailsAddInfo ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : <span className="text-muted-foreground italic">Not provided</span>));
+                  const combined = reason && detailsAddInfo ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : <span className="text-muted-foreground italic">No information yet</span>));
 
                   if (!detailsExpanded && typeof combined === 'string' && combined.length > 200) {
                     return combined.substring(0, 200) + '...';
@@ -342,11 +342,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Address - only show for onsite mode or if address is provided */}
         {isEditMode || (requiresServiceAddress && (extractedInfo?.addressOrLocation || correctedFields?.address)) ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-2">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Address</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Location</span>
               </div>
               {manualFields.has('addressOrLocation') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -362,7 +362,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               />
             ) : (
               <p className="text-sm font-medium leading-relaxed text-foreground pl-6 break-words">
-                {capitalizeFirstAlpha(correctedFields?.address || extractedInfo?.addressOrLocation) || <span className="text-muted-foreground italic">Not provided</span>}
+                {capitalizeFirstAlpha(correctedFields?.address || extractedInfo?.addressOrLocation) || <span className="text-muted-foreground italic">No information yet</span>}
               </p>
             )}
           </div>
@@ -370,11 +370,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Desired Completion */}
         {isEditMode || meaningful(intake.desiredCompletion) || extractedInfo?.desiredCompletionTime ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-2">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
                 <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Desired Completion</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Desired Completion Time</span>
               </div>
               {manualFields.has('desiredCompletionTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -389,8 +389,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Desired completion"
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
-                {capitalizeFirstAlpha(meaningful(intake.desiredCompletion) || extractedInfo?.desiredCompletionTime) || <span className="text-muted-foreground italic">Not specified</span>}
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6 break-words">
+                {capitalizeFirstAlpha(meaningful(intake.desiredCompletion) || extractedInfo?.desiredCompletionTime) || <span className="text-muted-foreground italic">No information yet</span>}
               </p>
             )}
           </div>
@@ -398,11 +398,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Preferred Callback */}
         {isEditMode || meaningful(intake.callbackTime) || extractedInfo?.preferredCallbackTime ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-2">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
                 <PhoneCall className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Preferred Callback</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Preferred Callback Time</span>
               </div>
               {manualFields.has('preferredCallbackTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -417,8 +417,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Best time to call"
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
-                {capitalizeFirstAlpha(meaningful(intake.callbackTime) || extractedInfo?.preferredCallbackTime) || <span className="text-muted-foreground italic">Not specified</span>}
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6 break-words">
+                {capitalizeFirstAlpha(meaningful(intake.callbackTime) || extractedInfo?.preferredCallbackTime) || <span className="text-muted-foreground italic">No information yet</span>}
               </p>
             )}
           </div>
