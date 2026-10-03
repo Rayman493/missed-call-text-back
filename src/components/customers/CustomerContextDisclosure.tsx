@@ -24,7 +24,6 @@ export default function CustomerContextDisclosure({ leadData, className }: Custo
   const ctx = getCurrentCustomerContext(leadData)
   const fields: Array<{ label: string; value: string }> = [
     { label: 'Reason for calling', value: ctx.reasonForCalling },
-    { label: 'Details', value: ctx.details },
     { label: 'Location', value: ctx.location },
     { label: 'Desired completion', value: ctx.desiredCompletionTime },
     { label: 'Preferred callback', value: ctx.preferredCallbackTime },

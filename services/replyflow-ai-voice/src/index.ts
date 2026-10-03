@@ -6002,7 +6002,17 @@ function generateLeadSummary(intake: IntakeData): LeadSummary {
   console.log('[CUSTOMER NAME BEFORE SMS GENERATION] Timestamp:', new Date().toISOString());
   console.log('[CUSTOMER NAME BEFORE SMS GENERATION] =========================================');
 
-  const summary = `${intake.customerName || 'Caller'} called about ${intake.serviceRequested || 'general inquiry'}. Issue: ${intake.issueDescription || 'not specified'}. Location: ${intake.serviceAddress || 'not specified'}. Desired completion time: ${intake.desiredCompletionTime || 'not specified'}. Callback requested at ${intake.callbackTime || 'anytime'}.`;
+  // Legacy Details clause: omitted for new calls (no separate Details field)
+  // and when the value merely repeats canonical Request content.
+  const issueClause = (() => {
+    const issue = (intake.issueDescription || '').trim();
+    if (!issue) return '';
+    const normalized = issue.toLowerCase().replace(/[.,;!?\s]+$/g, '');
+    if (normalized && (intake.serviceRequested || '').toLowerCase().includes(normalized)) return '';
+    return ` Issue: ${issue}.`;
+  })();
+
+  const summary = `${intake.customerName || 'Caller'} called about ${intake.serviceRequested || 'general inquiry'}.${issueClause} Location: ${intake.serviceAddress || 'not specified'}. Desired completion time: ${intake.desiredCompletionTime || 'not specified'}. Callback requested at ${intake.callbackTime || 'anytime'}.`;
 
   return {
     callerName: intake.customerName,
@@ -9752,7 +9762,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const serviceAddress = capitalizeDisplayValue(sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '') || 'Not collected');
       const desiredCompletionTime = capitalizeDisplayValue(sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '') || 'Not collected');
       const callbackTime = capitalizeDisplayValue(sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '') || 'Not collected');
-      const issueDescription = capitalizeDisplayValue(sanitizeEnglishIntakeField('additionalDetails', intakeData.issueDescription || '') || 'Not collected');
 
       const displayName = businessName || 'us';
 
@@ -9779,9 +9788,6 @@ ${desiredCompletionTime}
 
 ☎️ Best Callback Time
 ${callbackTime}
-
-📝 Additional Details
-${issueDescription}
 
 Reply to this message if you'd like to update or add any information.
 

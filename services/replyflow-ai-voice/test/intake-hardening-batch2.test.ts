@@ -220,7 +220,9 @@ describe('G. multi-field natural answers', () => {
     expect(i.serviceAddress).toBe('408 Cedar Ridge Lane');
     expect((i.desiredCompletionTime || '').toLowerCase()).toContain('tomorrow');
     expect((i.callbackTime || '').toLowerCase()).toContain('anytime');
-    expect(i.issueDescription || '').toBeTruthy();
+    // ONE canonical Request: volunteered context lives in serviceRequested.
+    expect((i.serviceRequested || '').toLowerCase()).toContain('leaking around the bottom');
+    expect(i.issueDescription || '').toBeFalsy();
   });
 
   it('resolver skips satisfied stages after full volunteer', () => {
@@ -497,16 +499,17 @@ describe('reason/details semantic split', () => {
     expect(split.details).toBeNull();
   });
 
-  it('garage door: details retain spring AND stuck-door facts', () => {
+  it('garage door: canonical Request retains spring AND stuck-door facts', () => {
     const i = enrich(
       'I need someone to fix my broken garage door because the spring snapped and the door is stuck halfway.',
       'ask_name_reason',
       { customerName: 'Alex Rivera' }
     );
-    expect((i.serviceRequested || '').toLowerCase()).toContain('garage door');
-    const d = (i.issueDescription || '').toLowerCase();
-    expect(d).toContain('spring');
-    expect(d).toContain('stuck');
+    const r = (i.serviceRequested || '').toLowerCase();
+    expect(r).toContain('garage door');
+    expect(r).toContain('spring');
+    expect(r).toContain('stuck');
+    expect(i.issueDescription || '').toBeFalsy();
   });
 });
 

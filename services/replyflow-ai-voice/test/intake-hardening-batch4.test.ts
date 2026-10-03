@@ -138,25 +138,27 @@ describe('B4 §C/D Orion dense request + details + meta tail', () => {
     "There's piles of sticks and debris.",
   ].join(' ');
 
-  it('dense request advances first time and retains legit details', () => {
+  it('dense request advances first time and retains legit context in the canonical Request', () => {
     const i = enrich(orion, 'ask_request', { customerName: 'Orion' });
     assert.match(i.serviceRequested || '', /grass/i);
-    const d = (i.issueDescription || '').toLowerCase();
-    assert.ok(d.includes('quarter acre'), `details: ${d}`);
-    assert.ok(d.includes('fence'), `details: ${d}`);
-    assert.ok(d.includes('woods'), `details: ${d}`);
+    const r = (i.serviceRequested || '').toLowerCase();
+    assert.ok(r.includes('quarter acre'), `request: ${r}`);
+    assert.ok(r.includes('fence'), `request: ${r}`);
+    assert.ok(r.includes('woods'), `request: ${r}`);
+    assert.ok(!(i.issueDescription || '').length, 'no separate Details');
     assert.equal(resolveNextSimpleModeStage(i, 'onsite'), 'ask_location');
   });
 
-  it('meta tail is stripped from Details', () => {
+  it('meta tail is stripped from the canonical Request context', () => {
     const i = enrich(
       'I need my grass cut. The yard is fenced, hello',
       'ask_request',
       { customerName: 'Orion' }
     );
-    const d = (i.issueDescription || '').toLowerCase();
-    assert.ok(!d.includes('hello'), `details: ${d}`);
-    assert.ok(d.includes('fenced'), `details: ${d}`);
+    const r = (i.serviceRequested || '').toLowerCase();
+    assert.ok(!r.includes('hello'), `request: ${r}`);
+    assert.ok(r.includes('fenced'), `request: ${r}`);
+    assert.ok(!(i.issueDescription || '').length, 'no separate Details');
   });
 });
 

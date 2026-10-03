@@ -70,9 +70,10 @@ describe('Semantic Skip-Ahead Extraction', () => {
       'CA-test'
     );
 
-    expect(intake.issueDescription).to.include('storm knocked a large tree onto the backyard fence');
-    expect(intake.issueDescription).to.include('tree removed');
-    expect(intake.issueDescription).to.not.equal('the fence and the fence repaired');
+    // ONE canonical Request: storm/fence context stays in serviceRequested.
+    expect(intake.serviceRequested).to.include('storm knocked a large tree onto the backyard fence');
+    expect(intake.serviceRequested).to.include('tree removed');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
   });
 
   it('does not collapse useful faucet context to a one-word repair fragment', () => {
@@ -84,8 +85,9 @@ describe('Semantic Skip-Ahead Extraction', () => {
       'CA-test'
     );
 
-    expect(intake.issueDescription).to.include('dripping constantly from the handle');
-    expect(intake.issueDescription?.toLowerCase()).to.not.equal('repaired');
+    expect(intake.serviceRequested).to.include('dripping constantly from the handle');
+    expect(intake.serviceRequested?.toLowerCase()).to.not.equal('repaired');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
   });
 
   it('does not hallucinate fields when they are absent', () => {
@@ -368,32 +370,34 @@ describe('Semantic Skip-Ahead Extraction', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Bug 2 regression — details extraction from request sentence
+  // Bug 2 regression — request context stays in the canonical Request field
   // ---------------------------------------------------------------------------
 
-  it('splits spatial detail into issueDescription and keeps service request clean (Bug 2)', () => {
+  it('keeps spatial detail inside the canonical Request (Bug 2)', () => {
     const intake: IntakeData = { stage: 'ask_name_reason' };
     const transcript = 'My kitchen sink is leaking underneath the cabinet';
     enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
 
-    expect(intake.serviceRequested).to.equal('My kitchen sink is leaking');
-    expect(intake.issueDescription).to.equal('underneath the cabinet');
+    expect(intake.serviceRequested).to.equal('My kitchen sink is leaking underneath the cabinet');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
   });
 
-  it('captures positional detail behind a fixture (Bug 2)', () => {
+  it('keeps positional detail behind a fixture inside the canonical Request (Bug 2)', () => {
     const intake: IntakeData = { stage: 'ask_name_reason' };
     const transcript = 'There is water dripping behind the toilet';
     enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
 
-    expect(intake.issueDescription).to.equal('behind the toilet');
+    expect(intake.serviceRequested).to.include('water dripping behind the toilet');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
   });
 
-  it('captures positional detail next to a fixture (Bug 2)', () => {
+  it('keeps positional detail next to a fixture inside the canonical Request (Bug 2)', () => {
     const intake: IntakeData = { stage: 'ask_name_reason' };
     const transcript = 'The drywall is cracked next to the window';
     enrichIntakeFromTranscript(transcript, intake, 'ask_name_reason', 'CA-test');
 
-    expect(intake.issueDescription).to.equal('next to the window');
+    expect(intake.serviceRequested).to.include('drywall is cracked next to the window');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
   });
 
   it('does not turn a location of service into an issueDescription (Bug 2 negative)', () => {
@@ -479,9 +483,14 @@ describe('Job-site detail phrases must not satisfy serviceAddress', () => {
       "I'm looking to have the grass cut and cleaned up my property. The yard is about a quarter acre and it's gotten pretty overgrown after I was away for a couple of weeks. The backyard is fenced in and the gate on the left side is a little narrow, so a large riding mower probably won't fit through it. There are also a few sprinkler heads near the back fence that I want you to be careful around. If possible, I'd like the grass clippings bagged and taken away instead of left on the lawn.";
     enrichIntakeFromTranscript(transcript, intake, 'ask_request', 'CA-test');
 
-    // Reason + Details preserved; no phantom address.
+    // ONE canonical Request retains all useful job context; no Details split,
+    // no phantom address.
     expect(intake.serviceRequested).to.exist;
-    expect(intake.issueDescription).to.exist;
+    expect(intake.serviceRequested).to.include('quarter acre');
+    expect(intake.serviceRequested).to.include('gate on the left side is a little narrow');
+    expect(intake.serviceRequested).to.include('sprinkler heads near the back fence');
+    expect(intake.serviceRequested).to.include('grass clippings bagged');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
     expect(intake.serviceAddress).to.be.oneOf([undefined, '']);
 
     // With no genuine location supplied, the location stage must still run —

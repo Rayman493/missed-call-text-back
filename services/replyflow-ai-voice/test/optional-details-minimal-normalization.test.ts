@@ -61,15 +61,17 @@ describe('optional details — empty vs genuine', () => {
     expect(intake.issueDescription || '').to.equal('');
   });
 
-  it('volunteered job facts are preserved as Details', () => {
+  it('volunteered job facts are preserved in the canonical Request', () => {
     const intake = { stage: 'ask_request', customerName: 'Michael Thompson' } as IntakeData;
     enrichIntakeFromTranscript(
       'I need someone to fix a leaking kitchen sink. It has been dripping under the cabinet for two weeks.',
       intake,
       'ask_request'
     );
-    expect((intake.issueDescription || '').toLowerCase()).to.include('dripping under the cabinet');
-    expect((intake.issueDescription || '').toLowerCase()).to.not.match(/next couple days|callback/);
+    // ONE canonical Request: job facts stay in serviceRequested; no Details.
+    expect((intake.serviceRequested || '').toLowerCase()).to.include('dripping under the cabinet');
+    expect(intake.issueDescription || '').to.equal('');
+    expect((intake.serviceRequested || '').toLowerCase()).to.not.match(/next couple days|callback/);
   });
 });
 
@@ -193,9 +195,13 @@ describe('address unit-clause fidelity (CAc44c75ff888139d9966a6b6b70f4c6bf)', ()
       'ask_request'
     );
     expect(intake.serviceAddress).to.equal('529 apartment number seven at South Pine Drive');
-    expect((intake.issueDescription || '').toLowerCase()).to.include('new toilet');
-    expect((intake.issueDescription || '').toLowerCase()).to.not.include('south pine');
-    expect((intake.issueDescription || '').toLowerCase()).to.not.include('apartment number');
+    // ONE canonical Request: job facts merge into serviceRequested and the
+    // volunteered address stays out of it.
+    const req = (intake.serviceRequested || '').toLowerCase();
+    expect(req).to.include('new toilet');
+    expect(req).to.not.include('south pine');
+    expect(req).to.not.include('apartment number');
+    expect(intake.issueDescription || '').to.equal('');
   });
 
   it('an address volunteered during ask_request satisfies the location stage', () => {
@@ -214,6 +220,8 @@ describe('address unit-clause fidelity (CAc44c75ff888139d9966a6b6b70f4c6bf)', ()
     const intake = { stage: 'ask_location', customerName: 'Ryan' } as IntakeData;
     enrichIntakeFromTranscript('the apartment door is stuck. 529 South Pine Drive', intake, 'ask_location');
     expect(intake.serviceAddress).to.equal('529 South Pine Drive');
-    expect((intake.issueDescription || '').toLowerCase()).to.include('door is stuck');
+    // With no canonical Request populated yet, leftover job context has no
+    // merge target — it is dropped rather than stored in a Details field.
+    expect(intake.issueDescription || '').to.equal('');
   });
 });

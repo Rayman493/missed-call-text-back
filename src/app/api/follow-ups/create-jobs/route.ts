@@ -165,10 +165,11 @@ export async function POST(request: NextRequest) {
     if (aiCallRecords && aiCallRecords.outcome === 'completed') {
       // Verify that all required fields are present before suppressing follow-ups
       const extractedInfo = aiCallRecords.extracted_info || {};
+      // Details is no longer a required field: the canonical Request
+      // (reasonForCalling) carries all caller-provided context.
       const requiredFields = [
         'callerName',
         'reasonForCalling',
-        'importantDetails',
         'addressOrLocation',
         'desiredCompletionTime',
         'preferredCallbackTime'
