@@ -1326,7 +1326,7 @@ const META_TAIL_RE = /(?:[\s,]+(?:hello|hi|hey|okay|ok|thanks|thank you|are you 
  */
 function extractDetailSentences(
   transcript: string,
-  consumed: { customerName?: string; serviceSentence?: string; scalarFullMatches: string[]; alreadyExtracted?: string[] }
+  consumed: { customerName?: string; serviceSentence?: string; scalarFullMatches: string[]; alreadyExtracted?: string[]; isCorrection?: boolean }
 ): string | null {
   const sentences = transcript
     .split(/(?<=[.!?])\s+|\n+/)
@@ -1351,8 +1351,35 @@ function extractDetailSentences(
     const sLower = sentence.toLowerCase();
     // Skip the name carrier sentence
     if (consumed.customerName && sLower.includes(consumed.customerName.toLowerCase())) continue;
-    // Skip sentences overlapping an extracted scalar match
-    if (consumedScalars.some(m => m && (sLower.includes(m) || m.includes(sLower)))) continue;
+    // Sentences containing an extracted scalar match are owned by that
+    // field — but a residual clause left after the scalar span is removed
+    // can still carry volunteered context ("call me after 4, and one other
+    // thing, the gate is locked" -> "the gate is locked"). Keep the
+    // residual only when it is real content, not conversational scaffolding
+    // around the scalar ("I'd like it done, and you can" -> dropped).
+    if (consumedScalars.some(m => m && (sLower.includes(m) || m.includes(sLower)))) {
+      let residual = sentence;
+      for (const m of consumed.scalarFullMatches) {
+        residual = residual.replace(new RegExp(escapeRegex(m), 'gi'), ' ');
+      }
+      residual = residual
+        .replace(META_TAIL_RE, '')
+        .replace(/[.,;!?\s]+$/, '')
+        .replace(/^\s*(?:and|but|so|then|also|too)\s+/i, '')
+        .trim();
+      const rWords = (residual.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
+      const isScaffold = /\b(?:i'?d like|i need|i want|i'?m looking|call me|you can call|my name is|this is|please)\b/i.test(residual)
+        || (consumed.isCorrection && CORRECTION_SCAFFOLD_CLAUSE_RE.test(residual))
+        || CALLBACK_OWNED_CLAUSE_RE.test(residual)
+        || ADDRESS_OWNED_CLAUSE_RE.test(residual)
+        || TIMING_OWNED_CLAUSE_RE.test(residual)
+        || isMetaUtterance(residual);
+      if (rWords >= 3 && !isScaffold) {
+        const cleanedResidual = cleanDisplayIntakeText(residual).replace(/[.,;!?\s]+$/, '');
+        if (cleanedResidual) details.push(cleanedResidual);
+      }
+      continue;
+    }
     // Skip sentences whose information is already captured by the regex detail
     // extractor or the concise service reason (prevents "behind the toilet.
     // There is water dripping behind the toilet" duplication).
@@ -1370,7 +1397,10 @@ function extractDetailSentences(
     // seven", "apartment seven") is address-field content — never a detail,
     // even when it was spoken in its own sentence.
     if (ADDRESS_UNIT_CLAUSE_RE.test(sentence)) continue;
-    if (CORRECTION_SCAFFOLD_CLAUSE_RE.test(sentence)) continue;
+    // Correction wrappers ("make that X instead") are excluded only on actual
+    // correction turns — an ordinary clause containing "instead" ("clippings
+    // bagged instead of left on the lawn") is legitimate request context.
+    if (consumed.isCorrection && CORRECTION_SCAFFOLD_CLAUSE_RE.test(sentence)) continue;
     if (TIMING_OWNED_CLAUSE_RE.test(sentence)) continue;
     // A sentence that IS a completion/callback scalar answer ("Next couple
     // days.", "After 3 PM.") is owned by that field even when the stage-scalar
@@ -1779,67 +1809,34 @@ export function enrichIntakeFromTranscript(
     validCleanedService = null;
   }
 
-  // Split a multi-sentence service candidate into a concise reason plus
-  // supporting details ("I need X repaired. It hums when I turn it on.").
-  let detailFromService: string | null = null;
-  if (validCleanedService) {
-    const split = splitServiceAndDetails(validCleanedService);
-    if (split.details && split.reason && isValidServiceRequest(split.reason)) {
-      detailFromService = split.details;
-      validCleanedService = split.reason;
-      console.log('[INTAKE DETAILS SPLIT] =========================================');
-      console.log('[INTAKE DETAILS SPLIT] reason:', validCleanedService);
-      console.log('[INTAKE DETAILS SPLIT] details:', detailFromService);
-      console.log('[INTAKE DETAILS SPLIT] Timestamp:', new Date().toISOString());
-      console.log('[INTAKE DETAILS SPLIT] =========================================');
-    }
-  }
-
-  // Extract an additional details phrase BEFORE applying the service request so
-  // the service request can be split from its detail (e.g. "My kitchen sink is
-  // leaking underneath the cabinet" -> service "My kitchen sink is leaking",
-  // details "underneath the cabinet").
-  // Only split on spatial/positional detail phrases (under, behind, next to, etc.)
-  // to avoid stripping work verbs or address text from the request.
-  // When an explicit service correction supplied the new canonical service,
-  // its own clause is the service — sub-phrases inside it ("under the sink"
-  // in "leaking pipe under the sink") must not be split off into
-  // issueDescription or trimmed out of the corrected request.
-  const issueDescription = validCleanedService && !correctedService
-    ? findIssueDescription(transcript, validCleanedService)
-    : null;
-  const SPATIAL_PREFIX = /^(?:under|underneath|behind|inside|outside|below|above|next to|near)\b/i;
-  const isSpatialDetail = issueDescription && SPATIAL_PREFIX.test(issueDescription.value);
-  if (isSpatialDetail && issueDescription.value) {
-    const serviceWithoutDetail = cleanServiceRequest(validCleanedService, [issueDescription]);
-    if (serviceWithoutDetail && isValidServiceRequest(serviceWithoutDetail)) {
-      validCleanedService = serviceWithoutDetail;
-    }
-  }
-
-  // Sentence-level details: supporting-fact sentences that are not the name,
-  // service, or scalar carriers. This preserves volunteered context such as
-  // "There's water pooling around the bottom and it seems to be getting worse."
-  // Both tail-resolved and full-transcript scalar matches are consumed so a
-  // superseded correction head ("Call me tomorrow morning. Make that ...") is
-  // not re-captured as a detail.
+  // ONE canonical Request: the service answer is no longer split into a
+  // concise reason plus separate Details. The full cleaned request text stays
+  // intact and leftover supporting sentences merge into serviceRequested
+  // below instead of a dedicated Details field.
+  //
+  // Sentence-level supporting-fact extraction: sentences that are not the
+  // name, service, or scalar carriers. This preserves volunteered context
+  // such as "There's water pooling around the bottom and it seems to be
+  // getting worse." Both tail-resolved and full-transcript scalar matches are
+  // consumed so a superseded correction head ("Call me tomorrow morning.
+  // Make that ...") is not re-captured as request context.
   const scalarFullMatches = [addressMatch, completionMatch, callbackMatch, fullAddress, fullCompletion, fullCallback]
     .filter((m): m is ExtractedMatch => !!m)
     .map(m => m.fullMatch);
   // A direct location-stage answer ("in Bethel Park", "I'm in Pittsburgh") is
-  // owned by serviceAddress — never let it be absorbed into Details.
+  // owned by serviceAddress — never let it be absorbed into Request context.
   const stageLocationAnswer = currentStageField === 'serviceAddress'
     ? stripLocationLeadIn((correctionTail || transcript).trim())
     : null;
   const transcriptDetails = extractDetailSentences(transcript, {
     customerName: name || intake.customerName,
     scalarFullMatches,
-    alreadyExtracted: [issueDescription?.value || '', validCleanedService || '', detailFromService || '', stageLocationAnswer || ''],
+    alreadyExtracted: [validCleanedService || '', stageLocationAnswer || ''],
+    isCorrection,
   });
-  // Merge detail sources: service-split details, regex detail, sentence details.
-  // Parts that only restate the service request are Reason content, not
-  // supporting information, and are dropped rather than duplicated.
-  const detailParts = [detailFromService, issueDescription?.value || null, transcriptDetails]
+  // Parts that only restate the service request are dropped rather than
+  // duplicated inside the single canonical Request.
+  const detailParts = [transcriptDetails]
     .filter((d): d is string => !!d && d.trim().length > 0)
     .filter((part) => !isServiceFragment(part, validCleanedService || ''));
   // Drop parts whose content is already contained inside another part so a
@@ -1869,6 +1866,21 @@ export function enrichIntakeFromTranscript(
     // Details adds no information and stays empty.
     if (mergedDetailCandidate && isServiceFragment(mergedDetailCandidate, validCleanedService || '')) {
       mergedDetailCandidate = null;
+    }
+  }
+
+  // The canonical Request gets the same residual cleanup previously applied
+  // to the Details candidate: strip meta tails ("..., hello"), dangling
+  // connectors left after structured-field spans are removed ("... warms up.
+  // I'm" -> "... warms up"), and trailing punctuation.
+  if (validCleanedService) {
+    validCleanedService = validCleanedService
+      .replace(META_TAIL_RE, '')
+      .replace(/(?:[.,;]\s*|\s+)(?:i'?m|i\s+am|we'?re|we\s+are|it'?s|the\s+address\s+is|you\s+can\s+call\s+me|call\s+me|and|so|at)\s*$/i, '')
+      .replace(/[.,;!?\s]+$/, '')
+      .trim() || null;
+    if (validCleanedService && !isValidServiceRequest(validCleanedService)) {
+      validCleanedService = null;
     }
   }
 
@@ -1906,6 +1918,26 @@ export function enrichIntakeFromTranscript(
       isCorrection,
       isServiceStage
     );
+  }
+
+  // ONE canonical Request: leftover supporting-fact sentences merge into
+  // serviceRequested instead of a separate Details field. mergeDetails
+  // appends only non-duplicate sentences, so volunteered context is preserved
+  // without re-stating the request. Supporting context alone must never
+  // satisfy the request field — merge only when a request value exists.
+  if (mergedDetailCandidate && (intake.serviceRequested || '').trim()) {
+    const before = intake.serviceRequested;
+    const merged = mergeDetails(before, mergedDetailCandidate, false);
+    if (merged && merged !== before) {
+      intake.serviceRequested = merged;
+      if (!applied.includes('serviceRequested')) applied.push('serviceRequested');
+      console.log('[INTAKE REQUEST CONTEXT MERGE] =========================================');
+      console.log('[INTAKE REQUEST CONTEXT MERGE] before:', before);
+      console.log('[INTAKE REQUEST CONTEXT MERGE] after:', merged);
+      console.log('[INTAKE REQUEST CONTEXT MERGE] isCorrection:', isCorrection);
+      console.log('[INTAKE REQUEST CONTEXT MERGE] Timestamp:', new Date().toISOString());
+      console.log('[INTAKE REQUEST CONTEXT MERGE] =========================================');
+    }
   }
 
   // Keep the raw-ish `request` field in sync with the canonical service.
@@ -1953,27 +1985,9 @@ export function enrichIntakeFromTranscript(
     currentStageField === 'callbackTime'
   );
 
-  // Details merge rather than overwrite: preserve prior facts and append new
-  // non-duplicate sentences. An explicit correction replaces the details so a
-  // contradicted fact ("the spring isn't broken actually, it's the cable") is
-  // not retained alongside its replacement.
-  if (mergedDetailCandidate) {
-    const before = intake.issueDescription;
-    const merged = mergeDetails(before, mergedDetailCandidate, isCorrection);
-    if (merged && merged !== before) {
-      intake.issueDescription = merged;
-      detected.push('issueDescription');
-      if (!applied.includes('issueDescription')) applied.push('issueDescription');
-      console.log('[INTAKE DETAILS MERGE] =========================================');
-      console.log('[INTAKE DETAILS MERGE] before:', before || '(empty)');
-      console.log('[INTAKE DETAILS MERGE] after:', merged);
-      console.log('[INTAKE DETAILS MERGE] isCorrection:', isCorrection);
-      console.log('[INTAKE DETAILS MERGE] Timestamp:', new Date().toISOString());
-      console.log('[INTAKE DETAILS MERGE] =========================================');
-    } else if (merged === before) {
-      skippedBecauseAlreadyPresent.push('issueDescription');
-    }
-  }
+  // Legacy Details field: issueDescription is no longer populated for new AI
+  // calls — supporting context merged into the canonical Request above.
+  // Any pre-existing value (historical/partial state) is left untouched.
 
   // Current-stage scalar fallback: when the stage's own finder produced nothing
   // but the (possibly correction-trimmed) answer is itself a valid scalar, store

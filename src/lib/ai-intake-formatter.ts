@@ -53,76 +53,10 @@ function hasMeaningfulDetails(intakeData: any): { hasDetails: boolean; detailsVa
     return { hasDetails: true, detailsValue };
   }
 
-  // If no dedicated details field, check if reasonForCalling contains meaningful context
-  // beyond just a simple service request (e.g., "My kitchen sink is leaking underneath the cabinet")
-  const reasonForCalling = intakeData?.reasonForCalling ?? intakeData?.serviceRequested ?? '';
-  if (!reasonForCalling || reasonForCalling.trim() === '' || reasonForCalling === 'Not collected') {
-    return { hasDetails: false, detailsValue: '' };
-  }
-
-  // Check if reasonForCalling contains semantic/context indicators that suggest detailed information
-  // Focus on cause/reason, symptom/problem state, duration/timing, severity, location/context,
-  // previous troubleshooting, observable condition, consequence/impact
-  const contextualPatterns = [
-    // Cause/reason indicators (HIGH CONFIDENCE)
-    /\bbecause\b/i,
-    /\bdue to\b/i,
-    /\bas a result\b/i,
-    /\bcaused by\b/i,
-    // Removed: "since" (can be timing), "reason" (too generic)
-
-    // Symptom/problem state indicators (HIGH CONFIDENCE)
-    /\bthe problem is\b/i,
-    /\bissue with\b/i,
-    /\bwrong with\b/i,
-    /\bnot working\b/i,
-    /\bstopped working\b/i, // More specific than "stopped" alone
-    // Removed: "stopped", "won't", "can't", "doesn't", "failed" (too broad alone)
-
-    // Physical state indicators (HIGH CONFIDENCE)
-    /\bleaking\b/i,
-    /\bbroken\b/i,
-    /\bcracked\b/i,
-    /\b damaged\b/i,
-    /\bblocked\b/i,
-    /\bclogged\b/i,
-    /\bstuck\b/i,
-    /\boverflowing\b/i,
-    /\bfreezing\b/i,
-    // Removed: "heating", "shaking" (too context-dependent)
-
-    // Severity/urgency indicators (HIGH CONFIDENCE)
-    /\bemergency\b/i,
-    /\burgent\b/i,
-    /\bcritical\b/i,
-    /\bspreading\b/i,
-    /\bgetting worse\b/i,
-    // Removed: "bad", "worse" (too broad alone)
-
-    // Duration/timing indicators (REMOVED - timing alone is not context)
-    // Removed: "since", "ago", "yesterday", "last week", "for \d+ (days|weeks|months)"
-    // Removed: "started", "began" (too generic)
-
-    // Location/context indicators (REMOVED - location alone is not context)
-    // Removed: "in the", "at the", "under", "behind", "next to", "between", "on the", "inside", "outside"
-
-    // Previous troubleshooting/attempts (REMOVED - too broad without symptom context)
-    // Removed: "already", "tried", "attempted", "replaced", "changed", "installed", "fixed"
-
-    // Consequence/impact indicators (HIGH CONFIDENCE)
-    /\bcan't use\b/i,
-    /\bunable to\b/i,
-    /\bno longer\b/i,
-    /\baffecting\b/i,
-    /\bcausing\b/i,
-  ];
-
-  const hasContextualIndicator = contextualPatterns.some(pattern => pattern.test(reasonForCalling));
-
-  if (hasContextualIndicator) {
-    return { hasDetails: true, detailsValue: reasonForCalling };
-  }
-
+  // Single canonical Request model: Details never borrows from the request
+  // text. reasonForCalling/serviceRequested is the canonical Request and is
+  // rendered on its own row — only a dedicated details field (legacy records,
+  // manual/correction data) produces a separate Details row.
   return { hasDetails: false, detailsValue: '' };
 }
 
@@ -135,62 +69,8 @@ function normalizeForComparison(text: string): string {
     .trim();
 }
 
-// Resolve the canonical Details row value for an AI intake summary.
-// Always returns a non-empty string; falls back to a customer-friendly placeholder.
-function resolveDetailsValue(
-  intakeData: any,
-  serviceRequested: string,
-  echoSource?: string
-): { detailsValue: string; hasDetails: boolean } {
-  const FALLBACK = 'No additional details provided';
-  if (!intakeData || typeof intakeData !== 'object') {
-    return { detailsValue: FALLBACK, hasDetails: false };
-  }
-
-  const isUsableDetails = (value: string | null | undefined): value is string => {
-    if (!value || typeof value !== 'string') return false;
-    const trimmed = value.trim();
-    if (trimmed === '') return false;
-    if (trimmed.toLowerCase() === 'not collected') return false;
-    if (isPlaceholderValue(trimmed, PLACEHOLDER_SERVICES)) return false;
-    return true;
-  };
-
-  const isDuplicateOfRequest = (value: string): boolean => {
-    if (!serviceRequested || serviceRequested.trim() === '') return false;
-    return normalizeForComparison(value) === normalizeForComparison(serviceRequested);
-  };
-
-  // Priority 1: canonical details fields
-  const detailFields = [
-    intakeData?.importantDetails,
-    intakeData?.additionalDetails,
-    intakeData?.issueDescription,
-    intakeData?.additional_details,
-    intakeData?.requestDetails,
-  ];
-  for (const candidate of detailFields) {
-    if (isUsableDetails(candidate) && !isDuplicateOfRequest(candidate)) {
-      return { detailsValue: removeReasonEchoFromDetails(candidate.trim(), echoSource || serviceRequested), hasDetails: true };
-    }
-  }
-
-  // Priority 2: reasonForCalling when it carries richer context than the normalized request
-  const reasonForCalling = intakeData?.reasonForCalling ?? intakeData?.serviceRequested ?? '';
-  if (isUsableDetails(reasonForCalling)) {
-    const normalizedReason = normalizeServiceReason(reasonForCalling);
-    if (
-      normalizedReason &&
-      normalizedReason !== 'Not collected' &&
-      !isPlaceholderValue(normalizedReason, PLACEHOLDER_SERVICES) &&
-      !isDuplicateOfRequest(normalizedReason)
-    ) {
-      return { detailsValue: removeReasonEchoFromDetails(normalizedReason, echoSource || serviceRequested), hasDetails: true };
-    }
-  }
-
-  return { detailsValue: FALLBACK, hasDetails: false };
-}
+// The Details row resolves from dedicated details fields only — the request
+// text is never borrowed as Details under the single canonical Request model.
 
 // Helper function to safely trim and capitalize text
 // This is a low-level helper that does NOT apply conversational filler removal
@@ -1061,6 +941,21 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       return 'Service Request';
     }
 
+    // SITE-NOUN ONLY PHRASES: a string of property/job-site nouns with no
+    // service token is context, not a service name ("fence gate yard tree
+    // house"). Under the single canonical Request model, longer requests
+    // carry more site context — never let it echo as the compact title.
+    const siteNouns = new Set([
+      'fence', 'gate', 'yard', 'backyard', 'tree', 'house', 'garden',
+      'driveway', 'lawn', 'shed', 'garage', 'porch', 'deck', 'patio',
+      'pool', 'sprinkler', 'sprinklers', 'bush', 'hedge', 'roof',
+      'mailbox', 'curb', 'sidewalk', 'walkway', 'chimney', 'mulch',
+      'gravel', 'basement', 'attic', 'property', 'side', 'front', 'back',
+    ]);
+    if (fallbackWords.every(w => siteNouns.has(w.toLowerCase()))) {
+      return 'Service Request';
+    }
+
     // PRESERVE ORIGINAL CAPITALIZATION for acronyms and proper names
     // Only capitalize first letter, preserve rest as-is
     return processed.charAt(0).toUpperCase() + processed.slice(1);
@@ -1868,11 +1763,12 @@ export const formatAiIntakeSummary = (
   const serviceRequested = isSimpleIntake
     ? serviceRequestedRaw
     : (serviceRequestedIsPlaceholder ? serviceRequestedRaw : serviceRequestedTitle);
-  // Resolve the Details row using the richest canonical source available.
-  // Simple Mode: only dedicated details fields count — never fall back to the
-  // request text, and the line is omitted entirely when nothing was volunteered.
+  // Resolve the Details row from dedicated details fields only — never fall
+  // back to the request text, and the line is omitted entirely when nothing
+  // was volunteered. Applies to all intake modes under the single canonical
+  // Request model; legacy records with real Details still render.
   let detailsValue: string;
-  if (isSimpleIntake) {
+  {
     const dedicated = [
       intakeData?.importantDetails,
       intakeData?.additionalDetails,
@@ -1890,8 +1786,6 @@ export const formatAiIntakeSummary = (
       detailsValue = '';
     }
     detailsValue = removeReasonEchoFromDetails(detailsValue, serviceRequestedRaw);
-  } else {
-    detailsValue = resolveDetailsValue(intakeData, serviceRequested, serviceRequestedRaw).detailsValue;
   }
   // Determine which fields have actual meaningful values
   const hasName = (customerName && customerName.trim() !== '' && !isPlaceholderValue(customerName, PLACEHOLDER_NAMES)) || !!intakeData?.nameRefused;
@@ -1928,9 +1822,9 @@ export const formatAiIntakeSummary = (
   const capturedFields: string[] = [];
   if (hasRequest) {
     capturedFields.push(`• Request: ${serviceRequested}`);
-    // The Details row is always shown once a request is captured so the summary never feels incomplete.
-    // Simple Mode: the row is omitted entirely when no details were volunteered.
-    if (!isSimpleIntake || detailsValue !== '') {
+    // The Details row only appears when a dedicated details field carries
+    // real content — never a placeholder, never a copy of the Request.
+    if (detailsValue !== '') {
       capturedFields.push(`• Details: ${detailsValue}`);
     }
   }

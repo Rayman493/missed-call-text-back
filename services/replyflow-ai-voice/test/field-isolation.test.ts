@@ -154,7 +154,7 @@ describe('callback windows — connector-joined constraints stay in callbackTime
     }
   });
 
-  it('genuine non-timing detail in a callback utterance is preserved', () => {
+  it('genuine non-timing detail in a callback utterance is preserved in the canonical Request', () => {
     const intake = baseIntake();
     enrichIntakeFromTranscript(
       'Call me after 4, and one other thing, the gate is locked',
@@ -164,6 +164,9 @@ describe('callback windows — connector-joined constraints stay in callbackTime
     );
     expect(intake.callbackTime).to.equal('after 4');
     expect(intake.callbackTime).to.not.contain('gate');
-    expect(intake.issueDescription).to.contain('gate is locked');
+    // ONE canonical Request: volunteered context merges into serviceRequested
+    // instead of a separate Details field.
+    expect(intake.serviceRequested).to.contain('gate is locked');
+    expect(intake.issueDescription).to.be.undefined;
   });
 });

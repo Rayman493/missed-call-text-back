@@ -295,7 +295,7 @@ describe('AI Intake SMS - Polished Format', () => {
       expect(sms).not.toContain('Secondary details from alias field')
     })
 
-    it('should show a fallback Details row when no additional details are present', () => {
+    it('should show no Details row when no additional details are present', () => {
       const extractedInfo = {
         customerName: 'Ryan',
         reasonForCalling: 'Lawn Mowing',
@@ -304,7 +304,7 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
       expect(sms).toContain('• Request: Lawn Mowing')
-      expect(sms).toContain('• Details: No additional details provided')
+      expect(sms).not.toContain('• Details:')
     })
 
     it('should handle distinct Request and Details without duplication', () => {
@@ -426,7 +426,7 @@ describe('AI Intake SMS - Polished Format', () => {
   })
 
   describe('Details row visibility and source priority', () => {
-    it('uses richer reasonForCalling as Details when it adds context beyond the Request', () => {
+    it('never borrows reasonForCalling as Details (single canonical Request)', () => {
       const extractedInfo = {
         serviceRequested: 'Lawn Mowing',
         reasonForCalling: 'Grass cut for a half an acre yard',
@@ -436,7 +436,7 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
       expect(sms).toContain('• Request: Lawn Mowing')
-      expect(sms).toContain('• Details: Grass cut for a half an acre yard')
+      expect(sms).not.toContain('• Details:')
     })
 
     it('prefers importantDetails over reasonForCalling', () => {
@@ -482,11 +482,10 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
       expect(sms).toContain('• Request: Lawn Mowing')
-      expect(sms).not.toContain('• Details: Lawn mowing')
-      expect(sms).toContain('• Details: No additional details provided')
+      expect(sms).not.toContain('• Details:')
     })
 
-    it('shows a fallback Details row when no meaningful details exist', () => {
+    it('shows no Details row when no meaningful details exist', () => {
       const extractedInfo = {
         serviceRequested: 'Lawn Mowing',
         reasonForCalling: 'Lawn Mowing',
@@ -494,7 +493,7 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
       expect(sms).toContain('• Request: Lawn Mowing')
-      expect(sms).toContain('• Details: No additional details provided')
+      expect(sms).not.toContain('• Details:')
     })
 
     it('keeps the refused/missing-name greeting while always showing Details', () => {
@@ -510,7 +509,7 @@ describe('AI Intake SMS - Polished Format', () => {
       expect(sms).toContain('• Details: Half acre yard')
     })
 
-    it('keeps the valid-name greeting while always showing Details', () => {
+    it('keeps the valid-name greeting with no Details row', () => {
       const extractedInfo = {
         customerName: 'Sarah',
         serviceRequested: 'Lawn Mowing',
@@ -520,7 +519,7 @@ describe('AI Intake SMS - Polished Format', () => {
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
       expect(sms).toContain('Hi Sarah, thanks for reaching out to Desktop Final Testing.')
       expect(sms).toContain('• Request: Lawn Mowing')
-      expect(sms).toContain('• Details: Grass cut for a half an acre yard')
+      expect(sms).not.toContain('• Details:')
     })
 
     it('preserves existing address, timing, and callback formatting with Details visible', () => {
@@ -535,6 +534,44 @@ describe('AI Intake SMS - Polished Format', () => {
       expect(sms).toContain('• Address: Bethel Park')
       expect(sms).toContain('• Desired completion: Next week')
       expect(sms).toContain('• Preferred callback: Any time in the afternoons after 1 p.m')
+    })
+  })
+
+  describe('Single canonical Request — long request SMS contract', () => {
+    it('renders a long canonical Request with no Details row and no duplicate content', () => {
+      const extractedInfo = {
+        intakeMode: 'simple',
+        customerName: 'Jordan',
+        serviceRequested:
+          'Have the grass cut and cleaned up my property. The yard is about a quarter acre and it has gotten pretty overgrown after I was away for a couple of weeks. The backyard is fenced in and the gate on the left side is a little narrow, so a large riding mower probably will not fit through it. There are also a few sprinkler heads near the back fence that I want you to be careful around. If possible, I would like the grass clippings bagged and taken away instead of left on the lawn',
+        addressOrLocation: '123 Main Street',
+        desiredCompletionTime: 'Sometime this week',
+        preferredCallbackTime: 'After 4 pm',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business')
+      expect(sms).toContain('• Request:')
+      // Full context is preserved on the Request row (Simple Mode verbatim)
+      expect(sms).toContain('sprinkler heads')
+      expect(sms).toContain('gate on the left side')
+      // No Details row — nothing duplicated, no empty/placeholder line
+      expect(sms).not.toContain('• Details:')
+      expect(sms).not.toContain('Not collected')
+      expect(sms).toContain('• Address: 123 Main Street')
+      expect(sms).toContain('• Desired completion: Sometime this week')
+      expect(sms).toContain('• Preferred callback: After 4 pm')
+    })
+
+    it('still renders legacy importantDetails for historical records', () => {
+      const extractedInfo = {
+        customerName: 'Ryan',
+        serviceRequested: 'Lawn Mowing',
+        importantDetails: 'Quarter acre yard with privacy fence',
+        addressOrLocation: '1632 South Pine Drive',
+      }
+      const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business')
+      expect(sms).toContain('• Request: Lawn Mowing')
+      // Historical Details read compatibility is preserved
+      expect(sms).toContain('• Details: Quarter acre yard with privacy fence')
     })
   })
 })

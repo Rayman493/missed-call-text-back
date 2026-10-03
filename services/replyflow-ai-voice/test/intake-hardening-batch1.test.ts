@@ -199,15 +199,17 @@ describe('Reason/details split', () => {
     expect(split.details).to.equal(null);
   });
 
-  it('enrichment preserves volunteered detail sentences', () => {
+  it('enrichment preserves volunteered detail sentences in the canonical Request', () => {
     const intake = baseIntake({ stage: 'ask_name_reason' });
     enrichIntakeFromTranscript(
       'Hi, my name is Sarah Chen. I need my water heater replaced. It is leaking at the base and making a rumbling noise.',
       intake, 'ask_name_reason', 'CA-test'
     );
     expect(intake.customerName).to.equal('Sarah Chen');
-    expect(intake.serviceRequested).to.equal('my water heater replaced');
-    expect(intake.issueDescription).to.contain('leaking at the base');
+    expect(intake.serviceRequested).to.contain('my water heater replaced');
+    expect(intake.serviceRequested).to.contain('leaking at the base');
+    expect(intake.serviceRequested).to.contain('rumbling noise');
+    expect(intake.issueDescription).to.be.oneOf([undefined, '']);
   });
 
   it('details remain optional - completion works without issueDescription', () => {

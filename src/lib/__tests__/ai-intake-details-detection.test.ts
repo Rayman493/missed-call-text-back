@@ -64,7 +64,9 @@ describe('AI Intake Details Detection - Canonical Fields', () => {
 })
 
 describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
-  it('should recognize details from reasonForCalling with contextual indicator "because"', () => {
+  // Single canonical Request model: contextual request text stays on the
+  // Request row — Details never borrows from reasonForCalling.
+  it('should keep contextual reasonForCalling on the Request row ("because")', () => {
     const extractedInfo = {
       customerName: 'John Smith',
       reasonForCalling: 'I need my kitchen sink repaired because it is leaking',
@@ -75,12 +77,13 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: My kitchen sink repaired because it is leaking')
+    expect(sms).toContain('• Request:')
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
 
-  it('should recognize details from reasonForCalling with contextual indicator "due to"', () => {
+  it('should keep contextual reasonForCalling on the Request row ("due to")', () => {
     const extractedInfo = {
       customerName: 'John Smith',
       reasonForCalling: 'Need plumbing repair due to broken pipe in basement',
@@ -91,12 +94,13 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: Need plumbing repair due to broken pipe in basement')
+    expect(sms).toContain('• Request:')
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
 
-  it('should recognize details from reasonForCalling with contextual indicator "leaking"', () => {
+  it('should keep contextual reasonForCalling on the Request row ("leaking")', () => {
     const extractedInfo = {
       customerName: 'John Smith',
       reasonForCalling: 'The toilet is leaking and needs immediate repair',
@@ -107,12 +111,13 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: The toilet is leaking and needs immediate repair')
+    expect(sms).toContain('• Request:')
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
 
-  it('should recognize details from reasonForCalling with contextual indicator "not working"', () => {
+  it('should keep contextual reasonForCalling on the Request row ("not working")', () => {
     const extractedInfo = {
       customerName: 'John Smith',
       reasonForCalling: 'My garage door opener is not working after the storm',
@@ -123,12 +128,13 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: My garage door opener is not working after the storm')
+    expect(sms).toContain('• Request:')
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
 
-  it('should recognize details from reasonForCalling with contextual indicator "broken"', () => {
+  it('should keep contextual reasonForCalling on the Request row ("broken")', () => {
     const extractedInfo = {
       customerName: 'John Smith',
       reasonForCalling: 'The water heater is broken and we have no hot water',
@@ -139,7 +145,8 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: The water heater is broken and we have no hot water')
+    expect(sms).toContain('• Request:')
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
   })
@@ -432,7 +439,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
       expect(sms).toContain('• Request: I started looking for a plumber')
-      expect(sms).toContain('• Details: No additional details provided')
+      expect(sms).not.toContain('• Details:')
       expect(sms).not.toContain('Still needed:')
       expect(sms).not.toContain('Any helpful details')
     })
@@ -599,8 +606,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
-    expect(sms).toContain('• Details: No additional details provided')
-    expect(sms).not.toContain('• Details: Lawn mowing')
+    expect(sms).not.toContain('• Details:')
   })
 
   it('should NOT treat 4-word service name as details', () => {
@@ -616,8 +622,7 @@ describe('AI Intake Details Detection - Contextual reasonForCalling', () => {
 
     expect(sms).not.toContain('Still needed:')
     expect(sms).not.toContain('Any helpful details')
-    expect(sms).toContain('• Details: Weekly lawn mowing service')
-    expect(sms).not.toContain('• Details: Lawn Mowing')
+    expect(sms).not.toContain('• Details:')
   })
 })
 
@@ -804,7 +809,10 @@ describe('AI Intake Details Detection - Adaptive SMS Formatter', () => {
 
     const sms = formatAdaptiveIntakeSms(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-    expect(sms).toContain('• Details: The toilet is leaking and needs immediate repair')
+    // Single canonical Request: contextual request text stays on the Service
+    // row — Details never borrows from reasonForCalling.
+    expect(sms).toContain('• Service:')
+    expect(sms).not.toContain('• Details:')
     expect(sms).not.toContain('Any important details')
   })
 
@@ -859,7 +867,7 @@ describe('AI Intake Details Detection - SMS Format Constraints', () => {
     const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
     expect(sms).toContain('• Request:')
-    expect(sms).toContain('• Details: My kitchen sink repaired because it is leaking')
+    expect(sms).not.toContain('• Details:')
     expect(sms).toContain('• Address:')
     expect(sms).toContain('• Desired completion:')
     expect(sms).toContain('• Preferred callback:')

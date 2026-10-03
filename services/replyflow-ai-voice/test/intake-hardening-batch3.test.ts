@@ -66,14 +66,19 @@ describe('B3 §11 details contamination', () => {
     ['Hello, are you still there?', 'ask_completion_time'],
   ];
 
-  it.each(mustNotEnterDetails)('"%s" does not enter Details', (t, stage) => {
+  it.each(mustNotEnterDetails)('"%s" does not contaminate stored context', (t, stage) => {
     const i = enrich(t, stage, { ...seeded });
     const d = (i.issueDescription || '').toLowerCase();
-    expect(d).not.toContain('cedar ridge');
-    expect(d).not.toContain('call me');
-    expect(d).not.toContain('sometime this week');
-    expect(d).not.toContain('callback');
-    expect(d).not.toContain('still there');
+    // Under the single canonical Request model, scalar/meta-owned text must
+    // not leak into either legacy Details or the canonical Request.
+    const r = (i.serviceRequested || '').toLowerCase();
+    for (const field of [d, r]) {
+      expect(field).not.toContain('cedar ridge');
+      expect(field).not.toContain('call me');
+      expect(field).not.toContain('sometime this week');
+      expect(field).not.toContain('callback');
+      expect(field).not.toContain('still there');
+    }
   });
 
   const legitDetails = [
@@ -83,13 +88,17 @@ describe('B3 §11 details contamination', () => {
     'The cabinet is starting to swell.',
     'The spring snapped and the door is stuck halfway.',
   ];
-  it.each(legitDetails)('keeps real detail "%s"', (t) => {
+  it.each(legitDetails)('keeps real detail "%s" in the canonical Request', (t) => {
     const i = enrich(t, 'ask_completion_time', {
       customerName: 'Nicole Bennett',
       serviceRequested: 'look at my furnace',
       serviceAddress: '1260 Highland Avenue in Dormont',
     });
-    expect((i.issueDescription || '').length).toBeGreaterThan(0);
+    // ONE canonical Request: volunteered context merges into serviceRequested
+    // even when volunteered at a later stage.
+    const expected = t.replace(/\.$/, '').toLowerCase();
+    expect((i.serviceRequested || '').toLowerCase()).toContain(expected);
+    expect(i.issueDescription || '').toBeFalsy();
   });
 
   it('correction scaffold does not become a detail', () => {
@@ -103,14 +112,15 @@ describe('B3 §11 details contamination', () => {
     expect(i.issueDescription || '').not.toContain('gave you');
   });
 
-  it('dangling "I\'m" connector does not survive in Details', () => {
+  it('dangling "I\'m" connector does not survive in the canonical Request', () => {
     const i = enrich(
       "I'm Nicole Bennett. I need someone to look at my furnace. It's making a rattling noise and sometimes shuts off before the house warms up. I'm at 1260 Highland Avenue in Dormont. Sometime this week would be great, and call me anytime after 4.",
       'ask_name_reason'
     );
-    expect(i.issueDescription || '').not.toMatch(/\bi'?m\b\s*$/i);
-    expect(i.issueDescription || '').not.toContain('call me');
-    expect(i.issueDescription || '').not.toContain('Highland');
+    expect(i.serviceRequested || '').not.toMatch(/\bi'?m\b\s*$/i);
+    expect(i.serviceRequested || '').not.toContain('call me');
+    expect(i.serviceRequested || '').not.toContain('Highland');
+    expect(i.issueDescription || '').toBeFalsy();
   });
 });
 
@@ -254,8 +264,9 @@ describe('B3 §15 dense skip-ahead', () => {
     );
     expect(i.customerName).toBe('Nicole Bennett');
     expect((i.serviceRequested || '').toLowerCase()).toContain('furnace');
-    expect(i.issueDescription).toContain('rattling');
-    expect(i.issueDescription).not.toMatch(/\bi'?m\b\s*$/i);
+    expect((i.serviceRequested || '').toLowerCase()).toContain('rattling');
+    expect(i.serviceRequested).not.toMatch(/\bi'?m\b\s*$/i);
+    expect(i.issueDescription || '').toBeFalsy();
     expect(i.serviceAddress).toBe('1260 Highland Avenue in Dormont');
     expect((i.desiredCompletionTime || '').toLowerCase()).toContain('week');
     expect((i.callbackTime || '').toLowerCase()).toContain('after 4');

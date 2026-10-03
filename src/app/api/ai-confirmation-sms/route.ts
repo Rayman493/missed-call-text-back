@@ -475,7 +475,9 @@ export async function POST(request: NextRequest) {
     })
 
     // Check if all required fields are present
-    const requiredFields = ['callerName', 'reasonForCalling', 'importantDetails', 'addressOrLocation', 'desiredCompletionTime', 'preferredCallbackTime'];
+    // Diagnostic only — real dispatch gate is isCompleteAIIntake. Details is
+    // no longer required: the canonical Request carries all caller context.
+    const requiredFields = ['callerName', 'reasonForCalling', 'addressOrLocation', 'desiredCompletionTime', 'preferredCallbackTime'];
     const missingFields = requiredFields.filter(field => {
       const value = (extracted as any)[field];
       return !value || value.trim() === '';
