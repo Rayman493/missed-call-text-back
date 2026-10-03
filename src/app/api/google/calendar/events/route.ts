@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export async function GET(request: NextRequest) {
@@ -49,8 +50,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get the calendar integration
-    const { data: integration, error: integrationError } = await supabase
+    // Get the calendar integration via service role — OAuth token columns are
+    // not selectable by user JWTs; authorization happened above.
+    const { data: integration, error: integrationError } = await supabaseAdmin
       .from('calendar_integrations')
       .select('*')
       .eq('business_id', business.id)
@@ -108,7 +110,7 @@ export async function GET(request: NextRequest) {
       // Update the integration with new token
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('calendar_integrations')
         .update({
           access_token: tokenData.access_token,

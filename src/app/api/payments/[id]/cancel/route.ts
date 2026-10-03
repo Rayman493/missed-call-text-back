@@ -246,7 +246,7 @@ export async function POST(
       // terminal state before any local mutation.
       let session: any
       try {
-        session = await stripe.checkout.sessions.retrieve(sessionId, accountOptions)
+        session = await stripe.checkout.sessions.retrieve(sessionId, {}, accountOptions)
         console.log('[PAYMENT CANCEL] Retrieved session state:', {
           session_id: sessionIdSafe,
           session_state: session.status,
@@ -355,7 +355,7 @@ export async function POST(
       // Case: open → must expire it with the SAME connected account context
       else if (sessionStatus === 'open') {
         try {
-          await stripe.checkout.sessions.expire(sessionId, accountOptions)
+          await stripe.checkout.sessions.expire(sessionId, {}, accountOptions)
           console.log('[PAYMENT CANCEL] Stripe checkout session expired successfully', {
             session_id: sessionIdSafe,
             expire_result: 'success',

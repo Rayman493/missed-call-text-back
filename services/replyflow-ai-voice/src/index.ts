@@ -5366,7 +5366,7 @@ async function finalizeIncompleteIntake(
               call_sid: callSid,
               caller_phone: callerPhone
             },
-            action_url: `/leads/${lead.id}`,
+            action_url: `/dashboard/leads/${lead.id}`,
             action_text: 'View Lead',
             read: false,
             created_at: new Date().toISOString()
@@ -5919,6 +5919,9 @@ async function createFallbackLead(
             lead_id: fallbackCallRecordPayload.lead_id,
             customer_phone: fallbackCallRecordPayload.caller_phone
           },
+          action_url: fallbackCallRecordPayload.lead_id
+            ? `/dashboard/leads/${fallbackCallRecordPayload.lead_id}`
+            : null,
           read: false,
           created_at: new Date().toISOString()
         };

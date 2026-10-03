@@ -332,6 +332,7 @@ async function reconcileCheckoutSession(
     // Fetch Checkout Session from Stripe
     const session = await stripe.checkout.sessions.retrieve(
       sessionId,
+      {},
       stripeAccountId ? { stripeAccount: stripeAccountId } as any : undefined
     )
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
@@ -119,8 +120,9 @@ export async function POST(request: NextRequest) {
 
     console.log('[Calendar Create] Business found:', business.id)
 
-    // Get the calendar integration using the same pattern as working routes
-    const { data: integration, error: integrationError } = await supabase
+    // Get the calendar integration via service role — OAuth token columns are
+    // not selectable by user JWTs; authorization happened above.
+    const { data: integration, error: integrationError } = await supabaseAdmin
       .from('calendar_integrations')
       .select('*')
       .eq('business_id', business.id)
@@ -187,7 +189,7 @@ export async function POST(request: NextRequest) {
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
       console.log('[Calendar Create] Updating integration with new token')
       
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('calendar_integrations')
         .update({
           access_token: tokenData.access_token,
