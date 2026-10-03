@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 // Store URLs - configured here for easy future updates
 // These can be moved to environment variables when available
 const APP_STORE_URL = process.env.NEXT_PUBLIC_IOS_APP_STORE_URL || null
-const GOOGLE_PLAY_URL = process.env.NEXT_PUBLIC_ANDROID_PLAY_STORE_URL || null
+const GOOGLE_PLAY_URL = process.env.NEXT_PUBLIC_ANDROID_PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=com.replyflowhq.app&hl=en_US'
 
 export default function DownloadPage() {
   return (
