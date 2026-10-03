@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ splash icon: reuses the adaptive foreground mark at a reduced
+     scale so the ReplyFlow R sits smaller and balanced inside the system
+     splash circle rather than filling it. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@mipmap/ic_launcher_foreground"
+    android:inset="28%" />
