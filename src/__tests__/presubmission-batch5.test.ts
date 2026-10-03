@@ -77,17 +77,20 @@ describe('help modal close + light mode (§4, §16)', () => {
 })
 
 describe('AI intake field icons (§8)', () => {
-  it('Details uses FileText, time fields use Clock', () => {
-    expect(aiCallSrc).toMatch(/<FileText[^/]*\/>\s*<span[^>]*>Details/)
-    expect(aiCallSrc).toMatch(/<Clock[^/]*\/>\s*<span[^>]*>Desired Completion/)
-    expect(aiCallSrc).toMatch(/<Clock[^/]*\/>\s*<span[^>]*>Preferred Callback/)
+  it('AI intake details uses the canonical field icons and desktop labels', () => {
+    expect(aiCallSrc).toMatch(/<MessageSquare[^/]*\/>\s*<span[^>]*>Reason for Calling/)
+    expect(aiCallSrc).toMatch(/<MapPin[^/]*\/>\s*<span[^>]*>Location/)
+    expect(aiCallSrc).toMatch(/<CalendarDays[^/]*\/>\s*<span[^>]*>Desired Completion Time/)
+    expect(aiCallSrc).toMatch(/<PhoneCall[^/]*\/>\s*<span[^>]*>Preferred Callback Time/)
+    // Canonical Request model: no standalone AI-generated Details card.
+    expect(aiCallSrc).not.toContain('>Details</span>')
   })
 
   it('customer context uses the same canonical icons', () => {
     expect(customerSrc).toContain("'Reason for Calling', reasonForCalling, <MessageSquare")
-    expect(customerSrc).toContain("'Details', details, <FileText")
-    expect(customerSrc).toContain("'Desired Completion Time', desiredCompletionTime, <Clock")
-    expect(customerSrc).toContain("'Preferred Callback Time', preferredCallbackTime, <Clock")
+    expect(customerSrc).toContain("'Location', location, <MapPin")
+    expect(customerSrc).toContain("'Desired Completion Time', desiredCompletionTime, <CalendarDays")
+    expect(customerSrc).toContain("'Preferred Callback Time', preferredCallbackTime, <PhoneCall")
   })
 })
 

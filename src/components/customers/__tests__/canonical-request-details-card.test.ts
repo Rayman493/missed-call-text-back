@@ -32,8 +32,8 @@ describe('Canonical Request — no standalone Details card in current Customer C
     expect(src).not.toContain('>Details</span>')
     // Request card present and sourced from the canonical request — the
     // compact display title must never render as the authoritative Request
-    // inside the intake details view.
-    expect(src).toContain('>Request</span>')
+    // inside the intake details view. Label matches desktop Customer Context.
+    expect(src).toContain('>Reason for Calling</span>')
     expect(src).not.toContain('getLeadRequestTitle')
     // Completeness indicator must not require a legacy details field.
     expect(src).not.toContain('hasDetails')
@@ -49,5 +49,52 @@ describe('Canonical Request — no standalone Details card in current Customer C
     // Historical records may carry a separate Details value — the legacy
     // viewer must keep reading it.
     expect(src).toContain('additionalDetails')
+  })
+})
+
+describe('AI Intake Details — desktop Customer Context parity', () => {
+  const aiSrc = readFileSync(join(__dirname, '../../AICallDetails.tsx'), 'utf8')
+  const desktopSrc = readFileSync(join(__dirname, '../../CustomerDetails.tsx'), 'utf8')
+
+  it('mobile AI Intake field labels match desktop Customer Context terminology', () => {
+    expect(aiSrc).toContain('>Customer Name</span>')
+    expect(aiSrc).toContain('>Reason for Calling</span>')
+    expect(aiSrc).toContain('>Location</span>')
+    expect(aiSrc).toContain('>Desired Completion Time</span>')
+    expect(aiSrc).toContain('>Preferred Callback Time</span>')
+    // Desktop Customer Context keeps the same labels.
+    expect(desktopSrc).toContain("renderField('Customer Name'")
+    expect(desktopSrc).toContain("renderField('Reason for Calling'")
+    expect(desktopSrc).toContain("renderField('Location'")
+    expect(desktopSrc).toContain("renderField('Desired Completion Time'")
+    expect(desktopSrc).toContain("renderField('Preferred Callback Time'")
+  })
+
+  it('mobile field cards reuse the desktop card surface conventions', () => {
+    const aiCard = aiSrc.match(/\{\/\* Canonical Request[\s\S]*?\{\/\* Address - only show/)?.[0]
+    expect(aiCard).toBeTruthy()
+    // Same surface tokens as desktop renderField:
+    // rounded-lg border-border/25 bg-background/25 px-4 py-2, mb-1.5 label row,
+    // pl-6 break-words value, shared empty-state copy.
+    expect(desktopSrc).toContain('rounded-lg border border-border/25 bg-background/25 px-4 py-2')
+    expect(aiCard).toContain('rounded-lg border border-border/25 bg-background/25 px-4 py-2')
+    expect(aiCard).toContain('mb-1.5')
+    expect(aiCard).toContain('pl-6')
+    expect(aiCard).toContain('break-words')
+    expect(aiCard).toContain('No information yet')
+    // Field stack spacing matches desktop space-y-3.
+    expect(aiSrc).toContain('className="space-y-3"')
+    expect(desktopSrc).toContain('className="space-y-3"')
+  })
+
+  it('canonical Request stays full-text with wrap and expand/collapse intact', () => {
+    const aiCard = aiSrc.match(/\{\/\* Canonical Request[\s\S]*?\{\/\* Address - only show/)?.[0]
+    expect(aiCard).toBeTruthy()
+    // Full canonical request — never the compact title — with long-text safety.
+    expect(aiCard).toContain('serviceRequested')
+    expect(aiCard).toContain('whitespace-pre-line break-words')
+    expect(aiCard).toContain('setDetailsExpanded')
+    expect(aiCard).toContain('> 200')
+    expect(aiCard).toContain('substring(0, 200)')
   })
 })
