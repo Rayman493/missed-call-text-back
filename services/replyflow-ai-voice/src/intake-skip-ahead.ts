@@ -337,6 +337,26 @@ const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean | 'sp
   },
 ];
 
+// Street-level evidence for a location candidate: a house/unit number or a
+// street/unit keyword. Candidates carrying this signal are credible service
+// addresses on their own.
+const STREET_ADDRESS_SIGNAL_RE =
+  /\d|\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|way|court|ct|place|pl|apartment|apt|suite|ste|unit|highway|hwy|route|pike|circle|cir|terrace|ter|parkway|pkwy|trail|trl|alley|square)\b/i;
+
+function hasStreetAddressSignal(text: string): boolean {
+  return STREET_ADDRESS_SIGNAL_RE.test(text);
+}
+
+// Job-site feature nouns describe where work happens ON the property — they
+// are never the service location itself. "left/right side" is a spatial
+// descriptor; cardinal neighborhood names ("the South Side") stay valid.
+const JOB_SITE_DETAIL_RE =
+  /\b(?:fence|gate|yard|backyard|lawn|grass|shed|garage|driveway|porch|deck|patio|pool|sprinkler|garden|tree|bush|hedge|basement|attic|roof|mailbox|curb|sidewalk|walkway|chimney|mulch|gravel)\b|\b(?:left|right)\s+side\b/i;
+
+function isJobSiteDetailPhrase(text: string): boolean {
+  return JOB_SITE_DETAIL_RE.test(text);
+}
+
 function isConfidentEarlyServiceAddress(
   text: string,
   type: string
@@ -347,6 +367,16 @@ function isConfidentEarlyServiceAddress(
     // generic validator rejects as potential person names. Bare capitalized
     // spans ("area") stay strict so a name is never pulled into the address.
     if (type !== 'area-scaffold' || !isPlaceLikeLocationValue(text)) return false;
+  }
+  // A skip-ahead candidate is extracted without the ask_location scaffold,
+  // so it must carry its own location evidence. A candidate with no
+  // street-address signal is accepted only as a compact place name
+  // ("Pittsburgh", "Bethel Park", "the South Side") — never a clause or a
+  // job-site descriptor ("the back fence", "the backyard", "the left side"),
+  // which describe where work happens rather than where the property is.
+  if (!hasStreetAddressSignal(text) &&
+      (!isPlaceLikeLocationValue(text) || isJobSiteDetailPhrase(text))) {
+    return false;
   }
   const trimmed = text.trim().toLowerCase();
   if (type === 'explicit' || type === 'explicit-correction') return true;
