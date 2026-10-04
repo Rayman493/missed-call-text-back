@@ -804,21 +804,36 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
     summary.tablesDeleted.ignored_contacts = ignoredContactsCount || 0
     console.log('[delete-account-lifecycle] Step 15 completed: deleted ignored_contacts:', ignoredContactsCount)
 
-    // Step 16: Delete stripe_webhook_events linked to businesses (if table exists)
-    // This table may not exist in all environments, so we handle PGRST205 gracefully
-    console.log('[delete-account-lifecycle] Step 16: delete stripe_webhook_events')
+    // Step 16: Anonymize stripe_webhook_events linked to businesses.
+    // This is a service-owned webhook idempotency/audit ledger keyed by the
+    // Stripe event_id UNIQUE constraint — the rows are the dedupe anchor that
+    // prevents an event from being processed twice if Stripe redelivers it
+    // (automatic retries or a dashboard resend). Deleting rows would forfeit
+    // that guarantee; the rows carry no customer PII (event id/type, status,
+    // error_message, business_id tag only). So we ANONYMIZE the business_id
+    // link and RETAIN the event_id records — removing the business's
+    // footprint without weakening webhook idempotency.
+    //
+    // A cleanup failure here must not wedge the entire deletion: a missing
+    // table (PGRST205) or a missing service-role table grant (42501, observed
+    // in production) leaves the ledger fully retained — which is the desired
+    // retention posture anyway. All other errors still fail closed.
+    console.log('[delete-account-lifecycle] Step 16: anonymize stripe_webhook_events')
 
     const { error: stripeWebhookEventsError, count: stripeWebhookEventsCount } = await supabaseAdmin
       .from('stripe_webhook_events')
-      .delete()
+      .update({ business_id: null })
       .in('business_id', businessIds)
       .select()
 
     if (stripeWebhookEventsError) {
-      // PGRST205 means table doesn't exist in schema cache - treat as optional
       if (stripeWebhookEventsError.code === 'PGRST205') {
         console.warn('[delete-account-lifecycle] stripe_webhook_events table not found (PGRST205), skipping')
         summary.tablesDeleted.stripe_webhook_events = 0
+      } else if (stripeWebhookEventsError.code === '42501') {
+        console.error('[delete-account-lifecycle] Step 16 skipped: insufficient table privilege on stripe_webhook_events — webhook idempotency ledger rows retained (audit-safe)', stripeWebhookEventsError)
+        summary.tablesDeleted.stripe_webhook_events = 0
+        summary.stripeWebhookEventsCleanup = 'skipped_insufficient_privilege'
       } else {
         console.error('[delete-account-lifecycle] Step 16 failed:', stripeWebhookEventsError)
         return {
@@ -831,7 +846,8 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
       }
     } else {
       summary.tablesDeleted.stripe_webhook_events = stripeWebhookEventsCount || 0
-      console.log('[delete-account-lifecycle] Step 16 completed: deleted stripe_webhook_events:', stripeWebhookEventsCount)
+      summary.stripeWebhookEventsCleanup = 'anonymized'
+      console.log('[delete-account-lifecycle] Step 16 completed: anonymized stripe_webhook_events:', stripeWebhookEventsCount)
     }
 
     // Step 17: Delete tasks linked to businesses

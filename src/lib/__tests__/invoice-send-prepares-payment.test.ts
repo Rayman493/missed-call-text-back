@@ -3,13 +3,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Mock Stripe
 const mockSession = { id: 'cs_test_123', url: 'https://checkout.stripe.com/test', payment_intent: 'pi_test_123' }
 const mockPaymentIntentsUpdate = vi.fn().mockResolvedValue({})
+const mockSessionsRetrieve = vi.fn()
+const mockSessionsExpire = vi.fn().mockResolvedValue({ id: 'cs_legacy', status: 'expired' })
 const mockStripe = {
-  checkout: { sessions: { create: vi.fn().mockResolvedValue(mockSession) } },
+  checkout: { sessions: { create: vi.fn().mockResolvedValue(mockSession), retrieve: mockSessionsRetrieve, expire: mockSessionsExpire } },
   paymentIntents: { update: mockPaymentIntentsUpdate },
 }
 
 vi.mock('@/lib/stripe', () => ({
   default: () => mockStripe,
+}))
+
+const mockEnsureSideEffects = vi.fn().mockResolvedValue(undefined)
+vi.mock('@/lib/payments/completion-side-effects', () => ({
+  ensurePaymentCompletedSideEffects: (...args: any[]) => mockEnsureSideEffects(...args),
 }))
 
 // Flexible mock supabase that supports the prepare-payment lifecycle:
@@ -20,6 +27,7 @@ vi.mock('@/lib/stripe', () => ({
 function makeMockSupabase(options: {
   invoice: any
   existingPr?: any | null
+  prAfterUpdate?: any
   business?: any | null
   insertedPr?: any
   conversationLookup?: any[]
@@ -31,6 +39,7 @@ function makeMockSupabase(options: {
   const {
     invoice,
     existingPr = null,
+    prAfterUpdate,
     business = { id: 'biz_1', stripe_connect_account_id: 'acct_business_1', stripe_connect_status: 'connected', stripe_charges_enabled: true },
     insertedPr = { id: 'pr_new', status: 'draft' },
     conversationLookup = [{ id: 'conv_1', status: 'active' }],
@@ -45,6 +54,7 @@ function makeMockSupabase(options: {
   const deletes: Record<string, any> = {}
   let prUpdateError = activateError
   let prUpdateData = activateResult.data
+  let prMutated = false
 
   const fromFn = vi.fn((table: string) => {
     const captureInsert = (payload: any) => {
@@ -96,8 +106,9 @@ function makeMockSupabase(options: {
         select: vi.fn(() => ({
           eq: vi.fn((col: string) => ({
             maybeSingle: vi.fn(async () => {
-              if (col === 'id' && existingPr) {
-                return { data: existingPr, error: null }
+              const row = prMutated && prAfterUpdate !== undefined ? prAfterUpdate : existingPr
+              if (col === 'id' && row) {
+                return { data: row, error: null }
               }
               return { data: null, error: null }
             }),
@@ -108,13 +119,22 @@ function makeMockSupabase(options: {
         update: vi.fn((payload: any) => ({
           eq: vi.fn((col: string, val: string) => {
             updates[`${table}.${col}=${val}`] = payload
-            return {
-              select: vi.fn(() => ({
-                single: vi.fn(async () => ({
+            const selectResult = () => ({
+              single: vi.fn(async () => ({
+                data: prUpdateData,
+                error: prUpdateError,
+              })),
+              maybeSingle: vi.fn(async () => {
+                prMutated = true
+                return {
                   data: prUpdateData,
                   error: prUpdateError,
-                })),
-              })),
+                }
+              }),
+            })
+            return {
+              select: selectResult,
+              neq: vi.fn(() => ({ select: selectResult })),
             }
           }),
         })),
@@ -500,7 +520,54 @@ describe('prepareInvoicePayment', () => {
     expect(mockStripe.checkout.sessions.create.mock.calls.at(-2)![1].stripeAccount).not.toBe(mockStripe.checkout.sessions.create.mock.calls.at(-1)![1].stripeAccount)
   })
 
-  it('quarantines a historical platform Checkout link without replacing or expiring it', async () => {
+  it('retires a live legacy platform session, then resumes the anchor on the connected account', async () => {
+    mockSessionsRetrieve.mockResolvedValue({ id: 'cs_legacy', status: 'open', payment_status: 'unpaid' })
+    const supabase = makeMockSupabase({
+      invoice: {},
+      existingPr: { id: 'pr_legacy', status: 'pending', amount_cents: 1000, currency: 'usd', checkout_url: 'https://checkout.stripe.com/legacy', stripe_checkout_session_id: 'cs_legacy', stripe_connect_account_id: null },
+    })
+    const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+      id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'sent', payment_request_id: 'pr_legacy',
+    })
+    // The legacy platform session is retired so it can no longer collect,
+    // then a fresh connected-account session is created on the same anchor.
+    // Account boundary: retrieve/expire run UNSCOPED (platform account —
+    // where the legacy session lives); create runs under { stripeAccount }
+    // (the business's connected account). Stripe idempotency keys are
+    // account-scoped, so the key inside the connected-account options can
+    // never replay the platform session.
+    expect(mockSessionsRetrieve.mock.calls[0]).toEqual(['cs_legacy'])
+    expect(mockSessionsExpire.mock.calls[0]).toEqual(['cs_legacy'])
+    expect(mockStripe.checkout.sessions.create).toHaveBeenCalledTimes(1)
+    expect(mockStripe.checkout.sessions.create.mock.calls[0][1]).toEqual({
+      stripeAccount: 'acct_business_1',
+      idempotencyKey: 'billing-payment-request:pr_legacy',
+    })
+    expect(result).toMatchObject({ ok: true, checkout_url: mockSession.url, payment_request_id: 'pr_legacy' })
+    // The anchor is re-activated onto the connected account.
+    expect(supabase._updates['payment_requests.id=pr_legacy']).toMatchObject({
+      status: 'pending',
+      stripe_connect_account_id: 'acct_business_1',
+      stripe_checkout_session_id: 'cs_test_123',
+    })
+  })
+
+  it('resumes a legacy anchor whose session is already expired without expiring again', async () => {
+    mockSessionsRetrieve.mockResolvedValue({ id: 'cs_legacy', status: 'expired', payment_status: 'unpaid' })
+    const supabase = makeMockSupabase({
+      invoice: {},
+      existingPr: { id: 'pr_legacy', status: 'pending', amount_cents: 1000, currency: 'usd', checkout_url: 'https://checkout.stripe.com/legacy', stripe_checkout_session_id: 'cs_legacy', stripe_connect_account_id: null },
+    })
+    const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+      id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'sent', payment_request_id: 'pr_legacy',
+    })
+    expect(mockSessionsExpire).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ ok: true, payment_request_id: 'pr_legacy' })
+    expect(mockStripe.checkout.sessions.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps quarantining a legacy link whose session already collected a platform payment', async () => {
+    mockSessionsRetrieve.mockResolvedValue({ id: 'cs_legacy', status: 'complete', payment_status: 'paid' })
     const supabase = makeMockSupabase({
       invoice: {},
       existingPr: { id: 'pr_legacy', status: 'pending', amount_cents: 1000, currency: 'usd', checkout_url: 'https://checkout.stripe.com/legacy', stripe_checkout_session_id: 'cs_legacy', stripe_connect_account_id: null },
@@ -509,7 +576,38 @@ describe('prepareInvoicePayment', () => {
       id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'sent', payment_request_id: 'pr_legacy',
     })
     expect(result).toMatchObject({ ok: false, status: 409 })
+    expect(result.error).toMatch(/requires review/)
+    expect(mockSessionsExpire).not.toHaveBeenCalled()
     expect(mockStripe.checkout.sessions.create).not.toHaveBeenCalled()
+  })
+
+  it('resumes a pending non-Stripe anchor (venmo/paypal link holds no payable Stripe state)', async () => {
+    const supabase = makeMockSupabase({
+      invoice: {},
+      existingPr: { id: 'pr_venmo', status: 'pending', amount_cents: 1000, currency: 'usd', checkout_url: 'https://venmo.com/u/merchant', stripe_checkout_session_id: null, stripe_connect_account_id: null, payment_provider: 'venmo' },
+    })
+    const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+      id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'sent', payment_request_id: 'pr_venmo',
+    })
+    expect(mockSessionsRetrieve).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ ok: true, payment_request_id: 'pr_venmo' })
+    expect(mockStripe.checkout.sessions.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns alreadyPaid instead of resurrecting an anchor that was paid during activation', async () => {
+    mockSessionsRetrieve.mockResolvedValue({ id: 'cs_legacy', status: 'open', payment_status: 'unpaid' })
+    const supabase = makeMockSupabase({
+      invoice: {},
+      existingPr: { id: 'pr_legacy', status: 'pending', amount_cents: 1000, currency: 'usd', checkout_url: 'https://checkout.stripe.com/legacy', stripe_checkout_session_id: 'cs_legacy', stripe_connect_account_id: null },
+      // .neq('status','paid') filtered the update (webhook won the race)
+      activateResult: { data: null, error: null },
+      prAfterUpdate: { id: 'pr_legacy', status: 'paid' },
+    })
+    const result = await prepareInvoicePayment(supabase as any, 'biz_1', {
+      id: 'inv_1', document_number: 'INV-1', total_cents: 1000, currency: 'usd', customer_id: 'lead_1', status: 'sent', payment_request_id: 'pr_legacy',
+    })
+    expect(result).toMatchObject({ ok: true, alreadyPaid: true })
+    expect(mockEnsureSideEffects).toHaveBeenCalledWith('pr_legacy')
   })
 
   it('rejects an existing anchor assigned to another connected account', async () => {
