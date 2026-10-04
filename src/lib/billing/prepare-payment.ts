@@ -1,4 +1,5 @@
 import getStripe from '@/lib/stripe'
+import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-side-effects'
 
@@ -7,6 +8,98 @@ import { ensurePaymentCompletedSideEffects } from '@/lib/payments/completion-sid
  * payment_requests requires a non-null conversation_id, so this must run
  * before any payment_request insert.
  */
+const LEGACY_LINK_REVIEW_ERROR =
+  'This invoice payment link requires review before it can accept payment'
+
+/**
+ * Retire the outstanding payment link on a legacy anchor (a pending
+ * payment_request with checkout state but no stripe_connect_account_id).
+ *
+ * Anchors shaped like this were created before invoice payments were routed
+ * through Stripe Connect destination charges: their Checkout Session lives on
+ * the PLATFORM account, so a customer paying the outstanding link would have
+ * their money collected into the platform account instead of the business's
+ * connected account. Before such an anchor can be safely resumed, the live
+ * platform session must be expired so the old link can no longer accept
+ * payment.
+ *
+ * Returns { ok: true } when nothing dangerous is still payable:
+ *   - non-Stripe providers (venmo/paypal) hold no Stripe state to retire
+ *   - dead sessions (expired / gone from the platform account)
+ *   - open sessions that were successfully expired here
+ *
+ * Returns { ok: false } when the link must stay quarantined:
+ *   - a 'complete' session (a payment already landed on the platform account —
+ *     refund/reconciliation is a manual decision, never automatic)
+ *   - a Stripe checkout URL we cannot retrieve or expire
+ */
+async function retireLegacyPendingLink(paymentRequest: {
+  stripe_checkout_session_id?: string | null
+  checkout_url?: string | null
+  payment_provider?: string | null
+}): Promise<{ ok: boolean; error?: string }> {
+  // A venmo/paypal (or other non-Stripe) pending link is a passive URL — there
+  // is no Stripe session that could collect into the platform account, so the
+  // anchor is safe to resume and overwrite.
+  if (paymentRequest.payment_provider && paymentRequest.payment_provider !== 'stripe') {
+    return { ok: true }
+  }
+
+  if (!paymentRequest.stripe_checkout_session_id) {
+    // A checkout.stripe.com URL without a session id cannot be proven dead —
+    // keep it quarantined. Any other URL carries no payable Stripe state.
+    if (paymentRequest.checkout_url && paymentRequest.checkout_url.includes('checkout.stripe.com')) {
+      return { ok: false, error: LEGACY_LINK_REVIEW_ERROR }
+    }
+    return { ok: true }
+  }
+
+  const stripe = getStripe()
+  if (!stripe) {
+    return { ok: false, error: 'Stripe is not configured' }
+  }
+
+  let session: Stripe.Checkout.Session
+  try {
+    // Legacy anchors have no stripe_connect_account_id — their sessions live
+    // on the platform account, so this read intentionally runs unscoped.
+    session = await stripe.checkout.sessions.retrieve(paymentRequest.stripe_checkout_session_id)
+  } catch (retrieveError: any) {
+    if (retrieveError?.code === 'resource_missing') {
+      // Unknown on the platform account — the link is already dead.
+      return { ok: true }
+    }
+    console.error('[PREPARE PAYMENT] Failed to retrieve legacy Checkout Session:', retrieveError)
+    return { ok: false, error: 'Failed to verify the existing invoice payment link' }
+  }
+
+  if (session.status === 'expired') {
+    return { ok: true }
+  }
+
+  if (session.status !== 'open' || session.payment_status === 'paid') {
+    // 'complete' — or any session whose payment_status is already 'paid' —
+    // means money already moved on the platform account. Whether to refund
+    // or reconcile is a manual decision — keep the quarantine and surface
+    // an accurate error. (Stripe also refuses to expire a paid session.)
+    console.error('[PREPARE PAYMENT] Legacy Checkout Session cannot be retired:', {
+      id: session.id,
+      status: session.status,
+      payment_status: session.payment_status,
+    })
+    return { ok: false, error: LEGACY_LINK_REVIEW_ERROR }
+  }
+
+  try {
+    await stripe.checkout.sessions.expire(paymentRequest.stripe_checkout_session_id)
+    console.log('[PREPARE PAYMENT] Retired legacy platform Checkout Session:', paymentRequest.stripe_checkout_session_id)
+    return { ok: true }
+  } catch (expireError) {
+    console.error('[PREPARE PAYMENT] Failed to expire legacy Checkout Session:', expireError)
+    return { ok: false, error: LEGACY_LINK_REVIEW_ERROR }
+  }
+}
+
 async function resolveConversationId(
   supabase: SupabaseClient,
   businessId: string,
@@ -119,13 +212,13 @@ export async function prepareInvoicePayment(
   // If it links to a paid request, reconcile the invoice.
   // Otherwise create a fresh 'draft' row BEFORE any external Stripe state is
   // created, so a retry always has a persisted idempotency anchor to follow.
-  let paymentRequest: { id: string; status?: string; amount_cents?: number; currency?: string | null; checkout_url?: string | null; stripe_checkout_session_id?: string | null; stripe_connect_account_id?: string | null } | null = null
+  let paymentRequest: { id: string; status?: string; amount_cents?: number; currency?: string | null; checkout_url?: string | null; stripe_checkout_session_id?: string | null; stripe_connect_account_id?: string | null; payment_provider?: string | null } | null = null
   let isNewAnchor = true
 
   if (invoice.payment_request_id) {
     const { data: existingPr } = await supabase
       .from('payment_requests')
-      .select('id, amount_cents, currency, checkout_url, status, stripe_checkout_session_id, stripe_connect_account_id')
+      .select('id, amount_cents, currency, checkout_url, status, stripe_checkout_session_id, stripe_connect_account_id, payment_provider')
       .eq('id', invoice.payment_request_id)
       .maybeSingle()
     if (existingPr) {
@@ -142,21 +235,28 @@ export async function prepareInvoicePayment(
         await ensurePaymentCompletedSideEffects(existingPr.id)
         return { ok: true, alreadyPaid: true }
       }
-      if ((existingPr.stripe_checkout_session_id || existingPr.checkout_url) && !existingPr.stripe_connect_account_id) {
-        // Legacy platform-account link. A still-live 'pending' link must stay
-        // blocked: paying it would collect into the platform account, not the
-        // business's connected account. A dead anchor (cancelled/expired/draft)
-        // is safe to resume — activation below creates a fresh connected-account
-        // session and rewrites the account/session/url fields, so the old
-        // platform link can no longer collect on this request.
-        if (existingPr.status === 'pending') {
-          return { ok: false, error: 'This invoice payment link requires review before it can accept payment', status: 409 }
+      const isLegacyPlatformLink =
+        (existingPr.stripe_checkout_session_id || existingPr.checkout_url) &&
+        !existingPr.stripe_connect_account_id
+      if (isLegacyPlatformLink && existingPr.status === 'pending') {
+        // Legacy platform-account link that may still be payable. It can only
+        // be resumed once its outstanding Stripe state has been retired —
+        // otherwise paying it would collect into the platform account, not the
+        // business's connected account. When the session cannot be retired
+        // (e.g. a payment already completed on it), the quarantine stays and
+        // the error stays accurate. Dead anchors (cancelled/expired/draft) and
+        // successfully retired links fall through to the resume path below,
+        // which creates a fresh connected-account session and rewrites the
+        // account/session/url fields on the same anchor.
+        const retired = await retireLegacyPendingLink(existingPr)
+        if (!retired.ok) {
+          return { ok: false, error: retired.error, status: 409 }
         }
       }
       if (existingPr.stripe_connect_account_id && existingPr.stripe_connect_account_id !== stripeAccountId) {
         return { ok: false, error: 'Invoice payment account does not match the business Stripe account', status: 409 }
       }
-      if (existingPr.status === 'pending' && existingPr.checkout_url) {
+      if (!isLegacyPlatformLink && existingPr.status === 'pending' && existingPr.checkout_url) {
         return {
           ok: true,
           checkout_url: existingPr.checkout_url,
@@ -222,7 +322,12 @@ export async function prepareInvoicePayment(
   }
 
   // ── Step 3: if the anchor is already active, return it ────────────────
-  if (paymentRequest.status === 'pending' && paymentRequest.checkout_url) {
+  // Only treat 'pending + checkout_url' as live when the anchor is bound to
+  // this business's connected account. A legacy platform link
+  // (stripe_connect_account_id NULL) keeps its stale checkout_url after
+  // retirement — it must fall through to mint a fresh connected session
+  // rather than handing the dead platform URL back as "idempotent".
+  if (paymentRequest.status === 'pending' && paymentRequest.checkout_url && paymentRequest.stripe_connect_account_id === stripeAccountId) {
     return {
       ok: true,
       checkout_url: paymentRequest.checkout_url,
@@ -311,6 +416,10 @@ export async function prepareInvoicePayment(
   }
 
   // ── Step 5: activate the anchor with the Stripe session details ──────────
+  // The .neq('status', 'paid') guard prevents regressing a request that was
+  // marked paid between our read and this update — possible now that pending
+  // anchors can be resumed (a webhook can still reconcile the retired link's
+  // payment) and on any webhook/manual-paid race.
   const { data: activatedPr, error: activateError } = await supabase
     .from('payment_requests')
     .update({
@@ -322,10 +431,31 @@ export async function prepareInvoicePayment(
       stripe_payment_intent_id: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
     })
     .eq('id', paymentRequest.id)
+    .neq('status', 'paid')
     .select('id, checkout_url, stripe_checkout_session_id')
-    .single()
-  if (activateError || !activatedPr) {
+    .maybeSingle()
+  if (activateError) {
     console.error('[PREPARE PAYMENT] Failed to activate payment request with Stripe session:', activateError)
+    return {
+      ok: false,
+      error: 'Failed to activate payment request',
+      status: 500,
+    }
+  }
+  if (!activatedPr) {
+    // The anchor moved out from under us (e.g. a webhook or operator marked it
+    // paid). Re-read and honor the terminal truth instead of resurrecting it.
+    const { data: currentPr } = await supabase
+      .from('payment_requests')
+      .select('status')
+      .eq('id', paymentRequest.id)
+      .maybeSingle()
+    if (currentPr?.status === 'paid') {
+      console.log('[PREPARE PAYMENT] Anchor became paid during activation — reconciling instead of activating')
+      await ensurePaymentCompletedSideEffects(paymentRequest.id)
+      return { ok: true, alreadyPaid: true }
+    }
+    console.error('[PREPARE PAYMENT] Payment request anchor is no longer activateable:', currentPr?.status)
     return {
       ok: false,
       error: 'Failed to activate payment request',

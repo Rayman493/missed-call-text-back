@@ -115,12 +115,22 @@ export async function POST(request: Request) {
       errorMessage: businessError?.message
     })
 
-    if (businessError || !business) {
+    if (businessError) {
+      // Query-level failure (schema/permission/connectivity) — must not be
+      // reported as a 404 ownership failure.
+      console.error('[PAYMENT REQUEST] Business lookup failed (query error):', {
+        businessError: businessError.message,
+        businessErrorCode: businessError.code,
+        userId: user.id,
+        businessId: business_id
+      })
+      return NextResponse.json({ error: 'Failed to verify business' }, { status: 500 })
+    }
+
+    if (!business) {
       console.error('[PAYMENT REQUEST] Business not found or unauthorized')
       console.error('[PAYMENT REQUEST] Exact reason for 404:', {
-        businessError: businessError?.message,
-        businessErrorCode: businessError?.code,
-        businessExists: !!business,
+        businessExists: false,
         userId: user.id,
         businessId: business_id
       })
@@ -154,9 +164,12 @@ export async function POST(request: Request) {
       lead_id,
     })
 
+    // NOTE: `contact_name` is the canonical lead name column in production;
+    // `leads.name` does not exist there and selecting it makes the entire
+    // query fail with PostgreSQL 42703.
     const { data: lead, error: leadError } = await supabase
       .from('leads')
-      .select('id, business_id, caller_phone, raw_metadata, status, contact_name, name')
+      .select('id, business_id, caller_phone, raw_metadata, status, contact_name')
       .eq('id', lead_id)
       .maybeSingle()
 
@@ -166,12 +179,21 @@ export async function POST(request: Request) {
       errorMessage: leadError?.message
     })
 
-    if (leadError || !lead) {
+    if (leadError) {
+      // Query-level failure (schema/permission/connectivity) — must not be
+      // reported as a 404 ownership failure.
+      console.error('[PAYMENT REQUEST] Lead lookup failed (query error):', {
+        leadError: leadError.message,
+        leadErrorCode: leadError.code,
+        leadId: lead_id,
+      })
+      return NextResponse.json({ error: 'Failed to verify lead' }, { status: 500 })
+    }
+
+    if (!lead) {
       console.error('[PAYMENT REQUEST] Lead not found or unauthorized')
       console.error('[PAYMENT REQUEST] Exact reason for 404:', {
-        leadError: leadError?.message,
-        leadErrorCode: leadError?.code,
-        leadExists: !!lead,
+        leadExists: false,
         leadId: lead_id,
       })
       return NextResponse.json({ error: 'Lead not found or unauthorized' }, { status: 404 })
@@ -272,12 +294,20 @@ export async function POST(request: Request) {
         errorMessage: conversationError?.message
       })
 
-      if (conversationError || !conversationData) {
+      if (conversationError) {
+        // Query-level failure — must not be reported as a 404 ownership failure.
+        console.error('[PAYMENT REQUEST] Conversation lookup failed (query error):', {
+          conversationError: conversationError.message,
+          conversationErrorCode: conversationError.code,
+          conversationId: conversation_id,
+        })
+        return NextResponse.json({ error: 'Failed to verify conversation' }, { status: 500 })
+      }
+
+      if (!conversationData) {
         console.error('[PAYMENT REQUEST] Conversation not found or unauthorized')
         console.error('[PAYMENT REQUEST] Exact reason for 404:', {
-          conversationError: conversationError?.message,
-          conversationErrorCode: conversationError?.code,
-          conversationExists: !!conversationData,
+          conversationExists: false,
           conversationId: conversation_id,
         })
         return NextResponse.json({ error: 'Conversation not found or unauthorized' }, { status: 404 })
