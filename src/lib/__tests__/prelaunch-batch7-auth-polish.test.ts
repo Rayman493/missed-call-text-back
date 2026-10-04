@@ -92,7 +92,7 @@ describe('Dashboard setup card + forwarding modal alignment', () => {
   })
 
   it('forwarding modal confirm CTA uses inline-flex centering', () => {
-    const idx = FORWARDING.indexOf("I've Enabled Forwarding")
+    const idx = FORWARDING.indexOf('Continue to Final Test')
     const cta = FORWARDING.slice(idx - 1500, idx)
     expect(cta).toContain('inline-flex items-center justify-center')
     expect(cta).toContain('handleConfirmForwarding')
