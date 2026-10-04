@@ -38,6 +38,7 @@ const state = {
   sweError: null as any,
   deletedTables: [] as string[],
   authDeleteCalled: false,
+  authDeleteError: null as any,
 }
 
 function tableHandler(table: string) {
@@ -119,7 +120,7 @@ vi.mock('@/lib/supabase/admin', () => ({
       admin: {
         deleteUser: vi.fn(async () => {
           state.authDeleteCalled = true
-          return { error: null }
+          return { error: state.authDeleteError }
         }),
       },
     },
@@ -162,6 +163,7 @@ describe('deleteAccountLifecycle — stripe_webhook_events cleanup (Step 16)', (
     state.sweError = null
     state.deletedTables = []
     state.authDeleteCalled = false
+    state.authDeleteError = null
   })
 
   it('continues the lifecycle when the service-role grant is missing (42501)', async () => {
@@ -206,5 +208,53 @@ describe('deleteAccountLifecycle — stripe_webhook_events cleanup (Step 16)', (
     expect(result.ok).toBe(false)
     expect(result.step).toBe('delete_stripe_webhook_events')
     expect(state.authDeleteCalled).toBe(false)
+  })
+})
+
+describe('deleteAccountLifecycle — auth user deletion (Step 22)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    state.sweError = null
+    state.deletedTables = []
+    state.authDeleteCalled = false
+    state.authDeleteError = null
+  })
+
+  it('treats user_not_found (404) as idempotent already-deleted success', async () => {
+    state.authDeleteError = { status: 404, code: 'user_not_found', message: 'User not found' }
+
+    const result = await deleteAccountLifecycle(ctx)
+
+    expect(result.ok).toBe(true)
+    expect(state.authDeleteCalled).toBe(true)
+    expect(result.summary?.authDeletionResult).toBe('already_deleted')
+  })
+
+  it('tolerates the message-only User not found variant with 404 status', async () => {
+    state.authDeleteError = { status: 404, message: 'User not found' }
+
+    const result = await deleteAccountLifecycle(ctx)
+
+    expect(result.ok).toBe(true)
+    expect(result.summary?.authDeletionResult).toBe('already_deleted')
+  })
+
+  it('still fails closed on any other auth deletion error', async () => {
+    state.authDeleteError = { status: 500, code: 'unexpected_failure', message: 'database error' }
+
+    const result = await deleteAccountLifecycle(ctx)
+
+    expect(result.ok).toBe(false)
+    expect(result.step).toBe('delete_auth_user')
+    expect(result.summary?.authDeletionResult).toBeUndefined()
+  })
+
+  it('does not tolerate a non-404 "user not found" string alone', async () => {
+    state.authDeleteError = { status: 500, message: 'User not found' }
+
+    const result = await deleteAccountLifecycle(ctx)
+
+    expect(result.ok).toBe(false)
+    expect(result.step).toBe('delete_auth_user')
   })
 })

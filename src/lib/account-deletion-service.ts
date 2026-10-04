@@ -27,7 +27,10 @@ async function resolveStripeBillingManageUrl(): Promise<string | null> {
     const loginPage = configs.data[0]?.login_page
     const url = loginPage?.enabled ? loginPage.url : null
     if (!url) {
-      console.warn('[delete-account-lifecycle] Stripe portal login page URL not available; using fallback billing copy')
+      // Expected for Stripe accounts without the hosted portal login page
+      // enabled — the deletion confirmation email simply uses standard
+      // billing instructions. This is configuration state, not a failure.
+      console.log('[delete-account-lifecycle] Stripe portal login page not enabled on portal configuration; using standard billing instructions')
     }
     return url || null
   } catch (error) {
@@ -1098,19 +1101,31 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
       if (deleteUserError) {
-        console.error('[delete-account-lifecycle] Auth user deletion failed', {
-          userId,
-          error: deleteUserError,
-          errorMessage: deleteUserError.message,
-          errorDetails: JSON.stringify(deleteUserError),
-        })
+        // Check if user is already deleted (idempotency) — Supabase Auth
+        // returns status 404 with code 'user_not_found' when deleting a
+        // non-existent user. This is the desired end state for a retry, not
+        // a failure. Only this exact case is tolerated; every other auth
+        // error stays fail-closed.
+        const isUserAlreadyAbsent =
+          (deleteUserError as any)?.code === 'user_not_found' ||
+          (deleteUserError.status === 404 &&
+            typeof deleteUserError.message === 'string' &&
+            deleteUserError.message.includes('User not found'))
 
-        // Check if user is already deleted (idempotency)
-        // Supabase returns "User not found" error when trying to delete a non-existent user
-        if (deleteUserError.message && deleteUserError.message.includes('User not found')) {
-          console.warn('[delete-account-lifecycle] Auth user already deleted, treating as success', { userId })
+        if (isUserAlreadyAbsent) {
+          console.warn('[delete-account-lifecycle] Auth user already absent; treating as deleted', {
+            userId,
+            code: (deleteUserError as any)?.code,
+            status: deleteUserError.status,
+          })
           summary.authDeletionResult = 'already_deleted'
         } else {
+          console.error('[delete-account-lifecycle] Auth user deletion failed', {
+            userId,
+            error: deleteUserError,
+            errorMessage: deleteUserError.message,
+            errorDetails: JSON.stringify(deleteUserError),
+          })
           return {
             ok: false,
             step: 'delete_auth_user',
