@@ -422,6 +422,12 @@ export default function OnboardingPage() {
 
       // Open Stripe checkout using platform-appropriate mechanism
       await openStripeCheckout(checkoutData.url)
+
+      // Reaching here means checkout did NOT navigate away — the native
+      // sheet was canceled/dismissed or failed to present. Loading clears in
+      // the finally block; surface feedback so the retry doesn't look like a
+      // silent no-op.
+      setError('Checkout was closed before completing. Try again.')
     } catch (err: any) {
       console.error('[Onboarding] Save failed:', err)
       const errorMessage = err.message || 'Failed to create business'
