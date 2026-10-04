@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useId, type ReactNode } from 'react'
 import { ChevronDown, X, Check, Search } from 'lucide-react'
 import { markDropdownDismissed } from '@/components/lead-status-gesture'
 import { isDomNode } from '@/lib/utils'
+import { useTouchDevice } from '@/lib/use-touch-device'
 
 export interface SelectOption {
   value: string
@@ -163,9 +164,14 @@ export default function SelectPicker({
     }
   }, [isOpen])
 
-  // Reset query and focus search input when a searchable picker is opened
+  // Reset query and focus search input when a searchable picker is opened.
+  // On touch devices the picker must NOT auto-focus: focus opens the on-screen
+  // keyboard, shrinks the visual viewport, and (combined with scrollIntoView)
+  // visibly jumps the page away from the trigger. The search field still
+  // focuses on an intentional tap. Desktop keeps immediate focus for typing.
+  const isTouchDevice = useTouchDevice()
   useEffect(() => {
-    if (isOpen && searchable) {
+    if (isOpen && searchable && !isTouchDevice) {
       setSearchQuery('')
       const timer = setTimeout(() => {
         if (searchInputRef.current) {
@@ -175,7 +181,8 @@ export default function SelectPicker({
       }, 0)
       return () => clearTimeout(timer)
     }
-  }, [isOpen, searchable])
+    if (isOpen && searchable) setSearchQuery('')
+  }, [isOpen, searchable, isTouchDevice])
 
   // Prevent scroll chaining from dropdown to modal body
   useEffect(() => {
@@ -301,7 +308,7 @@ export default function SelectPicker({
             pointer-events-auto so it keeps its own click target. */}
         {!isSearching && (
           <div
-            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
             aria-hidden={!(hasValue && !disabled)}
           >
             {hasValue && !disabled && (

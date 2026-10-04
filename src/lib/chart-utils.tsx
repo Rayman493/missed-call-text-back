@@ -296,11 +296,20 @@ export function ChartSelectionPopup({
         </div>
         <button
           type="button"
-          onClick={onDismiss}
-          className="text-muted-foreground/70 hover:text-foreground flex-shrink-0 p-1 -mt-1 -mr-1 rounded-md transition-colors"
-          aria-label="Dismiss selected data"
+          // pointerdown must not bubble into the chart's own selection
+          // handlers — the same tap that dismisses the popup would otherwise
+          // be read as a datum tap and immediately reopen it.
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDismiss()
+          }}
+          // 44px minimum touch target on mobile; negative margins keep the
+          // visible × in the same corner spot.
+          className="text-muted-foreground/70 hover:text-foreground flex-shrink-0 w-11 h-11 -mt-3 -mr-3 rounded-md transition-colors inline-flex items-center justify-center"
+          aria-label="Close chart details"
         >
-          <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
             <path d="M1 1l8 8M9 1l-8 8" />
           </svg>
         </button>

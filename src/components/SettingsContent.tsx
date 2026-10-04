@@ -3746,7 +3746,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={handleBusinessHoursExpand}
-                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Business Hours"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -3802,7 +3802,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setBusinessHoursExpanded(false)}
-                              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Business Hours"
                             >
                               <ChevronUp className="w-5 h-5" />
@@ -3819,7 +3819,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <select
                               value={formBusiness.business_hours_timezone || ''}
                               onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
-                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-[length:1rem] bg-[right_0.75rem_center] bg-no-repeat pr-9"
+                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSI+PC9wb2x5bGluZT48L3N2Zz4=')] bg-[length:1rem] bg-[right_1rem_center] bg-no-repeat pr-9"
                             >
                               <option value="America/New_York">Eastern Time (ET)</option>
                               <option value="America/Chicago">Central Time (CT)</option>
@@ -4017,7 +4017,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={() => setOutOfOfficeExpanded(true)}
-                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Out of Office"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -4101,7 +4101,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setOutOfOfficeExpanded(false)}
-                              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Out of Office"
                             >
                               <ChevronUp className="w-5 h-5" />
@@ -4248,7 +4248,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={() => setFollowUpExpanded(true)}
-                            className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Automatic Follow-Ups"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -4297,7 +4297,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setFollowUpExpanded(false)}
-                              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Automatic Follow-Ups"
                             >
                               <ChevronUp className="w-5 h-5" />

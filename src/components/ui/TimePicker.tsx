@@ -54,7 +54,7 @@ export default function TimePicker({
           }`}
         />
         {!disabled && (
-          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center pointer-events-none">
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center pointer-events-none">
             {value ? (
               <button
                 type="button"
