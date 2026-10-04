@@ -227,6 +227,14 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
               <p><strong>Step 2:</strong> Save the forwarding settings</p>
               <p><strong>Step 3:</strong> From another phone, call your business number and let it go unanswered</p>
             </div>
+
+            {/* Carrier voicemail note — informational only, not a required step */}
+            <p className="mt-3 text-[11px] text-blue-800/70 dark:text-blue-200/60">
+              Already use voicemail? In some cases, your carrier&apos;s existing voicemail
+              may answer before ReplyFlow does. If missed calls are still going to
+              voicemail after call forwarding is set up, you may need to disable or
+              adjust your carrier voicemail settings.
+            </p>
           </div>
         )}
 

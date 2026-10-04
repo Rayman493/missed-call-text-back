@@ -165,13 +165,15 @@ function AuthContent() {
   // Update mode when URL changes
   useEffect(() => {
     setIsSignIn(mode === 'signin')
-    // Clear error when switching modes
-    if (mode === 'signin') {
-      setError('')
-      setErrorDisplay(null)
-      setExistingAccount(false)
-      setDebugError(null)
-    }
+    // Clear stale auth state on EVERY mode switch — sign-in errors must not
+    // leak onto the create-account screen and vice versa. Errors raised by
+    // the current screen still render normally because they are set after
+    // this effect runs for the current mode.
+    setError('')
+    setErrorDisplay(null)
+    setExistingAccount(false)
+    setDebugError(null)
+    setCheckoutFailedAfterAccountCreation(false)
   }, [mode])
 
   // Reset scroll position when signup step changes (mobile scroll bug fix)
@@ -465,6 +467,12 @@ function AuthContent() {
           isSubmittingRef.current = false
 
           await openStripeCheckout(checkoutData.url)
+          // Sheet returned without navigation (canceled / failed to present) —
+          // re-surface retry feedback so the cancel doesn't look like a no-op.
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          setCheckoutFailedAfterAccountCreation(true)
+          setError('Checkout was closed before completing. Tap again to retry.')
           return
         } catch (checkoutError: any) {
           console.error('[Auth] Error retrying checkout session:', checkoutError)
@@ -848,6 +856,13 @@ function AuthContent() {
       setCheckoutFailedAfterAccountCreation(false)
 
       await openStripeCheckout(checkoutData.url)
+      // Same non-navigation case as the initial path: if control returns to
+      // this page, the sheet was canceled/dismissed — restore the retry card
+      // and an explicit message instead of leaving a dead/silent state.
+      setIsSubmitting(false)
+      isSubmittingRef.current = false
+      setCheckoutFailedAfterAccountCreation(true)
+      setError('Checkout was closed before completing. Tap again to retry.')
     } catch (checkoutError: any) {
       console.error('[Auth] Error retrying checkout session:', checkoutError)
       setError('Failed to create checkout session. Please try again or contact support.')
@@ -1423,15 +1438,30 @@ function AuthContent() {
             </p>
           </div>
 
-          <p className="mt-5 sm:mt-6 text-center text-sm text-slate-400">
-            {isSignIn ? "New to ReplyFlow? " : "Already have an account? "}
-            <button
-              onClick={toggleMode}
-              className="text-blue-400 hover:text-blue-300 font-medium"
-            >
-              {isSignIn ? 'Create an account' : 'Sign in'}
-            </button>
-          </p>
+          {isSignIn ? (
+            <div className="mt-5 sm:mt-6">
+              <p className="text-center text-sm text-slate-400 mb-2.5">
+                New to ReplyFlow?
+              </p>
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="w-full h-11 border border-blue-500/40 bg-blue-600/10 hover:bg-blue-600/20 text-blue-300 hover:text-blue-200 rounded-xl font-semibold transition-all flex items-center justify-center"
+              >
+                Create an account
+              </button>
+            </div>
+          ) : (
+            <p className="mt-5 sm:mt-6 text-center text-sm text-slate-400">
+              {"Already have an account? "}
+              <button
+                onClick={toggleMode}
+                className="text-blue-400 hover:text-blue-300 font-medium"
+              >
+                Sign in
+              </button>
+            </p>
+          )}
         </div>
       </div>
       <RoutingDebugBanner />
