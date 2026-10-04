@@ -94,6 +94,7 @@ function AuthContent() {
   const [existingAccount, setExistingAccount] = useState(false)
   const [debugError, setDebugError] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRetryingCheckout, setIsRetryingCheckout] = useState(false)
   const passwordRef = React.useRef<HTMLInputElement>(null)
   const emailRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
@@ -174,6 +175,7 @@ function AuthContent() {
     setExistingAccount(false)
     setDebugError(null)
     setCheckoutFailedAfterAccountCreation(false)
+    setIsRetryingCheckout(false)
   }, [mode])
 
   // Reset scroll position when signup step changes (mobile scroll bug fix)
@@ -404,6 +406,7 @@ function AuthContent() {
       // If account was already created, skip account creation and go straight to checkout retry
       if (accountCreatedRef.current) {
         console.log('[Auth] Account already created, proceeding to checkout retry')
+        setIsRetryingCheckout(true)
 
         // Android: Google Play Billing purchase sheet (server-verified)
         // Retry path: reconcile first — the Google account may already hold
@@ -420,11 +423,12 @@ function AuthContent() {
               try { await refreshBusiness(true) } catch {}
               router.push('/dashboard?setup=1')
             },
-            onCanceled: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
-            onPending: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
+            onCanceled: () => { setLoading(false); setIsRetryingCheckout(false); setIsSubmitting(false); isSubmittingRef.current = false; setError('Purchase canceled. Tap "Continue to Free Trial" to try again.') },
+            onPending: () => { setLoading(false); setIsRetryingCheckout(false); setIsSubmitting(false); isSubmittingRef.current = false; setError('Purchase is pending Google confirmation. Your trial will activate automatically — you can retry in a moment or sign back in later.') },
             onError: (msg) => {
               setError(msg)
               setLoading(false)
+              setIsRetryingCheckout(false)
               setIsSubmitting(false)
               isSubmittingRef.current = false
             },
@@ -455,6 +459,7 @@ function AuthContent() {
             console.error('[Auth] Failed to create checkout session on retry:', checkoutData)
             setError('Failed to create checkout session. Please try again or contact support.')
             setLoading(false)
+            setIsRetryingCheckout(false)
             setIsSubmitting(false)
             isSubmittingRef.current = false
             return
@@ -471,6 +476,7 @@ function AuthContent() {
           // re-surface retry feedback so the cancel doesn't look like a no-op.
           setIsSubmitting(false)
           isSubmittingRef.current = false
+          setIsRetryingCheckout(false)
           setCheckoutFailedAfterAccountCreation(true)
           setError('Checkout was closed before completing. Tap again to retry.')
           return
@@ -478,6 +484,7 @@ function AuthContent() {
           console.error('[Auth] Error retrying checkout session:', checkoutError)
           setError('Failed to create checkout session. Please try again or contact support.')
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
           return
@@ -783,6 +790,7 @@ function AuthContent() {
 
     console.log('[Auth] Retrying checkout after account creation')
     setLoading(true)
+    setIsRetryingCheckout(true)
     setError('')
     setCheckoutFailedAfterAccountCreation(false)
 
@@ -800,6 +808,7 @@ function AuthContent() {
         },
         onCanceled: () => {
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
           setError('Purchase canceled. Tap "Continue to Free Trial" to try again.')
@@ -807,6 +816,7 @@ function AuthContent() {
         },
         onPending: () => {
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
           setError('Purchase is pending Google confirmation. Your trial will activate automatically — you can retry in a moment or sign back in later.')
@@ -816,6 +826,7 @@ function AuthContent() {
           setError(msg)
           setCheckoutFailedAfterAccountCreation(true)
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
         },
@@ -847,6 +858,7 @@ function AuthContent() {
         setError('Failed to create checkout session. Please try again or contact support.')
         setCheckoutFailedAfterAccountCreation(true)
         setLoading(false)
+        setIsRetryingCheckout(false)
         return
       }
 
@@ -861,6 +873,7 @@ function AuthContent() {
       // and an explicit message instead of leaving a dead/silent state.
       setIsSubmitting(false)
       isSubmittingRef.current = false
+      setIsRetryingCheckout(false)
       setCheckoutFailedAfterAccountCreation(true)
       setError('Checkout was closed before completing. Tap again to retry.')
     } catch (checkoutError: any) {
@@ -868,6 +881,7 @@ function AuthContent() {
       setError('Failed to create checkout session. Please try again or contact support.')
       setCheckoutFailedAfterAccountCreation(true)
       setLoading(false)
+      setIsRetryingCheckout(false)
     }
   }
 
@@ -1393,7 +1407,7 @@ function AuthContent() {
 
             <button
               type="submit"
-              disabled={loading || isSubmitting || redirecting}
+              disabled={loading || isSubmitting || redirecting || isRetryingCheckout}
               className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold flex items-center justify-center gap-2"
             >
               {redirecting ? (
@@ -1402,7 +1416,7 @@ function AuthContent() {
                   <span>Redirecting to dashboard...</span>
                 </>
               ) : loading || isSubmitting ? (
-                isSignIn ? 'Signing In...' : (signupStep === 1 ? 'Continuing...' : 'Creating Account...')
+                isRetryingCheckout ? 'Opening Checkout…' : (isSignIn ? 'Signing In...' : (signupStep === 1 ? 'Continuing...' : 'Creating Account...'))
               ) : (
                 isSignIn ? 'Sign In' : (signupStep === 1 ? 'Continue' : 'Continue to Free Trial')
               )}
