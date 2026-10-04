@@ -454,8 +454,8 @@ describe('16. Transcript pending/error states remain intact', () => {
 // CALL FORWARDING CONTROL HEIGHT CONSISTENCY
 // ============================================================================
 describe('Call Forwarding control height consistency', () => {
-  it('ForwardingHelpCenter code field uses h-10', () => {
-    expect(forwardingHelpCenterContent).toMatch(/code.*?h-10/s)
+  it('ForwardingHelpCenter renders the dial code as a prominent hero element', () => {
+    expect(forwardingHelpCenterContent).toMatch(/code[^>]*text-2xl[^>]*font-bold/)
   })
 
   it('ForwardingHelpCenter Copy button uses h-10', () => {
@@ -466,9 +466,9 @@ describe('Call Forwarding control height consistency', () => {
     expect(forwardingHelpCenterContent).toMatch(/handleOpenDialer[\s\S]*?h-10/)
   })
 
-  it('All three controls share the same h-10 height', () => {
+  it('Copy and Dial controls share the same h-10 height', () => {
     const h10Count = (forwardingHelpCenterContent.match(/h-10/g) || []).length
-    expect(h10Count).toBeGreaterThanOrEqual(3)
+    expect(h10Count).toBeGreaterThanOrEqual(2)
   })
 })
 

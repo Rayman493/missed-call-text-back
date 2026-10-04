@@ -150,7 +150,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         <div className="flex-shrink-0 border-t border-border/50 bg-muted/30 p-4 sm:p-6 pb-safe-bottom sm:pb-6">
           <div className="space-y-3">
             <p className="text-xs sm:text-sm text-muted-foreground text-center">
-              After enabling forwarding from your business phone, continue to the final test.
+              Once you&apos;ve finished dialing the code on your business phone, continue to the final test.
             </p>
             <button
               onClick={handleConfirmForwarding}
@@ -168,7 +168,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
                   Forwarding Confirmed
                 </>
               ) : (
-                "I've Enabled Forwarding"
+                'Continue to Final Test'
               )}
             </button>
           </div>

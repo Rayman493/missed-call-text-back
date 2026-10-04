@@ -157,32 +157,22 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
 
         {showInstructions && business?.twilio_phone_number && (
           <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-4 text-center">Call Forwarding Instructions</h4>
-            
-            {/* Forwarding Code Box */}
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-center">Call Forwarding Instructions</h4>
+
+            {/* Mental model — what forwarding does, at a glance */}
+            <p className="mb-4 text-center text-xs text-blue-800/70 dark:text-blue-200/60">
+              Missed call → Forwarded to ReplyFlow → ReplyFlow answers
+            </p>
+
+            {/* Forwarding code — the exact thing to dial (tap to copy) */}
             <div
               onClick={handleCopyCode}
-              className="bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-6 cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 transition-all active:scale-95 select-none mb-4"
+              className="bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-800 rounded-xl py-6 px-4 cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 transition-all active:scale-95 select-none mb-3"
             >
-              {/* Activation Code */}
-              <div className="text-center mb-4">
-                <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 font-mono tracking-wider">
-                  *71
-                </span>
-              </div>
-              
-              {/* Arrow */}
-              <div className="text-center mb-4">
-                <svg className="w-6 h-6 mx-auto text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              </div>
-              
-              {/* Phone Number */}
               <div className="text-center">
                 {business?.twilio_phone_number ? (
-                  <span className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400 font-mono tracking-wide">
-                    {formatPhoneNumber(business.twilio_phone_number)}
+                  <span className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 font-mono tracking-wider break-all leading-snug">
+                    *71 {formatPhoneNumber(business.twilio_phone_number)}
                   </span>
                 ) : (
                   <span className="text-lg sm:text-xl font-medium text-gray-500 dark:text-gray-400 text-center px-4">
@@ -190,51 +180,49 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
                   </span>
                 )}
               </div>
-              
+
               {/* Tap to Copy Hint */}
-              <div className="text-center mt-4">
+              <div className="text-center mt-3">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {copied ? '✓ Copied!' : 'Tap to copy'}
                 </span>
               </div>
             </div>
 
-            {/* What You'll Hear */}
-            <div className="mb-4 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-300 dark:border-blue-700">
-              <p className="text-sm text-blue-900 dark:text-blue-100 text-center">
-                <span className="font-semibold">What you'll hear:</span><br />
-                {business?.twilio_phone_number ? (
-                  <>
-                    Your carrier may say:<br />
-                    <span className="font-mono text-blue-800 dark:text-blue-200">"Calls will be forwarded to {business.twilio_phone_number.replace('+1', '1-')}."</span>
-                  </>
-                ) : (
-                  <span className="text-blue-700 dark:text-blue-300">Set up forwarding once your ReplyFlow number is assigned</span>
-                )}
-              </p>
-            </div>
-
-            {/* Carrier Confidence Text */}
-            <div className="mb-4 text-center">
-              <p className="text-xs text-blue-800 dark:text-blue-200">
-                This only activates missed-call forwarding. Your phone still rings normally.
-              </p>
-            </div>
+            <p className="mb-4 text-center text-xs text-blue-800/80 dark:text-blue-200/80">
+              Dial this code from your business phone, then press Call/Send.
+            </p>
 
             {/* Steps */}
-            <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+            <div className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
               <p><strong>Step 1:</strong> On your business phone, dial the code above</p>
               <p><strong>Step 2:</strong> Save the forwarding settings</p>
               <p><strong>Step 3:</strong> From another phone, call your business number and let it go unanswered</p>
             </div>
 
-            {/* Carrier voicemail note — informational only, not a required step */}
-            <p className="mt-3 text-[11px] text-blue-800/70 dark:text-blue-200/60">
-              Already use voicemail? In some cases, your carrier&apos;s existing voicemail
-              may answer before ReplyFlow does. If missed calls are still going to
-              voicemail after call forwarding is set up, you may need to disable or
-              adjust your carrier voicemail settings.
-            </p>
+            {/* Secondary help — demoted below the primary steps */}
+            <div className="mt-4 pt-3 border-t border-blue-200/60 dark:border-blue-800/50 space-y-2">
+              <p className="text-[11px] text-blue-800/70 dark:text-blue-200/60">
+                <span className="font-semibold">What you'll hear:</span>{' '}
+                {business?.twilio_phone_number ? (
+                  <>
+                    Your carrier may say{' '}
+                    <span className="font-mono">"Calls will be forwarded to {business.twilio_phone_number.replace('+1', '1-')}."</span>
+                  </>
+                ) : (
+                  'Set up forwarding once your ReplyFlow number is assigned'
+                )}
+              </p>
+              <p className="text-[11px] text-blue-800/70 dark:text-blue-200/60">
+                This only activates missed-call forwarding. Your phone still rings normally.
+              </p>
+              <p className="text-[11px] text-blue-800/70 dark:text-blue-200/60">
+                Already use voicemail? In some cases, your carrier&apos;s existing voicemail
+                may answer before ReplyFlow does. If missed calls are still going to
+                voicemail after call forwarding is set up, you may need to disable or
+                adjust your carrier voicemail settings.
+              </p>
+            </div>
           </div>
         )}
 
