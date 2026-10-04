@@ -475,6 +475,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [highlightedTimelineItemId, setHighlightedTimelineItemId] = useState<string | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
+  // Desktop sidebar scroll state — drives the "more content below" fade so the
+  // Customer Context panel never looks clipped when sections continue below.
+  const sidebarScrollRef = useRef<HTMLDivElement>(null)
+  const [sidebarHasMoreBelow, setSidebarHasMoreBelow] = useState(false)
+  const updateSidebarScrollState = useCallback(() => {
+    const el = sidebarScrollRef.current
+    if (!el) return
+    setSidebarHasMoreBelow(el.scrollTop + el.clientHeight < el.scrollHeight - 4)
+  }, [])
+  useEffect(() => {
+    const el = sidebarScrollRef.current
+    if (!el) return
+    updateSidebarScrollState()
+    const observer = new ResizeObserver(updateSidebarScrollState)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [updateSidebarScrollState, leadData])
   // Outer mobile conversation card — its height is measured (not estimated)
   // against the live visual viewport so the software keyboard cannot squeeze
   // or hide the composer.
@@ -5640,7 +5657,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
-          <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 h-full min-h-0">
+          <div className="grid grid-cols-[minmax(0,3fr)_minmax(340px,420px)] gap-6 h-full min-h-0">
             {/* Desktop Conversation Section - Primary workspace */}
             <section className="flex flex-col h-full min-h-0 bg-card rounded-xl border border-slate-300 dark:border-border shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
@@ -5757,7 +5774,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Desktop Sidebar - Premium Card */}
             <aside className="h-full min-h-0" data-sidebar>
-              <div className="h-full min-h-0 bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar">
+              <div className="relative h-full min-h-0">
+              <div
+                ref={sidebarScrollRef}
+                onScroll={updateSidebarScrollState}
+                className="h-full min-h-0 bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar"
+              >
                 {(() => {
                   const paymentRequests = leadData?.paymentRequests || []
                   return (
@@ -6121,6 +6143,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )
                 })()}
+              </div>
+              {sidebarHasMoreBelow && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 rounded-b-2xl bg-gradient-to-t from-background to-transparent"
+                />
+              )}
               </div>
             </aside>
           </div>

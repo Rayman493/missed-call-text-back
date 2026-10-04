@@ -527,8 +527,21 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
       /\b(?:storm|damage|hail|wind)\s*(?:roof\s*(?:inspection|inspect|check|look|assess))/i
     ],
     'Roof Repair': [
-      /\broof\s*(?:repair|fix|leak|replace)/i,
+      /\broof(?:ing)?\s*(?:repair|fix|leak|replace)/i,
       /\b(?:leaking|leak)\s*(?:roof)/i
+    ],
+    'Roof Replacement': [
+      /\broof\s*(?:replacement|replaced)/i,
+      /\breplac(?:e|ed|ing)\s+(?:the\s+|a\s+|my\s+|our\s+)?(?:whole\s+|entire\s+)?roof\b/i
+    ],
+    'Roofing Installation': [
+      /\broof(?:ing)?\s*(?:install|installed|installation|installing)/i,
+      /\b(?:install|installed|installing|putting)\s+(?:a\s+|the\s+|some\s+|new\s+)*roof(?:ing)?\b/i,
+      /\bput\s+on\s+(?:a\s+|the\s+|some\s+|new\s+)*roof\b/i
+    ],
+    'Roofing': [
+      /\broofing\s*(?:done|work|job|project|needed)/i,
+      /\b(?:need|get|getting)\s+(?:some\s+)?roofing\b/i
     ],
     // Cleaning mappings
     'Move-Out Cleaning': [
