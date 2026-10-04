@@ -380,7 +380,7 @@ export default function OnboardingPage() {
           // /dashboard would flash a second routing decision.
           router.push('/dashboard?setup=1')
         },
-        onCanceled: () => { setLoading(false) },
+        onCanceled: () => { setLoading(false); setError("Purchase canceled. You can try again when you're ready.") },
         onPending: () => {
           setLoading(false)
           setError('Purchase is pending Google confirmation. Your trial will activate automatically once payment clears.')
