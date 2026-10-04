@@ -719,6 +719,16 @@ function AuthContent() {
         isCreatingCheckoutRef.current = false
 
         await openStripeCheckout(checkoutData.url)
+
+        // Reaching here means checkout did NOT navigate away — the native
+        // sheet was canceled/dismissed or failed to present. Restore the
+        // retryable state: without this, isSubmitting stays true, the button
+        // stays disabled showing "Creating Account...", and every later tap
+        // silently no-ops until page reload.
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
+        setCheckoutFailedAfterAccountCreation(true)
+        setError('Checkout was closed before completing. Tap again to retry.')
       } catch (checkoutError: any) {
         console.error('[Auth] Error creating checkout session:', checkoutError)
         // Account created but checkout failed - offer retry option
