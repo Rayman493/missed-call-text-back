@@ -346,6 +346,16 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
       {/* 3. Enable forwarding */}
       {selectedCarrier && getCarrierInstructions()}
 
+      {/* Carrier voicemail note — informational only, not a required step */}
+      {selectedCarrier && (
+        <p className="text-xs text-muted-foreground/70">
+          Already use voicemail? In some cases, your carrier&apos;s existing voicemail
+          may answer before ReplyFlow does. If missed calls are still going to
+          voicemail after call forwarding is set up, you may need to disable or
+          adjust your carrier voicemail settings.
+        </p>
+      )}
+
       {/* Reference: Disable forwarding (Optional - Collapsed by default) */}
       {selectedCarrier && (() => {
         const instructions = CARRIER_INSTRUCTIONS[selectedCarrier]
