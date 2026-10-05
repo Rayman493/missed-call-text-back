@@ -32,6 +32,35 @@ const PURCHASE_TIMEOUT_MESSAGE =
   'Purchase is taking longer than expected. If you already completed it in Google Play, it will activate automatically — tap "Continue to Free Trial" to check.'
 
 /**
+ * Last-mile entitlement grace. Google's subscriptionsv2 record can lag the
+ * local PURCHASED result (PENDING → ACTIVE flips seconds after the first
+ * verification), and the manual Retry path reconciles the same held
+ * purchase instantly — which proved entitlement routinely lands between the
+ * client's last poll and the user's Retry tap. Before reporting a
+ * recoverable non-entitled result, re-run the authoritative reconcile
+ * (Play cache → server verification → business entitlement) a bounded
+ * number of times. Never launches a second purchase; reconcile is
+ * idempotent and only re-verifies what Play already holds.
+ */
+const POST_PURCHASE_RECONCILE_ATTEMPTS = 3
+const POST_PURCHASE_RECONCILE_INTERVAL_MS = 3000
+
+async function settleRecoverableEntitlement(): Promise<boolean> {
+  for (let i = 0; i < POST_PURCHASE_RECONCILE_ATTEMPTS; i++) {
+    if (i > 0) {
+      await new Promise(r => setTimeout(r, POST_PURCHASE_RECONCILE_INTERVAL_MS))
+    }
+    try {
+      const { entitled } = await reconcilePlayPurchases()
+      if (entitled) return true
+    } catch (e) {
+      console.warn('[SubscriptionPurchase] Post-purchase reconcile failed:', e)
+    }
+  }
+  return false
+}
+
+/**
  * @returns true if running on native Android (purchase flow was attempted and
  *          handled); false on web/iOS — caller should continue Stripe Checkout.
  */
@@ -93,10 +122,6 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
       cb.onCanceled?.()
       return true
     }
-    if (result.pending) {
-      cb.onPending?.()
-      return true
-    }
     if (!result.ok) {
       cb.onError?.(result.error || 'Purchase failed. Please try again.')
       return true
@@ -105,7 +130,15 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
       await cb.onEntitled?.()
       return true
     }
-    // Verified but no entitlement (e.g. pending payment state from Google).
+    // Recoverable non-entitled result (pending, or a verified-but-not-yet-
+    // active snapshot such as UNSPECIFIED): the entitlement may settle
+    // seconds after the last poll. Run the same reconcile the Retry button
+    // performs before showing Retry — if the server now reports the
+    // entitlement, continue automatically instead of dead-ending.
+    if (await settleRecoverableEntitlement()) {
+      await cb.onEntitled?.()
+      return true
+    }
     cb.onPending?.()
     return true
   } catch (error: any) {
