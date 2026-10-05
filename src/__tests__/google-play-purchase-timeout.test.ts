@@ -60,9 +60,35 @@ const callbacks = () => ({
   onError: vi.fn(),
 })
 
+/**
+ * Advance fake time through the pending-settle window in 4s increments.
+ * A single large advanceTimersByTimeAsync jumps the virtual clock past
+ * sleep timers the loop schedules mid-flight (after real-async sha256Hex
+ * resolves), stranding them beyond the target. Stepping at the settle
+ * interval guarantees every hop lands inside a future window; the
+ * process.nextTick yield between hops lets genuinely-async work (crypto
+ * digest, module awaits) resolve under suite-load CPU contention. Total
+ * stays under PLAY_PURCHASE_TIMEOUT_MS (120s).
+ */
+const realTicks = async (n = 3) => {
+  for (let i = 0; i < n; i++) await new Promise<void>(r => process.nextTick(r))
+}
+const advanceSettleWindow = async (hops = 20) => {
+  for (let i = 0; i < hops; i++) {
+    await vi.advanceTimersByTimeAsync(4000)
+    await realTicks()
+  }
+}
+
 beforeEach(() => {
   vi.restoreAllMocks()
   vi.clearAllMocks()
+  // sha256Hex() runs real crypto.subtle.digest — the one genuinely-async hop
+  // in the purchase chain. Stub it deterministic so fake-timer advances can't
+  // outrun it under suite-load CPU contention.
+  vi.stubGlobal('crypto', {
+    subtle: { digest: vi.fn(async () => new Uint8Array(32).buffer) },
+  })
   getUser.mockReset()
   getSession.mockReset()
   plugin.getSubscriptionOffer.mockReset()
@@ -173,9 +199,12 @@ describe('maybeStartGooglePlaySubscription', () => {
     expect(cb.onCanceled).toHaveBeenCalledOnce()
     expect(cb.onError).not.toHaveBeenCalled()
 
+    vi.useFakeTimers()
     plugin.launchPurchase.mockResolvedValue({ status: 'pending', products: [] })
     const cb2 = callbacks()
-    await maybeStartGooglePlaySubscription({ userId: 'u', ...cb2 })
+    const run2 = maybeStartGooglePlaySubscription({ userId: 'u', ...cb2 })
+    await advanceSettleWindow()
+    await run2
     expect(cb2.onPending).toHaveBeenCalledOnce()
   })
 
@@ -198,5 +227,93 @@ describe('maybeStartGooglePlaySubscription', () => {
 
   it('timeout constant is ~120 seconds', () => {
     expect(PLAY_PURCHASE_TIMEOUT_MS).toBe(120_000)
+  })
+})
+
+describe('native pending purchase settle (post-purchase false-pending fix)', () => {
+  const pendingSheet = { status: 'pending', products: ['replyflow_monthly'] }
+  const held = (state: number) => ({
+    purchases: [{ purchaseToken: 't-pend', purchaseState: state, products: ['replyflow_monthly'], isAcknowledged: false }],
+  })
+
+  it('transient pending auto-reconciles once the purchase settles — no Retry tap', async () => {
+    // Production bug: sheet returns PENDING on payment-confirmation lag,
+    // purchase flips to PURCHASED seconds later — first return must wait
+    // for that flip instead of showing the pending fallback.
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(pendingSheet)
+    plugin.queryPurchases
+      .mockResolvedValueOnce(held(2))   // still PENDING on first poll
+      .mockResolvedValue(held(1))       // settled by second poll
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onPending).not.toHaveBeenCalled()
+    expect(cb.onError).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+    // The settled token was server-verified, not blindly trusted.
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(JSON.parse((fetch as any).mock.calls[0][1].body).purchaseToken).toBe('t-pend')
+  })
+
+  it('already-settled purchase on return advances immediately (zero sleeps)', async () => {
+    plugin.launchPurchase.mockResolvedValue(pendingSheet)
+    plugin.queryPurchases.mockResolvedValue(held(1))
+    const cb = callbacks()
+    await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onPending).not.toHaveBeenCalled()
+    expect(plugin.queryPurchases).toHaveBeenCalledTimes(1)
+  })
+
+  it('genuine deferred payment that never settles still shows the pending fallback', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(pendingSheet)
+    plugin.queryPurchases.mockResolvedValue(held(2)) // stays PENDING
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(cb.onPending).toHaveBeenCalledOnce()
+    expect(cb.onEntitled).not.toHaveBeenCalled()
+    // No token ever existed → no server verification attempt, no entitlement.
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('retry after a genuine pending reconciles the held purchase — never a second sheet', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(pendingSheet)
+    plugin.queryPurchases.mockResolvedValue(held(2))
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    await run
+    expect(cb.onPending).toHaveBeenCalledOnce()
+
+    // By the time the user taps Retry, Play has settled the purchase:
+    // reconcileFirst verifies it server-side without launching the sheet.
+    plugin.queryPurchases.mockResolvedValue(held(1))
+    const retry = callbacks()
+    await maybeStartGooglePlaySubscription({ userId: 'u', reconcileFirst: true, ...retry })
+    expect(retry.onEntitled).toHaveBeenCalledOnce()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1) // only the original
+  })
+
+  it('a settle that lands on a server-side pending still gets the verify retry loop', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(pendingSheet)
+    plugin.queryPurchases.mockResolvedValue(held(1))
+    const fetchMock = fetch as any
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true, entitled: false, pending: true }) })
+      .mockResolvedValue(verifyOk()) // second verification: Google settled to ACTIVE
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
