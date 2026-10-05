@@ -579,9 +579,22 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
       }
       // Early completion patterns capture only the suffix in group 1. Use the full match
       // when group 1 is a suffix so phrases like "whenever you can" are preserved.
-      const rawValue = match[2] || (match[1] && /^[\s,;]/.test(match[1]) ? match[0] : match[1]);
+      // But an open suffix tail can also swallow an explanatory clause
+      // ("as soon as possible because it is flooding the basement"). The clause
+      // is real request content: claiming it in the match both buries it in the
+      // field value and lets the excision delete it from the Request. Cut the
+      // claimed span at the first explanatory-clause marker.
+      let claimedMatch = match[0];
+      const spaceTail = match[1] && /^[\s,;]/.test(match[1]) ? match[1] : null;
+      if (spaceTail) {
+        const clauseCut = spaceTail.search(/\b(?:because|due to|since|which|so that|and it'?s|and its|and the|and i|but)\b/i);
+        if (clauseCut !== -1) {
+          claimedMatch = match[0].slice(0, match[0].length - spaceTail.length + clauseCut);
+        }
+      }
+      const rawValue = match[2] || (spaceTail ? claimedMatch : match[1]);
       const value = (rawValue || '').trim();
-      const fullMatch = (match[0] || match[1] || '').trim();
+      const fullMatch = (claimedMatch || match[1] || '').trim();
       if (isValidCompletionTime(value)) {
         return {
           value,
@@ -760,6 +773,15 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
       if (rejectIfPrecededByCompletionIntent) {
         const preceding = transcript.slice(Math.max(0, (match.index || 0) - 40), match.index || 0);
         if (COMPLETION_INTENT_PREFIX.test(preceding)) {
+          continue;
+        }
+        // A bare temporal word trailing a completion-time qualifier is the tail
+        // of the job-timing phrase, not a callback preference: "repaired by
+        // next |Friday|" is completion time. The qualifier must itself be
+        // preceded by content so a standalone stage answer like "this
+        // afternoon" (qualifier at utterance start) still parses.
+        const qualifier = preceding.match(/\b(?:next|this|coming|following|upcoming|every|sometime|within|around|about)\s*$/i);
+        if (qualifier && preceding.slice(0, qualifier.index).trim().length > 0) {
           continue;
         }
       }
@@ -970,7 +992,10 @@ function extractServiceRequestCandidate(
     const prefixEndsOnFunctionWord = EMBEDDED_SCALAR_LEADIN_RE.test(prefix.trimEnd());
     const suffixHasContent = suffix.replace(/^[.,;:!?\s]+/, '').trim().length > 0;
     if (!(prefixEndsOnFunctionWord && suffixHasContent)) {
-      s = `${prefix} ${suffix}`;
+      // Collapse the whitespace seam the removed span leaves behind —
+      // "fixed |sometime this week| and it keeps" -> "fixed and it keeps",
+      // not "fixed   and it keeps".
+      s = `${prefix} ${suffix}`.replace(/\s+/g, ' ');
     }
   }
 
