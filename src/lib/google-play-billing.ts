@@ -66,6 +66,88 @@ export async function getBestSubscriptionOffer(productId = GOOGLE_PLAY_PRODUCT_I
   return GooglePlayBilling.getSubscriptionOffer({ productId })
 }
 
+interface VerifyPurchaseResult {
+  ok: boolean
+  entitled?: boolean
+  status?: string
+  pending?: boolean
+  error?: string
+}
+
+async function verifyPurchaseToken(
+  purchaseToken: string,
+  productId: string,
+  extra?: { usedTrialOffer?: boolean; obfuscatedExternalAccountId?: string }
+): Promise<VerifyPurchaseResult> {
+  const res = await fetch('/api/google-play/verify-purchase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ purchaseToken, productId, ...extra }),
+  })
+  const verification = await res.json()
+  if (!res.ok || !verification.ok) {
+    return { ok: false, error: verification.error || 'Purchase verification failed' }
+  }
+  return {
+    ok: true,
+    entitled: verification.entitled,
+    status: verification.status,
+    pending: verification.pending,
+  }
+}
+
+/**
+ * Google reported SUBSCRIPTION_STATE_PENDING — license-test and deferred
+ * transactions can take a few seconds to settle to ACTIVE. Re-check the
+ * authoritative verification briefly before reporting pending.
+ */
+async function retryPendingVerification(purchaseToken: string, productId: string): Promise<VerifyPurchaseResult> {
+  for (let i = 0; i < 4; i++) {
+    await new Promise(r => setTimeout(r, 4000))
+    try {
+      const rv = await verifyPurchaseToken(purchaseToken, productId)
+      if (rv.ok && rv.entitled) {
+        return { ok: true, entitled: true, status: rv.status }
+      }
+      if (rv.ok && !rv.pending) break
+    } catch (e) {
+      console.warn('[GooglePlayBilling] Pending re-check failed:', e)
+    }
+  }
+  return { ok: true, pending: true }
+}
+
+const PLAY_PENDING_SETTLE_MAX_ATTEMPTS = 10
+const PLAY_PENDING_SETTLE_INTERVAL_MS = 4000
+
+/**
+ * A native PENDING result is usually transient payment-confirmation lag —
+ * the purchase flips to PURCHASED in Play's local cache seconds after the
+ * sheet closes, which is why a manual retry finds it instantly. Poll the
+ * held-purchase table briefly for that flip so a settled purchase proceeds
+ * to server verification instead of showing the pending fallback. Only a
+ * purchase that reaches PURCHASED yields a token — a genuinely deferred
+ * payment stays pending after the bounded window. Never launches a second
+ * purchase.
+ */
+async function waitForPendingPurchaseSettle(productId: string): Promise<string | null> {
+  for (let i = 0; i < PLAY_PENDING_SETTLE_MAX_ATTEMPTS; i++) {
+    try {
+      const { purchases } = await GooglePlayBilling.queryPurchases()
+      const held = purchases.find(p => p.products?.includes(productId))
+      if (held?.purchaseState === 1 && held.purchaseToken) {
+        return held.purchaseToken
+      }
+    } catch (e) {
+      console.warn('[GooglePlayBilling] Pending settle re-query failed:', e)
+    }
+    if (i < PLAY_PENDING_SETTLE_MAX_ATTEMPTS - 1) {
+      await new Promise(r => setTimeout(r, PLAY_PENDING_SETTLE_INTERVAL_MS))
+    }
+  }
+  return null
+}
+
 /**
  * Launch the native purchase sheet, then ask the server to verify the token.
  * Returns the server-computed entitlement result.
@@ -87,7 +169,18 @@ export async function purchaseSubscription(
     return { ok: true, canceled: true }
   }
   if (purchase.status === 'pending') {
-    return { ok: true, pending: true }
+    // The sheet closed with the payment still confirming — wait for the
+    // held purchase to settle to PURCHASED, then run the same server
+    // verification. A purchase that never settles is genuine pending.
+    const settledToken = await waitForPendingPurchaseSettle(offer.productId)
+    if (!settledToken) return { ok: true, pending: true }
+    const verification = await verifyPurchaseToken(settledToken, offer.productId, {
+      usedTrialOffer: offer.hasFreeTrial,
+      obfuscatedExternalAccountId: obfuscatedAccountId,
+    })
+    return verification.pending
+      ? retryPendingVerification(settledToken, offer.productId)
+      : verification
   }
   // ITEM_ALREADY_OWNED (7): the Google account already holds this subscription
   // — re-verify the existing purchase instead of failing (restore path).
@@ -97,14 +190,9 @@ export async function purchaseSubscription(
     if (!held?.purchaseToken) {
       return { ok: false, error: 'Subscription already owned but could not be recovered. Please restart the app.' }
     }
-    const res = await fetch('/api/google-play/verify-purchase', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ purchaseToken: held.purchaseToken, productId: offer.productId }),
-    })
-    const verification = await res.json()
-    if (!res.ok || !verification.ok) {
-      return { ok: false, error: verification.error || 'Purchase verification failed' }
+    const verification = await verifyPurchaseToken(held.purchaseToken, offer.productId)
+    if (!verification.ok) {
+      return { ok: false, error: verification.error }
     }
     return verification.entitled
       ? { ok: true, entitled: true, status: verification.status }
@@ -115,42 +203,15 @@ export async function purchaseSubscription(
     return { ok: false, error: purchase.message || 'Purchase failed' }
   }
 
-  const res = await fetch('/api/google-play/verify-purchase', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      purchaseToken: purchase.purchaseToken,
-      productId: offer.productId,
-      usedTrialOffer: offer.hasFreeTrial,
-      obfuscatedExternalAccountId: obfuscatedAccountId,
-    }),
+  const verification = await verifyPurchaseToken(purchase.purchaseToken, offer.productId, {
+    usedTrialOffer: offer.hasFreeTrial,
+    obfuscatedExternalAccountId: obfuscatedAccountId,
   })
-  const verification = await res.json()
-  if (!res.ok || !verification.ok) {
-    return { ok: false, error: verification.error || 'Purchase verification failed' }
+  if (!verification.ok) {
+    return { ok: false, error: verification.error }
   }
   if (verification.pending) {
-    // Google reported SUBSCRIPTION_STATE_PENDING — license-test and deferred
-    // transactions can take a few seconds to settle to ACTIVE. Retry the
-    // authoritative verification briefly before reporting pending.
-    for (let i = 0; i < 4; i++) {
-      await new Promise(r => setTimeout(r, 4000))
-      try {
-        const retry = await fetch('/api/google-play/verify-purchase', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ purchaseToken: purchase.purchaseToken, productId: offer.productId }),
-        })
-        const rv = await retry.json()
-        if (retry.ok && rv.ok && rv.entitled) {
-          return { ok: true, entitled: true, status: rv.status }
-        }
-        if (retry.ok && rv.ok && !rv.pending) break
-      } catch (e) {
-        console.warn('[GooglePlayBilling] Pending re-check failed:', e)
-      }
-    }
-    return { ok: true, pending: true }
+    return retryPendingVerification(purchase.purchaseToken, offer.productId)
   }
   return { ok: true, entitled: verification.entitled, status: verification.status }
 }
@@ -167,13 +228,8 @@ export async function reconcilePlayPurchases(): Promise<{ entitled: boolean }> {
     const productId = p.products?.[0]
     if (!productId) continue
     try {
-      const res = await fetch('/api/google-play/verify-purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseToken: p.purchaseToken, productId }),
-      })
-      const verification = await res.json()
-      if (res.ok && verification?.ok && verification.entitled) entitled = true
+      const verification = await verifyPurchaseToken(p.purchaseToken, productId)
+      if (verification.ok && verification.entitled) entitled = true
     } catch (e) {
       console.warn('[GooglePlayBilling] Reconcile failed for purchase:', e)
     }
