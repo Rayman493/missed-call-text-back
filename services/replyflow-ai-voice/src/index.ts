@@ -6988,6 +6988,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     sessionCreatedReceived: false,
     sessionUpdatedReceived: false,
     initialPromptSent: false,
+    initialPromptWaitingForStart: false,
+    initialPromptWaitTimeout: null as NodeJS.Timeout | null,
+    initialPromptStartedAt: 0,
     sessionReadyTimeout: null as NodeJS.Timeout | null,
     silentTimeout: null as NodeJS.Timeout | null,
     silentRepromptSent: false,
@@ -9084,7 +9087,22 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       streamSid,
       media: { payload: combined.toString('base64') }
     };
-    ws.send(JSON.stringify(mediaMessage));
+    try {
+      ws.send(JSON.stringify(mediaMessage), (err?: Error) => {
+        if (err) {
+          console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+          console.log('[TWILIO_MEDIA_SEND_ERROR] event: media_send_error');
+          console.log('[TWILIO_MEDIA_SEND_ERROR] callSid:', state.callSid);
+          console.log('[TWILIO_MEDIA_SEND_ERROR] path: flushAudioBuffer');
+          console.log('[TWILIO_MEDIA_SEND_ERROR] error:', err.message);
+          console.log('[TWILIO_MEDIA_SEND_ERROR] wsReadyState:', ws.readyState);
+          console.log('[TWILIO_MEDIA_SEND_ERROR] Timestamp:', new Date().toISOString());
+          console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+        }
+      });
+    } catch (sendErr) {
+      console.log('[TWILIO_MEDIA_SEND_ERROR] flushAudioBuffer send exception:', sendErr instanceof Error ? sendErr.message : String(sendErr));
+    }
     const sendLatencyMs = Date.now() - sendStart;
 
     if (DEBUG_AUDIO) {
@@ -11217,6 +11235,27 @@ Reply to this message if you'd like to update or add any information.
         const expectedChunks = Math.ceil(audioBuffer.length / chunkSize);
         let totalChunks = 0;
         let authorizationDelayMs = 0; // Declare outside loop for use in last chunk logging
+        // Per-send delivery tracking: ws.send is fire-and-forget, so capture
+        // errors via callback — otherwise a socket-level failure mid-send is
+        // indistinguishable from successful delivery in the logs.
+        let sendErrorCount = 0;
+        let firstSendError: Error | null = null;
+        const recordSendError = (err: unknown) => {
+          sendErrorCount++;
+          if (!firstSendError) {
+            firstSendError = err instanceof Error ? err : new Error(String(err));
+            console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+            console.log('[TWILIO_MEDIA_SEND_ERROR] event: media_send_error');
+            console.log('[TWILIO_MEDIA_SEND_ERROR] callSid:', state.callSid);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] stage:', stage);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] chunkIndex:', totalChunks);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] error:', firstSendError.message);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] wsReadyState:', ws.readyState);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] wsBufferedAmount:', ws.bufferedAmount);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] Timestamp:', new Date().toISOString());
+            console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+          }
+        };
 
         console.log('[AUDIO TIMING] =========================================');
         console.log('[AUDIO TIMING] event: prompt_audio_started');
@@ -11264,6 +11303,41 @@ Reply to this message if you'd like to update or add any information.
           return false;
         }
 
+        // Hard delivery invariant: media with an empty streamSid is silently
+        // dropped by Twilio — never start a prompt without it.
+        if (!state.streamSid) {
+          console.log('[TWILIO_WS_ERROR] =========================================');
+          console.log('[TWILIO_WS_ERROR] event: twilio_stream_sid_missing');
+          console.log('[TWILIO_WS_ERROR] callSid:', state.callSid);
+          console.log('[TWILIO_WS_ERROR] stage:', stage);
+          console.log('[TWILIO_WS_ERROR] Timestamp:', new Date().toISOString());
+          console.log('[TWILIO_WS_ERROR] =========================================');
+
+          if (state.aiSessionTracker) {
+            updateAISessionState(state.aiSessionTracker, 'FAILED', 'Twilio streamSid missing when sending cached audio');
+          }
+
+          triggerVoicemailFallback(
+            ws,
+            twilioHandler,
+            state.aiSessionTracker,
+            'Twilio streamSid missing when sending cached audio - media would be dropped',
+            state.callSid,
+            state.businessId,
+            state.callerPhone,
+            state.businessPhone,
+            state.businessName,
+            state.forwardedFrom
+          );
+          return false;
+        }
+
+        // Stamp the initial greeting start so answer-noise VAD ("hello?")
+        // cannot abort it during its first moments.
+        if (source === 'initial_prompt') {
+          state.initialPromptStartedAt = Date.now();
+        }
+
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           // Stop immediately if AI session transitions to FAILED mid-send
           if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
@@ -11288,6 +11362,9 @@ Reply to this message if you'd like to update or add any information.
             console.log('[PROMPT AUDIO LIFECYCLE] authorizedAt:', authorizedAt);
             console.log('[PROMPT AUDIO LIFECYCLE] firstChunkAt:', firstChunkAt);
             console.log('[PROMPT AUDIO LIFECYCLE] authorizationDelayMs:', authorizationDelayMs);
+            console.log('[PROMPT AUDIO LIFECYCLE] streamSid:', state.streamSid);
+            console.log('[PROMPT AUDIO LIFECYCLE] wsReadyState:', ws.readyState);
+            console.log('[PROMPT AUDIO LIFECYCLE] wsBufferedAmount:', ws.bufferedAmount);
             console.log('[PROMPT AUDIO LIFECYCLE] currentStage:', state.currentStage);
             console.log('[PROMPT AUDIO LIFECYCLE] currentTurnId:', state.currentTurnId);
             console.log('[PROMPT AUDIO LIFECYCLE] answerAcceptedForStage:', state.answerAcceptedForStage);
@@ -11369,7 +11446,13 @@ Reply to this message if you'd like to update or add any information.
               payload: base64Chunk
             }
           };
-          ws.send(JSON.stringify(mediaMessage));
+          try {
+            ws.send(JSON.stringify(mediaMessage), (err?: Error) => {
+              if (err) recordSendError(err);
+            });
+          } catch (sendErr) {
+            recordSendError(sendErr);
+          }
           totalChunks++;
 
           // Prompt audio lifecycle logging - track last chunk send
@@ -11398,6 +11481,13 @@ Reply to this message if you'd like to update or add any information.
 
           // Send at real-time rate (20ms chunks)
           await new Promise(resolve => setTimeout(resolve, 20));
+
+          // A socket-level send failure means Twilio never got the audio —
+          // abort into the existing error path (voicemail fallback) rather
+          // than logging success while the caller hears silence.
+          if (firstSendError) {
+            throw firstSendError;
+          }
         }
 
         // Check if playback was interrupted before proceeding
@@ -11432,8 +11522,17 @@ Reply to this message if you'd like to update or add any information.
                 payload: silenceChunk
               }
             };
-            ws.send(JSON.stringify(mediaMessage));
+            try {
+              ws.send(JSON.stringify(mediaMessage), (err?: Error) => {
+                if (err) recordSendError(err);
+              });
+            } catch (sendErr) {
+              recordSendError(sendErr);
+            }
             await new Promise(resolve => setTimeout(resolve, 20));
+            if (firstSendError) {
+              throw firstSendError;
+            }
           }
         }
 
@@ -11450,6 +11549,9 @@ Reply to this message if you'd like to update or add any information.
         console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
         console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
         console.log('[TARGETED PROMPT DELIVERY] chunksSent:', totalChunks);
+        console.log('[TARGETED PROMPT DELIVERY] sendErrorCount:', sendErrorCount);
+        console.log('[TARGETED PROMPT DELIVERY] wsBufferedAmount:', ws.bufferedAmount);
+        console.log('[TARGETED PROMPT DELIVERY] streamSid:', state.streamSid);
         console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
 
@@ -11658,8 +11760,56 @@ Reply to this message if you'd like to update or add any information.
   };
 
   // Only send the first prompt after both session.created and session.updated arrive
+  // AND the Twilio `start` frame has landed. Media sent before `start` carries no
+  // streamSid and is silently dropped by Twilio — the caller hears silence while
+  // every chunk logs as delivered. The invariant is currently structural (the
+  // OpenAI socket is opened inside the start handler) but is made explicit here
+  // so a future reorder cannot reintroduce the silent-drop race.
   function maybeSendInitialPrompt() {
     if (state.sessionCreatedReceived && state.sessionUpdatedReceived && !state.initialPromptSent) {
+      if (!state.streamSid) {
+        if (!state.initialPromptWaitingForStart) {
+          state.initialPromptWaitingForStart = true;
+          console.log('[SESSION_READY] =========================================');
+          console.log('[SESSION_READY] event: initial_prompt_deferred_no_streamSid');
+          console.log('[SESSION_READY] callSid:', state.callSid);
+          console.log('[SESSION_READY] reason: twilio_start_not_received_yet');
+          console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
+          console.log('[SESSION_READY] =========================================');
+
+          // Bounded wait: without `start` no audio path exists at all, so fail
+          // safely rather than dead-air the call waiting on a broken stream.
+          state.initialPromptWaitTimeout = setTimeout(() => {
+            state.initialPromptWaitTimeout = null;
+            if (!state.streamSid && !state.initialPromptSent) {
+              console.log('[SESSION_READY] =========================================');
+              console.log('[SESSION_READY] event: twilio_start_never_received');
+              console.log('[SESSION_READY] callSid:', state.callSid);
+              console.log('[SESSION_READY] waitMs: 3000');
+              console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
+              console.log('[SESSION_READY] =========================================');
+              triggerVoicemailFallback(
+                ws,
+                twilioHandler,
+                state.aiSessionTracker,
+                'Twilio start event not received within 3s of session ready - media stream unusable',
+                state.callSid,
+                state.businessId,
+                state.callerPhone,
+                state.businessPhone,
+                state.businessName,
+                state.forwardedFrom
+              );
+            }
+          }, 3000);
+        }
+        return;
+      }
+      state.initialPromptWaitingForStart = false;
+      if (state.initialPromptWaitTimeout) {
+        clearTimeout(state.initialPromptWaitTimeout);
+        state.initialPromptWaitTimeout = null;
+      }
       state.initialPromptSent = true;
       if (state.sessionReadyTimeout) {
         clearTimeout(state.sessionReadyTimeout);
@@ -11802,6 +11952,18 @@ Reply to this message if you'd like to update or add any information.
           businessId: state.businessId,
           hasCustomParams: !!customParams && Object.keys(customParams).length > 0
         });
+
+        // If the OpenAI session became ready before this `start` frame, the
+        // initial prompt was deferred waiting for streamSid — release it now.
+        if (state.initialPromptWaitingForStart) {
+          console.log('[SESSION_READY] =========================================');
+          console.log('[SESSION_READY] event: twilio_start_released_deferred_prompt');
+          console.log('[SESSION_READY] callSid:', state.callSid);
+          console.log('[SESSION_READY] streamSid:', state.streamSid);
+          console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
+          console.log('[SESSION_READY] =========================================');
+          maybeSendInitialPrompt();
+        }
 
         // Connect to OpenAI Realtime - use same URL as legacy
         const openAiUrl = createOpenAIRealtimeUrl();
@@ -12278,11 +12440,31 @@ Reply to this message if you'd like to update or add any information.
             console.log('[TRANSCRIPTION WATCHDOG] =========================================');
 
             if (state.assistantSpeaking) {
-              console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
-              console.log('[SIMPLE MODE] stage:', state.currentStage);
-              console.log('[SIMPLE MODE] =========================================');
-              state.cachedPlaybackInterrupted = true;
+              // Answer-noise grace: a speech_started inside the first moments of
+              // the initial greeting is almost always the caller's "hello?" or
+              // line noise. Aborting the greeting there leaves a one-word
+              // fragment followed by dead air — perceived as total silence.
+              // Suppress interruption during the grace window; barge-in still
+              // applies after the prompt is genuinely underway, and the speech
+              // is still transcribed for extraction regardless.
+              const INITIAL_PROMPT_INTERRUPT_GRACE_MS = 1500;
+              const initialPromptGraceActive =
+                !!state.initialPromptStartedAt &&
+                (speechStartedAt - state.initialPromptStartedAt) < INITIAL_PROMPT_INTERRUPT_GRACE_MS;
+              if (initialPromptGraceActive) {
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: initial_prompt_interrupt_suppressed');
+                console.log('[SIMPLE MODE] stage:', state.currentStage);
+                console.log('[SIMPLE MODE] elapsedMsSincePromptStart:', speechStartedAt - state.initialPromptStartedAt);
+                console.log('[SIMPLE MODE] graceMs:', INITIAL_PROMPT_INTERRUPT_GRACE_MS);
+                console.log('[SIMPLE MODE] =========================================');
+              } else {
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
+                console.log('[SIMPLE MODE] stage:', state.currentStage);
+                console.log('[SIMPLE MODE] =========================================');
+                state.cachedPlaybackInterrupted = true;
+              }
             }
           } else if (message.type === 'input_audio_buffer.speech_stopped') {
             const speechStoppedAt = Date.now();
