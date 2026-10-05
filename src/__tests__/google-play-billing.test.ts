@@ -384,6 +384,21 @@ describe('subscription_status NULL-after-purchase fixes', () => {
     expect(wrapper).toContain('Pending re-check')
   })
 
+  it('a native PENDING result settles via queryPurchases before the pending fallback', () => {
+    // Post-purchase false-pending fix: transient confirmation lag must poll
+    // held purchases for the PURCHASED flip, then server-verify — it must
+    // never relaunch the sheet or trust a native pending as final.
+    expect(wrapper).toContain('waitForPendingPurchaseSettle')
+    expect(wrapper).toContain('PLAY_PENDING_SETTLE_MAX_ATTEMPTS')
+    const pendingBlock = wrapper.slice(
+      wrapper.indexOf("purchase.status === 'pending'"),
+      wrapper.indexOf('ITEM_ALREADY_OWNED')
+    )
+    expect(pendingBlock).toContain('waitForPendingPurchaseSettle')
+    expect(pendingBlock).toContain('verifyPurchaseToken')
+    expect(pendingBlock).not.toContain('launchPurchase')
+  })
+
   it('ITEM_ALREADY_OWNED recovers the existing purchase instead of failing', () => {
     expect(wrapper).toContain('purchase.code === 7')
     expect(wrapper).toContain('queryPurchases')
@@ -404,7 +419,7 @@ describe('subscription_status NULL-after-purchase fixes', () => {
   })
 
   it('onboarding clears loading on cancel and error', () => {
-    expect(onboarding).toContain('onCanceled: () => { setLoading(false) }')
+    expect(onboarding).toContain('onCanceled: () => { setLoading(false); setError(')
     expect(onboarding).toContain('onError: (msg) => { setError(msg); setLoading(false) }')
   })
 
