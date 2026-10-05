@@ -338,6 +338,141 @@ describe('native pending purchase settle (post-purchase false-pending fix)', () 
 })
 
 /**
+ * Transient verify-failure recovery — the 404→200 held-purchase defect.
+ *
+ * Sequence observed on 1.0.2: the Play account already owned the product,
+ * the sheet answered "unable to change your subscription plan"
+ * (ITEM_ALREADY_OWNED), and the held-purchase verify ran while the WebView
+ * still carried a stale session for a user with no business row →
+ * verify-purchase answered 404 'Business not found'. Three seconds later
+ * the same held entitlement verified 200 ACTIVE under the settled session.
+ * A transient failure now gets the same bounded reconcile as pending
+ * instead of dead-ending on Retry Checkout; terminal 400/401 still surface
+ * immediately.
+ */
+describe('transient verify failure recovery', () => {
+  const heldPurchased = () => ({
+    purchases: [{ purchaseToken: 't-held', purchaseState: 1, products: ['replyflow_monthly'], isAcknowledged: true }],
+  })
+  const errBody = (status: number, error: string) => ({
+    ok: false, status, json: async () => ({ ok: false, error }),
+  })
+
+  it('code-7 held-purchase verify 404 → reconcile verifies entitled → onEntitled, no Retry', async () => {
+    plugin.launchPurchase.mockResolvedValue({ status: 'error', code: 7, message: 'unable to change your subscription plan' })
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock
+      .mockResolvedValueOnce(errBody(404, 'Business not found'))
+      .mockResolvedValueOnce(verifyOk())
+
+    const cb = callbacks()
+    expect(await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onError).not.toHaveBeenCalled()
+    expect(cb.onPending).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+  })
+
+  it('transient 404 resolving on a later bounded attempt still auto-continues', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue({ status: 'error', code: 7 })
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock
+      .mockResolvedValueOnce(errBody(404, 'Business not found'))
+      .mockResolvedValueOnce(errBody(404, 'Business not found'))
+      .mockResolvedValueOnce(verifyOk())
+
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onError).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+  })
+
+  it('5xx verify failure resolving during the bounded window auto-continues', async () => {
+    plugin.launchPurchase.mockResolvedValue({ status: 'error', code: 7 })
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock
+      .mockResolvedValueOnce(errBody(500, 'Verification service unavailable'))
+      .mockResolvedValueOnce(verifyOk())
+
+    const cb = callbacks()
+    expect(await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })).toBe(true)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onError).not.toHaveBeenCalled()
+  })
+
+  it('transport failure (fetch rejects) recovering during the window auto-continues', async () => {
+    plugin.launchPurchase.mockResolvedValue({ status: 'error', code: 7 })
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce(verifyOk())
+
+    const cb = callbacks()
+    expect(await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })).toBe(true)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onError).not.toHaveBeenCalled()
+  })
+
+  it('permanent 400 is terminal — onError, no reconcile retry, no second launch', async () => {
+    plugin.launchPurchase.mockResolvedValue({ status: 'error', code: 7 })
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock.mockResolvedValue(errBody(400, 'Purchase token not recognized by Google Play'))
+
+    const cb = callbacks()
+    expect(await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    // No grace reconcile — the only queryPurchases was the code-7 held lookup.
+    expect(plugin.queryPurchases).toHaveBeenCalledTimes(1)
+    expect(cb.onError).toHaveBeenCalledOnce()
+    expect(cb.onEntitled).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+  })
+
+  it('401 stays terminal — unauthorized verification does not enter the reconcile loop', async () => {
+    plugin.launchPurchase.mockResolvedValue({ status: 'error', code: 7 })
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock.mockResolvedValue(errBody(401, 'Authentication required'))
+
+    const cb = callbacks()
+    expect(await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(plugin.queryPurchases).toHaveBeenCalledTimes(1)
+    expect(cb.onError).toHaveBeenCalledOnce()
+    expect(cb.onEntitled).not.toHaveBeenCalled()
+  })
+
+  it('transient failure that never resolves falls back to the existing error UI', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue({ status: 'error', code: 7 })
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock.mockResolvedValue(errBody(404, 'Business not found'))
+
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    // 1 code-7 verify + 3 bounded reconcile verifies.
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(cb.onError).toHaveBeenCalledOnce()
+    expect(cb.onEntitled).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
  * Last-mile entitlement grace — the production false-Retry defect.
  *
  * Sequence observed on 1.0.2: sheet returned PURCHASED, verify-purchase

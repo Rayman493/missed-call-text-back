@@ -75,24 +75,49 @@ interface VerifyPurchaseResult {
   error?: string
   /** HTTP 401 — the local session is missing or no longer valid server-side. */
   unauthorized?: boolean
+  /** HTTP status from verify-purchase, when the server responded. */
+  httpStatus?: number
+  /** fetch() rejected before any HTTP response — network/transport failure. */
+  transportFailed?: boolean
 }
 
 async function verifyPurchaseToken(
   purchaseToken: string,
   productId: string,
-  extra?: { usedTrialOffer?: boolean; obfuscatedExternalAccountId?: string }
+  extra?: { usedTrialOffer?: boolean; obfuscatedExternalAccountId?: string },
+  source: string = 'purchase'
 ): Promise<VerifyPurchaseResult> {
-  const res = await fetch('/api/google-play/verify-purchase', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ purchaseToken, productId, ...extra }),
-  })
+  let res: Response
+  try {
+    res = await fetch('/api/google-play/verify-purchase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purchaseToken, productId, ...extra }),
+    })
+  } catch (e: any) {
+    console.warn('[GooglePlayBilling] verify transport failed:', {
+      source, productId, error: e?.message,
+    })
+    return { ok: false, error: e?.message || 'Network error during verification', transportFailed: true }
+  }
   const verification = await res.json()
   if (!res.ok || !verification.ok) {
+    // Diagnostics for failed verification only: never log the raw token or
+    // any session/auth material — a short token hash fingerprint is enough
+    // to correlate retries.
+    let tokenHash = ''
+    try {
+      tokenHash = (await sha256Hex(purchaseToken)).slice(0, 8)
+    } catch {}
+    console.warn('[GooglePlayBilling] verify failed:', {
+      status: res.status, source, productId, tokenHash,
+      error: verification?.error,
+    })
     return {
       ok: false,
       error: verification.error || 'Purchase verification failed',
       unauthorized: res.status === 401,
+      httpStatus: res.status,
     }
   }
   return {
@@ -112,7 +137,7 @@ async function retryPendingVerification(purchaseToken: string, productId: string
   for (let i = 0; i < 4; i++) {
     await new Promise(r => setTimeout(r, 4000))
     try {
-      const rv = await verifyPurchaseToken(purchaseToken, productId)
+      const rv = await verifyPurchaseToken(purchaseToken, productId, undefined, 'pending-retry')
       if (rv.ok && rv.entitled) {
         return { ok: true, entitled: true, status: rv.status }
       }
@@ -162,7 +187,7 @@ async function waitForPendingPurchaseSettle(productId: string): Promise<string |
 export async function purchaseSubscription(
   userId: string,
   productId = GOOGLE_PLAY_PRODUCT_ID
-): Promise<{ ok: boolean; entitled?: boolean; status?: string; error?: string; canceled?: boolean; pending?: boolean }> {
+): Promise<{ ok: boolean; entitled?: boolean; status?: string; error?: string; canceled?: boolean; pending?: boolean; httpStatus?: number; transportFailed?: boolean; unauthorized?: boolean }> {
   const offer = await getBestSubscriptionOffer(productId)
   const obfuscatedAccountId = await sha256Hex(userId)
 
@@ -184,7 +209,7 @@ export async function purchaseSubscription(
     const verification = await verifyPurchaseToken(settledToken, offer.productId, {
       usedTrialOffer: offer.hasFreeTrial,
       obfuscatedExternalAccountId: obfuscatedAccountId,
-    })
+    }, 'settle')
     return verification.pending
       ? retryPendingVerification(settledToken, offer.productId)
       : verification
@@ -197,9 +222,15 @@ export async function purchaseSubscription(
     if (!held?.purchaseToken) {
       return { ok: false, error: 'Subscription already owned but could not be recovered. Please restart the app.' }
     }
-    const verification = await verifyPurchaseToken(held.purchaseToken, offer.productId)
+    const verification = await verifyPurchaseToken(held.purchaseToken, offer.productId, undefined, 'owned-recovery')
     if (!verification.ok) {
-      return { ok: false, error: verification.error }
+      return {
+        ok: false,
+        error: verification.error,
+        httpStatus: verification.httpStatus,
+        unauthorized: verification.unauthorized,
+        transportFailed: verification.transportFailed,
+      }
     }
     return verification.entitled
       ? { ok: true, entitled: true, status: verification.status }
@@ -213,9 +244,15 @@ export async function purchaseSubscription(
   const verification = await verifyPurchaseToken(purchase.purchaseToken, offer.productId, {
     usedTrialOffer: offer.hasFreeTrial,
     obfuscatedExternalAccountId: obfuscatedAccountId,
-  })
+  }, 'purchase')
   if (!verification.ok) {
-    return { ok: false, error: verification.error }
+    return {
+      ok: false,
+      error: verification.error,
+      httpStatus: verification.httpStatus,
+      unauthorized: verification.unauthorized,
+      transportFailed: verification.transportFailed,
+    }
   }
   if (verification.pending) {
     return retryPendingVerification(purchase.purchaseToken, offer.productId)
@@ -246,7 +283,7 @@ export async function reconcilePlayPurchases(): Promise<{ entitled: boolean }> {
     const productId = p.products?.[0]
     if (!productId) continue
     try {
-      const verification = await verifyPurchaseToken(p.purchaseToken, productId)
+      const verification = await verifyPurchaseToken(p.purchaseToken, productId, undefined, 'reconcile')
       if (verification.ok && verification.entitled) entitled = true
       // A 401 means the local session is stale server-side — every further
       // token verification in this invocation is guaranteed to fail the same
