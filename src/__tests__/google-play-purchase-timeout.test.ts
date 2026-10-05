@@ -216,6 +216,24 @@ describe('maybeStartGooglePlaySubscription', () => {
     expect(cb.onError.mock.calls[0][0]).toContain('Billing setup failed')
   })
 
+  it('a BillingClient "already connecting" race never reaches the user — routes to pending recovery', async () => {
+    // Older builds without the single-flight plugin can still throw this —
+    // it is internal lifecycle coordination, so it must land on the
+    // pending-recovery path, not the raw error UI.
+    const raceError = new Error('Client is already in the process of connecting to billing service.')
+    plugin.launchPurchase.mockRejectedValue(raceError)
+    const cb = callbacks()
+    await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    expect(cb.onPending).toHaveBeenCalledOnce()
+    expect(cb.onError).not.toHaveBeenCalled()
+
+    plugin.getSubscriptionOffer.mockRejectedValueOnce(raceError)
+    const cb2 = callbacks()
+    await maybeStartGooglePlaySubscription({ userId: 'u', ...cb2 })
+    expect(cb2.onPending).toHaveBeenCalledOnce()
+    expect(cb2.onError).not.toHaveBeenCalled()
+  })
+
   it('reports sign-in requirement when no session exists', async () => {
     getSession.mockResolvedValue({ data: { session: null } })
     const cb = callbacks()

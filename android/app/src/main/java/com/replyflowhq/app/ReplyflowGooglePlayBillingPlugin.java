@@ -44,7 +44,26 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
 
     private BillingClient billingClient;
     private PluginCall pendingPurchaseCall;
-    private int connectionRetries = 0;
+
+    /**
+     * Single-flight BillingClient connection state. BillingClient throws
+     * IllegalStateException ("Client is already in the process of connecting
+     * to billing service") when startConnection is invoked while a connect is
+     * already in flight — so only one start may ever be issued, and every
+     * other caller queues behind it in pendingOperations.
+     */
+    private final Object connectionLock = new Object();
+    private boolean connectionInProgress = false;
+    private final List<PendingOperation> pendingOperations = new ArrayList<>();
+
+    private static class PendingOperation {
+        final Runnable onReady;
+        final PluginCall call;
+        PendingOperation(Runnable onReady, PluginCall call) {
+            this.onReady = onReady;
+            this.call = call;
+        }
+    }
 
     @Override
     public void load() {
@@ -59,32 +78,92 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
             .build();
     }
 
+    /**
+     * Runs onReady once the shared BillingClient connection is usable.
+     * If a connection is already established, runs immediately. If one is
+     * currently starting, queues behind it — a second startConnection call
+     * is never issued. On setup success every queued op runs; on failure
+     * every queued call rejects and the in-flight flag clears so the next
+     * ensureConnection may reconnect on demand.
+     */
     private void ensureConnection(Runnable onReady, PluginCall call) {
         if (billingClient.isReady()) {
             onReady.run();
             return;
         }
-        billingClient.startConnection(new BillingClientStateListener() {
-            @Override
-            public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    connectionRetries = 0;
-                    onReady.run();
-                } else {
-                    call.reject("Billing setup failed: " + billingResult.getDebugMessage(),
-                        String.valueOf(billingResult.getResponseCode()));
+        boolean startConnection = false;
+        boolean runNow = false;
+        synchronized (connectionLock) {
+            if (billingClient.isReady()) {
+                // Connection landed between the two checks.
+                runNow = true;
+            } else {
+                pendingOperations.add(new PendingOperation(onReady, call));
+                if (!connectionInProgress) {
+                    connectionInProgress = true;
+                    startConnection = true;
                 }
             }
+        }
+        if (runNow) {
+            onReady.run();
+        } else if (startConnection) {
+            startBillingConnection();
+        }
+        // Otherwise this op is queued behind the connection already starting.
+    }
 
-            @Override
-            public void onBillingServiceDisconnected() {
-                Log.w(TAG, "Billing service disconnected");
-                if (connectionRetries < 1) {
-                    connectionRetries++;
-                    ensureConnection(onReady, call);
+    /**
+     * The ONLY call site for billingClient.startConnection — must never be
+     * invoked while a connect is already in flight (BillingClient throws).
+     */
+    private void startBillingConnection() {
+        try {
+            billingClient.startConnection(new BillingClientStateListener() {
+                @Override
+                public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+                    List<PendingOperation> drained;
+                    synchronized (connectionLock) {
+                        connectionInProgress = false;
+                        drained = new ArrayList<>(pendingOperations);
+                        pendingOperations.clear();
+                    }
+                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                        for (PendingOperation op : drained) {
+                            op.onReady.run();
+                        }
+                    } else {
+                        for (PendingOperation op : drained) {
+                            op.call.reject("Billing setup failed: " + billingResult.getDebugMessage(),
+                                String.valueOf(billingResult.getResponseCode()));
+                        }
+                    }
                 }
+
+                @Override
+                public void onBillingServiceDisconnected() {
+                    // The client marks itself not-ready; in-flight async calls
+                    // fail on their own. Do NOT reconnect here — the next
+                    // ensureConnection starts a fresh single-flight connection
+                    // on demand, which also prevents a reconnect racing a new
+                    // caller's startConnection.
+                    Log.w(TAG, "Billing service disconnected");
+                }
+            });
+        } catch (IllegalStateException e) {
+            // A connect was already in flight outside this guard — drain the
+            // queue with a clean rejection rather than surfacing BillingClient's
+            // raw "already in the process of connecting" error to the user.
+            List<PendingOperation> drained;
+            synchronized (connectionLock) {
+                connectionInProgress = false;
+                drained = new ArrayList<>(pendingOperations);
+                pendingOperations.clear();
             }
-        });
+            for (PendingOperation op : drained) {
+                op.call.reject("Billing connection start conflict: " + e.getMessage());
+            }
+        }
     }
 
     @PluginMethod
