@@ -40,6 +40,7 @@ vi.mock('@/lib/supabase/browser', () => ({
 }))
 
 import { maybeStartGooglePlaySubscription, PLAY_PURCHASE_TIMEOUT_MS } from '@/lib/subscription-purchase'
+import { reconcilePlayPurchases } from '@/lib/google-play-billing'
 
 const offer = {
   productId: 'replyflow_monthly',
@@ -459,5 +460,80 @@ describe('post-purchase entitlement grace (false-Retry fix)', () => {
     await maybeStartGooglePlaySubscription({ userId: 'u', reconcileFirst: true, ...retry })
     expect(retry.onEntitled).toHaveBeenCalledOnce()
     expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * Pre-auth reconcile gating — production defect on 1.0.2.
+ *
+ * handleAppResume() fires reconcilePlayPurchases() on every cold start and
+ * resume, including while sitting on the signup screen with no session.
+ * With a Play-held purchase present that emitted POST /api/google-play/
+ * verify-purchase → 401 (no authenticated cookie session) *before*
+ * complete-signup had even created the account. The reconcile now gates on
+ * a local session and treats a 401 as terminal for the invocation.
+ */
+describe('reconcilePlayPurchases auth gating (pre-signup 401 fix)', () => {
+  const heldPurchased = () => ({
+    purchases: [{ purchaseToken: 'held', purchaseState: 1, products: ['replyflow_monthly'], isAcknowledged: true }],
+  })
+
+  it('no session → no queryPurchases, no verify fetch, returns not entitled', async () => {
+    // Cold start on the signup screen: nothing authenticated yet.
+    getSession.mockResolvedValue({ data: { session: null } })
+    const res = await reconcilePlayPurchases()
+    expect(res.entitled).toBe(false)
+    expect(plugin.queryPurchases).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('session read failure also gates cleanly — no verify fetch', async () => {
+    getSession.mockRejectedValue(new Error('storage unavailable'))
+    const res = await reconcilePlayPurchases()
+    expect(res.entitled).toBe(false)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('valid session + held PURCHASED token still verifies and entitles', async () => {
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const res = await reconcilePlayPurchases()
+    expect(getSession).toHaveBeenCalledOnce()
+    expect(plugin.queryPurchases).toHaveBeenCalledOnce()
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(res.entitled).toBe(true)
+  })
+
+  it('a 401 mid-reconcile stops verification — no retry storm, no throw', async () => {
+    // Stale session: local session exists but the account was deleted —
+    // every verify answers 401. Second held token must never be verified.
+    plugin.queryPurchases.mockResolvedValue({
+      purchases: [
+        { purchaseToken: 'tok-a', purchaseState: 1, products: ['replyflow_monthly'], isAcknowledged: true },
+        { purchaseToken: 'tok-b', purchaseState: 1, products: ['replyflow_monthly'], isAcknowledged: true },
+      ],
+    })
+    ;(fetch as any).mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ ok: false, error: 'Authentication required' }),
+    })
+    const res = await reconcilePlayPurchases()
+    expect(res.entitled).toBe(false)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('a non-401 verification failure still continues to the next purchase', async () => {
+    plugin.queryPurchases.mockResolvedValue({
+      purchases: [
+        { purchaseToken: 'tok-a', purchaseState: 1, products: ['replyflow_monthly'], isAcknowledged: true },
+        { purchaseToken: 'tok-b', purchaseState: 1, products: ['replyflow_monthly'], isAcknowledged: true },
+      ],
+    })
+    ;(fetch as any)
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ ok: false, error: 'Verification failed' }) })
+      .mockResolvedValueOnce(verifyOk())
+    const res = await reconcilePlayPurchases()
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(res.entitled).toBe(true)
   })
 })

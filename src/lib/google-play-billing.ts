@@ -8,6 +8,7 @@
 
 import { registerPlugin } from '@capacitor/core'
 import { Capacitor } from '@capacitor/core'
+import { supabase } from '@/lib/supabase/browser'
 
 export const GOOGLE_PLAY_PRODUCT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_PLAY_PRODUCT_ID || 'replyflow_monthly'
@@ -72,6 +73,8 @@ interface VerifyPurchaseResult {
   status?: string
   pending?: boolean
   error?: string
+  /** HTTP 401 — the local session is missing or no longer valid server-side. */
+  unauthorized?: boolean
 }
 
 async function verifyPurchaseToken(
@@ -86,7 +89,11 @@ async function verifyPurchaseToken(
   })
   const verification = await res.json()
   if (!res.ok || !verification.ok) {
-    return { ok: false, error: verification.error || 'Purchase verification failed' }
+    return {
+      ok: false,
+      error: verification.error || 'Purchase verification failed',
+      unauthorized: res.status === 401,
+    }
   }
   return {
     ok: true,
@@ -221,6 +228,17 @@ export async function purchaseSubscription(
  * server-side verification. Safe to call on resume and cold start.
  */
 export async function reconcilePlayPurchases(): Promise<{ entitled: boolean }> {
+  // verify-purchase requires an authenticated cookie session — the route
+  // always answers 401 without one. Skip the reconcile entirely when signed
+  // out (cold start / app resume on the auth or signup screen) so it never
+  // emits guaranteed-failure verification requests.
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return { entitled: false }
+  } catch {
+    return { entitled: false }
+  }
+
   const { purchases } = await GooglePlayBilling.queryPurchases()
   let entitled = false
   for (const p of purchases) {
@@ -230,6 +248,10 @@ export async function reconcilePlayPurchases(): Promise<{ entitled: boolean }> {
     try {
       const verification = await verifyPurchaseToken(p.purchaseToken, productId)
       if (verification.ok && verification.entitled) entitled = true
+      // A 401 means the local session is stale server-side — every further
+      // token verification in this invocation is guaranteed to fail the same
+      // way. Stop rather than producing a retry storm.
+      if (verification.unauthorized) break
     } catch (e) {
       console.warn('[GooglePlayBilling] Reconcile failed for purchase:', e)
     }
