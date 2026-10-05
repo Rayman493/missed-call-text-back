@@ -60,6 +60,24 @@ async function settleRecoverableEntitlement(): Promise<boolean> {
   return false
 }
 
+// A failed verification is retry-worthy only when it can resolve itself once
+// the auth/settlement state settles: a 404 (Business not found from a stale
+// session during the signup→purchase handoff), a 5xx, or a transport failure
+// with no HTTP response. Deliberate rejections — 400 invalid/unrecognized
+// token, 401 unauthenticated, product mismatch — never self-resolve and must
+// surface immediately. Cancellation never reaches this classification.
+const isTransientVerifyFailure = (result: {
+  ok: boolean
+  httpStatus?: number
+  transportFailed?: boolean
+  unauthorized?: boolean
+}) =>
+  !result.ok &&
+  !result.unauthorized &&
+  (result.transportFailed === true ||
+    result.httpStatus === 404 ||
+    (typeof result.httpStatus === 'number' && result.httpStatus >= 500))
+
 /**
  * @returns true if running on native Android (purchase flow was attempted and
  *          handled); false on web/iOS — caller should continue Stripe Checkout.
@@ -123,6 +141,14 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
       return true
     }
     if (!result.ok) {
+      // A recoverable verification failure — e.g. the held-purchase verify
+      // raced the post-signup session flip and got a 404, or hit a 5xx —
+      // gets the same bounded authoritative reconcile as pending results
+      // before the Retry UI is shown. Terminal failures skip the loop.
+      if (isTransientVerifyFailure(result) && await settleRecoverableEntitlement()) {
+        await cb.onEntitled?.()
+        return true
+      }
       cb.onError?.(result.error || 'Purchase failed. Please try again.')
       return true
     }
