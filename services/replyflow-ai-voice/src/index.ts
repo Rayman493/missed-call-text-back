@@ -131,7 +131,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
-import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isValidCustomerName as isCanonicalCustomerName, isUsableServiceAddress, isMetaUtterance, isValidCompletionTime, isValidCallbackTime, isValidServiceRequest, isValidServiceAddress, cleanDisplayIntakeText } from './intake-validation';
+import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isValidCustomerName as isCanonicalCustomerName, isUsableServiceAddress, isMetaUtterance, isValidCompletionTime, isValidCallbackTime, isValidServiceRequest, isValidServiceAddress, cleanDisplayIntakeText, normalizeCustomerName } from './intake-validation';
 
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
@@ -3615,7 +3615,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         if (intake.nameRefused) {
           console.log('[name_write_blocked_after_refusal]', { stage: intake.stage, attempted: transcript.trim() });
         } else if (!intake.customerName && isValidCustomerName(transcript.trim())) {
-          intake.customerName = transcript.trim();
+          intake.customerName = normalizeCustomerName(transcript);
           console.log('[SCRIPTED FLOW] =========================================');
           console.log('[SCRIPTED FLOW] field saved');
           console.log('[SCRIPTED FLOW] field: customerName');
@@ -3681,7 +3681,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
               console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
               console.log('[SCRIPTED FLOW] =========================================');
 
-              intake.customerName = strippedTranscript;
+              intake.customerName = normalizeCustomerName(strippedTranscript);
               if (intake.nameRefused) {
                 console.log('[name_refusal_cleared_by_explicit_name]', { newName: strippedTranscript, source: 'ask_name_reason_name_only_heuristic' });
                 intake.nameRefused = false;
@@ -3718,7 +3718,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
             console.log('[SCRIPTED FLOW] stage:', intake.stage);
             console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
             console.log('[SCRIPTED FLOW] =========================================');
-            intake.customerName = existingName; // Restore original
+            intake.customerName = normalizeCustomerName(existingName); // Restore original
           }
 
           console.log('[SCRIPTED FLOW] =========================================');
@@ -4040,7 +4040,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       }
 
       if (nameMatch) {
-        parsedName = normalizeNameCandidate(nameMatch[1].trim());
+        parsedName = normalizeCustomerName(normalizeNameCandidate(nameMatch[1].trim()));
         parsedName = parsedName.charAt(0).toUpperCase() + parsedName.slice(1);
       }
       if (serviceMatch) {
@@ -4191,7 +4191,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         const oldName = intake.customerName;
         const name = extractName(transcript);
         if (name && name.length > 1 && !isFillerPhrase(name) && isValidCustomerName(name)) {
-          intake.customerName = name;
+          intake.customerName = normalizeCustomerName(name);
           if (intake.nameRefused) {
             console.log('[name_refusal_cleared_by_explicit_name]', { newName: name, source: 'extractName_fallback' });
             intake.nameRefused = false;
@@ -4444,7 +4444,7 @@ function normalizeExtractedFields(extractedFields: any): any {
   console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
 
   const normalized = {
-    customerName: extractedFields.callerName || extractedFields.customerName,
+    customerName: normalizeCustomerName(extractedFields.callerName || extractedFields.customerName),
     serviceRequested: extractedFields.reasonForCalling || extractedFields.serviceRequested,
     issueDescription: extractedFields.importantDetails || extractedFields.issueDescription,
     serviceAddress: extractedFields.addressOrLocation || extractedFields.serviceAddress,
@@ -4499,7 +4499,7 @@ function normalizeExtractedFields(extractedFields: any): any {
       if (needsSplit) {
         const split = attemptSplit(nameVal);
         if (split.name || split.service) {
-          if (split.name) normalized.customerName = split.name;
+          if (split.name) normalized.customerName = normalizeCustomerName(split.name);
           if (split.service && (!normalized.serviceRequested || normalized.serviceRequested.toLowerCase() === nameVal.trim().toLowerCase())) {
             normalized.serviceRequested = split.service;
           }
@@ -7557,7 +7557,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] action: capture_both_and_skip_request_stage');
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] =========================================');
-        state.intakeData.customerName = parseResult.customerName;
+        state.intakeData.customerName = normalizeCustomerName(parseResult.customerName);
         state.intakeData.serviceRequested = parseResult.serviceRequested;
         state.intakeData.request = parseResult.serviceRequested; // Maintain compatibility
         state.skipNextStage = true; // Skip ask_request stage
@@ -7583,7 +7583,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME NORMAL: NAME ONLY] action: capture_name_and_proceed_to_reason');
         console.log('[ASK_NAME NORMAL: NAME ONLY] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME NORMAL: NAME ONLY] =========================================');
-        state.intakeData.customerName = parseResult.customerName;
+        state.intakeData.customerName = normalizeCustomerName(parseResult.customerName);
         capturedAnswer = parseResult.customerName;
         extractedField = 'customerName';
       }
@@ -7610,7 +7610,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] action: capture_name_and_proceed');
           console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] Timestamp:', new Date().toISOString());
           console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] =========================================');
-          state.intakeData.customerName = explicitName;
+          state.intakeData.customerName = normalizeCustomerName(explicitName);
           state.intakeData.nameRefused = false;
           capturedAnswer = explicitName;
           extractedField = 'customerName';
@@ -8253,7 +8253,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.intakeData.customerName = '';
         state.intakeData.nameRefused = true;
       } else {
-        state.intakeData.customerName = customerNameAfterMerge;
+        state.intakeData.customerName = normalizeCustomerName(customerNameAfterMerge);
       }
       state.intakeData.serviceRequested = serviceRequestedAfterMerge;
 
@@ -8551,7 +8551,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[INTAKE CORRECTION] newValue:', explicitNameCorrection);
       console.log('[INTAKE CORRECTION] Timestamp:', new Date().toISOString());
       console.log('[INTAKE CORRECTION] =========================================');
-      state.intakeData.customerName = explicitNameCorrection;
+      state.intakeData.customerName = normalizeCustomerName(explicitNameCorrection);
       state.intakeData.nameRefused = false;
       if (extractedField === 'customerName') {
         capturedAnswer = explicitNameCorrection;
@@ -9950,7 +9950,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[COMPLETION OVERWRITE RESULT] =========================================');
 
       // Apply minimal cleanup to name only (split on comma)
-      state.intakeData.customerName = cleanNameMinimal(customerName);
+      state.intakeData.customerName = normalizeCustomerName(cleanNameMinimal(customerName));
 
       // Apply minimal cleanup to address only
       state.intakeData.serviceAddress = cleanAddressMinimal(state.intakeData.serviceAddress);
@@ -9959,7 +9959,7 @@ Reply to this message if you'd like to update or add any information.
       // Preserve natural callback answers and service descriptions
 
       // Apply per-field CRM normalization after minimal cleanup
-      state.intakeData.customerName        = normalizeCrmField(state.intakeData.customerName,          'name',    'customerName');
+      state.intakeData.customerName        = normalizeCrmField(normalizeCustomerName(state.intakeData.customerName), 'name',    'customerName');
       state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service', 'serviceRequested');
       state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address', 'serviceAddress');
       state.intakeData.desiredCompletionTime = normalizeCrmField(state.intakeData.desiredCompletionTime, 'time', 'desiredCompletionTime');
@@ -15758,7 +15758,7 @@ wss.on('connection', (ws, req) => {
         });
 
         try {
-          const callerName = extractedFields.callerName || null;
+          const callerName = normalizeCustomerName(extractedFields.callerName) || null;
           const serviceRequested = extractedFields.reasonForCalling || null;
 
           const notificationPayload = {

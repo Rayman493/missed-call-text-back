@@ -14,6 +14,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { enrichIntakeFromTranscript } from '../src/intake-skip-ahead';
+import { normalizeCustomerName } from '../src/intake-validation';
 import type { IntakeData } from '../src/intake-skip-ahead';
 
 describe('name-only greeting never satisfies Request', () => {
@@ -168,5 +169,52 @@ describe('scalar normalization', () => {
     const intake: IntakeData = { stage: 'ask_callback_time', customerName: 'David Carter' };
     enrichIntakeFromTranscript('Afternoon is are best for a callback', intake, 'ask_callback_time', 'CA-test-norm-cb');
     expect(intake.callbackTime!.toLowerCase()).toBe('afternoon');
+  });
+});
+
+/* ---------- Jack Johnson? — trailing ASR punctuation in customerName ---------- */
+
+describe('customerName trailing-punctuation normalization (CA2368b0ba722ccb8bf2f9436efb80431c)', () => {
+  it('strips sentence-ending punctuation from stored names', () => {
+    expect(normalizeCustomerName('Jack Johnson?')).toBe('Jack Johnson');
+    expect(normalizeCustomerName('Jack Johnson.')).toBe('Jack Johnson');
+    expect(normalizeCustomerName('Jack Johnson!')).toBe('Jack Johnson');
+    expect(normalizeCustomerName('Jack Johnson,')).toBe('Jack Johnson');
+    expect(normalizeCustomerName('Jack Johnson?!')).toBe('Jack Johnson');
+    expect(normalizeCustomerName('Jack Johnson ? ')).toBe('Jack Johnson');
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(normalizeCustomerName('   Jack Johnson   ')).toBe('Jack Johnson');
+  });
+
+  it('preserves legitimate internal punctuation', () => {
+    expect(normalizeCustomerName("O'Connor")).toBe("O'Connor");
+    expect(normalizeCustomerName('Mary-Jane')).toBe('Mary-Jane');
+    expect(normalizeCustomerName('St. John')).toBe('St. John');
+    expect(normalizeCustomerName("D'Angelo")).toBe("D'Angelo");
+    expect(normalizeCustomerName('Johnson, Jr')).toBe('Johnson, Jr');
+  });
+
+  it('skip-ahead write boundary stores the normalized name and touches nothing else', () => {
+    const intake: IntakeData = { stage: 'ask_name' };
+    enrichIntakeFromTranscript('Jack Johnson?', intake, 'ask_name', 'CA2368b0ba722ccb8bf2f9436efb80431c');
+    expect(intake.customerName).toBe('Jack Johnson');
+    expect(intake.serviceRequested || '').toBe('');
+    expect(intake.request || '').toBe('');
+    expect(intake.serviceAddress).toBeUndefined();
+    expect(intake.desiredCompletionTime).toBeUndefined();
+    expect(intake.callbackTime).toBeUndefined();
+  });
+
+  it('correction tail "sorry, Jason Miller?" stores "Jason Miller"', () => {
+    const intake: IntakeData = { stage: 'ask_name' };
+    enrichIntakeFromTranscript(
+      'My name is Jason — sorry, Jason Miller?',
+      intake,
+      'ask_name',
+      'CA-test-correction-name'
+    );
+    expect(intake.customerName).toBe('Jason Miller');
   });
 });

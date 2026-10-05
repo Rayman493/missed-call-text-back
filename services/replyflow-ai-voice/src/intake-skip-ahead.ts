@@ -17,6 +17,7 @@ import {
   isMetaUtterance,
   isPlaceLikeLocationValue,
   cleanDisplayIntakeText,
+  normalizeCustomerName,
 } from './intake-validation';
 import {
   EARLY_COMPLETION_PATTERNS,
@@ -1741,7 +1742,7 @@ export function enrichIntakeFromTranscript(
   const nameRefused = isNameRefusal(transcript);
   // A name refusal ("No name", "I'd rather not say") owns the whole utterance:
   // no name candidate may be extracted from its correction tail or fallback.
-  const name = nameRefused ? null : (explicitName || correctionTailName || extractCustomerName(transcript) || bareName);
+  const name = nameRefused ? null : normalizeCustomerName(explicitName || correctionTailName || extractCustomerName(transcript) || bareName);
   const locationRefused = isLocationRefusal(transcript);
 
   // A bare name answer at ask_name must not be interpreted as a location, timing,

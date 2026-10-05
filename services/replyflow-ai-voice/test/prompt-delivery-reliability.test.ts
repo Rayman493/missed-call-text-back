@@ -132,7 +132,6 @@ describe('prompt delivery reliability contract', () => {
       expect(src).to.include('[MARK WATCHDOG]');
       expect(src).to.include('mark_timeout');
     });
-<<<<<<< HEAD
 
     it('marks returning implausibly fast are flagged instead of trusted', () => {
       // CA0950b02c673ae5f279bed57cf49d0778: every send succeeded yet the
@@ -172,7 +171,5 @@ describe('prompt delivery reliability contract', () => {
       // through so re-prompts and later stages keep the normal window.
       expect(src).to.match(/startStageTimeout\s*=\s*\(timeoutMs/);
     });
-=======
->>>>>>> origin/main
   });
 });
