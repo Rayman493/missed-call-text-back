@@ -335,3 +335,129 @@ describe('native pending purchase settle (post-purchase false-pending fix)', () 
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
+
+/**
+ * Last-mile entitlement grace — the production false-Retry defect.
+ *
+ * Sequence observed on 1.0.2: sheet returned PURCHASED, verify-purchase
+ * answered 200 with pending while Google's subscription record was still
+ * SUBSCRIPTION_STATE_PENDING, all bounded re-polls stayed pending, and the
+ * UI dead-ended on Retry Checkout. Seconds later the same reconcile that
+ * Retry runs found the entitlement instantly — the first pass simply never
+ * re-checked after its last poll. These tests pin the grace reconcile that
+ * now runs before a recoverable pending state surfaces.
+ */
+describe('post-purchase entitlement grace (false-Retry fix)', () => {
+  const purchased = { status: 'purchased', purchaseToken: 't1', products: ['replyflow_monthly'] }
+  const heldPurchased = () => ({
+    purchases: [{ purchaseToken: 't1', purchaseState: 1, products: ['replyflow_monthly'], isAcknowledged: true }],
+  })
+  const pendingVerify = {
+    ok: true,
+    json: async () => ({ ok: true, entitled: false, status: 'none', pending: true }),
+  }
+
+  it('verify pending that settles during the grace window auto-continues — no Retry', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(purchased)
+    const fetchMock = fetch as any
+    // Initial verify + 4 pending-retry polls all still PENDING; the grace
+    // reconcile's verify is where Google finally reports ACTIVE.
+    for (let i = 0; i < 5; i++) fetchMock.mockResolvedValueOnce(pendingVerify)
+    fetchMock.mockResolvedValue(verifyOk())
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onPending).not.toHaveBeenCalled()
+    expect(cb.onError).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1) // no duplicate sheet
+  })
+
+  it('a stale first grace read recovers on the bounded refresh', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(purchased)
+    const fetchMock = fetch as any
+    // 5 pending (verify loop) + grace reconcile #1 still pending;
+    // grace reconcile #2 sees the settled entitlement.
+    for (let i = 0; i < 6; i++) fetchMock.mockResolvedValueOnce(pendingVerify)
+    fetchMock.mockResolvedValue(verifyOk())
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onPending).not.toHaveBeenCalled()
+  })
+
+  it('an entitled:false non-pending snapshot (e.g. UNSPECIFIED) also gets the grace reconcile', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(purchased)
+    const fetchMock = fetch as any
+    // First verify: ok but neither entitled nor pending — the old code went
+    // straight to onPending with zero re-checks. Grace reconcile finds it.
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true, entitled: false, status: 'none' }),
+    })
+    fetchMock.mockResolvedValue(verifyOk())
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(cb.onEntitled).toHaveBeenCalledOnce()
+    expect(cb.onPending).not.toHaveBeenCalled()
+    // Exactly one pending-loop-free verify plus the reconcile's verify.
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('entitlement genuinely unresolved after the bounded window still shows Retry (onPending)', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(purchased)
+    ;(fetch as any).mockResolvedValue(pendingVerify) // never settles
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    expect(await run).toBe(true)
+    expect(cb.onPending).toHaveBeenCalledOnce()
+    expect(cb.onEntitled).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+    // 1 initial + 4 pending retries + 3 grace reconciles = 8 verify calls.
+    expect(fetch).toHaveBeenCalledTimes(8)
+  })
+
+  it('user cancellation never enters the grace reconcile', async () => {
+    plugin.launchPurchase.mockResolvedValue({ status: 'canceled' })
+    const cb = callbacks()
+    await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    expect(cb.onCanceled).toHaveBeenCalledOnce()
+    expect(cb.onPending).not.toHaveBeenCalled()
+    expect(plugin.queryPurchases).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('grace-exhausted pending then manual Retry reconciles idempotently — still no second sheet', async () => {
+    vi.useFakeTimers()
+    plugin.launchPurchase.mockResolvedValue(purchased)
+    ;(fetch as any).mockResolvedValue(pendingVerify)
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const cb = callbacks()
+    const run = maybeStartGooglePlaySubscription({ userId: 'u', ...cb })
+    await advanceSettleWindow()
+    await run
+    expect(cb.onPending).toHaveBeenCalledOnce()
+
+    // Retry re-verifies the already-held purchase — a re-verification of the
+    // same token, never a second purchase, so no double-charge is possible.
+    ;(fetch as any).mockResolvedValue(verifyOk())
+    const retry = callbacks()
+    await maybeStartGooglePlaySubscription({ userId: 'u', reconcileFirst: true, ...retry })
+    expect(retry.onEntitled).toHaveBeenCalledOnce()
+    expect(plugin.launchPurchase).toHaveBeenCalledTimes(1)
+  })
+})
