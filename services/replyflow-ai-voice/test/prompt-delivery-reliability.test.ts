@@ -132,5 +132,47 @@ describe('prompt delivery reliability contract', () => {
       expect(src).to.include('[MARK WATCHDOG]');
       expect(src).to.include('mark_timeout');
     });
+<<<<<<< HEAD
+
+    it('marks returning implausibly fast are flagged instead of trusted', () => {
+      // CA0950b02c673ae5f279bed57cf49d0778: every send succeeded yet the
+      // caller heard nothing. A mark ~35ms after the last chunk proves only
+      // queue processing — a mark far ahead of the audio duration means the
+      // buffer was flushed/dropped and the caller could not have heard it.
+      expect(src).to.include('implausible_mark_timing');
+      expect(src).to.include('markLatencyMs');
+      expect(src).to.include('lastPromptExpectedDurationMs');
+      const idx = src.indexOf('implausible_mark_timing');
+      const block = src.slice(Math.max(0, idx - 1500), idx);
+      expect(block).to.include('promptAudioStartedAt');
+    });
+
+    it('the Twilio start payload is logged with real values, not just key names', () => {
+      // tracks/mediaFormat values are the only way to prove the stream was
+      // bidirectional PCMU 8k — key names alone cannot.
+      expect(src).to.include('startTracks');
+      expect(src).to.include('startMediaFormat');
+    });
+  });
+
+  describe('silent-call recovery window', () => {
+    it('the initial greeting answer-wait is shorter than the generic stage timeout', () => {
+      expect(src).to.include('INITIAL_STAGE_ANSWER_WAIT_MS');
+      const constIdx = src.indexOf('const INITIAL_STAGE_ANSWER_WAIT_MS');
+      expect(constIdx).to.be.greaterThan(-1);
+      const m = src.slice(constIdx, constIdx + 200).match(/INITIAL_STAGE_ANSWER_WAIT_MS\s*=\s*(\d+)/);
+      expect(m, 'INITIAL_STAGE_ANSWER_WAIT_MS literal not found').to.not.be.null;
+      expect(Number(m![1])).to.be.lessThan(15000);
+      expect(Number(m![1])).to.be.greaterThanOrEqual(5000);
+    });
+
+    it('the shorter wait applies only to the initial prompt, not every stage', () => {
+      expect(src).to.include("source === 'initial_prompt' ? INITIAL_STAGE_ANSWER_WAIT_MS : STAGE_TIMEOUT_MS");
+      // startStageTimeout must accept the override — the call site passes it
+      // through so re-prompts and later stages keep the normal window.
+      expect(src).to.match(/startStageTimeout\s*=\s*\(timeoutMs/);
+    });
+=======
+>>>>>>> origin/main
   });
 });

@@ -6955,6 +6955,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ttsCompleteTime: 0 as number,
     promptAudioStartedAt: 0 as number,
     promptAudioSentAt: 0 as number,
+    lastPromptExpectedDurationMs: 0 as number,
     firstSpeechStartedAfterPromptAt: 0 as number,
     firstAudioForwardedAfterPromptAt: 0 as number,
     firstAudioBlockedAfterPromptAt: 0 as number,
@@ -8769,8 +8770,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // --- Stage timeout logic ---
   const STAGE_TIMEOUT_MS = 15000; // 15 seconds initial timeout
+  // The greeting's answer-wait is deliberately shorter. When outbound media
+  // never reaches the caller (upstream cut-through/carrier fault that our
+  // send instrumentation cannot see), the caller hears dead air and hangs up
+  // — observed silent-call hangups came ~11s after the mark, inside the old
+  // 15s window, so the designed re-prompt never fired. A faster first
+  // re-prompt recovers the call while the caller is still on the line.
+  const INITIAL_STAGE_ANSWER_WAIT_MS = 8000;
 
-  const startStageTimeout = () => {
+  const startStageTimeout = (timeoutMs: number = STAGE_TIMEOUT_MS) => {
     // Clear any existing timeout
     if (state.stageTimeout) {
       clearTimeout(state.stageTimeout);
@@ -8784,7 +8792,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Set initial timeout
     state.stageTimeout = setTimeout(() => {
       handleStageTimeout(capturedGeneration);
-    }, STAGE_TIMEOUT_MS);
+    }, timeoutMs);
 
     console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
     console.log('[STAGE TIMEOUT LIFECYCLE] event: waiting_for_answer_start');
@@ -8792,7 +8800,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[STAGE TIMEOUT LIFECYCLE] stage:', state.currentStage);
     console.log('[STAGE TIMEOUT LIFECYCLE] turnId:', state.currentTurnId);
     console.log('[STAGE TIMEOUT LIFECYCLE] generation:', capturedGeneration);
-    console.log('[STAGE TIMEOUT LIFECYCLE] timeoutMs:', STAGE_TIMEOUT_MS);
+    console.log('[STAGE TIMEOUT LIFECYCLE] timeoutMs:', timeoutMs);
     console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
     console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
   };
@@ -11459,6 +11467,7 @@ Reply to this message if you'd like to update or add any information.
           if (i + chunkSize >= audioBuffer.length) {
             const lastChunkAt = Date.now();
             const totalAudioDurationMs = authorizationDelayMs + (totalChunks * 20);
+            state.lastPromptExpectedDurationMs = totalAudioDurationMs;
 
             console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
             console.log('[PROMPT AUDIO LIFECYCLE] event: last_audio_chunk_queued');
@@ -11650,9 +11659,11 @@ Reply to this message if you'd like to update or add any information.
         // LEGACY SILENCE TIMER DISABLED - current stage-timeout is now authoritative for all stages
         // Including ask_name_reason. This prevents duplicate timer systems.
 
-        // Start stage timeout for all intake stages (including ask_name_reason)
+        // Start stage timeout for all intake stages (including ask_name_reason).
+        // The initial greeting uses a shorter answer window so a caller who
+        // heard dead air gets a re-prompt before hanging up.
         if (stage !== 'complete') {
-          startStageTimeout();
+          startStageTimeout(source === 'initial_prompt' ? INITIAL_STAGE_ANSWER_WAIT_MS : STAGE_TIMEOUT_MS);
         }
 
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
@@ -11854,6 +11865,11 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_twilio_start_raw_keys');
         console.log('[SIMPLE MODE] startKeys:', Object.keys(message.start || {}));
+        // Stream config values, not just key names — an inbound-only track or
+        // an unexpected mediaFormat would make outbound audio silently
+        // undeliverable, and key names alone cannot prove otherwise.
+        console.log('[SIMPLE MODE] startTracks:', JSON.stringify(message.start?.tracks ?? null));
+        console.log('[SIMPLE MODE] startMediaFormat:', JSON.stringify(message.start?.mediaFormat ?? null));
         console.log('[SIMPLE MODE] =========================================');
 
         // Log custom parameters if present
@@ -14264,6 +14280,31 @@ Reply to this message if you'd like to update or add any information.
           console.log('[MARK VALIDATION] assistantSpeaking:', state.assistantSpeaking);
           console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
           console.log('[MARK VALIDATION] =========================================');
+
+          // Playback plausibility: a mark proves only that Twilio consumed the
+          // outbound buffer — NOT that the caller heard anything. Chunks are
+          // streamed at ~real-time pace, so a mark arriving well before the
+          // prompt's audio duration means the buffer was flushed or dropped
+          // (audio physically could not have played). Log it explicitly so a
+          // silent call is distinguishable from healthy playout.
+          const markLatencyMs = state.promptAudioStartedAt ? Date.now() - state.promptAudioStartedAt : null;
+          console.log('[MARK VALIDATION] markLatencyMs:', markLatencyMs);
+          console.log('[MARK VALIDATION] expectedAudioDurationMs:', state.lastPromptExpectedDurationMs);
+          if (
+            markLatencyMs !== null &&
+            state.lastPromptExpectedDurationMs > 0 &&
+            markLatencyMs < state.lastPromptExpectedDurationMs - 1000
+          ) {
+            console.log('[MARK VALIDATION] =========================================');
+            console.log('[MARK VALIDATION] event: implausible_mark_timing');
+            console.log('[MARK VALIDATION] callSid:', state.callSid);
+            console.log('[MARK VALIDATION] markName:', message.mark.name);
+            console.log('[MARK VALIDATION] markLatencyMs:', markLatencyMs);
+            console.log('[MARK VALIDATION] expectedAudioDurationMs:', state.lastPromptExpectedDurationMs);
+            console.log('[MARK VALIDATION] interpretation: outbound buffer consumed too fast - audio likely not played to caller');
+            console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
+            console.log('[MARK VALIDATION] =========================================');
+          }
 
           // Validate that the mark is for the current stage
           if (stage !== state.currentStage) {
