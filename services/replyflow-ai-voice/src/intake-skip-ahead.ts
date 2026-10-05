@@ -79,6 +79,11 @@ type ExtractedMatch = {
 // the value, so the service should end at the start of the value.
 const CONNECTOR_PREFIX_RE = /^(?:at\s+|@\s+|call me(?: back)?\s+|you can call me(?: back)?\s+|reach me\s+|contact me\s+|located\s+(?:at\s+)?|the address is\s+|address is\s+|my address is\s+|it'?s at\s+|located at\s+)/i;
 
+// Words that cannot grammatically end a clause. When scalar excision would
+// leave one of these dangling at the cut boundary, the scalar is embedded in
+// natural request prose and must stay in the canonical Request.
+const EMBEDDED_SCALAR_LEADIN_RE = /(?:^|\s)(?:in|on|at|by|for|to|of|from|with|about|into|onto|over|under|near|around|between|through|within|during|towards?|against|per|via|the|a|an|and|or|but|so|nor|yet|my|your|our|their|his|her|its|this|that|these|those|is|are|was|were|be|been|do|does|did|have|has|had|will|would|can|could|shall|should|may|might|must)$/i;
+
 const FILLER_PHRASES = [
   'all right', 'okay', 'ok', 'yeah', 'yes', 'thanks', 'thank you', 'sure',
 ];
@@ -851,14 +856,18 @@ function cleanServiceRequest(serviceRequested: string, matches: (ExtractedMatch 
   // using the full match to locate the exact occurrence and then offsetting
   // to the start of the extracted value (not the whole matched phrase).
   let earliestIndex = serviceRequested.length;
+  let latestMatchEnd = -1;
   for (const match of validMatches) {
     let idx = -1;
+    let matchEnd = -1;
     if (match.value && serviceRequested.indexOf(match.fullMatch) !== -1) {
       const fullIdx = serviceRequested.indexOf(match.fullMatch);
       const valueIdxInFull = match.fullMatch.indexOf(match.value);
       idx = fullIdx + (valueIdxInFull >= 0 ? valueIdxInFull : 0);
+      matchEnd = fullIdx + match.fullMatch.length;
     } else if (match.value) {
       idx = serviceRequested.indexOf(match.value);
+      matchEnd = idx >= 0 ? idx + match.value.length : -1;
       // If we found the value but not the marker, walk back to swallow a connector/marker.
       if (idx > 0) {
         const prefix = serviceRequested.slice(0, idx);
@@ -871,12 +880,30 @@ function cleanServiceRequest(serviceRequested: string, matches: (ExtractedMatch 
     if (idx !== -1 && idx < earliestIndex) {
       earliestIndex = idx;
     }
+    if (matchEnd > latestMatchEnd) {
+      latestMatchEnd = matchEnd;
+    }
   }
 
   if (earliestIndex >= serviceRequested.length) {
     // No future-field marker found, but still strip common service prefixes
     // so a clean service phrase is returned.
     return stripServicePrefix(serviceRequested).replace(/[.,;:]$/, '').trim();
+  }
+
+  // A scalar embedded inside natural request prose keeps meaningful request
+  // text after it ("...put up over here in South Park. gonna need the roof
+  // installed"). Truncating there would silently drop real job context, so the
+  // request stays intact; the scalar fields are still populated separately.
+  if (latestMatchEnd > earliestIndex) {
+    const tail = serviceRequested.slice(latestMatchEnd)
+      .replace(/^[.,;:!?\s]+/, '')
+      .replace(/^(?:and|but|so|then|also|too)\s+/i, '')
+      .trim();
+    const tailWords = (tail.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
+    if (tailWords >= 3) {
+      return stripServicePrefix(serviceRequested).replace(/[.,;:]$/, '').trim();
+    }
   }
 
   let cleaned = serviceRequested.slice(0, earliestIndex).trim();
@@ -933,7 +960,18 @@ function extractServiceRequestCandidate(
     const valueOffset = CONNECTOR_PREFIX_RE.test(first.fullMatch) ? 0 : valueStart;
     const prefix = s.slice(0, first.startIndex + valueOffset);
     const suffix = s.slice(last.startIndex + last.fullMatch.length);
-    s = `${prefix} ${suffix}`;
+    // A scalar span may only be cut out of the request when the remaining text
+    // stays grammatical. When the kept left side ends on a function word the
+    // removed span was completing — "over here in |South Park|. gonna need
+    // the roofing installed" -> "in ." — the scalar is embedded inside natural
+    // request prose, so it stays in the canonical Request (its own field is
+    // still populated separately). Scalar-only tails ("in Bethel Park" at the
+    // end) still excise cleanly via the trailing-connector strip below.
+    const prefixEndsOnFunctionWord = EMBEDDED_SCALAR_LEADIN_RE.test(prefix.trimEnd());
+    const suffixHasContent = suffix.replace(/^[.,;:!?\s]+/, '').trim().length > 0;
+    if (!(prefixEndsOnFunctionWord && suffixHasContent)) {
+      s = `${prefix} ${suffix}`;
+    }
   }
 
   s = s.replace(/^[.,;:\s]+/, '').replace(/^(?:and|so|then|also)\s+/i, '');
