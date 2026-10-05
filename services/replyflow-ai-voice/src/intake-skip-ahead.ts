@@ -611,6 +611,7 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
         }
       }
       const rawValue = match[2] || (spaceTail ? claimedMatch : match[1]);
+<<<<<<< HEAD
       // Early completion patterns keep the intent scaffold inside the claimed
       // match ("I need someone out sometime tomorrow"). The field value is
       // only the timing phrase — stripping it here also lets the Request keep
@@ -621,6 +622,9 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
         .replace(/^(?:i'?d like|i would like|i want|i need)\s+it\s+/i, '')
         .replace(/^(?:can you|could you)\s+(?:come|get here|make it)\s+/i, '')
         .trim();
+=======
+      const value = (rawValue || '').trim();
+>>>>>>> origin/main
       const fullMatch = (claimedMatch || match[1] || '').trim();
       if (isValidCompletionTime(value)) {
         return {
