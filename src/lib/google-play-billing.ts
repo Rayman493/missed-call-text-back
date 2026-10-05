@@ -63,6 +63,19 @@ async function sha256Hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+// TEMP DIAGNOSTICS for the Play "unable to change your subscription plan"
+// investigation. Only safe fields are logged — BillingClient codes,
+// product/offer/base-plan IDs, order IDs, and short SHA-256 fingerprints.
+// Never log raw purchase tokens, raw offer tokens, or session material.
+const diag = (event: string, fields: Record<string, unknown>) => {
+  console.warn(`[GooglePlayBilling:diag] ${event}`, fields)
+}
+
+const tokenFingerprint = async (token?: string | null): Promise<string> => {
+  if (!token) return ''
+  try { return (await sha256Hex(token)).slice(0, 8) } catch { return '' }
+}
+
 export async function getBestSubscriptionOffer(productId = GOOGLE_PLAY_PRODUCT_ID): Promise<SubscriptionOffer> {
   return GooglePlayBilling.getSubscriptionOffer({ productId })
 }
@@ -168,6 +181,10 @@ async function waitForPendingPurchaseSettle(productId: string): Promise<string |
       const { purchases } = await GooglePlayBilling.queryPurchases()
       const held = purchases.find(p => p.products?.includes(productId))
       if (held?.purchaseState === 1 && held.purchaseToken) {
+        diag('pending-settle-held', {
+          attempt: i, products: held.products, isAcknowledged: held.isAcknowledged,
+          orderId: held.orderId, tokenHash: await tokenFingerprint(held.purchaseToken),
+        })
         return held.purchaseToken
       }
     } catch (e) {
@@ -190,11 +207,21 @@ export async function purchaseSubscription(
 ): Promise<{ ok: boolean; entitled?: boolean; status?: string; error?: string; canceled?: boolean; pending?: boolean; httpStatus?: number; transportFailed?: boolean; unauthorized?: boolean }> {
   const offer = await getBestSubscriptionOffer(productId)
   const obfuscatedAccountId = await sha256Hex(userId)
+  diag('offer-selected', {
+    productId: offer.productId, basePlanId: offer.basePlanId, offerId: offer.offerId,
+    hasFreeTrial: offer.hasFreeTrial, billingPeriod: offer.billingPeriod,
+    offerTokenHash: await tokenFingerprint(offer.offerToken),
+  })
 
   const purchase = await GooglePlayBilling.launchPurchase({
     productId: offer.productId,
     offerToken: offer.offerToken,
     obfuscatedAccountId,
+  })
+  diag('launch-result', {
+    status: purchase.status, code: purchase.code, message: purchase.message,
+    products: purchase.products, orderId: purchase.orderId,
+    tokenHash: await tokenFingerprint(purchase.purchaseToken),
   })
 
   if (purchase.status === 'canceled') {
@@ -219,6 +246,12 @@ export async function purchaseSubscription(
   if (purchase.status === 'error' && purchase.code === 7) {
     const { purchases } = await GooglePlayBilling.queryPurchases()
     const held = purchases.find(p => p.purchaseState === 1 && p.products?.includes(offer.productId))
+    diag('owned-recovery-held', {
+      heldCount: purchases.length, found: !!held,
+      products: held?.products, purchaseState: held?.purchaseState,
+      isAcknowledged: held?.isAcknowledged, orderId: held?.orderId,
+      tokenHash: await tokenFingerprint(held?.purchaseToken),
+    })
     if (!held?.purchaseToken) {
       return { ok: false, error: 'Subscription already owned but could not be recovered. Please restart the app.' }
     }
@@ -277,6 +310,14 @@ export async function reconcilePlayPurchases(): Promise<{ entitled: boolean }> {
   }
 
   const { purchases } = await GooglePlayBilling.queryPurchases()
+  diag('reconcile-held', {
+    count: purchases.length,
+    purchases: await Promise.all(purchases.map(async p => ({
+      products: p.products, purchaseState: p.purchaseState,
+      isAcknowledged: p.isAcknowledged, orderId: p.orderId,
+      tokenHash: await tokenFingerprint(p.purchaseToken),
+    }))),
+  })
   let entitled = false
   for (const p of purchases) {
     if (p.purchaseState !== 1 /* PURCHASED */) continue
@@ -284,6 +325,12 @@ export async function reconcilePlayPurchases(): Promise<{ entitled: boolean }> {
     if (!productId) continue
     try {
       const verification = await verifyPurchaseToken(p.purchaseToken, productId, undefined, 'reconcile')
+      diag('reconcile-verify', {
+        productId, tokenHash: await tokenFingerprint(p.purchaseToken),
+        ok: verification.ok, entitled: verification.entitled,
+        status: verification.status, pending: verification.pending,
+        httpStatus: verification.httpStatus,
+      })
       if (verification.ok && verification.entitled) entitled = true
       // A 401 means the local session is stale server-side — every further
       // token verification in this invocation is guaranteed to fail the same
