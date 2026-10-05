@@ -56,6 +56,30 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
     private boolean connectionInProgress = false;
     private final List<PendingOperation> pendingOperations = new ArrayList<>();
 
+    /** TEMP DIAGNOSTIC (plan-change RCA): short SHA-256 fingerprint — never log raw tokens. */
+    private static String tokenHash(@Nullable String token) {
+        if (token == null) return "null";
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] d = md.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 4 && i < d.length; i++) sb.append(String.format("%02x", d[i] & 0xff));
+            return sb.toString();
+        } catch (Exception e) { return "hasherr"; }
+    }
+
+    /** TEMP DIAGNOSTIC (plan-change RCA): one-line purchase summary — no raw tokens. */
+    private static String describePurchase(Purchase p) {
+        String autoRenew;
+        try { autoRenew = String.valueOf(p.isAutoRenewing()); } catch (Throwable t) { autoRenew = "n/a"; }
+        return "{state=" + p.getPurchaseState()
+            + ", ack=" + p.isAcknowledged()
+            + ", autoRenew=" + autoRenew
+            + ", products=" + p.getProducts()
+            + ", orderId=" + p.getOrderId()
+            + ", tokenHash=" + tokenHash(p.getPurchaseToken()) + "}";
+    }
+
     private static class PendingOperation {
         final Runnable onReady;
         final PluginCall call;
@@ -212,6 +236,24 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
                     return;
                 }
 
+                // TEMP DIAGNOSTIC (plan-change RCA): enumerate every offer/base plan.
+                Log.d(TAG, "queryProductDetails: product=" + productId + " offers=" + offers.size());
+                for (int i = 0; i < offers.size(); i++) {
+                    ProductDetails.SubscriptionOfferDetails o = offers.get(i);
+                    List<ProductDetails.PricingPhase> phases = o.getPricingPhases().getPricingPhaseList();
+                    boolean zeroPhase = false;
+                    for (ProductDetails.PricingPhase ph : phases) {
+                        if (ph.getPriceAmountMicros() == 0) { zeroPhase = true; break; }
+                    }
+                    Log.d(TAG, "  offer[" + i + "] basePlan=" + o.getBasePlanId()
+                        + " offerId=" + o.getOfferId()
+                        + " tags=" + o.getOfferTags()
+                        + " phases=" + phases.size()
+                        + " zeroPricePhase=" + zeroPhase
+                        + " p0=" + (phases.isEmpty() ? "none" : phases.get(0).getFormattedPrice() + "/" + phases.get(0).getBillingPeriod())
+                        + " tokenHash=" + tokenHash(o.getOfferToken()));
+                }
+
                 // Prefer an offer containing a free-trial phase; fall back to the base plan.
                 ProductDetails.SubscriptionOfferDetails chosen = offers.get(0);
                 boolean hasFreeTrial = false;
@@ -225,6 +267,10 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
                     }
                     if (hasFreeTrial) break;
                 }
+                Log.d(TAG, "  chosen: basePlan=" + chosen.getBasePlanId()
+                    + " offerId=" + chosen.getOfferId()
+                    + " hasFreeTrial=" + hasFreeTrial
+                    + " tokenHash=" + tokenHash(chosen.getOfferToken()));
 
                 ProductDetails.PricingPhase firstPhase =
                     chosen.getPricingPhases().getPricingPhaseList().get(0);
@@ -295,8 +341,31 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
                     return;
                 }
 
+                // TEMP DIAGNOSTIC (plan-change RCA): fingerprint the exact flow params.
+                // This builder never sets subscriptionUpdateParams/oldPurchaseToken.
+                String launchBasePlan = null;
+                String launchOfferId = null;
+                List<ProductDetails.SubscriptionOfferDetails> launchOffers = details.getSubscriptionOfferDetails();
+                if (launchOffers != null) {
+                    for (ProductDetails.SubscriptionOfferDetails o : launchOffers) {
+                        if (offerToken.equals(o.getOfferToken())) {
+                            launchBasePlan = o.getBasePlanId();
+                            launchOfferId = o.getOfferId();
+                            break;
+                        }
+                    }
+                }
+                Log.d(TAG, "launchBillingFlow: product=" + productId
+                    + " basePlan=" + launchBasePlan
+                    + " offerId=" + launchOfferId
+                    + " offerTokenHash=" + tokenHash(offerToken)
+                    + " obfuscated=" + (obfuscatedAccountId != null && !obfuscatedAccountId.isEmpty())
+                    + " subscriptionUpdateParams=false");
+
                 pendingPurchaseCall = call;
                 BillingResult launchResult = billingClient.launchBillingFlow(activity, flowBuilder.build());
+                Log.d(TAG, "launchBillingFlow result: code=" + launchResult.getResponseCode()
+                    + " msg=" + launchResult.getDebugMessage());
                 if (launchResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
                     // Synchronous launch failure — onPurchasesUpdated will not fire.
                     pendingPurchaseCall = null;
@@ -310,6 +379,15 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
 
     @Override
     public void onPurchasesUpdated(@NonNull BillingResult billingResult, @Nullable List<Purchase> purchases) {
+        // TEMP DIAGNOSTIC (plan-change RCA): exact BillingResult + any purchases.
+        Log.d(TAG, "onPurchasesUpdated: code=" + billingResult.getResponseCode()
+            + " msg=" + billingResult.getDebugMessage()
+            + " purchases=" + (purchases == null ? -1 : purchases.size()));
+        if (purchases != null) {
+            for (Purchase p : purchases) {
+                Log.d(TAG, "  purchase: " + describePurchase(p));
+            }
+        }
         PluginCall call = pendingPurchaseCall;
         if (call == null) {
             Log.w(TAG, "Purchase update with no pending call: code=" + billingResult.getResponseCode());
@@ -363,6 +441,11 @@ public class ReplyflowGooglePlayBillingPlugin extends Plugin implements Purchase
                         call.reject("queryPurchases failed: " + billingResult.getDebugMessage(),
                             String.valueOf(billingResult.getResponseCode()));
                         return;
+                    }
+                    // TEMP DIAGNOSTIC (plan-change RCA): every held purchase.
+                    Log.d(TAG, "queryPurchases: count=" + purchasesList.size());
+                    for (Purchase p : purchasesList) {
+                        Log.d(TAG, "  held: " + describePurchase(p));
                     }
                     JSArray arr = new JSArray();
                     for (Purchase p : purchasesList) {
