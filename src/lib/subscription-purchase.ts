@@ -110,7 +110,17 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
     return true
   } catch (error: any) {
     console.error('[SubscriptionPurchase] Native purchase failed:', error)
-    cb.onError?.(error?.message || 'Could not start Google Play purchase.')
+    const message = error?.message || 'Could not start Google Play purchase.'
+    // A BillingClient "already connecting" rejection is internal lifecycle
+    // coordination, not a user-facing failure — the purchase may still be
+    // held on the Play account. Route to the pending-recovery path (Retry
+    // Checkout reconciles) instead of surfacing the raw BillingClient
+    // message. Covers builds without the single-flight plugin fix.
+    if (/in the process of connecting|Billing connection start conflict/i.test(message)) {
+      cb.onPending?.()
+      return true
+    }
+    cb.onError?.(message)
     return true
   }
 }
