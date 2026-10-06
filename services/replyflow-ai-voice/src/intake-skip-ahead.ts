@@ -294,6 +294,27 @@ export function spokenHouseNumberToDigits(phrase: string): string | null {
   return groups.map(g => String(g)).join('');
 }
 
+/**
+ * Convert a clear 5-token spoken digit sequence inside an address to digits —
+ * ASR renders ZIPs as "one five one two nine" -> "15129".
+ *
+ * Deliberately narrow: only a maximal run of exactly five single-digit tokens
+ * converts. House numbers ("one seven eight two" — 4 tokens), unit numbers
+ * ("apartment six"), and longer ambiguous dictations are left verbatim.
+ */
+const SPOKEN_SINGLE_DIGIT = '(?:zero|oh|o|one|two|three|four|five|six|seven|eight|nine|\\d)';
+const SPOKEN_DIGIT_RUN_RE = new RegExp(`\\b${SPOKEN_SINGLE_DIGIT}(?:[\\s-]+${SPOKEN_SINGLE_DIGIT}){4,}\\b`, 'gi');
+
+export function normalizeSpokenZipDigits(address: string): string {
+  if (!address) return address;
+  return address.replace(SPOKEN_DIGIT_RUN_RE, (run) => {
+    const tokens = run.toLowerCase().split(/[\s-]+/).filter(Boolean);
+    if (tokens.length !== 5) return run;
+    const digits = spokenHouseNumberToDigits(run);
+    return digits && /^\d{5}$/.test(digits) ? digits : run;
+  });
+}
+
 const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean | 'spoken-number' }[] = [
   {
     // Numbered-street correction: "it's 937, not 931, Pine Hollow Road" /
@@ -780,12 +801,15 @@ function normalizeCallbackTime(value: string): string {
   const anytimeMatch = lower.match(/^(?:any\s?time|whenever)\b(.*)$/i);
   if (anytimeMatch) {
     let tail = cleaned.slice(cleaned.length - anytimeMatch[1].length).trim();
-    // Iteratively strip leading filler/scaffold words and separators.
+    // Iteratively strip leading filler/scaffold words and separators —
+    // including politeness tails ("you can", "you could") that mean "anytime"
+    // rather than adding a constraint: "whenever you can" → "Anytime".
     let prev: string;
     do {
       prev = tail;
       tail = tail
         .replace(/^(?:is|works|work|are|best|good|fine|ok(?:ay)?|easier|easiest|preferred|alright|all right)\b/i, '')
+        .replace(/^(?:you\s+(?:can|could|want|like|prefer)|u\s+can|that'?s?\s+fine|it'?s\s+fine|when\s+you\s+(?:can|could|want))\b/i, '')
         .replace(/^[,.\s]+/, '')
         .replace(/^but\s+/i, '')
         .trim();
@@ -1487,6 +1511,42 @@ const isCompleteResidualClause = (text: string): boolean => {
 };
 
 /**
+ * Clean a scalar-stage answer with the same rules stageScalarFallback uses:
+ * conversational lead-ins and edge punctuation stripped; clause-laden prose
+ * (", but ...", "and ...", a bare "not") and incident-history text rejected.
+ * Returns null when the source is not a clean single-value scalar answer.
+ */
+function cleanScalarStageAnswer(field: keyof IntakeData, source: string, locationRefusedNow: boolean): string | null {
+  let src = source;
+  // "I don't want to give the exact address yet, but I'm in Pittsburgh." —
+  // the clause after a refusal pivot is the caller's real location answer.
+  if (field === 'serviceAddress' && locationRefusedNow) {
+    const pivot = src.split(/\b(?:but|however|though)\b/i);
+    src = pivot.length > 1 ? pivot[pivot.length - 1].trim() : '';
+  }
+  const cleaned = src
+    .replace(/^[\s,.\-—–]+/, '')
+    .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
+    .replace(/[.,;!?\s]+$/, '')
+    // Conversational lead-ins ("Um, yeah,") are not part of the answer.
+    .replace(/^(?:(?:um|uh|yeah|yep|yes|okay|ok|sure|well|so|right|alright)[,.\s]*)+/i, '')
+    .trim();
+  // Never raw-write clause-laden or negated prose ("within two weeks, not in
+  // next month") — only clean single-value scalars qualify.
+  // Exception: "not before noon" / "not after 5" are valid negated timing
+  // constraints, not clause-laden prose.
+  const negatedTiming = /^not\s+(?:before|after|until)\b/i.test(cleaned);
+  // A trailing polite qualifier (", if you could", ", if possible") is part
+  // of the natural timing answer, not clause-laden prose.
+  const cleanedForCheck = cleaned.replace(/,\s*if\s+(?:you\s+(?:can|could)|it'?s\s+possible|possible)\.?\s*$/i, '');
+  if (/[,;]|\b(?:but|instead|and)\b/i.test(cleanedForCheck) || (!negatedTiming && /\bnot\b/i.test(cleanedForCheck))) return null;
+  // Incident-history prose must never land in a timing field ("the furnace
+  // shut off around 2 pm", "it began leaking last night").
+  if ((field === 'callbackTime' || field === 'desiredCompletionTime') && INCIDENT_ANSWER_RE.test(cleaned)) return null;
+  return cleaned;
+}
+
+/**
  * Extract detail sentences from a transcript: sentences that carry supporting
  * facts but are not the name carrier, not the service carrier, and do not
  * overlap an extracted scalar (address/completion/callback) match.
@@ -2000,7 +2060,28 @@ export function enrichIntakeFromTranscript(
   const stageLocationAnswer = currentStageField === 'serviceAddress'
     ? stripLocationLeadIn((correctionTail || transcript).trim())
     : null;
-  const transcriptDetails = extractDetailSentences(transcript, {
+  // Whole-utterance scalar answers own the turn: when the caller's entire
+  // answer at a scalar stage cleans to a valid scalar and the stage's own
+  // extractor produced no match ("As soon as you could. I really need it
+  // done" at ask_completion_time — the matcher misses "could"), its sentences
+  // are that field's content — never residual "supporting facts" to merge
+  // into the canonical Request. A matched scalar keeps its per-sentence
+  // residual handling, and a clause-laden/mixed answer is not suppressed.
+  const scalarStageSpec: Record<string, { validate: (v: string) => boolean; normalize: (v: string) => string }> = {
+    serviceAddress: { validate: isAcceptableServiceAddress, normalize: stripLocationLeadIn },
+    desiredCompletionTime: { validate: isValidCompletionTime, normalize: (v) => normalizeVagueCompletion(v, transcript) },
+    callbackTime: { validate: isValidCallbackTime, normalize: normalizeCallbackTime },
+  };
+  const currentStageScalarMatch = currentStageField === 'serviceAddress' ? addressMatch
+    : currentStageField === 'desiredCompletionTime' ? completionMatch
+    : currentStageField === 'callbackTime' ? callbackMatch
+    : null;
+  const stageSpec = currentStageField ? scalarStageSpec[currentStageField] : undefined;
+  const wholeAnswerIsScalar = !!stageSpec && !currentStageScalarMatch && (() => {
+    const cleaned = cleanScalarStageAnswer(currentStageField!, (correctionTail || transcript).trim(), locationRefused);
+    return !!cleaned && stageSpec.validate(stageSpec.normalize(cleaned));
+  })();
+  const transcriptDetails = wholeAnswerIsScalar ? null : extractDetailSentences(transcript, {
     customerName: name || intake.customerName,
     scalarFullMatches,
     alreadyExtracted: [validCleanedService || '', stageLocationAnswer || ''],
@@ -2134,7 +2215,7 @@ export function enrichIntakeFromTranscript(
   applyField(
     intake,
     'serviceAddress',
-    addressMatch?.value,
+    addressMatch?.value ? normalizeSpokenZipDigits(addressMatch.value) : null,
     isAcceptableServiceAddress,
     applied,
     skippedBecauseAlreadyPresent,
@@ -2197,34 +2278,9 @@ export function enrichIntakeFromTranscript(
     // utterance ("call me after 5" at ask_location → callback), the stage
     // fallback must not raw-write that text into this field.
     if (!correctionTail && ['serviceAddress', 'desiredCompletionTime', 'callbackTime'].some(f => f !== field && applied.includes(f as string))) return;
-    let source = (correctionTail || transcript).trim();
-    // "I don't want to give the exact address yet, but I'm in Pittsburgh." —
-    // the clause after a refusal pivot is the caller's real location answer.
-    // A refusal with no pivot clause stays uncaptured.
-    if (field === 'serviceAddress' && locationRefused) {
-      const pivot = source.split(/\b(?:but|however|though)\b/i);
-      source = pivot.length > 1 ? pivot[pivot.length - 1].trim() : '';
-    }
-    const cleaned = source
-      .replace(/^[\s,.\-—–]+/, '')
-      .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
-      .replace(/[.,;!?\s]+$/, '')
-      // Conversational lead-ins ("Um, yeah,") are not part of the answer.
-      .replace(/^(?:(?:um|uh|yeah|yep|yes|okay|ok|sure|well|so|right|alright)[,.\s]*)+/i, '')
-      .trim();
-    // Never raw-write clause-laden or negated prose ("within two weeks, not in
-    // next month") — the fallback only stores clean single-value scalars.
-    // Exception: "not before noon" / "not after 5" are valid negated timing
-    // constraints, not clause-laden prose.
-    const negatedTiming = /^not\s+(?:before|after|until)\b/i.test(cleaned);
-    // A trailing polite qualifier (", if you could", ", if possible") is part
-    // of the natural timing answer, not clause-laden prose — the full source
-    // phrase is preserved in the stored value.
-    const cleanedForCheck = cleaned.replace(/,\s*if\s+(?:you\s+(?:can|could)|it'?s\s+possible|possible)\.?\s*$/i, '');
-    if (/[,;]|\b(?:but|instead|and)\b/i.test(cleanedForCheck) || (!negatedTiming && /\bnot\b/i.test(cleanedForCheck))) return;
-    // Incident-history prose must never land in a timing field ("the furnace
-    // shut off around 2 pm", "it began leaking last night").
-    if ((field === 'callbackTime' || field === 'desiredCompletionTime') && INCIDENT_ANSWER_RE.test(cleaned)) return;
+    const source = (correctionTail || transcript).trim();
+    const cleaned = cleanScalarStageAnswer(field, source, locationRefused);
+    if (!cleaned) return;
     const value = normalizer ? normalizer(cleaned) : cleaned;
     if (value && validator(value) && value !== current) {
       if (alreadySet) {
@@ -2243,7 +2299,7 @@ export function enrichIntakeFromTranscript(
     }
   };
   if (currentStageField === 'serviceAddress') {
-    stageScalarFallback('serviceAddress', isAcceptableServiceAddress, stripLocationLeadIn);
+    stageScalarFallback('serviceAddress', isAcceptableServiceAddress, (v) => normalizeSpokenZipDigits(stripLocationLeadIn(v)));
   } else if (currentStageField === 'desiredCompletionTime') {
     stageScalarFallback('desiredCompletionTime', isValidCompletionTime, (v) => normalizeVagueCompletion(v, transcript));
   } else if (currentStageField === 'callbackTime') {
