@@ -14,7 +14,7 @@ export interface TokenResult {
   permanentFailure: boolean
   platform: 'android' | 'ios'
   errorCode?: string
-  errorKind?: 'token' | 'config' | 'transient' | 'provider'
+  errorKind?: 'token' | 'config' | 'transient' | 'provider' | 'payload'
 }
 
 /**
@@ -73,6 +73,12 @@ async function getUserIdForBusiness(businessId: string): Promise<string | null> 
 export interface UnifiedResult {
   android: { attempted: number; successful: number; failed: number }
   ios: { attempted: number; successful: number; failed: number; disabled?: number; skipped?: boolean; skipReason?: string }
+  // Set when delivery could not even be evaluated (e.g. push_devices fetch
+  // failed). Distinct from "zero eligible devices" so callers can fail safely.
+  error?: string
+  // True when every non-successful token failed permanently — callers may use
+  // this as a terminal-failure signal (e.g. payload/config bugs).
+  allFailuresPermanent?: boolean
 }
 
 function toFcmPayload(p: ApnsPayload): FcmPayload {
@@ -112,7 +118,11 @@ export async function sendPushForNotification(notification: {
       error: error.message,
       correlationId
     })
-    return { android: { attempted: 0, successful: 0, failed: 0 }, ios: { attempted: 0, successful: 0, failed: 0 } }
+    return {
+      android: { attempted: 0, successful: 0, failed: 0 },
+      ios: { attempted: 0, successful: 0, failed: 0 },
+      error: `push_devices_fetch_failed: ${error.message}`
+    }
   }
 
   // Structured exclusion log: explain the token universe for this business.
@@ -433,6 +443,18 @@ export async function sendPushForNotification(notification: {
       }
     }
   }
+
+  // The early-return success path already recorded a 'sent' attempt. On the
+  // exhausted path a partial delivery (≥1 device reached while others failed)
+  // still means the notification was delivered — record that fact so callers
+  // checking delivery history do not treat it as undelivered.
+  const deliveredDevices = finalResult.android.successful + finalResult.ios.successful
+  if (userId && deliveredDevices > 0) {
+    await recordDeliveryAttempt(notification.id, userId, 'push', MAX_RETRY_ATTEMPTS, 'sent')
+  }
+
+  const failedStates = Array.from(tokenState.values()).filter(s => !s.success)
+  finalResult.allFailuresPermanent = failedStates.length > 0 && failedStates.every(s => s.permanentFailure)
 
   return finalResult
 }
