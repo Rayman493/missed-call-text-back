@@ -101,6 +101,7 @@ function AuthContent() {
   const [redirecting, setRedirecting] = useState(false)
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
   const isCreatingCheckoutRef = React.useRef(false)
+  const errorSummaryRef = React.useRef<HTMLDivElement>(null)
 
   // Track if account was created in this session to prevent re-submission
   const accountCreatedRef = React.useRef(false)
@@ -135,6 +136,16 @@ function AuthContent() {
       sessionStorage.removeItem('oauth_error')
     }
   }, [checkoutCancelled, accessRemoved])
+
+  // A failed submit can leave the user scrolled far below the summary (mobile
+  // especially). Bring whichever alert surfaced into view and move focus to it.
+  useEffect(() => {
+    if (!error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation) return
+    const el = errorSummaryRef.current
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.focus({ preventScroll: true })
+  }, [error, errorDisplay, existingAccount, checkoutFailedAfterAccountCreation])
 
   // Password requirements validation
   const [passwordRequirements, setPasswordRequirements] = useState({
@@ -952,6 +963,9 @@ function AuthContent() {
             <p className="text-xs sm:text-sm text-slate-400">
               {isCheckoutReturn ? 'Sign in to finish your trial setup' : (isSignIn ? 'Sign in to your account' : (signupStep === 1 ? 'Create your login details' : 'Tell us about your business'))}
             </p>
+            {!isSignIn && !isCheckoutReturn && signupStep === 2 && (
+              <p className="mt-1 text-xs text-slate-400">All fields are required.</p>
+            )}
           </div>
           
           {isSignIn && emailParam && !isCheckoutReturn && (
@@ -967,8 +981,10 @@ function AuthContent() {
           )}
           
           {errorDisplay && (
-            <div 
-              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4"
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4 focus:outline-none"
               role="alert"
               aria-live="polite"
             >
@@ -988,9 +1004,31 @@ function AuthContent() {
             </div>
           )}
 
+          {/* Step-validation and generic signup errors surface here — the
+              string was previously only rendered inside the checkout-failure
+              card, which left most failures invisible. */}
+          {error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation && (
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4 focus:outline-none"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-sm font-medium text-red-200">{error}</p>
+              </div>
+            </div>
+          )}
+
           {checkoutFailedAfterAccountCreation && (
             <div
-              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4"
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4 focus:outline-none"
               role="alert"
               aria-live="polite"
             >
@@ -1018,8 +1056,10 @@ function AuthContent() {
           )}
 
           {existingAccount && (
-            <div 
-              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4"
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4 focus:outline-none"
               role="alert"
               aria-live="polite"
             >
@@ -1178,7 +1218,7 @@ function AuthContent() {
               <>
                 <div>
                   <label htmlFor="businessName" className="block text-sm font-medium text-slate-300 mb-2">
-                    Business Name
+                    Business Name <span className="text-red-400">*</span>
                   </label>
                   <input
                     id="businessName"
@@ -1195,7 +1235,7 @@ function AuthContent() {
 
                 <div>
                   <label htmlFor="businessPhone" className="block text-sm font-medium text-slate-300 mb-2">
-                    Business Phone Number
+                    Business Phone Number <span className="text-red-400">*</span>
                   </label>
                   <input
                     id="businessPhone"
@@ -1213,13 +1253,13 @@ function AuthContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Where do you provide your services?
+                  <label id="service-location-label" className="block text-sm font-medium text-slate-300 mb-2">
+                    Where do you provide your services? <span className="text-red-400">*</span>
                   </label>
                   <p className="text-xs text-slate-500 mb-3">
                     ReplyFlow uses this to tailor the questions AI Voice asks callers.
                   </p>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-2" role="radiogroup" aria-labelledby="service-location-label" aria-required="true">
                     {[
                       { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },
                       { value: 'customer_comes_to_business', title: 'Customers come to me', desc: 'Customers visit your business location.' },
@@ -1228,6 +1268,8 @@ function AuthContent() {
                       <button
                         key={opt.value}
                         type="button"
+                        role="radio"
+                        aria-checked={(serviceLocationType || '') === opt.value}
                         onClick={() => setServiceLocationType(opt.value as any)}
                         className={`text-left p-3 rounded-xl border transition w-full ${
                           (serviceLocationType || '') === opt.value
