@@ -91,7 +91,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           .select(`
             *,
             jobs(id, title, status, created_at, updated_at, scheduled_date),
-            tasks(id, title, status, created_at, updated_at),
+            tasks(id, title, completed, created_at, updated_at),
             payment_requests!lead_id(id, amount_cents, status, created_at, updated_at, paid_at, payment_method_type, lead_id),
             ai_call_records(id, outcome, created_at)
           `)
@@ -185,11 +185,11 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         const { data: recentTasks, error: recentTasksError } = await supabase
           .from('tasks')
           .select(`
-            id, title, status, created_at, updated_at,
+            id, title, completed, created_at, updated_at,
             leads(id, caller_phone, contact_name, business_id)
           `)
           .eq('business_id', business.id)
-          .eq('status', 'completed')
+          .eq('completed', true)
           .gte('updated_at', sevenDaysAgo)
           .order('updated_at', { ascending: false })
           .limit(10)
@@ -288,7 +288,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           if (lead.tasks && lead.tasks.length > 0) {
             lead.tasks.forEach((task: any) => {
               const displayName = getDisplayName(customerName, lead.caller_phone)
-              if (task.status === 'completed' && new Date(task.updated_at) >= new Date(sevenDaysAgo)) {
+              if (task.completed && new Date(task.updated_at) >= new Date(sevenDaysAgo)) {
                 events.push({
                   id: `task-completed-${task.id}`,
                   type: 'task_completed',
@@ -646,7 +646,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           </div>
         ) : (
           <div className="text-center py-6">
-            <p className="text-xs text-muted-foreground/80">Business activity will appear here as you work with customers.</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">No recent activity yet</p>
+            <p className="text-xs text-muted-foreground/80">New calls, messages, payments, and updates will appear here.</p>
           </div>
         )
       ) : (

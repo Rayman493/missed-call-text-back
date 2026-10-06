@@ -979,7 +979,7 @@ export default function CompleteSetupPage() {
                 <div className="mt-2">
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                   >
                     Forgot your password?
                   </Link>
