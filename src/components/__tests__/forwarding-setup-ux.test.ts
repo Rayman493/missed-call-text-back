@@ -89,14 +89,16 @@ describe('Mental model visual', () => {
 })
 
 describe('Secondary help is demoted but preserved', () => {
-  it('groups voicemail note, disable code, and troubleshooting under Need help?', () => {
+  it('groups voicemail warning, disable code, and troubleshooting under Need help?', () => {
     const needHelp = helpCenter.indexOf('Need help?')
     const after = helpCenter.slice(needHelp)
-    expect(after).toContain('Already use voicemail?')
+    expect(after).toContain('Using carrier voicemail?')
     expect(after).toContain('Disable Call Forwarding')
     expect(after).toContain('Troubleshooting')
-    // voicemail note stays subtle, non-mandatory
-    expect(after).toContain('existing voicemail')
+    // voicemail warning card must state carrier voicemail can interfere and
+    // that ReplyFlow cannot control carrier settings — without sounding fatal
+    expect(after).toContain('before your carrier')
+    expect(after).toContain('cannot change carrier voicemail')
     expect(helpCenter).not.toMatch(/must disable voicemail/i)
     expect(helpCenter).not.toMatch(/always disable/i)
   })
