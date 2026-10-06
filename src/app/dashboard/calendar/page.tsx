@@ -3581,6 +3581,14 @@ function JobsTab({
             </button>
           </div>
         ) : null}
+        {/* Zero-job helper — time tracking requires a job to exist first.
+            Condition is the full jobs list, not active-only, so completed
+            jobs with tracked time don't trigger it. */}
+        {!isLoading && jobs.length === 0 && (
+          <p className="mt-3 pt-3 border-t border-border/40 text-xs text-slate-500 dark:text-slate-400">
+            Create a job first to start tracking time.
+          </p>
+        )}
         {timerError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{timerError}</p>}
       </div>
 

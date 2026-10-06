@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
 import AttachmentActionSheet from '@/components/conversation/AttachmentActionSheet'
+import AttachmentPreviewThumb from '@/components/conversation/AttachmentPreviewThumb'
 import BusinessNumberPanel from '@/components/BusinessNumberPanel'
 import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
@@ -2204,7 +2205,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // getBoundingClientRect is already in layout-viewport coordinates;
       // visibleBottom converts the visual viewport into the same space.
       const cardTop = card.getBoundingClientRect().top
-      const available = visibleBottom - cardTop - navHeight - 8
+      // cardTop goes NEGATIVE when the outer page is scrolled so the card's
+      // top sits above the viewport. Subtracting it inflated `available`
+      // past the visible viewport and produced a multi-viewport card with a
+      // huge blank region above the composer (observed after scrolling the
+      // customer page down and back). Clamp the top to the viewport edge and
+      // cap the result at the visible area — the card can never legitimately
+      // be taller than the visual viewport minus the bottom nav.
+      const boundedTop = Math.max(0, cardTop)
+      const maxHeight = visibleBottom - navHeight - 8
+      const available = Math.min(maxHeight, visibleBottom - boundedTop - navHeight - 8)
       // Floor must stay below the smallest usable space: iOS keyboards (with
       // the predictive bar) can leave <220px between the customer header and
       // the keyboard on small devices. A 220px floor pushed the composer under
@@ -5514,11 +5524,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           )
                         })()}
                       </div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <p className="text-sm text-muted-foreground leading-tight truncate">
-                          {getLeadRequestTitle(leadData || lead) || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
-                        </p>
-                      </div>
+                      {/* Short canonical request title only — the full Reason
+                          for Calling lives in Customer Context, not the header. */}
+                      {(() => {
+                        const requestTitle = getLeadRequestTitle(leadData || lead)
+                        return requestTitle ? (
+                          <div className="flex items-center gap-3 mb-1">
+                            <p className="text-sm text-muted-foreground leading-tight truncate">
+                              {requestTitle}
+                            </p>
+                          </div>
+                        ) : null
+                      })()}
                       <div className="flex items-center gap-3">
                         <p className="text-sm text-muted-foreground/80 leading-tight">
                           {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
@@ -6161,7 +6178,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
           <div className="px-4 sm:px-5 space-y-3 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div ref={mobileWorkspaceCardRef} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(var(--visual-viewport-height,100dvh)-7rem-var(--bottom-nav-height,72px))]">
+          <div ref={mobileWorkspaceCardRef} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(var(--visual-viewport-height,100dvh)-7rem-var(--bottom-nav-height,72px))] max-h-[calc(var(--visual-viewport-height,100dvh)-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -6262,27 +6279,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <span>{composerError}</span>
                       </div>
                     )}
-                    {/* Image Previews */}
+                    {/* Attachment Previews — images get data-URL thumbnails
+                        (Capacitor-safe); PDF/CSV/video get a compact file card.
+                        Failed image previews degrade to the file card so the
+                        browser broken-image UI is never shown. */}
                     {mobileImages.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
                         {mobileImages.map((file, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt="Preview"
-                              className="w-16 h-16 object-cover rounded-md border border-border/30 transition-opacity duration-200"
-                            />
-                            <button
-                              onClick={() => removeMobileImage(index)}
-                              className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full transition-colors hover:bg-red-600"
-                              type="button"
-                              aria-label="Remove attachment"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
+                          <AttachmentPreviewThumb
+                            key={index}
+                            file={file}
+                            onRemove={() => removeMobileImage(index)}
+                          />
                         ))}
                       </div>
                     )}

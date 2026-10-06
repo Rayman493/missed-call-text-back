@@ -3758,7 +3758,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={handleBusinessHoursExpand}
-                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Business Hours"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -3814,7 +3814,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setBusinessHoursExpanded(false)}
-                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Business Hours"
                             >
                               <ChevronUp className="w-5 h-5" />
@@ -4029,7 +4029,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={() => setOutOfOfficeExpanded(true)}
-                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Out of Office"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -4113,7 +4113,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setOutOfOfficeExpanded(false)}
-                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Out of Office"
                             >
                               <ChevronUp className="w-5 h-5" />
@@ -4260,7 +4260,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={() => setFollowUpExpanded(true)}
-                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Automatic Follow-Ups"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -4309,7 +4309,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setFollowUpExpanded(false)}
-                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Automatic Follow-Ups"
                             >
                               <ChevronUp className="w-5 h-5" />

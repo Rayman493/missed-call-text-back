@@ -184,7 +184,7 @@ export default function MobileConversationMessageList({
                     {firstNonPlaceholder(payment.display_name, payment.description)}
                   </div>
                 )}
-                <div className="text-[10px] text-muted-foreground/60">
+                <div className="text-[10px] text-slate-500 dark:text-muted-foreground/60">
                   {formatRelativeTime(payment.timestamp)}
                 </div>
               </div>
@@ -199,7 +199,7 @@ export default function MobileConversationMessageList({
             return (
               <div key={item.id} className="flex items-center justify-center my-3">
                 <div className="flex-1 border-t border-border/20"></div>
-                <div className="px-3 text-[10px] font-medium text-muted-foreground/50">
+                <div className="px-3 text-[10px] font-medium text-slate-500 dark:text-muted-foreground/50">
                   {event.message}
                 </div>
                 <div className="flex-1 border-t border-border/20"></div>
@@ -221,7 +221,7 @@ export default function MobileConversationMessageList({
                 <span className="text-[10px] font-medium text-foreground/70">
                   {event.message}
                 </span>
-                <span className="text-[9px] text-muted-foreground/50">
+                <span className="text-[9px] text-slate-500 dark:text-muted-foreground/50">
                   {formatRelativeTime(event.timestamp)}
                 </span>
               </div>
@@ -379,31 +379,31 @@ export default function MobileConversationMessageList({
                   <>
                     {msg.status === 'delivered' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/50">Delivered</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-slate-500 dark:text-muted-foreground/50">Delivered</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/30">•</span>
                       </>
                     )}
                     {msg.status === 'sent' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/50">Sent</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-slate-500 dark:text-muted-foreground/50">Sent</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/30">•</span>
                       </>
                     )}
                     {msg.status === 'failed' && (
                       <>
-                        <span className="text-[10px] text-red-500/60">Failed</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-red-600 dark:text-red-500/60">Failed</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/30">•</span>
                       </>
                     )}
                     {msg.status === 'sending' && (
                       <>
-                        <span className="text-[10px] text-blue-500/60">Sending</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-blue-600 dark:text-blue-500/60">Sending</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/30">•</span>
                       </>
                     )}
                   </>
                 )}
-                <span className="text-[10px] text-muted-foreground/30" title={new Date(msg.created_at).toLocaleString()}>
+                <span className="text-[10px] text-slate-500 dark:text-muted-foreground/30" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>
@@ -411,7 +411,7 @@ export default function MobileConversationMessageList({
               {/* Error State */}
               {(hasError || (isOptimistic && msg.status === 'failed')) && (
                 <div className="mt-1 flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground/70">
+                  <span className="text-slate-600 dark:text-muted-foreground/70">
                     Couldn't send.
                   </span>
                   {(canRetryMessage ? canRetryMessage(msg) : true) && (

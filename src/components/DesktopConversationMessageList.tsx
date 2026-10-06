@@ -184,7 +184,7 @@ export default function DesktopConversationMessageList({
                     {firstNonPlaceholder(payment.description)}
                   </div>
                 )}
-                <div className="text-[10px] text-muted-foreground/60">
+                <div className="text-[10px] text-slate-500 dark:text-muted-foreground/60">
                   {formatRelativeTime(payment.timestamp)}
                 </div>
               </div>
@@ -199,7 +199,7 @@ export default function DesktopConversationMessageList({
             return (
               <div key={item.id} className="flex items-center justify-center my-5">
                 <div className="flex-1 border-t border-border/20"></div>
-                <div className="px-4 text-xs font-medium text-muted-foreground/50">
+                <div className="px-4 text-xs font-medium text-slate-500 dark:text-muted-foreground/50">
                   {event.message}
                 </div>
                 <div className="flex-1 border-t border-border/20"></div>
@@ -221,7 +221,7 @@ export default function DesktopConversationMessageList({
                 <span className="text-xs font-medium text-foreground/70">
                   {event.message}
                 </span>
-                <span className="text-[10px] text-muted-foreground/50">
+                <span className="text-[10px] text-slate-500 dark:text-muted-foreground/50">
                   {formatRelativeTime(event.timestamp)}
                 </span>
               </div>
@@ -277,7 +277,7 @@ export default function DesktopConversationMessageList({
                     <span className="text-xs font-medium text-foreground/70">
                       {msg.body}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/50">
+                    <span className="text-[10px] text-slate-500 dark:text-muted-foreground/50">
                       Using your messaging app
                     </span>
                   </div>
@@ -294,7 +294,7 @@ export default function DesktopConversationMessageList({
                     // This will be handled by parent component
                   }}
                 />
-                <span className="text-[10px] text-muted-foreground/50">
+                <span className="text-[10px] text-slate-500 dark:text-muted-foreground/50">
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>
@@ -420,31 +420,31 @@ export default function DesktopConversationMessageList({
                   <>
                     {msg.status === 'delivered' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/40 font-medium">Delivered</span>
-                        <span className="text-[10px] text-muted-foreground/20">•</span>
+                        <span className="text-[10px] text-slate-500 dark:text-muted-foreground/40 font-medium">Delivered</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/20">•</span>
                       </>
                     )}
                     {msg.status === 'sent' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/40 font-medium">Sent</span>
-                        <span className="text-[10px] text-muted-foreground/20">•</span>
+                        <span className="text-[10px] text-slate-500 dark:text-muted-foreground/40 font-medium">Sent</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/20">•</span>
                       </>
                     )}
                     {msg.status === 'failed' && (
                       <>
-                        <span className="text-[10px] text-red-500/50 font-medium">Failed</span>
-                        <span className="text-[10px] text-muted-foreground/20">•</span>
+                        <span className="text-[10px] text-red-600 dark:text-red-500/50 font-medium">Failed</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/20">•</span>
                       </>
                     )}
                     {msg.status === 'sending' && (
                       <>
-                        <span className="text-[10px] text-blue-500/50 font-medium">Sending</span>
-                        <span className="text-[10px] text-muted-foreground/20">•</span>
+                        <span className="text-[10px] text-blue-600 dark:text-blue-500/50 font-medium">Sending</span>
+                        <span className="text-[10px] text-slate-400 dark:text-muted-foreground/20">•</span>
                       </>
                     )}
                   </>
                 )}
-                <span className="text-[10px] text-muted-foreground/30 font-medium" title={new Date(msg.created_at).toLocaleString()}>
+                <span className="text-[10px] text-slate-500 dark:text-muted-foreground/30 font-medium" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>
@@ -452,7 +452,7 @@ export default function DesktopConversationMessageList({
               {/* Error State */}
               {(hasError || (isOptimistic && msg.status === 'failed')) && (
                 <div className="mt-1 flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground/70">
+                  <span className="text-slate-600 dark:text-muted-foreground/70">
                     Couldn't send.
                   </span>
                   {(canRetryMessage ? canRetryMessage(msg) : true) && (
