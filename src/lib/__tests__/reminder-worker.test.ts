@@ -1,11 +1,17 @@
 import { describe, it, expect, vi } from 'vitest'
 import { processReminderNotifications } from '../reminder-worker'
 
+const PUSH_DELIVERED = { attempted: 1, successful: 1, failed: 0 }
+const stubDeps = {
+  findNotificationByIdempotencyKey: vi.fn().mockResolvedValue(null),
+  hasSuccessfulPushDelivery: vi.fn().mockResolvedValue(false),
+}
+
 describe('Reminder Worker', () => {
   describe('A. DUE REMINDER', () => {
     it('creates notification and clears schedule', async () => {
       const mockInsertNotification = vi.fn().mockResolvedValue({ id: 'notif-123' })
-      const mockSendPush = vi.fn().mockResolvedValue(undefined)
+      const mockSendPush = vi.fn().mockResolvedValue(PUSH_DELIVERED)
       const mockClearSchedule = vi.fn().mockResolvedValue(undefined)
 
       const result = await processReminderNotifications({
@@ -28,6 +34,7 @@ describe('Reminder Worker', () => {
         }),
         insertNotification: mockInsertNotification,
         sendPush: mockSendPush,
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
@@ -75,6 +82,7 @@ describe('Reminder Worker', () => {
         }),
         insertNotification: mockInsertNotification,
         sendPush: vi.fn(),
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
@@ -97,6 +105,7 @@ describe('Reminder Worker', () => {
         reReadTask: async () => null,
         insertNotification: mockInsertNotification,
         sendPush: vi.fn(),
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
@@ -108,10 +117,11 @@ describe('Reminder Worker', () => {
   })
 
   describe('D. DUPLICATE EXECUTION', () => {
-    it('treats duplicate notification as idempotent success', async () => {
+    it('treats duplicate notification as idempotent success only when delivery is proven', async () => {
       const mockInsertNotification = vi.fn().mockResolvedValue({
         error: { code: '23505' } // Unique constraint violation
       })
+      const mockSendPush = vi.fn()
       const mockClearSchedule = vi.fn()
 
       const result = await processReminderNotifications({
@@ -133,13 +143,25 @@ describe('Reminder Worker', () => {
           reminder_notify_at: '2026-09-04T18:30:00.000Z'
         }),
         insertNotification: mockInsertNotification,
-        sendPush: vi.fn(),
+        sendPush: mockSendPush,
+        findNotificationByIdempotencyKey: vi.fn().mockResolvedValue({
+          id: 'notif-123',
+          business_id: 'biz-1',
+          type: 'reminder',
+          title: 'Reminder',
+          message: 'Test Reminder',
+          action_url: '/dashboard/calendar',
+          data: { taskId: 'task-1' },
+        }),
+        hasSuccessfulPushDelivery: vi.fn().mockResolvedValue(true),
         clearSchedule: mockClearSchedule
       })
 
-      expect(result.sent).toBe(1) // Treated as success
+      expect(result.sent).toBe(1) // Previously delivered — idempotent success
       expect(result.failed).toBe(0)
 
+      // No duplicate push on rerun
+      expect(mockSendPush).not.toHaveBeenCalled()
       expect(mockClearSchedule).toHaveBeenCalledWith('task-1', '2026-09-04T18:30:00.000Z')
     })
   })
@@ -171,6 +193,7 @@ describe('Reminder Worker', () => {
         }),
         insertNotification: mockInsertNotification,
         sendPush: vi.fn(),
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
@@ -206,6 +229,7 @@ describe('Reminder Worker', () => {
         }),
         insertNotification: mockInsertNotification,
         sendPush: vi.fn(),
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
@@ -239,7 +263,8 @@ describe('Reminder Worker', () => {
           reminder_notify_at: '2026-09-04T18:30:00.000Z'
         }),
         insertNotification: async () => ({ id: 'notif-123' }),
-        sendPush: vi.fn(),
+        sendPush: vi.fn().mockResolvedValue(PUSH_DELIVERED),
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
@@ -270,6 +295,7 @@ describe('Reminder Worker', () => {
         reReadTask: async () => null, // Task deleted
         insertNotification: mockInsertNotification,
         sendPush: vi.fn(),
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
@@ -282,7 +308,7 @@ describe('Reminder Worker', () => {
   })
 
   describe('I. PUSH FAILURE', () => {
-    it('continues processing after push failure', async () => {
+    it('failed push is never counted as sent and keeps the schedule for retry', async () => {
       const mockInsertNotification = vi.fn().mockResolvedValue({ id: 'notif-123' })
       const mockSendPush = vi.fn().mockRejectedValue(new Error('Push failed'))
       const mockClearSchedule = vi.fn()
@@ -307,14 +333,16 @@ describe('Reminder Worker', () => {
         }),
         insertNotification: mockInsertNotification,
         sendPush: mockSendPush,
+        ...stubDeps,
         clearSchedule: mockClearSchedule
       })
 
-      expect(result.sent).toBe(1) // Still counted as sent
-      expect(result.failed).toBe(0)
-
-      // Schedule still cleared even though push failed
-      expect(mockClearSchedule).toHaveBeenCalledWith('task-1', '2026-09-04T18:30:00.000Z')
+      // A thrown push error means delivery was never proven — the reminder is
+      // failed, not sent, and the schedule is kept so a later run can retry
+      // through the idempotent duplicate path.
+      expect(result.sent).toBe(0)
+      expect(result.failed).toBe(1)
+      expect(mockClearSchedule).not.toHaveBeenCalled()
     })
   })
 })
