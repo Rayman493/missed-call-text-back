@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import BrandIcon from '@/components/BrandIcon'
 import { DownloadSection } from './DownloadSection'
+import { IOS_APP_STORE_URL, GOOGLE_PLAY_STORE_URL } from '@/lib/app-store-links'
 
 export const metadata: Metadata = {
   title: 'Download ReplyFlow',
@@ -39,10 +40,9 @@ export const metadata: Metadata = {
   },
 }
 
-// Store URLs - configured here for easy future updates
-// These can be moved to environment variables when available
-const APP_STORE_URL = process.env.NEXT_PUBLIC_IOS_APP_STORE_URL || null
-const GOOGLE_PLAY_URL = process.env.NEXT_PUBLIC_ANDROID_PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=com.replyflowhq.app&hl=en_US'
+// Store URLs come from the shared config in @/lib/app-store-links
+const APP_STORE_URL = IOS_APP_STORE_URL
+const GOOGLE_PLAY_URL = GOOGLE_PLAY_STORE_URL
 
 export default function DownloadPage() {
   return (

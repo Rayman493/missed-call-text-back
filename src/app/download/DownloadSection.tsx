@@ -1,34 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { isValidAppStoreURL, isValidGooglePlayURL } from '@/lib/app-store-links'
+
+// Re-exported so existing imports from this module keep working
+export { isValidAppStoreURL, isValidGooglePlayURL }
 
 interface DownloadSectionProps {
   appStoreUrl: string | null
   googlePlayUrl: string | null
-}
-
-// Validate iOS App Store URL
-export function isValidAppStoreURL(url: string | null): boolean {
-  if (!url) return false
-  try {
-    const urlObj = new URL(url)
-    // Must be an Apple App Store domain
-    return urlObj.hostname === 'apps.apple.com' || urlObj.hostname === 'appstore.com'
-  } catch {
-    return false
-  }
-}
-
-// Validate Google Play URL
-export function isValidGooglePlayURL(url: string | null): boolean {
-  if (!url) return false
-  try {
-    const urlObj = new URL(url)
-    // Must be a Google Play domain
-    return urlObj.hostname === 'play.google.com'
-  } catch {
-    return false
-  }
 }
 
 export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionProps) {
