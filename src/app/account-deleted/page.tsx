@@ -1,10 +1,11 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import BrandIcon from '@/components/BrandIcon'
 import { isCapacitorNative } from '@/capacitor/init'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 /**
  * Public account-deletion completion page.
@@ -17,6 +18,20 @@ import { isCapacitorNative } from '@/capacitor/init'
  * owner deletion completion state.
  */
 export default function AccountDeletedPage() {
+  // Final session cleanup. The settings handler tears down auth on web, but
+  // the native path hard-navigates here before that teardown can run — the
+  // deleted user's session must not survive this page. Idempotent on web.
+  useEffect(() => {
+    const client = createBrowserClient()
+    if (client) {
+      client.auth.signOut({ scope: 'local' }).catch(() => {})
+    }
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+    } catch {}
+  }, [])
+
   return (
     <div className="min-h-screen bg-slate-900 dark:bg-slate-900 flex flex-col">
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">

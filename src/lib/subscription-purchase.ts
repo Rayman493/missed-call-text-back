@@ -21,6 +21,10 @@ export interface NativePurchaseCallbacks {
   onCanceled?: () => void
   onPending?: () => void
   onError?: (message: string) => void
+  /** Terminal ownership conflict (HTTP 409): the held Play purchase is
+      bound to a different live business — retry can never resolve it.
+      Falls back to onError when unset. */
+  onConflict?: (message: string) => void
 }
 
 /** Upper bound for the whole native purchase + server verification handoff. */
@@ -147,6 +151,10 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
       // before the Retry UI is shown. Terminal failures skip the loop.
       if (isTransientVerifyFailure(result) && await settleRecoverableEntitlement()) {
         await cb.onEntitled?.()
+        return true
+      }
+      if (result.httpStatus === 409) {
+        await (cb.onConflict ?? cb.onError)?.(result.error || 'Purchase failed. Please try again.')
         return true
       }
       cb.onError?.(result.error || 'Purchase failed. Please try again.')
