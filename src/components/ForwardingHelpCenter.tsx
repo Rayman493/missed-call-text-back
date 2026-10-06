@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Phone, Copy, ChevronDown, ChevronUp, Check } from 'lucide-react'
+import { Phone, Copy, ChevronDown, ChevronUp, Check, AlertTriangle } from 'lucide-react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatForDisplay, generateForwardingCode } from '@/utils/phone-formatting'
 
@@ -358,15 +358,24 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
       <section className="space-y-2.5 sm:space-y-3 pt-6 sm:pt-8 border-t border-border/30">
         <h3 className="text-sm font-semibold text-foreground">Need help?</h3>
 
-        {/* Carrier voicemail note — informational only, not a required step */}
+        {/* Carrier voicemail warning — carrier voicemail can intercept missed
+            calls before ReplyFlow; surfaced as a card so it can't be missed */}
         {selectedCarrier && (
-          <p className="text-xs text-muted-foreground/70">
-            <span className="font-medium text-foreground/80">Already use voicemail?</span>{' '}
-            In some cases, your carrier&apos;s existing voicemail may answer before
-            ReplyFlow does. If missed calls are still going to voicemail after call
-            forwarding is set up, you may need to disable or adjust your carrier
-            voicemail settings.
-          </p>
+          <div className="flex gap-2.5 sm:gap-3 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-900/20 p-3 sm:p-3.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="space-y-1 min-w-0">
+              <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                Using carrier voicemail?
+              </p>
+              <p className="text-xs leading-relaxed text-amber-800/90 dark:text-amber-100/80">
+                ReplyFlow needs to receive your missed calls before your carrier
+                voicemail answers. If calls still go to voicemail after forwarding
+                is enabled, you may need to disable or adjust your carrier&apos;s
+                voicemail settings. ReplyFlow cannot change carrier voicemail
+                settings for you.
+              </p>
+            </div>
+          </div>
         )}
 
         <div className="flex flex-wrap gap-2">
