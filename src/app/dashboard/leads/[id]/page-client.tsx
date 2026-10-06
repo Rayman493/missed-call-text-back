@@ -27,7 +27,7 @@ import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime, capitalizeFirstAlpha } from '@/lib/utils'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -5516,7 +5516,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                       <div className="flex items-center gap-3 mb-1">
                         <p className="text-sm text-muted-foreground leading-tight truncate">
-                          {getLeadRequestTitle(leadData || lead) || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
+                          {(() => {
+                            // Same canonical source as Customer Context "Reason for Calling" —
+                            // the latest completed AI intake wins over any stale stored title.
+                            const headerReason = getCurrentCustomerContext(leadData || lead).reasonForCalling
+                            return headerReason ? capitalizeFirstAlpha(headerReason) : 'No request'
+                          })()}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
