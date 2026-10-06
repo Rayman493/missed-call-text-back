@@ -5892,6 +5892,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       {deletePasswordError}
                     </p>
                   )}
+                  <div className="mt-2 text-right">
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline focus-visible:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
           </Modal>
 
