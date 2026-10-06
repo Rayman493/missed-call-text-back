@@ -12,6 +12,7 @@ import HomepageAuthRedirect from '@/components/HomepageAuthRedirect'
 import HomepageCTA from '@/components/HomepageCTA'
 import ScrollAnimation from '@/components/ScrollAnimation'
 import NativeLandingWrapper from '@/components/NativeLandingWrapper'
+import { GOOGLE_PLAY_STORE_URL, isValidGooglePlayURL } from '@/lib/app-store-links'
 
 // Structured Data for Google Search
 function StructuredData() {
@@ -849,9 +850,21 @@ export default async function Home() {
                   <p className="text-sm text-slate-600 dark:text-muted-foreground mb-4">
                     For Android devices
                   </p>
-                  <span className="inline-flex items-center justify-center px-4 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-medium rounded-full">
-                    Coming Soon
-                  </span>
+                  {isValidGooglePlayURL(GOOGLE_PLAY_STORE_URL) ? (
+                    <a
+                      href={GOOGLE_PLAY_STORE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-md shadow-blue-600/25 hover:shadow-lg hover:shadow-blue-600/30"
+                      aria-label="Download ReplyFlowHQ on Google Play"
+                    >
+                      Get it on Google Play
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center justify-center px-4 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-medium rounded-full">
+                      Coming Soon
+                    </span>
+                  )}
                 </div>
               </div>
 
