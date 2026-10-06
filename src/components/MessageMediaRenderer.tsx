@@ -129,6 +129,23 @@ function getMediaUrl(originalUrl: string): string | null {
   return `/api/twilio/media?url=${encodeURIComponent(originalUrl)}`
 }
 
+// Stable per-item identity: for our signed /api/mms-media/serve URLs the
+// durable identity is the `path` query param — the JWT token rotates whenever
+// /api/message-media regenerates an expiring URL, and keying resolution on
+// the full signed URL re-resolved every attachment on every refresh (new
+// blob URL → src swap → visible flash/reload). Non-MMS URLs have no rotating
+// component, so the raw URL is already stable.
+function getMediaIdentity(mediaItem: MessageMedia): string {
+  const url = mediaItem.media_url || ''
+  if (url.includes('/api/mms-media/serve')) {
+    try {
+      const path = new URL(url, 'https://placeholder.local').searchParams.get('path')
+      if (path) return `mms:${path}`
+    } catch { /* malformed URL — use raw */ }
+  }
+  return url
+}
+
 // Helper function to fetch authenticated media
 async function fetchAuthenticatedMedia(
   mediaUrl: string,
@@ -272,6 +289,11 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   // Track in-flight fetches to prevent duplicates
   const fetchingRef = useRef<Set<string>>(new Set())
 
+  // Media identity each authenticatedUrls entry was resolved from — lets the
+  // resolve effect skip items whose underlying attachment hasn't changed even
+  // when the fingerprint re-runs for a sibling item.
+  const resolvedIdentityRef = useRef<Record<string, string>>({})
+
   // Maximum retries before showing terminal failure
   const MAX_RETRIES = 2
 
@@ -293,7 +315,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   // content will NOT trigger a re-fetch.
   const mediaFingerprint = useMemo(() => {
     return (media || [])
-      .map(m => `${m.id}:${m.media_url}:${m.isLocalPreview ? '1' : '0'}`)
+      .map(m => `${m.id}:${getMediaIdentity(m)}:${m.isLocalPreview ? '1' : '0'}`)
       .join('|')
   }, [media])
 
@@ -301,35 +323,51 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   useEffect(() => {
     const fetchUrls = async () => {
       const urlMap: Record<string, string> = {}
-      const resolvingIds: string[] = []
+      const needsResolution: string[] = []
 
       for (const mediaItem of media || []) {
+        const identity = getMediaIdentity(mediaItem)
+
         // Use local preview URLs directly (no auth needed)
         if (mediaItem.isLocalPreview) {
           urlMap[mediaItem.id] = mediaItem.media_url
+          resolvedIdentityRef.current[mediaItem.id] = identity
           continue
         }
 
-        // Only fetch authenticated URLs for non-Supabase URLs
-        if (!mediaItem.media_url.includes('supabase.co') && !mediaItem.media_url.includes('/storage/v1')) {
-          resolvingIds.push(mediaItem.id)
-          const blobUrl = await fetchAuthenticatedMedia(
-            mediaItem.media_url,
-            mediaItem.id,
-            blobUrlsRef,
-            fetchingRef
-          )
-          if (blobUrl) {
-            urlMap[mediaItem.id] = blobUrl
-          }
-          // If fetch failed, urlMap won't have an entry — item stays in resolving state for retry
-        } else {
+        const isAuthRequired = !mediaItem.media_url.includes('supabase.co') && !mediaItem.media_url.includes('/storage/v1')
+        if (!isAuthRequired) {
           // Direct URLs (Supabase) can be used immediately
           urlMap[mediaItem.id] = mediaItem.media_url
+          resolvedIdentityRef.current[mediaItem.id] = identity
+          continue
         }
+
+        // Skip items already resolved for this identity — a token rotation or
+        // an unrelated sibling change must not churn a working image.
+        if (resolvedIdentityRef.current[mediaItem.id] === identity && authenticatedUrls[mediaItem.id]) {
+          continue
+        }
+
+        needsResolution.push(mediaItem.id)
+        const blobUrl = await fetchAuthenticatedMedia(
+          mediaItem.media_url,
+          mediaItem.id,
+          blobUrlsRef,
+          fetchingRef
+        )
+        if (blobUrl) {
+          urlMap[mediaItem.id] = blobUrl
+          resolvedIdentityRef.current[mediaItem.id] = identity
+          // Fresh content gets a fresh retry budget.
+          setRetryCount(prev => ({ ...prev, [mediaItem.id]: 0 }))
+        }
+        // If fetch failed, urlMap won't have an entry — item stays in resolving state for retry
       }
 
-      setAuthenticatedUrls(prev => ({ ...prev, ...urlMap }))
+      if (Object.keys(urlMap).length > 0) {
+        setAuthenticatedUrls(prev => ({ ...prev, ...urlMap }))
+      }
       // Remove successfully resolved items from resolving set
       setResolvingMedia(prev => {
         const next = new Set(prev)
@@ -340,12 +378,14 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
       })
     }
 
-    // Mark items that need resolution before fetching
+    // Mark only items that genuinely still need resolution — previously
+    // resolved items stay out so a sibling change can't re-mark them.
     const initialResolving = new Set<string>()
     for (const mediaItem of media || []) {
       if (!mediaItem.isLocalPreview &&
           !mediaItem.media_url.includes('supabase.co') &&
-          !mediaItem.media_url.includes('/storage/v1')) {
+          !mediaItem.media_url.includes('/storage/v1') &&
+          !(resolvedIdentityRef.current[mediaItem.id] === getMediaIdentity(mediaItem) && authenticatedUrls[mediaItem.id])) {
         initialResolving.add(mediaItem.id)
       }
     }
@@ -375,6 +415,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           fetchingRef
         )
         if (blobUrl) {
+          resolvedIdentityRef.current[mediaId] = getMediaIdentity(mediaItem)
           setAuthenticatedUrls(prev => ({ ...prev, [mediaId]: blobUrl }))
           setResolvingMedia(prev => {
             const next = new Set(prev)
@@ -514,6 +555,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
     if (needsAuthResolution) {
       // Clear any stale resolved URL and re-enter the resolution queue; the
       // existing retry effect picks it up now that retryCount is reset.
+      delete resolvedIdentityRef.current[id]
       setAuthenticatedUrls(prev => {
         const next = { ...prev }
         delete next[id]
@@ -545,7 +587,11 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           // OR authenticated URL resolution exhausted its retry budget. (The
           // previous `isFailed && !mediaUrl` shape could never be true:
           // failedMedia is only set once an authenticated URL exists.)
-          const isTerminalFailed = isFailed || (isResolving && retriesExhausted)
+          // Suppressed while a resolution attempt still has retries in
+          // flight — a transient re-resolve must never flash the hard-error
+          // placeholder over an attachment that may still succeed.
+          const stillTrying = resolvingMedia.has(mediaItem.id) && !retriesExhausted
+          const isTerminalFailed = (isFailed || (isResolving && retriesExhausted)) && !stillTrying
 
           // For local previews and Supabase URLs, getMediaUrl is safe (no auth needed)
           const safeDirectUrl = mediaItem.isLocalPreview ||
