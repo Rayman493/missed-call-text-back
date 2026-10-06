@@ -5524,15 +5524,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           )
                         })()}
                       </div>
+                      {/* Header subtitle — the same canonical current request
+                          shown as "Reason for Calling" in Customer Context. */}
                       <p className="text-sm text-muted-foreground leading-tight truncate">
-                          {(() => {
-                            const headerReason = getCurrentCustomerContext(leadData || lead).reasonForCalling
-                            return headerReason ? capitalizeFirstAlpha(headerReason) : 'No request'
-                          })()}
-                        </p>
-                          </div>
-                        ) : null
-                      })()}
+                        {(() => {
+                          const headerReason = getCurrentCustomerContext(leadData || lead).reasonForCalling
+                          return headerReason ? capitalizeFirstAlpha(headerReason) : 'No request'
+                        })()}
+                      </p>
                       <div className="flex items-center gap-3">
                         <p className="text-sm text-muted-foreground/80 leading-tight">
                           {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
