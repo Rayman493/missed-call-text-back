@@ -403,6 +403,23 @@ describe('restore-before-purchase and transient verify recovery', () => {
     expect(plugin.launchPurchase).not.toHaveBeenCalled()
   })
 
+  it('held purchase + 409 with onConflict wired → onConflict (not onError), no launch', async () => {
+    plugin.queryPurchases.mockResolvedValue(heldPurchased())
+    const fetchMock = fetch as any
+    fetchMock.mockResolvedValue(errBody(409, 'This Google Play purchase already activates a different business'))
+
+    const onConflict = vi.fn()
+    const cb = { ...callbacks(), onConflict }
+    expect(await maybeStartGooglePlaySubscription({ userId: 'u', ...cb })).toBe(true)
+    // Conflict is terminal and distinct: the caller must not present it as
+    // a retryable failure, so onConflict fires instead of onError.
+    expect(onConflict).toHaveBeenCalledOnce()
+    expect(onConflict.mock.calls[0][0]).toContain('different business')
+    expect(cb.onError).not.toHaveBeenCalled()
+    expect(cb.onEntitled).not.toHaveBeenCalled()
+    expect(plugin.launchPurchase).not.toHaveBeenCalled()
+  })
+
   it('held purchase + verified but not entitled (expired/canceled) → normal launch proceeds', async () => {
     plugin.queryPurchases.mockResolvedValue(heldPurchased())
     plugin.launchPurchase.mockResolvedValue(purchasedSheet)

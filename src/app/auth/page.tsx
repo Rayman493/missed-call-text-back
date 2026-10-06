@@ -102,6 +102,9 @@ function AuthContent() {
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
   const isCreatingCheckoutRef = React.useRef(false)
   const errorSummaryRef = React.useRef<HTMLDivElement>(null)
+  // Terminal Google Play ownership conflict: the held purchase belongs to
+  // a different live business, so the just-created account was rolled back.
+  const [purchaseConflict, setPurchaseConflict] = useState(false)
 
   // Track if account was created in this session to prevent re-submission
   const accountCreatedRef = React.useRef(false)
@@ -140,12 +143,45 @@ function AuthContent() {
   // A failed submit can leave the user scrolled far below the summary (mobile
   // especially). Bring whichever alert surfaced into view and move focus to it.
   useEffect(() => {
-    if (!error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation) return
+    if (!error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation && !purchaseConflict) return
     const el = errorSummaryRef.current
     if (!el) return
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     el.focus({ preventScroll: true })
-  }, [error, errorDisplay, existingAccount, checkoutFailedAfterAccountCreation])
+  }, [error, errorDisplay, existingAccount, checkoutFailedAfterAccountCreation, purchaseConflict])
+
+  // Google Play ownership conflict during signup: complete-signup already
+  // created the account+business before the held purchase was verified, so
+  // roll it back — otherwise a dead unprovisioned business persists. The
+  // session is dropped by clearing its storage keys directly: an explicit
+  // signOut() would emit SIGNED_OUT and AuthContext would navigate to
+  // /auth/signin, unmounting the conflict message before it can be read.
+  const handlePurchaseConflict = async () => {
+    try {
+      await fetch('/api/auth/abandon-signup', { method: 'POST' })
+    } catch (e) {
+      console.warn('[Auth] Signup rollback failed:', e)
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(localStorage)
+          .filter((k) => /^sb-.*-auth-token/.test(k))
+          .forEach((k) => localStorage.removeItem(k))
+      } catch {}
+    }
+    accountCreatedRef.current = false
+    setCheckoutFailedAfterAccountCreation(false)
+    setError('')
+    setErrorDisplay(null)
+    setExistingAccount(false)
+    setLoading(false)
+    setIsSubmitting(false)
+    isSubmittingRef.current = false
+    setIsRetryingCheckout(false)
+    setIsCreatingCheckout(false)
+    isCreatingCheckoutRef.current = false
+    setPurchaseConflict(true)
+  }
 
   // Password requirements validation
   const [passwordRequirements, setPasswordRequirements] = useState({
@@ -443,6 +479,7 @@ function AuthContent() {
               setIsSubmitting(false)
               isSubmittingRef.current = false
             },
+            onConflict: handlePurchaseConflict,
           })
           if (handledOnAndroid) return
         }
@@ -685,6 +722,7 @@ function AuthContent() {
             setError(msg)
             setCheckoutFailedAfterAccountCreation(true)
           },
+          onConflict: handlePurchaseConflict,
         })
         if (handledOnAndroid) return
       }
@@ -841,6 +879,7 @@ function AuthContent() {
           setIsSubmitting(false)
           isSubmittingRef.current = false
         },
+        onConflict: handlePurchaseConflict,
       })
       if (handledOnAndroid) return
     }
@@ -1004,10 +1043,40 @@ function AuthContent() {
             </div>
           )}
 
+          {purchaseConflict && (
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4 focus:outline-none"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-200 mb-0.5">
+                    Google Play subscription already linked
+                  </p>
+                  <p className="text-xs text-red-300/80 mb-2">
+                    This Google Play subscription is already linked to another ReplyFlowHQ account. Sign in to that account to continue.
+                  </p>
+                  <button
+                    onClick={() => router.push('/auth?mode=signin')}
+                    className="text-xs bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Step-validation and generic signup errors surface here — the
               string was previously only rendered inside the checkout-failure
               card, which left most failures invisible. */}
-          {error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation && (
+          {error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation && !purchaseConflict && (
             <div
               ref={errorSummaryRef}
               tabIndex={-1}

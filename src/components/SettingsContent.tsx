@@ -2476,6 +2476,18 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       // AuthContext/BusinessGuard and unmounts this protected page; doing it
       // before navigation can cancel the replace and strand the user on a
       // blank /dashboard/settings. /account-deleted sits outside every guard.
+      //
+      // Native WebView: an in-app router transition can still be pre-empted
+      // by the SIGNED_OUT redirect below (both transitions race in the same
+      // document), which was observed leaving a blank screen until Back was
+      // pressed. A hard document navigation can't be cancelled by React
+      // transitions, drops the authenticated history entry so Back can't
+      // reopen the deleted session, and /account-deleted clears the local
+      // session itself on mount.
+      if (isCapacitorNative()) {
+        window.location.replace('/account-deleted')
+        return
+      }
       router.replace('/account-deleted')
 
       // Now tear down auth + client state. SIGNED_OUT while on a public route
