@@ -28,7 +28,7 @@ import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime, capitalizeFirstAlpha } from '@/lib/utils'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -5524,15 +5524,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           )
                         })()}
                       </div>
-                      {/* Short canonical request title only — the full Reason
-                          for Calling lives in Customer Context, not the header. */}
-                      {(() => {
-                        const requestTitle = getLeadRequestTitle(leadData || lead)
-                        return requestTitle ? (
-                          <div className="flex items-center gap-3 mb-1">
-                            <p className="text-sm text-muted-foreground leading-tight truncate">
-                              {requestTitle}
-                            </p>
+                      <p className="text-sm text-muted-foreground leading-tight truncate">
+                          {(() => {
+                            const headerReason = getCurrentCustomerContext(leadData || lead).reasonForCalling
+                            return headerReason ? capitalizeFirstAlpha(headerReason) : 'No request'
+                          })()}
+                        </p>
                           </div>
                         ) : null
                       })()}
