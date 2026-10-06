@@ -213,6 +213,38 @@ export async function purchaseSubscription(
     offerTokenHash: await tokenFingerprint(offer.offerToken),
   })
 
+  // Restore-before-purchase: when Play already holds this subscription (a
+  // prior ReplyFlow account, a deleted account, or a restore on a new
+  // device), launching BillingFlow makes Google reject the flow — the held
+  // sub was created under different obfuscated identifiers ("account
+  // identifiers don't match the previous subscription", code 5). Verify the
+  // held token instead: bare verification with NO obfuscatedExternalAccountId
+  // so the server's token-ownership rules decide — same business restores
+  // idempotently, a deleted/unclaimed token safely rebinds, a token owned by
+  // a different live business returns 409 and must never be rebound.
+  const { purchases: heldBefore } = await GooglePlayBilling.queryPurchases()
+  const held = heldBefore.find(p => p.purchaseState === 1 && p.products?.includes(offer.productId))
+  if (held?.purchaseToken) {
+    const verification = await verifyPurchaseToken(held.purchaseToken, offer.productId, undefined, 'pre-launch-restore')
+    if (verification.ok && verification.entitled) {
+      return { ok: true, entitled: true, status: verification.status }
+    }
+    // Only a 400 (token unrecognized — stale Play cache) may proceed to a
+    // normal launch. A verified-but-not-entitled result (expired/canceled)
+    // also falls through. Every other failure — 409 ownership conflict, 401,
+    // transient 404/5xx/transport — must not launch while ownership or
+    // entitlement is uncertain.
+    if (!verification.ok && verification.httpStatus !== 400) {
+      return {
+        ok: false,
+        error: verification.error,
+        httpStatus: verification.httpStatus,
+        unauthorized: verification.unauthorized,
+        transportFailed: verification.transportFailed,
+      }
+    }
+  }
+
   const purchase = await GooglePlayBilling.launchPurchase({
     productId: offer.productId,
     offerToken: offer.offerToken,
@@ -241,9 +273,12 @@ export async function purchaseSubscription(
       ? retryPendingVerification(settledToken, offer.productId)
       : verification
   }
-  // ITEM_ALREADY_OWNED (7): the Google account already holds this subscription
-  // — re-verify the existing purchase instead of failing (restore path).
-  if (purchase.status === 'error' && purchase.code === 7) {
+  // ITEM_ALREADY_OWNED (7) or DEVELOPER_ERROR (5 — launched while a held sub
+  // exists under different account identifiers, e.g. the race where the held
+  // purchase only became visible after launchBillingFlow started): the Google
+  // account already holds this subscription — re-verify the existing purchase
+  // instead of failing (restore path).
+  if (purchase.status === 'error' && (purchase.code === 7 || purchase.code === 5)) {
     const { purchases } = await GooglePlayBilling.queryPurchases()
     const held = purchases.find(p => p.purchaseState === 1 && p.products?.includes(offer.productId))
     diag('owned-recovery-held', {
