@@ -250,18 +250,18 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
     const showDialButton = !['ringcentral', 'grasshopper', 'google_voice', 'other'].includes(selectedCarrier)
 
     return (
-      <section className="space-y-2 sm:space-y-2.5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary text-xs font-semibold">
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold">
             3
           </div>
           <h3 className="text-sm font-semibold text-foreground">Dial this code from your business phone</h3>
         </div>
-        <div className="pl-8.5">
-          <div className="p-4 sm:p-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/60 dark:border-blue-800/50 rounded-xl space-y-3.5">
+        <div className="pl-7">
+          <div className="p-3.5 sm:p-4 bg-muted/40 dark:bg-slate-800/40 border border-border/50 rounded-xl space-y-3">
             {/* Hero code — the exact thing to dial */}
-            <div className="py-2 text-center">
-              <code className="text-2xl sm:text-3xl font-bold font-mono tracking-wide text-foreground tabular-nums break-all leading-snug">
+            <div className="py-1.5 text-center">
+              <code className="text-xl sm:text-2xl font-bold font-mono tracking-wide text-foreground tabular-nums break-all leading-snug">
                 {dialCode}
               </code>
             </div>
@@ -297,26 +297,26 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
   }
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-5 sm:space-y-6">
       {/* Mental model — what forwarding does, at a glance */}
-      <p className="text-center text-xs sm:text-sm text-muted-foreground/80 pb-1">
-        Missed call <span className="text-primary/80 mx-0.5">→</span> Forwarded to ReplyFlow <span className="text-primary/80 mx-0.5">→</span> ReplyFlow answers
+      <p className="text-center text-[11px] sm:text-xs text-muted-foreground/70">
+        Missed call <span className="text-primary/70 mx-0.5">→</span> Forwarded to ReplyFlow <span className="text-primary/70 mx-0.5">→</span> ReplyFlow answers
       </p>
 
       {/* 1. ReplyFlow number */}
-      <section className="space-y-2 sm:space-y-2.5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary text-xs font-semibold">
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold">
             1
           </div>
           <h3 className="text-sm font-semibold text-foreground">Your ReplyFlow number</h3>
         </div>
-        <p className="text-xs text-muted-foreground/80 pl-8.5">
+        <p className="text-xs text-muted-foreground/80 pl-7">
           This is where your missed calls will go.
         </p>
-        <div className="pl-8.5">
-          <div className="p-4 bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]">
-            <code className="text-sm sm:text-base sm:text-lg font-mono font-semibold text-foreground tracking-wide tabular-nums">
+        <div className="pl-7">
+          <div className="inline-block px-3.5 py-2.5 bg-muted/40 dark:bg-slate-800/60 border border-border/50 rounded-lg">
+            <code className="text-base sm:text-lg font-mono font-semibold text-foreground tracking-wide tabular-nums">
               {formattedTwilioNumber}
             </code>
           </div>
@@ -324,17 +324,17 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
       </section>
 
       {/* 2. Select carrier */}
-      <section className="space-y-2 sm:space-y-2.5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary text-xs font-semibold">
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold">
             2
           </div>
           <h3 className="text-sm font-semibold text-foreground">Choose your carrier</h3>
         </div>
-        <p className="text-xs text-muted-foreground/80 pl-8.5">
+        <p className="text-xs text-muted-foreground/80 pl-7">
           We&apos;ll show the correct forwarding code for your phone provider.
         </p>
-        <div className="pl-8.5">
+        <div className="pl-7">
           <select
             id="carrier"
             value={selectedCarrier}
@@ -355,7 +355,7 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
       {selectedCarrier && getCarrierInstructions()}
 
       {/* Secondary help — demoted below the primary setup path */}
-      <section className="space-y-2.5 sm:space-y-3 pt-6 sm:pt-8 border-t border-border/30">
+      <section className="space-y-2.5 sm:space-y-3 pt-2">
         <h3 className="text-sm font-semibold text-foreground">Need help?</h3>
 
         {/* Carrier voicemail warning — carrier voicemail can intercept missed
