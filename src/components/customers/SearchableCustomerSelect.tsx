@@ -332,7 +332,7 @@ export default function SearchableCustomerSelect({
             <button
               type="button"
               onClick={onAddCustomerClick}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex-shrink-0"
+              className="text-[11px] text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-2 font-medium flex-shrink-0 px-2 py-1.5 -my-1.5 -mr-1.5 rounded-md transition-colors"
             >
               Can't find them? Add customer
             </button>

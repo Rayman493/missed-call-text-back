@@ -350,7 +350,7 @@ export default function JobComposer({
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-5 pb-2">
             {!editJob && (
               <p className="text-sm text-muted-foreground">
                 Create and schedule work for this customer.
@@ -464,26 +464,28 @@ export default function JobComposer({
               </div>
 
             {/* Date + Start/End Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <DatePicker
-                value={scheduledDate}
-                onChange={setScheduledDate}
-                label="Date"
-              />
-              <TimePicker
-                value={scheduledTime}
-                onChange={setScheduledTime}
-                label="Start Time"
-              />
-              <TimePicker
-                value={scheduledEndTime}
-                onChange={setScheduledEndTime}
-                label="End Time"
-              />
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <DatePicker
+                  value={scheduledDate}
+                  onChange={setScheduledDate}
+                  label="Date"
+                />
+                <TimePicker
+                  value={scheduledTime}
+                  onChange={setScheduledTime}
+                  label="Start Time"
+                />
+                <TimePicker
+                  value={scheduledEndTime}
+                  onChange={setScheduledEndTime}
+                  label="End Time"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground/70 leading-snug">
+                Optional. Add a date and time to place this job on your schedule. End time is set only if you choose one.
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground/70">
-              Optional. Add a date and time to place this job on your schedule. End time is set only if you choose one.
-            </p>
 
             {/* Recurrence — available whenever this item is not already part
                 of a series; requires a scheduled date (series members use the

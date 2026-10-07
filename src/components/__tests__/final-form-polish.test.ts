@@ -10,12 +10,12 @@ const newAppointmentContent = readFileSync('src/components/calendar/NewAppointme
 // ---------------------------------------------------------------------------
 
 describe('Final Form Polish — New Reminder Compactness', () => {
-  it('uses space-y-4 for outer body spacing (not space-y-5)', () => {
-    expect(newTaskModalContent).toContain('className="space-y-4"')
+  it('uses space-y-5 for outer body spacing (clear section separation)', () => {
+    expect(newTaskModalContent).toContain('className="space-y-5 pb-2"')
   })
 
-  it('uses space-y-4 for form spacing (not space-y-5)', () => {
-    expect(newTaskModalContent).toContain('<form onSubmit={handleSubmit} className="space-y-4">')
+  it('uses space-y-5 for form spacing (clear section separation)', () => {
+    expect(newTaskModalContent).toContain('<form onSubmit={handleSubmit} className="space-y-5">')
   })
 
   it('Notes textarea uses rows={2} for compact default', () => {
@@ -65,8 +65,8 @@ describe('Final Form Polish — New Job Status Group', () => {
 // ---------------------------------------------------------------------------
 
 describe('Final Form Polish — New Appointment Spacing', () => {
-  it('uses space-y-4 for outer body (normalized with Reminder/Job)', () => {
-    expect(newAppointmentContent).toContain('className="space-y-4"')
+  it('uses space-y-5 for outer body (normalized with Reminder/Job)', () => {
+    expect(newAppointmentContent).toContain('className="space-y-5 pb-2"')
   })
 
   it('uses space-y-3 for inner sections (not space-y-4)', () => {
@@ -76,8 +76,10 @@ describe('Final Form Polish — New Appointment Spacing', () => {
     expect(matches!.length).toBeGreaterThanOrEqual(3)
   })
 
-  it('intro copy uses mb-4 (not mb-6)', () => {
-    expect(newAppointmentContent).toContain('mb-4">Add something to your calendar')
+  it('intro copy sits inside the shared stack (no detached margin)', () => {
+    expect(newAppointmentContent).toContain('Add an appointment to this customer\'s calendar.')
+    expect(newAppointmentContent).not.toContain('mb-4">Add an appointment')
+    expect(newAppointmentContent).not.toContain('mb-6">Add an appointment')
   })
 
   it('section headings use text-[11px] (not text-xs)', () => {
