@@ -1,34 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { isValidAppStoreURL, isValidGooglePlayURL } from '@/lib/app-store-links'
+
+// Re-exported so existing imports from this module keep working
+export { isValidAppStoreURL, isValidGooglePlayURL }
 
 interface DownloadSectionProps {
   appStoreUrl: string | null
   googlePlayUrl: string | null
-}
-
-// Validate iOS App Store URL
-export function isValidAppStoreURL(url: string | null): boolean {
-  if (!url) return false
-  try {
-    const urlObj = new URL(url)
-    // Must be an Apple App Store domain
-    return urlObj.hostname === 'apps.apple.com' || urlObj.hostname === 'appstore.com'
-  } catch {
-    return false
-  }
-}
-
-// Validate Google Play URL
-export function isValidGooglePlayURL(url: string | null): boolean {
-  if (!url) return false
-  try {
-    const urlObj = new URL(url)
-    // Must be a Google Play domain
-    return urlObj.hostname === 'play.google.com'
-  } catch {
-    return false
-  }
 }
 
 export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionProps) {
@@ -37,7 +17,7 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
   useEffect(() => {
     // Lightweight client-side device detection
     const ua = navigator.userAgent.toLowerCase()
-    
+
     if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
       setDeviceType('ios')
     } else if (ua.includes('android')) {
@@ -51,64 +31,32 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
   const validAppStoreUrl = isValidAppStoreURL(appStoreUrl) ? appStoreUrl : null
   const validGooglePlayUrl = isValidGooglePlayURL(googlePlayUrl) ? googlePlayUrl : null
 
-  // Show both options while detecting, or if device type is desktop/unknown
-  const showBoth = deviceType === null || deviceType === 'desktop'
   const emphasizeIOS = deviceType === 'ios'
   const emphasizeAndroid = deviceType === 'android'
 
   return (
-    <div className="space-y-3">
-      {/* iOS Download */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-5 h-5 text-slate-700 dark:text-slate-300" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
-                ReplyFlow for iPhone
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                {validAppStoreUrl ? 'For iPhone and iPad' : 'Coming Soon to the App Store'}
-              </p>
-            </div>
-          </div>
-          {validAppStoreUrl ? (
-            <a
-              href={validAppStoreUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow"
-              aria-label="Download ReplyFlow on the App Store"
-            >
-              Download
-            </a>
-          ) : (
-            <span className="inline-flex items-center justify-center px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium rounded-full">
-              Coming Soon
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Android Download */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-5 h-5 text-slate-700 dark:text-slate-300" viewBox="0 0 24 24" fill="currentColor">
+    <div className="space-y-4">
+      {/* Android Download — primary CTA */}
+      <div
+        className={`relative bg-white dark:bg-slate-800/70 border rounded-2xl p-5 shadow-sm transition-shadow ${
+          validGooglePlayUrl
+            ? 'border-blue-500/40 dark:border-blue-500/30 shadow-blue-600/10 dark:shadow-blue-500/10 hover:shadow-md'
+            : 'border-slate-200 dark:border-slate-700'
+        } ${emphasizeAndroid ? 'ring-1 ring-blue-500/40' : ''}`}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.206 12l2.492-2.491zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/>
               </svg>
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
+              <h3 className="font-semibold text-base text-slate-900 dark:text-white">
                 ReplyFlow for Android
               </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
-                {validGooglePlayUrl ? 'For Android devices' : 'Coming Soon to Google Play'}
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {validGooglePlayUrl ? 'Available now on Google Play' : 'Coming Soon to Google Play'}
               </p>
             </div>
           </div>
@@ -117,13 +65,53 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
               href={validGooglePlayUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors duration-200 shadow-sm hover:shadow"
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-md shadow-blue-600/25 hover:shadow-lg hover:shadow-blue-600/30 flex-shrink-0"
               aria-label="Download ReplyFlow on Google Play"
             >
               Download
             </a>
           ) : (
-            <span className="inline-flex items-center justify-center px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-medium rounded-full">
+            <span className="inline-flex items-center justify-center px-3.5 py-1.5 border border-slate-300 dark:border-slate-600/60 text-slate-500 dark:text-slate-400 text-xs font-medium rounded-full flex-shrink-0">
+              Coming Soon
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* iOS Download — coming soon */}
+      <div
+        className={`bg-white/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-5 transition-shadow ${
+          emphasizeIOS ? 'ring-1 ring-slate-400/40 dark:ring-slate-500/40' : ''
+        }`}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700/50 border border-slate-200/70 dark:border-slate-600/40 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-base text-slate-700 dark:text-slate-200">
+                ReplyFlow for iPhone
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {validAppStoreUrl ? 'For iPhone and iPad' : 'Coming soon on the App Store'}
+              </p>
+            </div>
+          </div>
+          {validAppStoreUrl ? (
+            <a
+              href={validAppStoreUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-md shadow-blue-600/25 flex-shrink-0"
+              aria-label="Download ReplyFlow on the App Store"
+            >
+              Download
+            </a>
+          ) : (
+            <span className="inline-flex items-center justify-center px-3.5 py-1.5 border border-slate-300 dark:border-slate-600/60 text-slate-500 dark:text-slate-400 text-xs font-medium rounded-full flex-shrink-0">
               Coming Soon
             </span>
           )}
@@ -131,7 +119,7 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
       </div>
 
       {!validAppStoreUrl && !validGooglePlayUrl && deviceType === 'desktop' && (
-        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-center">
+        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">
             Mobile apps coming soon. Continue using ReplyFlow on the web for full functionality.
           </p>

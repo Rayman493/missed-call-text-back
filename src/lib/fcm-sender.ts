@@ -123,7 +123,7 @@ export async function sendPushForNotification(notification: {
         title: notification.title,
         body: notification.message,
       },
-      data: payload as any,
+      data: normalizeFcmData(payload).data,
       android: {
         priority: 'high' as const,
         notification: {
@@ -180,10 +180,10 @@ export interface FcmTokenResult {
   success: boolean
   permanentFailure: boolean
   errorCode?: string
-  errorKind?: 'token' | 'config' | 'transient'
+  errorKind?: 'token' | 'config' | 'transient' | 'payload'
 }
 
-export type FcmErrorKind = 'token' | 'config' | 'transient'
+export type FcmErrorKind = 'token' | 'config' | 'transient' | 'payload'
 
 // Codes that prove the device token itself is permanently invalid.
 // Only these justify disabling the push_devices row.
@@ -202,12 +202,22 @@ const PROVIDER_CONFIG_CODES = new Set([
   'messaging/third-party-auth-error',
 ])
 
+// Payload-construction errors: deterministic developer-side bugs in the
+// message we built (e.g. a non-string `data` value). Retrying the identical
+// message cannot succeed, and the failure says nothing about the token —
+// do NOT retry and do NOT disable the device token.
+const PAYLOAD_ERROR_CODES = new Set([
+  'messaging/invalid-payload',
+])
+
 /**
  * Classify an FCM send error so retries and token invalidation are correct:
  * - 'token':     permanently invalid device token -> disable it, never retry
  * - 'config':    provider/sender/auth problem -> stop retrying this send,
  *                keep the token enabled
  * - 'transient': retryable within the bounded retry loop
+ * - 'payload':   deterministic message-construction bug -> never retried,
+ *                token preserved
  */
 export function classifyFcmSendError(
   code?: string
@@ -215,10 +225,36 @@ export function classifyFcmSendError(
   if (code && PERMANENT_TOKEN_CODES.has(code)) {
     return { kind: 'token', retryable: false, disableToken: true }
   }
+  if (code && PAYLOAD_ERROR_CODES.has(code)) {
+    return { kind: 'payload', retryable: false, disableToken: false }
+  }
   if (code && PROVIDER_CONFIG_CODES.has(code)) {
     return { kind: 'config', retryable: false, disableToken: false }
   }
   return { kind: 'transient', retryable: true, disableToken: false }
+}
+
+/**
+ * FCM `data` maps must contain ONLY string values — the Admin SDK validates
+ * the map client-side and rejects the entire message with
+ * messaging/invalid-payload when any value is not a string. Scalars are
+ * stringified; null/undefined are omitted; objects/arrays are dropped (no
+ * canonical serialization exists for them) so one malformed field can never
+ * invalidate the whole payload.
+ */
+export function normalizeFcmData(
+  input: object
+): { data: Record<string, string>; omittedFields: string[] } {
+  const data: Record<string, string> = {}
+  const omittedFields: string[] = []
+  for (const [key, value] of Object.entries(input || {})) {
+    if (value === null || value === undefined || typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+      omittedFields.push(key)
+      continue
+    }
+    data[key] = typeof value === 'string' ? value : String(value)
+  }
+  return { data, omittedFields }
 }
 
 /**
@@ -241,12 +277,26 @@ export async function sendToFcmTokens(
 
   const messaging = getMessaging()
 
+  // Canonical data-map normalization: FCM rejects the whole message when any
+  // `data` value is not a string (messaging/invalid-payload).
+  const { data: fcmData, omittedFields } = normalizeFcmData(opts.payload ?? {})
+
+  console.log('[PUSH PAYLOAD VALIDATION]', {
+    notificationId: opts.payload?.notificationId ?? null,
+    notificationType: opts.payload?.type ?? null,
+    platform: 'android',
+    dataKeys: Object.keys(fcmData),
+    invalidDataFields: omittedFields,
+    payloadShape: 'notification+data+android',
+    tokenCount: uniqueTokens.length,
+  })
+
   const fcmMessageBase = {
     notification: {
       title: opts.title,
       body: opts.body,
     },
-    data: opts.payload as any,
+    data: fcmData,
     android: {
       priority: 'high' as const,
       notification: {
@@ -264,6 +314,13 @@ export async function sendToFcmTokens(
         return { success: true, token, permanentFailure: false }
       } catch (error: any) {
         const classification = classifyFcmSendError(error?.code)
+
+        console.error('[FCM SENDER] Token send failed', {
+          tokenPrefix: token.substring(0, 12) + '…',
+          errorCode: error?.code ?? null,
+          errorMessage: error?.message ?? String(error),
+          errorKind: classification.kind,
+        })
 
         // Only true token-invalid responses disable the row; provider/config
         // errors stop retrying this send but leave the token enabled.
@@ -364,11 +421,11 @@ export async function sendTestPush(
               title,
               body,
             },
-            data: {
+            data: normalizeFcmData({
               notificationId: 'test-' + Date.now(),
               type: 'test',
               actionUrl,
-            } as any,
+            }).data,
             android: {
               priority: 'high' as const,
               notification: {

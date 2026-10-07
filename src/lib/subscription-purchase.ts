@@ -21,6 +21,10 @@ export interface NativePurchaseCallbacks {
   onCanceled?: () => void
   onPending?: () => void
   onError?: (message: string) => void
+  /** Terminal ownership conflict (HTTP 409): the held Play purchase is
+      bound to a different live business — retry can never resolve it.
+      Falls back to onError when unset. */
+  onConflict?: (message: string) => void
 }
 
 /** Upper bound for the whole native purchase + server verification handoff. */
@@ -30,6 +34,53 @@ const PURCHASE_TIMEOUT = Symbol('purchase-timeout')
 
 const PURCHASE_TIMEOUT_MESSAGE =
   'Purchase is taking longer than expected. If you already completed it in Google Play, it will activate automatically — tap "Continue to Free Trial" to check.'
+
+/**
+ * Last-mile entitlement grace. Google's subscriptionsv2 record can lag the
+ * local PURCHASED result (PENDING → ACTIVE flips seconds after the first
+ * verification), and the manual Retry path reconciles the same held
+ * purchase instantly — which proved entitlement routinely lands between the
+ * client's last poll and the user's Retry tap. Before reporting a
+ * recoverable non-entitled result, re-run the authoritative reconcile
+ * (Play cache → server verification → business entitlement) a bounded
+ * number of times. Never launches a second purchase; reconcile is
+ * idempotent and only re-verifies what Play already holds.
+ */
+const POST_PURCHASE_RECONCILE_ATTEMPTS = 3
+const POST_PURCHASE_RECONCILE_INTERVAL_MS = 3000
+
+async function settleRecoverableEntitlement(): Promise<boolean> {
+  for (let i = 0; i < POST_PURCHASE_RECONCILE_ATTEMPTS; i++) {
+    if (i > 0) {
+      await new Promise(r => setTimeout(r, POST_PURCHASE_RECONCILE_INTERVAL_MS))
+    }
+    try {
+      const { entitled } = await reconcilePlayPurchases()
+      if (entitled) return true
+    } catch (e) {
+      console.warn('[SubscriptionPurchase] Post-purchase reconcile failed:', e)
+    }
+  }
+  return false
+}
+
+// A failed verification is retry-worthy only when it can resolve itself once
+// the auth/settlement state settles: a 404 (Business not found from a stale
+// session during the signup→purchase handoff), a 5xx, or a transport failure
+// with no HTTP response. Deliberate rejections — 400 invalid/unrecognized
+// token, 401 unauthenticated, product mismatch — never self-resolve and must
+// surface immediately. Cancellation never reaches this classification.
+const isTransientVerifyFailure = (result: {
+  ok: boolean
+  httpStatus?: number
+  transportFailed?: boolean
+  unauthorized?: boolean
+}) =>
+  !result.ok &&
+  !result.unauthorized &&
+  (result.transportFailed === true ||
+    result.httpStatus === 404 ||
+    (typeof result.httpStatus === 'number' && result.httpStatus >= 500))
 
 /**
  * @returns true if running on native Android (purchase flow was attempted and
@@ -93,11 +144,19 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
       cb.onCanceled?.()
       return true
     }
-    if (result.pending) {
-      cb.onPending?.()
-      return true
-    }
     if (!result.ok) {
+      // A recoverable verification failure — e.g. the held-purchase verify
+      // raced the post-signup session flip and got a 404, or hit a 5xx —
+      // gets the same bounded authoritative reconcile as pending results
+      // before the Retry UI is shown. Terminal failures skip the loop.
+      if (isTransientVerifyFailure(result) && await settleRecoverableEntitlement()) {
+        await cb.onEntitled?.()
+        return true
+      }
+      if (result.httpStatus === 409) {
+        await (cb.onConflict ?? cb.onError)?.(result.error || 'Purchase failed. Please try again.')
+        return true
+      }
       cb.onError?.(result.error || 'Purchase failed. Please try again.')
       return true
     }
@@ -105,12 +164,30 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
       await cb.onEntitled?.()
       return true
     }
-    // Verified but no entitlement (e.g. pending payment state from Google).
+    // Recoverable non-entitled result (pending, or a verified-but-not-yet-
+    // active snapshot such as UNSPECIFIED): the entitlement may settle
+    // seconds after the last poll. Run the same reconcile the Retry button
+    // performs before showing Retry — if the server now reports the
+    // entitlement, continue automatically instead of dead-ending.
+    if (await settleRecoverableEntitlement()) {
+      await cb.onEntitled?.()
+      return true
+    }
     cb.onPending?.()
     return true
   } catch (error: any) {
     console.error('[SubscriptionPurchase] Native purchase failed:', error)
-    cb.onError?.(error?.message || 'Could not start Google Play purchase.')
+    const message = error?.message || 'Could not start Google Play purchase.'
+    // A BillingClient "already connecting" rejection is internal lifecycle
+    // coordination, not a user-facing failure — the purchase may still be
+    // held on the Play account. Route to the pending-recovery path (Retry
+    // Checkout reconciles) instead of surfacing the raw BillingClient
+    // message. Covers builds without the single-flight plugin fix.
+    if (/in the process of connecting|Billing connection start conflict/i.test(message)) {
+      cb.onPending?.()
+      return true
+    }
+    cb.onError?.(message)
     return true
   }
 }

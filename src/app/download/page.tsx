@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import BrandIcon from '@/components/BrandIcon'
 import { DownloadSection } from './DownloadSection'
+import { IOS_APP_STORE_URL, GOOGLE_PLAY_STORE_URL } from '@/lib/app-store-links'
 
 export const metadata: Metadata = {
   title: 'Download ReplyFlow',
@@ -39,52 +40,47 @@ export const metadata: Metadata = {
   },
 }
 
-// Store URLs - configured here for easy future updates
-// These can be moved to environment variables when available
-const APP_STORE_URL = process.env.NEXT_PUBLIC_IOS_APP_STORE_URL || null
-const GOOGLE_PLAY_URL = process.env.NEXT_PUBLIC_ANDROID_PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=com.replyflowhq.app&hl=en_US'
+// Store URLs come from the shared config in @/lib/app-store-links
+const APP_STORE_URL = IOS_APP_STORE_URL
+const GOOGLE_PLAY_URL = GOOGLE_PLAY_STORE_URL
 
 export default function DownloadPage() {
   return (
     <div className="min-h-screen page-gradient">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+      <div className="max-w-xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         {/* Logo and Brand */}
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-2">
-            <BrandIcon size={72} />
+        <div className="text-center mb-10 sm:mb-12">
+          <div className="flex justify-center mb-5">
+            <div className="relative">
+              <div className="absolute -inset-3 rounded-full bg-blue-500/10 blur-xl" aria-hidden="true" />
+              <BrandIcon size={80} />
+            </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-2">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">
             ReplyFlow
           </h1>
-          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400">
+          <p className="text-xl sm:text-2xl font-medium text-slate-700 dark:text-slate-300 mb-3">
             Run your business from one place.
           </p>
-        </div>
-
-        {/* Hero Section */}
-        <div className="text-center mb-6">
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            Calls, customers, scheduling, payments, quotes & invoices, and more — wherever you work.
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+            Calls, customers, scheduling, payments, quotes &amp; invoices — wherever you work.
           </p>
         </div>
 
         {/* Download Section - Client-side device detection */}
-        <DownloadSection 
+        <DownloadSection
           appStoreUrl={APP_STORE_URL}
           googlePlayUrl={GOOGLE_PLAY_URL}
         />
 
-        {/* Continue on Web */}
-        <div className="mt-8 text-center">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-            Available now
-          </p>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-            Continue using ReplyFlow on the web.
+        {/* Continue on Web — secondary path */}
+        <div className="mt-10 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+            Prefer the browser?
           </p>
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600/70 rounded-lg hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-100 transition-colors duration-200"
           >
             Continue on the web
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,8 +90,8 @@ export default function DownloadPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-10 pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+        <div className="mt-14 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             © {new Date().getFullYear()} ReplyFlow. All rights reserved.
           </p>
         </div>

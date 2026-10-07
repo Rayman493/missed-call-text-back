@@ -41,12 +41,16 @@ async function resolveStripeBillingManageUrl(): Promise<string | null> {
 
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
+const BUSINESS_DELETION_SELECT =
+  'id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number, is_protected_account'
+
 export interface DeletionContext {
   userId: string
   userEmail?: string | null
   deletionSource: 'self_service' | 'admin'
   adminUserId?: string // For admin-initiated deletions
   adminUserEmail?: string // For admin-initiated deletions
+  targetBusinessId?: string // For admin-initiated deletions — validated to belong to userId
   dryRun?: boolean
   skipOffboardingEmails?: boolean // For test cleanup
 }
@@ -101,10 +105,11 @@ export interface DeletionResult {
  * Used by both self-service /api/account/delete and admin /api/admin/delete-account
  */
 export async function deleteAccountLifecycle(context: DeletionContext): Promise<DeletionResult> {
-  const { userId, userEmail, deletionSource, adminUserId, adminUserEmail, dryRun = false, skipOffboardingEmails = false } = context
+  const { userId, userEmail, deletionSource, adminUserId, adminUserEmail, targetBusinessId, dryRun = false, skipOffboardingEmails = false } = context
 
   console.log('[delete-account-lifecycle] START', {
     userId,
+    targetBusinessId,
     deletionSource,
     dryRun,
     skipOffboardingEmails,
@@ -122,15 +127,27 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
     },
   }
 
-  // Step 1: Find all businesses for this user
-  console.log('[delete-account-lifecycle] Step 1: find businesses')
-  const { data: businesses, error: businessesError } = await supabaseAdmin
+  // Step 1: Find all businesses for this user. Discovery uses BOTH ownership
+  // paths — direct ownership (businesses.user_id) and owner memberships
+  // (business_memberships.user_id, role='owner') — deduplicated by business
+  // id. Every discovery error fails closed: a discovery miss must never be
+  // treated as "zero businesses" and skip ahead to auth-user deletion.
+  console.log('[delete-account-lifecycle] Step 1: find businesses', {
+    userId,
+    targetBusinessId,
+    lookupMethods: ['businesses.user_id', 'business_memberships.owner'],
+  })
+
+  const { data: ownedBusinesses, error: businessesError } = await supabaseAdmin
     .from('businesses')
-    .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number, is_protected_account')
+    .select(BUSINESS_DELETION_SELECT)
     .eq('user_id', userId)
 
   if (businessesError) {
-    console.error('[delete-account-lifecycle] Step 1 failed:', businessesError)
+    console.error('[delete-account-lifecycle] Step 1 failed:', {
+      code: (businessesError as any)?.code,
+      message: businessesError.message,
+    })
     return {
       ok: false,
       step: 'fetch_businesses',
@@ -140,16 +157,146 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
     }
   }
 
-  const businessIds = businesses?.map((b: any) => b.id) || []
+  const { data: memberships, error: membershipsError } = await supabaseAdmin
+    .from('business_memberships')
+    .select('business_id, role')
+    .eq('user_id', userId)
+
+  if (membershipsError) {
+    console.error('[delete-account-lifecycle] Step 1 owner-membership lookup failed:', {
+      code: (membershipsError as any)?.code,
+      message: membershipsError.message,
+    })
+    return {
+      ok: false,
+      step: 'fetch_businesses',
+      error: 'Failed to look up account ownership. Account was not deleted.',
+      details: membershipsError.message,
+      dryRun,
+    }
+  }
+
+  const ownerMembershipBusinessIds = (memberships || [])
+    .filter((m: any) => m.role === 'owner' && m.business_id)
+    .map((m: any) => m.business_id)
+
+  const seenBusinessIds = new Set<string>()
+  const businesses: any[] = []
+  for (const b of ownedBusinesses || []) {
+    if (b?.id && !seenBusinessIds.has(b.id)) {
+      seenBusinessIds.add(b.id)
+      businesses.push(b)
+    }
+  }
+
+  const membershipOnlyIds = ownerMembershipBusinessIds.filter((id) => !seenBusinessIds.has(id))
+  if (membershipOnlyIds.length > 0) {
+    const { data: memberBusinessRows, error: memberBusinessError } = await supabaseAdmin
+      .from('businesses')
+      .select(BUSINESS_DELETION_SELECT)
+      .in('id', membershipOnlyIds)
+
+    if (memberBusinessError) {
+      console.error('[delete-account-lifecycle] Step 1 membership-business fetch failed:', {
+        code: (memberBusinessError as any)?.code,
+        message: memberBusinessError.message,
+      })
+      return {
+        ok: false,
+        step: 'fetch_businesses',
+        error: 'Failed to look up account businesses. Account was not deleted.',
+        details: memberBusinessError.message,
+        dryRun,
+      }
+    }
+
+    for (const b of memberBusinessRows || []) {
+      if (b?.id && !seenBusinessIds.has(b.id)) {
+        seenBusinessIds.add(b.id)
+        businesses.push(b)
+      }
+    }
+  }
+
+  // Admin-supplied targetBusinessId must resolve to a real business that
+  // belongs to this user and must be included in lifecycle processing.
+  if (targetBusinessId && !seenBusinessIds.has(targetBusinessId)) {
+    const { data: targetRows, error: targetLookupError } = await supabaseAdmin
+      .from('businesses')
+      .select('id, user_id')
+      .eq('id', targetBusinessId)
+
+    if (targetLookupError) {
+      console.error('[delete-account-lifecycle] Step 1 target-business lookup failed:', {
+        code: (targetLookupError as any)?.code,
+        message: targetLookupError.message,
+      })
+      return {
+        ok: false,
+        step: 'validate_target_business',
+        error: 'Failed to validate target business. Account was not deleted.',
+        details: targetLookupError.message,
+        dryRun,
+      }
+    }
+
+    const targetRow = targetRows?.[0]
+    const belongsToUser =
+      !!targetRow &&
+      (targetRow.user_id === userId || ownerMembershipBusinessIds.includes(targetBusinessId))
+
+    if (!belongsToUser) {
+      console.error('[delete-account-lifecycle] Step 1 target business not owned by user:', {
+        userId,
+        targetBusinessId,
+        found: !!targetRow,
+      })
+      return {
+        ok: false,
+        step: 'validate_target_business',
+        error: 'Target business does not belong to the target user. Account was not deleted.',
+        dryRun,
+      }
+    }
+
+    const { data: targetBusinessRows, error: targetBusinessError } = await supabaseAdmin
+      .from('businesses')
+      .select(BUSINESS_DELETION_SELECT)
+      .eq('id', targetBusinessId)
+
+    if (targetBusinessError) {
+      return {
+        ok: false,
+        step: 'fetch_businesses',
+        error: 'Failed to look up target business. Account was not deleted.',
+        details: targetBusinessError.message,
+        dryRun,
+      }
+    }
+
+    for (const b of targetBusinessRows || []) {
+      if (b?.id && !seenBusinessIds.has(b.id)) {
+        seenBusinessIds.add(b.id)
+        businesses.push(b)
+      }
+    }
+  }
+
+  const businessIds = businesses.map((b: any) => b.id)
   summary.businessId = businessIds[0]
 
   // Populate Stripe result from first business
-  if (businesses && businesses.length > 0) {
+  if (businesses.length > 0) {
     summary.stripeResult.customerId = businesses[0].stripe_customer_id || null
     summary.stripeResult.subscriptionId = businesses[0].stripe_subscription_id || null
   }
 
-  console.log('[delete-account-lifecycle] Found businesses:', businessIds.length, businessIds)
+  console.log('[delete-account-lifecycle] Found businesses:', {
+    directOwnershipCount: (ownedBusinesses || []).length,
+    ownerMembershipCount: ownerMembershipBusinessIds.length,
+    deduplicatedCount: businessIds.length,
+    businessIds,
+  })
 
   // PROTECTED ACCOUNT CHECK: Block deletion if any business is protected
   const protectedBusiness = businesses?.find((b: any) => b.is_protected_account === true)
@@ -1096,6 +1243,44 @@ export async function deleteAccountLifecycle(context: DeletionContext): Promise<
   console.log('[delete-account-lifecycle] Step 22: delete auth user', { userId })
 
   if (!dryRun) {
+    // Final safety check: never delete the auth user while a businesses row
+    // still references them. businesses.user_id has an FK to auth.users with
+    // no cascade, so attempting auth deletion now would surface a generic
+    // "Database error deleting user" and leave orphaned business state.
+    const { data: remainingBusinesses, error: remainingBusinessesError } = await supabaseAdmin
+      .from('businesses')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (remainingBusinessesError) {
+      console.error('[delete-account-lifecycle] Pre-auth-delete ownership check failed:', {
+        userId,
+        code: (remainingBusinessesError as any)?.code,
+        message: remainingBusinessesError.message,
+      })
+      return {
+        ok: false,
+        step: 'delete_auth_user',
+        error: 'Failed to verify account ownership cleanup. Account was not deleted.',
+        details: remainingBusinessesError.message,
+        dryRun,
+      }
+    }
+
+    if (remainingBusinesses && remainingBusinesses.length > 0) {
+      console.error('[delete-account-lifecycle] ABORT: businesses still owned by user; refusing auth deletion', {
+        userId,
+        remainingBusinessIds: remainingBusinesses.map((b: any) => b.id),
+      })
+      return {
+        ok: false,
+        step: 'delete_auth_user',
+        error: 'Account still owns businesses. Auth user was not deleted.',
+        details: `Businesses still referencing user: ${remainingBusinesses.map((b: any) => b.id).join(', ')}`,
+        dryRun,
+      }
+    }
+
     try {
       console.log('[delete-account-lifecycle] Starting auth user deletion', { userId })
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId)

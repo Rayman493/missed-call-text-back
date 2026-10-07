@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
       deletionSource: 'admin',
       adminUserId: user.id,
       adminUserEmail: user.email,
+      targetBusinessId: targetBusinessId || undefined,
       dryRun,
       skipOffboardingEmails: false, // Send offboarding emails even for admin deletions
     })

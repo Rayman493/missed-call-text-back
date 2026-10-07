@@ -138,6 +138,14 @@ export async function initializeCapacitor() {
       }
     });
 
+    // Cold-start reconciliation: appStateChange does not fire on initial
+    // launch, so run the same resume reconciliation once here. On Android
+    // this re-verifies Play-held purchases made while the app was closed.
+    if (platform === 'android') {
+      console.log('[ACCOUNT_CREATION_BRIDGE] cold-start triggering handleAppResume');
+      void handleAppResume();
+    }
+
     // Set up visibilitychange listener for additional lifecycle diagnostics
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {

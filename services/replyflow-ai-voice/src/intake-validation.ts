@@ -918,3 +918,25 @@ export function cleanDisplayIntakeText(text: string): string {
 
   return s.trim();
 }
+
+/**
+ * Canonical customer-name normalization for the intake write boundary.
+ *
+ * ASR regularly appends sentence-ending punctuation to bare answers — at
+ * ask_name "Jack Johnson?" was persisted verbatim (validator strips edge
+ * punctuation only for its check), leaking "Jack Johnson?" into the customer
+ * card, notifications, and SMS context.
+ *
+ * Rules (deliberately narrow — normalize, never sanitize):
+ *  - trim surrounding whitespace
+ *  - strip a trailing run of sentence punctuation [. , ; : ! ?] incl. a
+ *    trailing space before it ("Johnson ?" -> "Johnson")
+ *  - internal characters are untouched: O'Connor, Mary-Jane, St. John,
+ *    D'Angelo, "Johnson, Jr" keep their punctuation
+ *
+ * Null/undefined pass through unchanged so optional fields keep their shape.
+ */
+export function normalizeCustomerName<T extends string | null | undefined>(name: T): T {
+  if (typeof name !== 'string') return name;
+  return name.trim().replace(/[\s.,;:!?]+$/u, '').trim() as T;
+}

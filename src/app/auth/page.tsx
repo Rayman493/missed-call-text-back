@@ -94,12 +94,17 @@ function AuthContent() {
   const [existingAccount, setExistingAccount] = useState(false)
   const [debugError, setDebugError] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRetryingCheckout, setIsRetryingCheckout] = useState(false)
   const passwordRef = React.useRef<HTMLInputElement>(null)
   const emailRef = React.useRef<HTMLInputElement>(null)
   const isSubmittingRef = React.useRef(false)
   const [redirecting, setRedirecting] = useState(false)
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
   const isCreatingCheckoutRef = React.useRef(false)
+  const errorSummaryRef = React.useRef<HTMLDivElement>(null)
+  // Terminal Google Play ownership conflict: the held purchase belongs to
+  // a different live business, so the just-created account was rolled back.
+  const [purchaseConflict, setPurchaseConflict] = useState(false)
 
   // Track if account was created in this session to prevent re-submission
   const accountCreatedRef = React.useRef(false)
@@ -134,6 +139,49 @@ function AuthContent() {
       sessionStorage.removeItem('oauth_error')
     }
   }, [checkoutCancelled, accessRemoved])
+
+  // A failed submit can leave the user scrolled far below the summary (mobile
+  // especially). Bring whichever alert surfaced into view and move focus to it.
+  useEffect(() => {
+    if (!error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation && !purchaseConflict) return
+    const el = errorSummaryRef.current
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.focus({ preventScroll: true })
+  }, [error, errorDisplay, existingAccount, checkoutFailedAfterAccountCreation, purchaseConflict])
+
+  // Google Play ownership conflict during signup: complete-signup already
+  // created the account+business before the held purchase was verified, so
+  // roll it back — otherwise a dead unprovisioned business persists. The
+  // session is dropped by clearing its storage keys directly: an explicit
+  // signOut() would emit SIGNED_OUT and AuthContext would navigate to
+  // /auth/signin, unmounting the conflict message before it can be read.
+  const handlePurchaseConflict = async () => {
+    try {
+      await fetch('/api/auth/abandon-signup', { method: 'POST' })
+    } catch (e) {
+      console.warn('[Auth] Signup rollback failed:', e)
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(localStorage)
+          .filter((k) => /^sb-.*-auth-token/.test(k))
+          .forEach((k) => localStorage.removeItem(k))
+      } catch {}
+    }
+    accountCreatedRef.current = false
+    setCheckoutFailedAfterAccountCreation(false)
+    setError('')
+    setErrorDisplay(null)
+    setExistingAccount(false)
+    setLoading(false)
+    setIsSubmitting(false)
+    isSubmittingRef.current = false
+    setIsRetryingCheckout(false)
+    setIsCreatingCheckout(false)
+    isCreatingCheckoutRef.current = false
+    setPurchaseConflict(true)
+  }
 
   // Password requirements validation
   const [passwordRequirements, setPasswordRequirements] = useState({
@@ -174,6 +222,7 @@ function AuthContent() {
     setExistingAccount(false)
     setDebugError(null)
     setCheckoutFailedAfterAccountCreation(false)
+    setIsRetryingCheckout(false)
   }, [mode])
 
   // Reset scroll position when signup step changes (mobile scroll bug fix)
@@ -404,6 +453,7 @@ function AuthContent() {
       // If account was already created, skip account creation and go straight to checkout retry
       if (accountCreatedRef.current) {
         console.log('[Auth] Account already created, proceeding to checkout retry')
+        setIsRetryingCheckout(true)
 
         // Android: Google Play Billing purchase sheet (server-verified)
         // Retry path: reconcile first — the Google account may already hold
@@ -420,14 +470,16 @@ function AuthContent() {
               try { await refreshBusiness(true) } catch {}
               router.push('/dashboard?setup=1')
             },
-            onCanceled: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
-            onPending: () => { setLoading(false); setIsSubmitting(false); isSubmittingRef.current = false },
+            onCanceled: () => { setLoading(false); setIsRetryingCheckout(false); setIsSubmitting(false); isSubmittingRef.current = false; setError('Purchase canceled. Tap "Continue to Free Trial" to try again.') },
+            onPending: () => { setLoading(false); setIsRetryingCheckout(false); setIsSubmitting(false); isSubmittingRef.current = false; setError('Purchase is pending Google confirmation. Your trial will activate automatically — you can retry in a moment or sign back in later.') },
             onError: (msg) => {
               setError(msg)
               setLoading(false)
+              setIsRetryingCheckout(false)
               setIsSubmitting(false)
               isSubmittingRef.current = false
             },
+            onConflict: handlePurchaseConflict,
           })
           if (handledOnAndroid) return
         }
@@ -455,6 +507,7 @@ function AuthContent() {
             console.error('[Auth] Failed to create checkout session on retry:', checkoutData)
             setError('Failed to create checkout session. Please try again or contact support.')
             setLoading(false)
+            setIsRetryingCheckout(false)
             setIsSubmitting(false)
             isSubmittingRef.current = false
             return
@@ -471,6 +524,7 @@ function AuthContent() {
           // re-surface retry feedback so the cancel doesn't look like a no-op.
           setIsSubmitting(false)
           isSubmittingRef.current = false
+          setIsRetryingCheckout(false)
           setCheckoutFailedAfterAccountCreation(true)
           setError('Checkout was closed before completing. Tap again to retry.')
           return
@@ -478,6 +532,7 @@ function AuthContent() {
           console.error('[Auth] Error retrying checkout session:', checkoutError)
           setError('Failed to create checkout session. Please try again or contact support.')
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
           return
@@ -667,6 +722,7 @@ function AuthContent() {
             setError(msg)
             setCheckoutFailedAfterAccountCreation(true)
           },
+          onConflict: handlePurchaseConflict,
         })
         if (handledOnAndroid) return
       }
@@ -783,6 +839,7 @@ function AuthContent() {
 
     console.log('[Auth] Retrying checkout after account creation')
     setLoading(true)
+    setIsRetryingCheckout(true)
     setError('')
     setCheckoutFailedAfterAccountCreation(false)
 
@@ -800,6 +857,7 @@ function AuthContent() {
         },
         onCanceled: () => {
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
           setError('Purchase canceled. Tap "Continue to Free Trial" to try again.')
@@ -807,6 +865,7 @@ function AuthContent() {
         },
         onPending: () => {
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
           setError('Purchase is pending Google confirmation. Your trial will activate automatically — you can retry in a moment or sign back in later.')
@@ -816,9 +875,11 @@ function AuthContent() {
           setError(msg)
           setCheckoutFailedAfterAccountCreation(true)
           setLoading(false)
+          setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
         },
+        onConflict: handlePurchaseConflict,
       })
       if (handledOnAndroid) return
     }
@@ -847,6 +908,7 @@ function AuthContent() {
         setError('Failed to create checkout session. Please try again or contact support.')
         setCheckoutFailedAfterAccountCreation(true)
         setLoading(false)
+        setIsRetryingCheckout(false)
         return
       }
 
@@ -861,6 +923,7 @@ function AuthContent() {
       // and an explicit message instead of leaving a dead/silent state.
       setIsSubmitting(false)
       isSubmittingRef.current = false
+      setIsRetryingCheckout(false)
       setCheckoutFailedAfterAccountCreation(true)
       setError('Checkout was closed before completing. Tap again to retry.')
     } catch (checkoutError: any) {
@@ -868,6 +931,7 @@ function AuthContent() {
       setError('Failed to create checkout session. Please try again or contact support.')
       setCheckoutFailedAfterAccountCreation(true)
       setLoading(false)
+      setIsRetryingCheckout(false)
     }
   }
 
@@ -938,6 +1002,9 @@ function AuthContent() {
             <p className="text-xs sm:text-sm text-slate-400">
               {isCheckoutReturn ? 'Sign in to finish your trial setup' : (isSignIn ? 'Sign in to your account' : (signupStep === 1 ? 'Create your login details' : 'Tell us about your business'))}
             </p>
+            {!isSignIn && !isCheckoutReturn && signupStep === 2 && (
+              <p className="mt-1 text-xs text-slate-400">All fields are required.</p>
+            )}
           </div>
           
           {isSignIn && emailParam && !isCheckoutReturn && (
@@ -953,8 +1020,10 @@ function AuthContent() {
           )}
           
           {errorDisplay && (
-            <div 
-              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4"
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4 focus:outline-none"
               role="alert"
               aria-live="polite"
             >
@@ -974,9 +1043,61 @@ function AuthContent() {
             </div>
           )}
 
+          {purchaseConflict && (
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4 focus:outline-none"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-200 mb-0.5">
+                    Google Play subscription already linked
+                  </p>
+                  <p className="text-xs text-red-300/80 mb-2">
+                    This Google Play subscription is already linked to another ReplyFlowHQ account. Sign in to that account to continue.
+                  </p>
+                  <button
+                    onClick={() => router.push('/auth?mode=signin')}
+                    className="text-xs bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step-validation and generic signup errors surface here — the
+              string was previously only rendered inside the checkout-failure
+              card, which left most failures invisible. */}
+          {error && !errorDisplay && !existingAccount && !checkoutFailedAfterAccountCreation && !purchaseConflict && (
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4 focus:outline-none"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-sm font-medium text-red-200">{error}</p>
+              </div>
+            </div>
+          )}
+
           {checkoutFailedAfterAccountCreation && (
             <div
-              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4"
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4 focus:outline-none"
               role="alert"
               aria-live="polite"
             >
@@ -1004,8 +1125,10 @@ function AuthContent() {
           )}
 
           {existingAccount && (
-            <div 
-              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4"
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4 focus:outline-none"
               role="alert"
               aria-live="polite"
             >
@@ -1164,7 +1287,7 @@ function AuthContent() {
               <>
                 <div>
                   <label htmlFor="businessName" className="block text-sm font-medium text-slate-300 mb-2">
-                    Business Name
+                    Business Name <span className="text-red-400">*</span>
                   </label>
                   <input
                     id="businessName"
@@ -1181,7 +1304,7 @@ function AuthContent() {
 
                 <div>
                   <label htmlFor="businessPhone" className="block text-sm font-medium text-slate-300 mb-2">
-                    Business Phone Number
+                    Business Phone Number <span className="text-red-400">*</span>
                   </label>
                   <input
                     id="businessPhone"
@@ -1199,13 +1322,13 @@ function AuthContent() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Where do you provide your services?
+                  <label id="service-location-label" className="block text-sm font-medium text-slate-300 mb-2">
+                    Where do you provide your services? <span className="text-red-400">*</span>
                   </label>
                   <p className="text-xs text-slate-500 mb-3">
                     ReplyFlow uses this to tailor the questions AI Voice asks callers.
                   </p>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-2" role="radiogroup" aria-labelledby="service-location-label" aria-required="true">
                     {[
                       { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },
                       { value: 'customer_comes_to_business', title: 'Customers come to me', desc: 'Customers visit your business location.' },
@@ -1214,6 +1337,8 @@ function AuthContent() {
                       <button
                         key={opt.value}
                         type="button"
+                        role="radio"
+                        aria-checked={(serviceLocationType || '') === opt.value}
                         onClick={() => setServiceLocationType(opt.value as any)}
                         className={`text-left p-3 rounded-xl border transition w-full ${
                           (serviceLocationType || '') === opt.value
@@ -1393,7 +1518,7 @@ function AuthContent() {
 
             <button
               type="submit"
-              disabled={loading || isSubmitting || redirecting}
+              disabled={loading || isSubmitting || redirecting || isRetryingCheckout}
               className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold flex items-center justify-center gap-2"
             >
               {redirecting ? (
@@ -1402,7 +1527,7 @@ function AuthContent() {
                   <span>Redirecting to dashboard...</span>
                 </>
               ) : loading || isSubmitting ? (
-                isSignIn ? 'Signing In...' : (signupStep === 1 ? 'Continuing...' : 'Creating Account...')
+                isRetryingCheckout ? 'Opening Checkout…' : (isSignIn ? 'Signing In...' : (signupStep === 1 ? 'Continuing...' : 'Creating Account...'))
               ) : (
                 isSignIn ? 'Sign In' : (signupStep === 1 ? 'Continue' : 'Continue to Free Trial')
               )}

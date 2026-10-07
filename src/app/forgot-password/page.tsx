@@ -54,11 +54,11 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-slate-900 flex flex-col">
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
+        <div className="max-w-md w-full space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="text-center">
             {!isCapacitorNative() ? (
-              <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
+              <Link href="/" className="inline-flex items-center gap-2 justify-center mb-6 sm:mb-8">
                 <BrandIcon size={32} />
                 <span className="text-2xl font-bold text-white">
                   <span className="text-white">ReplyFlow</span>
@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
                 </span>
               </Link>
             ) : (
-              <div className="inline-flex items-center gap-2 justify-center mb-8">
+              <div className="inline-flex items-center gap-2 justify-center mb-6 sm:mb-8">
                 <BrandIcon size={32} />
                 <span className="text-2xl font-bold text-white">
                   <span className="text-white">ReplyFlow</span>
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
 
           {/* Form */}
           {!success ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {error && (
                 <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-4">
                   <p className="text-sm text-red-400">{error}</p>
@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
             </form>
           ) : (
             /* Success state */
-            <div className="text-center space-y-6">
+            <div className="text-center space-y-4 sm:space-y-6">
               <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
                 <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

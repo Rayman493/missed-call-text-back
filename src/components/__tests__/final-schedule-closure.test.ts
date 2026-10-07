@@ -30,9 +30,9 @@ const meetingNotesIdx = eventDetailsModal.indexOf('Meeting Notes - private notes
 const meetingNotesBlock = meetingNotesIdx >= 0 ? eventDetailsModal.substring(meetingNotesIdx - 50, meetingNotesIdx + 600) : ''
 
 describe('Part 1 — Modal Right-Edge / Form Grid Alignment', () => {
-  it('NewAppointmentModal uses space-y-4 (not space-y-5)', () => {
-    expect(newAppointmentModal).toContain('space-y-4')
-    expect(newAppointmentModal).not.toContain('space-y-5')
+  it('NewAppointmentModal uses space-y-5 for section separation (not space-y-4)', () => {
+    expect(newAppointmentModal).toContain('space-y-5')
+    expect(newAppointmentModal).not.toContain('space-y-6')
   })
 
   it('NewAppointmentModal two-column grid has no extra div wrappers around TimePickers', () => {

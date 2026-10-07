@@ -17,6 +17,7 @@ import {
   isMetaUtterance,
   isPlaceLikeLocationValue,
   cleanDisplayIntakeText,
+  normalizeCustomerName,
 } from './intake-validation';
 import {
   EARLY_COMPLETION_PATTERNS,
@@ -79,6 +80,11 @@ type ExtractedMatch = {
 // the value, so the service should end at the start of the value.
 const CONNECTOR_PREFIX_RE = /^(?:at\s+|@\s+|call me(?: back)?\s+|you can call me(?: back)?\s+|reach me\s+|contact me\s+|located\s+(?:at\s+)?|the address is\s+|address is\s+|my address is\s+|it'?s at\s+|located at\s+)/i;
 
+// Words that cannot grammatically end a clause. When scalar excision would
+// leave one of these dangling at the cut boundary, the scalar is embedded in
+// natural request prose and must stay in the canonical Request.
+const EMBEDDED_SCALAR_LEADIN_RE = /(?:^|\s)(?:in|on|at|by|for|to|of|from|with|about|into|onto|over|under|near|around|between|through|within|during|towards?|against|per|via|the|a|an|and|or|but|so|nor|yet|my|your|our|their|his|her|its|this|that|these|those|is|are|was|were|be|been|do|does|did|have|has|had|will|would|can|could|shall|should|may|might|must)$/i;
+
 const FILLER_PHRASES = [
   'all right', 'okay', 'ok', 'yeah', 'yes', 'thanks', 'thank you', 'sure',
 ];
@@ -104,11 +110,17 @@ function isNameOnlyTurn(transcript: string, customerName: string): boolean {
   const text = transcript.trim().toLowerCase();
   if (!name || !text.includes(name)) return false;
   let remaining = text.replace(new RegExp(escapeRegex(name), 'g'), '').trim();
-  remaining = remaining
-    .replace(/^[,.\s]*(?:my name is|my name's|name is|i am|i'm|this is|it is|it's|hi|hello|hey|yes|yeah|yep|um|uh|ok|okay|alright|all right|well|so)[,.\s]*/i, '')
-    .replace(/[,.\s]*(?:here)[,.\s]*$/i, '')
-    .replace(/^[,.\s]+/, '')
-    .replace(/[,.\s]+$/, '');
+  // Peel stacked greeting/name scaffolding one layer per pass — "Hello, uh
+  // hi. This is Kevin Brooks" leaves "uh hi. this is" after a single strip.
+  let prev: string;
+  do {
+    prev = remaining;
+    remaining = remaining
+      .replace(/^[,.\s]*(?:my name is|my name's|name is|i am|i'm|this is|it is|it's|hi|hello|hey|yes|yeah|yep|um|uh|ok|okay|alright|all right|well|so)[,.\s]*/i, '')
+      .replace(/[,.\s]*(?:here)[,.\s]*$/i, '')
+      .replace(/^[,.\s]+/, '')
+      .replace(/[,.\s]+$/, '');
+  } while (remaining !== prev);
   return remaining === '';
 }
 
@@ -282,6 +294,27 @@ export function spokenHouseNumberToDigits(phrase: string): string | null {
   return groups.map(g => String(g)).join('');
 }
 
+/**
+ * Convert a clear 5-token spoken digit sequence inside an address to digits —
+ * ASR renders ZIPs as "one five one two nine" -> "15129".
+ *
+ * Deliberately narrow: only a maximal run of exactly five single-digit tokens
+ * converts. House numbers ("one seven eight two" — 4 tokens), unit numbers
+ * ("apartment six"), and longer ambiguous dictations are left verbatim.
+ */
+const SPOKEN_SINGLE_DIGIT = '(?:zero|oh|o|one|two|three|four|five|six|seven|eight|nine|\\d)';
+const SPOKEN_DIGIT_RUN_RE = new RegExp(`\\b${SPOKEN_SINGLE_DIGIT}(?:[\\s-]+${SPOKEN_SINGLE_DIGIT}){4,}\\b`, 'gi');
+
+export function normalizeSpokenZipDigits(address: string): string {
+  if (!address) return address;
+  return address.replace(SPOKEN_DIGIT_RUN_RE, (run) => {
+    const tokens = run.toLowerCase().split(/[\s-]+/).filter(Boolean);
+    if (tokens.length !== 5) return run;
+    const digits = spokenHouseNumberToDigits(run);
+    return digits && /^\d{5}$/.test(digits) ? digits : run;
+  });
+}
+
 const ADDRESS_PATTERNS: { pattern: RegExp; type: string; combine?: boolean | 'spoken-number' }[] = [
   {
     // Numbered-street correction: "it's 937, not 931, Pine Hollow Road" /
@@ -439,6 +472,10 @@ function findAddressMatch(transcript: string): ExtractedMatch | null {
           ? `${match[1].trim()} ${match[2].trim()}`
           : match[1]
             .replace(/,\s*(?:i\s+(?:want|need|would|can)\b|i['’]?d\b|call\b|you\s+can\s+call\b).*$/i, '')
+            // ASR often drops the sentence boundary before a callback clause
+            // — "Boulevard You can call me anytime" arrives as one span. The
+            // clause marker still owns its field; the address ends before it.
+            .replace(/\s+(?:you\s+can\s+(?:call|reach|text|phone)\s+me|call\s+me\s+back\b|call\s+me\b|reach\s+me\b|contact\s+me\b|text\s+me\b|phone\s+me\b|best\s+time\s+to\s+(?:call|reach)\s+me\b)[\s\S]*$/i, '')
             .trim();
       }
       // Normalize any remaining spoken house number embedded in the candidate
@@ -543,7 +580,7 @@ const COMPLETION_PATTERNS: RegExp[] = [
   // "Friday", "tomorrow would be great", "next week is fine",
   // "sometime later this week", "later this week".
   /\b((?:(?:sometime|later)\s+)*(?:this|next)\s+(?:week|month|weekend))(?:\s+(?:is|works|would|will|'d|'ll)\s+(?:be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
-  /\b((?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:is|works?|would|will|'d|'ll|sounds?|seems?)\s+(?:be\s+|to\s+be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?)(?=\s*[.!?;,]|\s+\band\b|$)/i,
+  /\b((?:(?:next|this|coming|following|upcoming)\s+)?(?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:is|works?|would|will|'d|'ll|sounds?|seems?)\s+(?:be\s+|to\s+be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?)(?=\s*[.!?;,]|\s+\band\b|$)/i,
   /\b((?:today|tomorrow|tonight)(?:\s+(?:morning|afternoon|evening))?)(?:\s+(?:would|will|is|works|'d|'ll)\s+(?:be\s+)?(?:great|good|fine|best|ok(?:ay)?|better|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
   // Vague completion phrases: keep the full semantic phrase, e.g. "Whenever you can".
   /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
@@ -565,6 +602,14 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
       if (CLAUSE_NEGATION_RE.test(clauseContaining(transcript, match.index || 0))) {
         continue;
       }
+      // A temporal value directly negated by a bare "not" is a rejected
+      // option ("not this week"), never the caller's answer — a later
+      // corrected clause must win the field instead. Bare "not" stays out of
+      // CLAUSE_NEGATION_RE so constraint forms like "not before noon" still
+      // parse; this check only guards the match's own start position.
+      if (/\bnot\s*$/i.test(immediatePrefix)) {
+        continue;
+      }
       // A bare weekday/daypart directly preceded by "next/this/coming" belongs
       // to the longer natural phrase ("by next Tuesday") — let the natural
       // completion matcher claim the full form instead of truncating to
@@ -574,9 +619,31 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
       }
       // Early completion patterns capture only the suffix in group 1. Use the full match
       // when group 1 is a suffix so phrases like "whenever you can" are preserved.
-      const rawValue = match[2] || (match[1] && /^[\s,;]/.test(match[1]) ? match[0] : match[1]);
-      const value = (rawValue || '').trim();
-      const fullMatch = (match[0] || match[1] || '').trim();
+      // But an open suffix tail can also swallow an explanatory clause
+      // ("as soon as possible because it is flooding the basement"). The clause
+      // is real request content: claiming it in the match both buries it in the
+      // field value and lets the excision delete it from the Request. Cut the
+      // claimed span at the first explanatory-clause marker.
+      let claimedMatch = match[0];
+      const spaceTail = match[1] && /^[\s,;]/.test(match[1]) ? match[1] : null;
+      if (spaceTail) {
+        const clauseCut = spaceTail.search(/\b(?:because|due to|since|which|so that|and it'?s|and its|and the|and i|but)\b/i);
+        if (clauseCut !== -1) {
+          claimedMatch = match[0].slice(0, match[0].length - spaceTail.length + clauseCut);
+        }
+      }
+      const rawValue = match[2] || (spaceTail ? claimedMatch : match[1]);
+      // Early completion patterns keep the intent scaffold inside the claimed
+      // match ("I need someone out sometime tomorrow"). The field value is
+      // only the timing phrase — stripping it here also lets the Request keep
+      // "I need someone out" via the value-offset excision logic.
+      const value = (rawValue || '')
+        .replace(/^(?:i'?d like|i would like|i want|i need)\s+(?:someone|somebody)\s+(?:to come\s+)?(?:out|here)\s+/i, '')
+        .replace(/^(?:i'?d like|i would like|i want|i need)\s+(?:it\s+)?(?:done|completed|finished)\s+/i, '')
+        .replace(/^(?:i'?d like|i would like|i want|i need)\s+it\s+/i, '')
+        .replace(/^(?:can you|could you)\s+(?:come|get here|make it)\s+/i, '')
+        .trim();
+      const fullMatch = (claimedMatch || match[1] || '').trim();
       if (isValidCompletionTime(value)) {
         return {
           value,
@@ -611,6 +678,11 @@ function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
     const preceding = transcript.slice(Math.max(0, match.index - 80), match.index);
     const immediatePrefix = transcript.slice(Math.max(0, match.index - 30), match.index);
     if (NEGATIVE_TIMING_PREFIX.test(immediatePrefix)) {
+      continue;
+    }
+    // "not next week" — a directly negated timing phrase is a rejected
+    // option, never the caller's answer.
+    if (/\bnot\s*$/i.test(immediatePrefix)) {
       continue;
     }
     if (PAST_CONTEXT_MARKERS.test(preceding)) {
@@ -713,6 +785,15 @@ function normalizeCallbackTime(value: string): string {
     .replace(/^back\s+(?=\S)/i, '')
     .replace(/\s*[,.\s]*\binstead\s*$/i, '')
     .trim();
+  // Reduce a daypart wrapped in judgment scaffolding to the daypart itself —
+  // "Afternoon is are best for a callback" (ASR double-verb) and "mornings
+  // are best" both mean "afternoon" / "mornings".
+  const daypartJudgment = cleaned.match(
+    /^((?:early|mid|late)[-\s]*)?(morning|afternoon|evening|night)s?\s+(?:is|are|work|works?|seems?|sounds?|would|will|'d|'ll)(?:\s+(?:is|are|work|works?|be|to\s+be))*\s*(?:best|good|fine|ok(?:ay)?|better|great|perfect|easier|easiest|prefer(?:red)?|ideal)\b[\s\S]*$/i
+  );
+  if (daypartJudgment) {
+    return `${daypartJudgment[1] ? daypartJudgment[1].trim() + ' ' : ''}${daypartJudgment[2]}`;
+  }
   const lower = cleaned.toLowerCase();
   // Canonicalize "anytime/whenever ..." answers: collapse filler scaffolding
   // ("is okay", "works best") to canonical "Anytime" while preserving a real
@@ -720,12 +801,15 @@ function normalizeCallbackTime(value: string): string {
   const anytimeMatch = lower.match(/^(?:any\s?time|whenever)\b(.*)$/i);
   if (anytimeMatch) {
     let tail = cleaned.slice(cleaned.length - anytimeMatch[1].length).trim();
-    // Iteratively strip leading filler/scaffold words and separators.
+    // Iteratively strip leading filler/scaffold words and separators —
+    // including politeness tails ("you can", "you could") that mean "anytime"
+    // rather than adding a constraint: "whenever you can" → "Anytime".
     let prev: string;
     do {
       prev = tail;
       tail = tail
         .replace(/^(?:is|works|work|are|best|good|fine|ok(?:ay)?|easier|easiest|preferred|alright|all right)\b/i, '')
+        .replace(/^(?:you\s+(?:can|could|want|like|prefer)|u\s+can|that'?s?\s+fine|it'?s\s+fine|when\s+you\s+(?:can|could|want))\b/i, '')
         .replace(/^[,.\s]+/, '')
         .replace(/^but\s+/i, '')
         .trim();
@@ -755,6 +839,15 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
       if (rejectIfPrecededByCompletionIntent) {
         const preceding = transcript.slice(Math.max(0, (match.index || 0) - 40), match.index || 0);
         if (COMPLETION_INTENT_PREFIX.test(preceding)) {
+          continue;
+        }
+        // A bare temporal word trailing a completion-time qualifier is the tail
+        // of the job-timing phrase, not a callback preference: "repaired by
+        // next |Friday|" is completion time. The qualifier must itself be
+        // preceded by content so a standalone stage answer like "this
+        // afternoon" (qualifier at utterance start) still parses.
+        const qualifier = preceding.match(/\b(?:next|this|coming|following|upcoming|every|sometime|within|around|about)\s*$/i);
+        if (qualifier && preceding.slice(0, qualifier.index).trim().length > 0) {
           continue;
         }
       }
@@ -851,14 +944,18 @@ function cleanServiceRequest(serviceRequested: string, matches: (ExtractedMatch 
   // using the full match to locate the exact occurrence and then offsetting
   // to the start of the extracted value (not the whole matched phrase).
   let earliestIndex = serviceRequested.length;
+  let latestMatchEnd = -1;
   for (const match of validMatches) {
     let idx = -1;
+    let matchEnd = -1;
     if (match.value && serviceRequested.indexOf(match.fullMatch) !== -1) {
       const fullIdx = serviceRequested.indexOf(match.fullMatch);
       const valueIdxInFull = match.fullMatch.indexOf(match.value);
       idx = fullIdx + (valueIdxInFull >= 0 ? valueIdxInFull : 0);
+      matchEnd = fullIdx + match.fullMatch.length;
     } else if (match.value) {
       idx = serviceRequested.indexOf(match.value);
+      matchEnd = idx >= 0 ? idx + match.value.length : -1;
       // If we found the value but not the marker, walk back to swallow a connector/marker.
       if (idx > 0) {
         const prefix = serviceRequested.slice(0, idx);
@@ -871,12 +968,30 @@ function cleanServiceRequest(serviceRequested: string, matches: (ExtractedMatch 
     if (idx !== -1 && idx < earliestIndex) {
       earliestIndex = idx;
     }
+    if (matchEnd > latestMatchEnd) {
+      latestMatchEnd = matchEnd;
+    }
   }
 
   if (earliestIndex >= serviceRequested.length) {
     // No future-field marker found, but still strip common service prefixes
     // so a clean service phrase is returned.
     return stripServicePrefix(serviceRequested).replace(/[.,;:]$/, '').trim();
+  }
+
+  // A scalar embedded inside natural request prose keeps meaningful request
+  // text after it ("...put up over here in South Park. gonna need the roof
+  // installed"). Truncating there would silently drop real job context, so the
+  // request stays intact; the scalar fields are still populated separately.
+  if (latestMatchEnd > earliestIndex) {
+    const tail = serviceRequested.slice(latestMatchEnd)
+      .replace(/^[.,;:!?\s]+/, '')
+      .replace(/^(?:and|but|so|then|also|too)\s+/i, '')
+      .trim();
+    const tailWords = (tail.match(/[\p{L}\p{N}'’-]+/gu) || []).length;
+    if (tailWords >= 3) {
+      return stripServicePrefix(serviceRequested).replace(/[.,;:]$/, '').trim();
+    }
   }
 
   let cleaned = serviceRequested.slice(0, earliestIndex).trim();
@@ -887,6 +1002,21 @@ function cleanServiceRequest(serviceRequested: string, matches: (ExtractedMatch 
   cleaned = cleaned.replace(/\s+(?:and|at|by|on|in)$/i, '').trim();
   return cleaned;
 }
+
+// Conversational scaffolding tokens — a request candidate built from ONLY
+// these words is greeting/name residue ("hi. Hello", "uh hi"), never service
+// intent. A single real content word keeps the candidate alive.
+const GREETING_RESIDUE_WORDS = new Set([
+  'hi', 'hello', 'hey', 'uh', 'um', 'yes', 'yeah', 'yep', 'ok', 'okay', 'sure',
+  'well', 'so', 'just', 'thanks', 'thank', 'you', 'there', 'this', 'is', 'are',
+  'am', 'im', 'i', 'it', 'its', 'can', 'could', 'hear', 'me', 'my', 'name',
+  'the', 'a', 'an', 'and', 'how', 'still', 'here',
+]);
+
+// Field-owned clauses must stop the canonical Request even when ASR merged
+// them into the same sentence without punctuation — "the address is ...",
+// "you can call me ..." belong to their structured fields, never to Request.
+const FIELD_OWNED_CLAUSE_CUT_RE = /\s+\b(?:the\s+address\s+is|my\s+address\s+is|address\s+is|the\s+property\s+is\s+at|my\s+number\s+is|you\s+can\s+(?:call|reach|text|phone)\s+me|call\s+me\s+back\b|call\s+me\b|reach\s+me\b|contact\s+me\b|text\s+me\b|phone\s+me\b)\b[\s\S]*$/i;
 
 function extractServiceRequestCandidate(
   transcript: string,
@@ -933,10 +1063,28 @@ function extractServiceRequestCandidate(
     const valueOffset = CONNECTOR_PREFIX_RE.test(first.fullMatch) ? 0 : valueStart;
     const prefix = s.slice(0, first.startIndex + valueOffset);
     const suffix = s.slice(last.startIndex + last.fullMatch.length);
-    s = `${prefix} ${suffix}`;
+    // A scalar span may only be cut out of the request when the remaining text
+    // stays grammatical. When the kept left side ends on a function word the
+    // removed span was completing — "over here in |South Park|. gonna need
+    // the roofing installed" -> "in ." — the scalar is embedded inside natural
+    // request prose, so it stays in the canonical Request (its own field is
+    // still populated separately). Scalar-only tails ("in Bethel Park" at the
+    // end) still excise cleanly via the trailing-connector strip below.
+    const prefixEndsOnFunctionWord = EMBEDDED_SCALAR_LEADIN_RE.test(prefix.trimEnd());
+    const suffixHasContent = suffix.replace(/^[.,;:!?\s]+/, '').trim().length > 0;
+    if (!(prefixEndsOnFunctionWord && suffixHasContent)) {
+      // Collapse the whitespace seam the removed span leaves behind —
+      // "fixed |sometime this week| and it keeps" -> "fixed and it keeps",
+      // not "fixed   and it keeps".
+      s = `${prefix} ${suffix}`.replace(/\s+/g, ' ');
+    }
   }
 
   s = s.replace(/^[.,;:\s]+/, '').replace(/^(?:and|so|then|also)\s+/i, '');
+  // A field-owned clause surviving the scalar excision ("the address is X",
+  // "you can call me at Y") still belongs to its field — cut it out of the
+  // Request even when its own matcher did not fire.
+  s = s.replace(FIELD_OWNED_CLAUSE_CUT_RE, '').trim();
   s = s
     .replace(/^(?:hi|hello|hey)\b[\s,;.!?]*/i, '')
     .replace(/^(?:i'?m|i am|this is|it'?s|it is)\s+(?=\S)/i, '')
@@ -944,6 +1092,12 @@ function extractServiceRequestCandidate(
   s = stripServicePrefix(s);
   s = s.replace(/(?:[.,;:\s])+$/, '').trim();
   s = s.replace(/\s+(?:and|at|by|on|in)$/i, '').trim();
+  // Greeting/name-only residue ("hi. Hello") is never a service request — it
+  // must not satisfy the Request field or let the resolver skip ask_reason.
+  const residualWords = (s.match(/[a-z]+/gi) || []).map(w => w.toLowerCase());
+  if (residualWords.length > 0 && residualWords.every(w => GREETING_RESIDUE_WORDS.has(w))) {
+    return null;
+  }
   if (isValidServiceRequest(s)) return s;
   return null;
 }
@@ -1235,7 +1389,18 @@ export function extractCallbackTimeCandidate(transcript: string): string | null 
  * Only rewrites unambiguous vagueness; never invents a date.
  */
 export function normalizeVagueCompletion(value: string, transcript: string): string {
-  const v = (value || '').trim();
+  // Intent scaffolding belongs to the request, not the timing field
+  // ("I need someone out sometime tomorrow" -> "sometime tomorrow"), and
+  // judgment scaffolding is not part of the value either ("next Monday
+  // would be better" -> "next Monday").
+  const v = (value || '')
+    .trim()
+    .replace(/^(?:i'?d\s+like|i\s+would\s+like|i\s+want|i\s+need)\s+(?:someone|somebody)\s+(?:to\s+come\s+)?(?:out|here)\s+/i, '')
+    .replace(/^(?:i'?d\s+like|i\s+would\s+like|i\s+want|i\s+need)\s+(?:it\s+)?(?:done|completed|finished)\s+(?:by|on|in|for)\s+/i, '')
+    .replace(/^(?:i'?d\s+like|i\s+would\s+like|i\s+want|i\s+need)\s+it\s+(?:by|on|in|for)\s+/i, '')
+    .replace(/^(?:can\s+you|could\s+you)\s+(?:come|get\s+here|make\s+it)\s+(?:by|on|in)\s+/i, '')
+    .replace(/\s+(?:is|are|sounds?|seems?|looks?|works?|would|will|'d|'ll|should|could)\s+(?:(?:be|to\s+be|work|works)\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|easiest|ideal|preferred|suitable)\b[\s\S]*$/i, '')
+    .trim();
   const t = (transcript || '').toLowerCase();
   const vLower = v.toLowerCase();
   // "whenever ..." / "anytime ..." lead-ins with conversational scaffold tails
@@ -1303,7 +1468,7 @@ const CORRECTION_SCAFFOLD_CLAUSE_RE = /\b(?:i\s+(?:gave|told)\s+you\s+the\s+wron
 // A clause that is ONLY a timing expression (no problem/incident content) is a
 // timing-field answer, not a detail. Incident-history wording ("it shut off
 // around 2 pm yesterday") stays eligible as a detail.
-const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh|ideally|hopefully|preferably|maybe|but|and)[,.\s]*)*(?:the\s+)?(?:sometimes?|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|in\s+the\s+(?:morning|afternoon|evening|night)s?|mornings?|afternoons?|evenings?|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|in\s+(?:the\s+)?next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend)|in\s+(?:(?:a|an|the)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?|years?)|within\s+(?:the\s+)?(?:next\s+)?(?:(?:a|an)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?)|by\s+(?:the\s+end\s+of\s+(?:the\s+)?(?:week|month|year)|end\s+of\s+(?:the\s+)?(?:week|month|year)|next\s+(?:week|month|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(?:week|weekend|month)|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|as\s+soon\s+as\s+(?:possible|you\s+can|he\s+can|she\s+can|they\s+can|convenient)|before\s+(?:the\s+)?(?:weekend|next\s+week|the\s+end\s+of\s+(?:the\s+)?(?:week|month)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|not\s+(?:before|until)\b[^.!?]*|(?:early|late|later)\s+(?:next|this)\s+(?:week|month|weekend)|the\s+sooner\s+the\s+better|sooner\s+the\s+better|no\s+rush|no\s+hurry|when\s+it'?s\s+convenient|at\s+your\s+(?:earliest\s+)?convenience|asap)\b[^.!?]*$/i;
+const TIMING_OWNED_CLAUSE_RE = /^\s*(?:(?:yeah|yes|yep|okay|ok|sure|well|so|um|uh|ideally|hopefully|preferably|maybe|actually|but|and)[,.\s]*)*(?:the\s+)?(?:not\s+(?:(?:before|until)\b|this|next|last|today|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)[^.!?]*|sometimes?|anytime|whenever|today|tomorrow|tonight|this\s+(?:week|weekend|morning|afternoon|evening)|next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:week|weeks|day|days|month|months|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|(?:mon|tues|wednes|thurs|fri|satur|sun)day|in\s+the\s+(?:morning|afternoon|evening|night)s?|mornings?|afternoons?|evenings?|(?:(?:a|the)\s+)?(?:couple|few|one|two|three|four|five|six|seven)\s+(?:of\s+)?(?:days?|weeks?|months?)|in\s+(?:the\s+)?next\s+(?:(?:couple|few|a\s+couple|a\s+few|one|two|three|four|five|six|seven)\s+(?:of\s+)?)?(?:days?|weeks?|months?|weekend)|in\s+(?:(?:a|an|the)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?|years?)|within\s+(?:the\s+)?(?:next\s+)?(?:(?:a|an)\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+|couple|few|several)\s+(?:of\s+)?)?(?:days?|weeks?|months?|hours?)|by\s+(?:the\s+end\s+of\s+(?:the\s+)?(?:week|month|year)|end\s+of\s+(?:the\s+)?(?:week|month|year)|next\s+(?:week|month|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|this\s+(?:week|weekend|month)|tomorrow|tonight|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|as\s+soon\s+as\s+(?:possible|you\s+can|he\s+can|she\s+can|they\s+can|convenient)|before\s+(?:the\s+)?(?:weekend|next\s+week|the\s+end\s+of\s+(?:the\s+)?(?:week|month)|(?:mon|tues|wednes|thurs|fri|satur|sun)day)|not\s+(?:before|until)\b[^.!?]*|(?:early|late|later)\s+(?:next|this)\s+(?:week|month|weekend)|the\s+sooner\s+the\s+better|sooner\s+the\s+better|no\s+rush|no\s+hurry|when\s+it'?s\s+convenient|at\s+your\s+(?:earliest\s+)?convenience|asap)\b[^.!?]*$/i;
 
 // A clause that is ONLY a callback scalar answer — "after 3 PM", "anytime",
 // "around noon" — is callback field content, not a supporting detail.
@@ -1330,7 +1495,7 @@ const RESIDUAL_SCALAR_SCAFFOLD_START_RE = /^(?:\d|any\s?time\b|sometime\b|some\s
 // in the", "sometime around", "you can") — never complete context. Content
 // words (nouns, verbs, adjectives, adverbs like "afterward/locked/narrow")
 // still pass.
-const RESIDUAL_DANGLING_END_RE = /\b(?:the|a|an|in|on|at|of|to|for|my|your|his|her|our|their|its|and|or|but|if|when|that|which|who|whom|whose|is|are|was|were|be|been|am|have|has|had|do|does|did|will|would|can|could|should|may|might|must|shall|with|around|about|by|from|after|before|until|till|during|between|so|as|than|then|me|you|him|us|them|it|this|these|those|any|some|not|just|also|too|very|really|please|well|um|uh)s?$/i;
+const RESIDUAL_DANGLING_END_RE = /\b(?:the|a|an|in|on|at|of|to|for|my|your|his|her|our|their|its|and|or|but|if|when|that|which|who|whom|whose|is|are|was|were|be|been|am|have|has|had|do|does|did|will|would|can|could|should|may|might|must|shall|with|around|about|by|from|after|before|until|till|during|between|so|as|than|then|me|you|him|us|them|it|this|these|those|any|some|not|just|also|too|very|really|please|well|um|uh|actually|instead|sorry)s?$/i;
 
 // Conservative invariant: a residual from a scalar-stage answer may only append
 // to the canonical Request when it forms a complete, independently meaningful
@@ -1344,6 +1509,42 @@ const isCompleteResidualClause = (text: string): boolean => {
   if (RESIDUAL_DANGLING_END_RE.test(t)) return false;
   return true;
 };
+
+/**
+ * Clean a scalar-stage answer with the same rules stageScalarFallback uses:
+ * conversational lead-ins and edge punctuation stripped; clause-laden prose
+ * (", but ...", "and ...", a bare "not") and incident-history text rejected.
+ * Returns null when the source is not a clean single-value scalar answer.
+ */
+function cleanScalarStageAnswer(field: keyof IntakeData, source: string, locationRefusedNow: boolean): string | null {
+  let src = source;
+  // "I don't want to give the exact address yet, but I'm in Pittsburgh." —
+  // the clause after a refusal pivot is the caller's real location answer.
+  if (field === 'serviceAddress' && locationRefusedNow) {
+    const pivot = src.split(/\b(?:but|however|though)\b/i);
+    src = pivot.length > 1 ? pivot[pivot.length - 1].trim() : '';
+  }
+  const cleaned = src
+    .replace(/^[\s,.\-—–]+/, '')
+    .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
+    .replace(/[.,;!?\s]+$/, '')
+    // Conversational lead-ins ("Um, yeah,") are not part of the answer.
+    .replace(/^(?:(?:um|uh|yeah|yep|yes|okay|ok|sure|well|so|right|alright)[,.\s]*)+/i, '')
+    .trim();
+  // Never raw-write clause-laden or negated prose ("within two weeks, not in
+  // next month") — only clean single-value scalars qualify.
+  // Exception: "not before noon" / "not after 5" are valid negated timing
+  // constraints, not clause-laden prose.
+  const negatedTiming = /^not\s+(?:before|after|until)\b/i.test(cleaned);
+  // A trailing polite qualifier (", if you could", ", if possible") is part
+  // of the natural timing answer, not clause-laden prose.
+  const cleanedForCheck = cleaned.replace(/,\s*if\s+(?:you\s+(?:can|could)|it'?s\s+possible|possible)\.?\s*$/i, '');
+  if (/[,;]|\b(?:but|instead|and)\b/i.test(cleanedForCheck) || (!negatedTiming && /\bnot\b/i.test(cleanedForCheck))) return null;
+  // Incident-history prose must never land in a timing field ("the furnace
+  // shut off around 2 pm", "it began leaking last night").
+  if ((field === 'callbackTime' || field === 'desiredCompletionTime') && INCIDENT_ANSWER_RE.test(cleaned)) return null;
+  return cleaned;
+}
 
 /**
  * Extract detail sentences from a transcript: sentences that carry supporting
@@ -1601,15 +1802,17 @@ export function enrichIntakeFromTranscript(
   const nameRefused = isNameRefusal(transcript);
   // A name refusal ("No name", "I'd rather not say") owns the whole utterance:
   // no name candidate may be extracted from its correction tail or fallback.
-  const name = nameRefused ? null : (explicitName || correctionTailName || extractCustomerName(transcript) || bareName);
+  const name = nameRefused ? null : normalizeCustomerName(explicitName || correctionTailName || extractCustomerName(transcript) || bareName);
   const locationRefused = isLocationRefusal(transcript);
 
   // A bare name answer at ask_name must not be interpreted as a location, timing,
-  // or service request. This is the primary field-ownership guard for name-only turns.
+  // or service request. This is the primary field-ownership guard for name-only
+  // turns. The name extracted on THIS turn counts too — on a first-turn answer
+  // the seed intake has no name yet ("Hello, uh hi. This is Kevin Brooks").
   const nameOnlyTurn =
     currentStage === 'ask_name' &&
-    !!intake.customerName &&
-    isNameOnlyTurn(transcript, intake.customerName);
+    !!(intake.customerName || name) &&
+    isNameOnlyTurn(transcript, (intake.customerName || name) as string);
 
   // Name containment: at non-name stages, a name candidate should only be written
   // if it is a clear correction of a previously garbled/unknown name. This prevents
@@ -1857,7 +2060,28 @@ export function enrichIntakeFromTranscript(
   const stageLocationAnswer = currentStageField === 'serviceAddress'
     ? stripLocationLeadIn((correctionTail || transcript).trim())
     : null;
-  const transcriptDetails = extractDetailSentences(transcript, {
+  // Whole-utterance scalar answers own the turn: when the caller's entire
+  // answer at a scalar stage cleans to a valid scalar and the stage's own
+  // extractor produced no match ("As soon as you could. I really need it
+  // done" at ask_completion_time — the matcher misses "could"), its sentences
+  // are that field's content — never residual "supporting facts" to merge
+  // into the canonical Request. A matched scalar keeps its per-sentence
+  // residual handling, and a clause-laden/mixed answer is not suppressed.
+  const scalarStageSpec: Record<string, { validate: (v: string) => boolean; normalize: (v: string) => string }> = {
+    serviceAddress: { validate: isAcceptableServiceAddress, normalize: stripLocationLeadIn },
+    desiredCompletionTime: { validate: isValidCompletionTime, normalize: (v) => normalizeVagueCompletion(v, transcript) },
+    callbackTime: { validate: isValidCallbackTime, normalize: normalizeCallbackTime },
+  };
+  const currentStageScalarMatch = currentStageField === 'serviceAddress' ? addressMatch
+    : currentStageField === 'desiredCompletionTime' ? completionMatch
+    : currentStageField === 'callbackTime' ? callbackMatch
+    : null;
+  const stageSpec = currentStageField ? scalarStageSpec[currentStageField] : undefined;
+  const wholeAnswerIsScalar = !!stageSpec && !currentStageScalarMatch && (() => {
+    const cleaned = cleanScalarStageAnswer(currentStageField!, (correctionTail || transcript).trim(), locationRefused);
+    return !!cleaned && stageSpec.validate(stageSpec.normalize(cleaned));
+  })();
+  const transcriptDetails = wholeAnswerIsScalar ? null : extractDetailSentences(transcript, {
     customerName: name || intake.customerName,
     scalarFullMatches,
     alreadyExtracted: [validCleanedService || '', stageLocationAnswer || ''],
@@ -1936,7 +2160,14 @@ export function enrichIntakeFromTranscript(
     intake.nameRefused = false;
   }
 
-  if (validCleanedService) {
+  // Request immutability: once a valid Request is captured, later scalar-stage
+  // answers (location/completion/callback) must never rewrite or append to it.
+  // Only a service-stage utterance or an explicit service correction
+  // (correctedService — e.g. "actually it's the shower, not the toilet") may
+  // mutate the field.
+  const requestMutationAllowed = isServiceStage || !!correctedService;
+
+  if (validCleanedService && requestMutationAllowed) {
     applyField(
       intake,
       'serviceRequested',
@@ -1984,7 +2215,7 @@ export function enrichIntakeFromTranscript(
   applyField(
     intake,
     'serviceAddress',
-    addressMatch?.value,
+    addressMatch?.value ? normalizeSpokenZipDigits(addressMatch.value) : null,
     isAcceptableServiceAddress,
     applied,
     skippedBecauseAlreadyPresent,
@@ -2047,34 +2278,9 @@ export function enrichIntakeFromTranscript(
     // utterance ("call me after 5" at ask_location → callback), the stage
     // fallback must not raw-write that text into this field.
     if (!correctionTail && ['serviceAddress', 'desiredCompletionTime', 'callbackTime'].some(f => f !== field && applied.includes(f as string))) return;
-    let source = (correctionTail || transcript).trim();
-    // "I don't want to give the exact address yet, but I'm in Pittsburgh." —
-    // the clause after a refusal pivot is the caller's real location answer.
-    // A refusal with no pivot clause stays uncaptured.
-    if (field === 'serviceAddress' && locationRefused) {
-      const pivot = source.split(/\b(?:but|however|though)\b/i);
-      source = pivot.length > 1 ? pivot[pivot.length - 1].trim() : '';
-    }
-    const cleaned = source
-      .replace(/^[\s,.\-—–]+/, '')
-      .replace(/\s+instead(?:\s+of\s+.*)?$/i, '')
-      .replace(/[.,;!?\s]+$/, '')
-      // Conversational lead-ins ("Um, yeah,") are not part of the answer.
-      .replace(/^(?:(?:um|uh|yeah|yep|yes|okay|ok|sure|well|so|right|alright)[,.\s]*)+/i, '')
-      .trim();
-    // Never raw-write clause-laden or negated prose ("within two weeks, not in
-    // next month") — the fallback only stores clean single-value scalars.
-    // Exception: "not before noon" / "not after 5" are valid negated timing
-    // constraints, not clause-laden prose.
-    const negatedTiming = /^not\s+(?:before|after|until)\b/i.test(cleaned);
-    // A trailing polite qualifier (", if you could", ", if possible") is part
-    // of the natural timing answer, not clause-laden prose — the full source
-    // phrase is preserved in the stored value.
-    const cleanedForCheck = cleaned.replace(/,\s*if\s+(?:you\s+(?:can|could)|it'?s\s+possible|possible)\.?\s*$/i, '');
-    if (/[,;]|\b(?:but|instead|and)\b/i.test(cleanedForCheck) || (!negatedTiming && /\bnot\b/i.test(cleanedForCheck))) return;
-    // Incident-history prose must never land in a timing field ("the furnace
-    // shut off around 2 pm", "it began leaking last night").
-    if ((field === 'callbackTime' || field === 'desiredCompletionTime') && INCIDENT_ANSWER_RE.test(cleaned)) return;
+    const source = (correctionTail || transcript).trim();
+    const cleaned = cleanScalarStageAnswer(field, source, locationRefused);
+    if (!cleaned) return;
     const value = normalizer ? normalizer(cleaned) : cleaned;
     if (value && validator(value) && value !== current) {
       if (alreadySet) {
@@ -2093,9 +2299,9 @@ export function enrichIntakeFromTranscript(
     }
   };
   if (currentStageField === 'serviceAddress') {
-    stageScalarFallback('serviceAddress', isAcceptableServiceAddress, stripLocationLeadIn);
+    stageScalarFallback('serviceAddress', isAcceptableServiceAddress, (v) => normalizeSpokenZipDigits(stripLocationLeadIn(v)));
   } else if (currentStageField === 'desiredCompletionTime') {
-    stageScalarFallback('desiredCompletionTime', isValidCompletionTime);
+    stageScalarFallback('desiredCompletionTime', isValidCompletionTime, (v) => normalizeVagueCompletion(v, transcript));
   } else if (currentStageField === 'callbackTime') {
     stageScalarFallback('callbackTime', isValidCallbackTime, normalizeCallbackTime);
   }

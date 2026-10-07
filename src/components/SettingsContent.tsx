@@ -2476,6 +2476,18 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       // AuthContext/BusinessGuard and unmounts this protected page; doing it
       // before navigation can cancel the replace and strand the user on a
       // blank /dashboard/settings. /account-deleted sits outside every guard.
+      //
+      // Native WebView: an in-app router transition can still be pre-empted
+      // by the SIGNED_OUT redirect below (both transitions race in the same
+      // document), which was observed leaving a blank screen until Back was
+      // pressed. A hard document navigation can't be cancelled by React
+      // transitions, drops the authenticated history entry so Back can't
+      // reopen the deleted session, and /account-deleted clears the local
+      // session itself on mount.
+      if (isCapacitorNative()) {
+        window.location.replace('/account-deleted')
+        return
+      }
       router.replace('/account-deleted')
 
       // Now tear down auth + client state. SIGNED_OUT while on a public route
@@ -3746,7 +3758,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={handleBusinessHoursExpand}
-                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Business Hours"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -3802,7 +3814,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setBusinessHoursExpanded(false)}
-                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Business Hours"
                             >
                               <ChevronUp className="w-5 h-5" />
@@ -4017,7 +4029,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={() => setOutOfOfficeExpanded(true)}
-                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Out of Office"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -4101,7 +4113,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setOutOfOfficeExpanded(false)}
-                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Out of Office"
                             >
                               <ChevronUp className="w-5 h-5" />
@@ -4248,7 +4260,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                           </button>
                           <button
                             onClick={() => setFollowUpExpanded(true)}
-                            className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                            className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                             aria-label="Expand Automatic Follow-Ups"
                           >
                             <ChevronDown className="w-5 h-5" />
@@ -4297,7 +4309,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             </button>
                             <button
                               onClick={() => setFollowUpExpanded(false)}
-                              className="p-1.5 mr-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                              className="p-1.5 mr-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                               aria-label="Collapse Automatic Follow-Ups"
                             >
                               <ChevronUp className="w-5 h-5" />
@@ -5880,6 +5892,14 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       {deletePasswordError}
                     </p>
                   )}
+                  <div className="mt-2 text-right">
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline focus-visible:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
           </Modal>
 

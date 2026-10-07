@@ -334,6 +334,55 @@ describe('android billing plugin', () => {
   })
 })
 
+/* ---------- 7b. BillingClient connection single-flight (concurrent-connect race fix) ---------- */
+
+describe('BillingClient connection is single-flight', () => {
+  const plugin = read('android/app/src/main/java/com/replyflowhq/app/ReplyflowGooglePlayBillingPlugin.java')
+
+  it('startConnection has exactly ONE call site — concurrent callers can never double-connect', () => {
+    // The production bug: launchPurchase/queryPurchases/disconnect-retry each
+    // invoked startConnection while a connect was in flight → BillingClient
+    // threw "Client is already in the process of connecting to billing service".
+    expect(plugin.match(/\.startConnection\(/g)).toHaveLength(1)
+  })
+
+  it('callers queue behind an in-flight connection instead of reconnecting', () => {
+    expect(plugin).toContain('connectionInProgress')
+    expect(plugin).toContain('pendingOperations')
+    expect(plugin).toContain('synchronized (connectionLock)')
+  })
+
+  it('already-connected callers run immediately — no queue, no wait', () => {
+    expect(plugin).toContain('billingClient.isReady()')
+    const ensure = plugin.slice(plugin.indexOf('private void ensureConnection'))
+    expect(ensure.slice(0, 300)).toContain('onReady.run()')
+  })
+
+  it('queued ops drain together on setup success and reject on failure', () => {
+    expect(plugin).toContain('pendingOperations.clear()')
+    expect(plugin).toContain('op.onReady.run()')
+    expect(plugin).toContain('op.call.reject("Billing setup failed: "')
+    // In-flight flag clears on BOTH outcomes so a later attempt may retry.
+    expect(plugin.match(/connectionInProgress = false/g)?.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('disconnect does not re-enter ensureConnection or startConnection', () => {
+    // The old retry raced a fresh caller's startConnection — removed.
+    const idx = plugin.indexOf('public void onBillingServiceDisconnected')
+    const block = plugin.slice(idx, idx + 700)
+    expect(block).not.toContain('ensureConnection(')
+    expect(block).not.toContain('startConnection(')
+    expect(plugin).not.toContain('connectionRetries')
+  })
+
+  it('startConnection is wrapped against a residual IllegalStateException', () => {
+    // Belt-and-suspenders: if a connect is somehow already in flight, queued
+    // ops fail cleanly — the raw BillingClient message never reaches the UI.
+    expect(plugin).toContain('catch (IllegalStateException')
+    expect(plugin).toContain('Billing connection start conflict')
+  })
+})
+
 /* ---------- 8. No Stripe checkout reachable on Android path ---------- */
 
 describe('Android never initiates Stripe subscription checkout', () => {
@@ -384,6 +433,21 @@ describe('subscription_status NULL-after-purchase fixes', () => {
     expect(wrapper).toContain('Pending re-check')
   })
 
+  it('a native PENDING result settles via queryPurchases before the pending fallback', () => {
+    // Post-purchase false-pending fix: transient confirmation lag must poll
+    // held purchases for the PURCHASED flip, then server-verify — it must
+    // never relaunch the sheet or trust a native pending as final.
+    expect(wrapper).toContain('waitForPendingPurchaseSettle')
+    expect(wrapper).toContain('PLAY_PENDING_SETTLE_MAX_ATTEMPTS')
+    const pendingBlock = wrapper.slice(
+      wrapper.indexOf("purchase.status === 'pending'"),
+      wrapper.indexOf('ITEM_ALREADY_OWNED')
+    )
+    expect(pendingBlock).toContain('waitForPendingPurchaseSettle')
+    expect(pendingBlock).toContain('verifyPurchaseToken')
+    expect(pendingBlock).not.toContain('launchPurchase')
+  })
+
   it('ITEM_ALREADY_OWNED recovers the existing purchase instead of failing', () => {
     expect(wrapper).toContain('purchase.code === 7')
     expect(wrapper).toContain('queryPurchases')
@@ -404,7 +468,7 @@ describe('subscription_status NULL-after-purchase fixes', () => {
   })
 
   it('onboarding clears loading on cancel and error', () => {
-    expect(onboarding).toContain('onCanceled: () => { setLoading(false) }')
+    expect(onboarding).toContain('onCanceled: () => { setLoading(false); setError(')
     expect(onboarding).toContain('onError: (msg) => { setError(msg); setLoading(false) }')
   })
 

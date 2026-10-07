@@ -68,6 +68,8 @@ import { createClient } from '@supabase/supabase-js';
 import audioDecode from 'audio-decode';
 import OpenAI from 'openai';
 import { cachedPromptAudio, CACHED_AUDIO_GENERATION_VERSION, CACHED_AUDIO_GENERATED_AT, REALTIME_MODEL, TTS_VOICE, OUTPUT_FORMAT } from './cached-audio';
+import { createFirstAudioTracker, FirstAudioWatchdog, emitFirstAudioTrace, emitFirstAudioSuccess, emitFirstAudioFailure, emitFirstAudioPreroll } from './first-audio-watchdog';
+import { normalizeSpokenStreetNumber, emitAddressNormalizationLog } from './address-normalization';
 import {
   IntakeTemplate,
   AI_INTAKE_TEMPLATES,
@@ -131,7 +133,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
 }
 
-import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isValidCustomerName as isCanonicalCustomerName, isUsableServiceAddress, isMetaUtterance, isValidCompletionTime, isValidCallbackTime, isValidServiceRequest, isValidServiceAddress, cleanDisplayIntakeText } from './intake-validation';
+import { isNameRequirementSatisfied, selectSimpleModePromptKey, isValidCustomerName, isValidCustomerName as isCanonicalCustomerName, isUsableServiceAddress, isMetaUtterance, isValidCompletionTime, isValidCallbackTime, isValidServiceRequest, isValidServiceAddress, cleanDisplayIntakeText, normalizeCustomerName } from './intake-validation';
 
 // Minimal shared authorization guard for settle-window callbacks (production + tests)
 // Returns true if the callback is authorized to finalize, otherwise logs a single
@@ -3615,7 +3617,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
         if (intake.nameRefused) {
           console.log('[name_write_blocked_after_refusal]', { stage: intake.stage, attempted: transcript.trim() });
         } else if (!intake.customerName && isValidCustomerName(transcript.trim())) {
-          intake.customerName = transcript.trim();
+          intake.customerName = normalizeCustomerName(transcript);
           console.log('[SCRIPTED FLOW] =========================================');
           console.log('[SCRIPTED FLOW] field saved');
           console.log('[SCRIPTED FLOW] field: customerName');
@@ -3681,7 +3683,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
               console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
               console.log('[SCRIPTED FLOW] =========================================');
 
-              intake.customerName = strippedTranscript;
+              intake.customerName = normalizeCustomerName(strippedTranscript);
               if (intake.nameRefused) {
                 console.log('[name_refusal_cleared_by_explicit_name]', { newName: strippedTranscript, source: 'ask_name_reason_name_only_heuristic' });
                 intake.nameRefused = false;
@@ -3718,7 +3720,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
             console.log('[SCRIPTED FLOW] stage:', intake.stage);
             console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
             console.log('[SCRIPTED FLOW] =========================================');
-            intake.customerName = existingName; // Restore original
+            intake.customerName = normalizeCustomerName(existingName); // Restore original
           }
 
           console.log('[SCRIPTED FLOW] =========================================');
@@ -4040,7 +4042,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       }
 
       if (nameMatch) {
-        parsedName = normalizeNameCandidate(nameMatch[1].trim());
+        parsedName = normalizeCustomerName(normalizeNameCandidate(nameMatch[1].trim()));
         parsedName = parsedName.charAt(0).toUpperCase() + parsedName.slice(1);
       }
       if (serviceMatch) {
@@ -4191,7 +4193,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         const oldName = intake.customerName;
         const name = extractName(transcript);
         if (name && name.length > 1 && !isFillerPhrase(name) && isValidCustomerName(name)) {
-          intake.customerName = name;
+          intake.customerName = normalizeCustomerName(name);
           if (intake.nameRefused) {
             console.log('[name_refusal_cleared_by_explicit_name]', { newName: name, source: 'extractName_fallback' });
             intake.nameRefused = false;
@@ -4444,7 +4446,7 @@ function normalizeExtractedFields(extractedFields: any): any {
   console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
 
   const normalized = {
-    customerName: extractedFields.callerName || extractedFields.customerName,
+    customerName: normalizeCustomerName(extractedFields.callerName || extractedFields.customerName),
     serviceRequested: extractedFields.reasonForCalling || extractedFields.serviceRequested,
     issueDescription: extractedFields.importantDetails || extractedFields.issueDescription,
     serviceAddress: extractedFields.addressOrLocation || extractedFields.serviceAddress,
@@ -4499,7 +4501,7 @@ function normalizeExtractedFields(extractedFields: any): any {
       if (needsSplit) {
         const split = attemptSplit(nameVal);
         if (split.name || split.service) {
-          if (split.name) normalized.customerName = split.name;
+          if (split.name) normalized.customerName = normalizeCustomerName(split.name);
           if (split.service && (!normalized.serviceRequested || normalized.serviceRequested.toLowerCase() === nameVal.trim().toLowerCase())) {
             normalized.serviceRequested = split.service;
           }
@@ -4773,7 +4775,15 @@ export async function buildCanonicalExtractedInfo(
 
   const rawServiceAddress = fields.serviceAddress || fields.addressOrLocation || '';
   const isServiceAddressNameOnly = !!rawServiceAddress && normalizedCustomerName && rawServiceAddress.trim().toLowerCase() === normalizedCustomerName && !fields.locationRefused;
-  const canonicalServiceAddress = isServiceAddressNameOnly ? '' : rawServiceAddress;
+  const nameGuardedServiceAddress = isServiceAddressNameOnly ? '' : rawServiceAddress;
+
+  // Canonical write boundary: collapse clearly-spoken split street numbers
+  // ("65 1-0 Johnson Road" → "6510 Johnson Road") so extracted_info, Customer
+  // Context, and the final SMS all persist the same normalized value.
+  // Ambiguous input is preserved verbatim.
+  const serviceAddressNorm = normalizeSpokenStreetNumber(nameGuardedServiceAddress);
+  emitAddressNormalizationLog(nameGuardedServiceAddress, serviceAddressNorm, callSid);
+  const canonicalServiceAddress = serviceAddressNorm.value;
 
   const sanitizedCompletion = sanitizeEnglishIntakeField(
     'desiredCompletionTime',
@@ -6107,10 +6117,12 @@ const server = createServer(async (req, res) => {
     });
   }
 
-  // Health check endpoint
+  // Health check endpoint — 503 when critical first-audio assets are
+  // unavailable so a degraded instance never silently keeps serving calls.
   if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(buildHealthPayload()));
+    const healthPayload = buildHealthPayload();
+    res.writeHead(healthPayload.criticalAudioReady ? 200 : 503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(healthPayload));
     return;
   }
 
@@ -6955,6 +6967,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ttsCompleteTime: 0 as number,
     promptAudioStartedAt: 0 as number,
     promptAudioSentAt: 0 as number,
+    lastPromptExpectedDurationMs: 0 as number,
     firstSpeechStartedAfterPromptAt: 0 as number,
     firstAudioForwardedAfterPromptAt: 0 as number,
     firstAudioBlockedAfterPromptAt: 0 as number,
@@ -6988,6 +7001,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     sessionCreatedReceived: false,
     sessionUpdatedReceived: false,
     initialPromptSent: false,
+    initialPromptWaitingForStart: false,
+    initialPromptWaitTimeout: null as NodeJS.Timeout | null,
+    initialPromptStartedAt: 0,
     sessionReadyTimeout: null as NodeJS.Timeout | null,
     silentTimeout: null as NodeJS.Timeout | null,
     silentRepromptSent: false,
@@ -6997,6 +7013,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     silentCloseMarkReceived: false,
     silentCloseHangupTimeout: null as NodeJS.Timeout | null,
     cachedPlaybackInterrupted: false,
+    // FIRST AUDIO: per-call delivery tracker + byte-verified watchdog (SEV-1)
+    firstAudio: createFirstAudioTracker(),
+    firstAudioWatchdog: null as FirstAudioWatchdog | null,
+    stageSilenceSyncedForStage: '' as string,
     // AI session tracking for fallback
     aiSessionTracker: null as AISessionStateTracker | null,
     // Watchdog timers for stall detection
@@ -7072,6 +7092,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Service location routing mode
     serviceLocationType: 'onsite' as 'onsite' | 'customer_comes_to_business' | 'remote',
   };
+
+  // FIRST AUDIO: the WebSocket accepted — earliest timestamp in the trace.
+  state.firstAudio.websocketReadyAt = Date.now();
 
   // Track consecutive transcription failures per stage (module scope)
   const transcriptionFailureCount = new Map<string, number>();
@@ -7553,7 +7576,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] action: capture_both_and_skip_request_stage');
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] =========================================');
-        state.intakeData.customerName = parseResult.customerName;
+        state.intakeData.customerName = normalizeCustomerName(parseResult.customerName);
         state.intakeData.serviceRequested = parseResult.serviceRequested;
         state.intakeData.request = parseResult.serviceRequested; // Maintain compatibility
         state.skipNextStage = true; // Skip ask_request stage
@@ -7579,7 +7602,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME NORMAL: NAME ONLY] action: capture_name_and_proceed_to_reason');
         console.log('[ASK_NAME NORMAL: NAME ONLY] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME NORMAL: NAME ONLY] =========================================');
-        state.intakeData.customerName = parseResult.customerName;
+        state.intakeData.customerName = normalizeCustomerName(parseResult.customerName);
         capturedAnswer = parseResult.customerName;
         extractedField = 'customerName';
       }
@@ -7606,7 +7629,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] action: capture_name_and_proceed');
           console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] Timestamp:', new Date().toISOString());
           console.log('[ASK_NAME FALLBACK: EXPLICIT NAME CORRECTION] =========================================');
-          state.intakeData.customerName = explicitName;
+          state.intakeData.customerName = normalizeCustomerName(explicitName);
           state.intakeData.nameRefused = false;
           capturedAnswer = explicitName;
           extractedField = 'customerName';
@@ -8249,7 +8272,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.intakeData.customerName = '';
         state.intakeData.nameRefused = true;
       } else {
-        state.intakeData.customerName = customerNameAfterMerge;
+        state.intakeData.customerName = normalizeCustomerName(customerNameAfterMerge);
       }
       state.intakeData.serviceRequested = serviceRequestedAfterMerge;
 
@@ -8547,7 +8570,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[INTAKE CORRECTION] newValue:', explicitNameCorrection);
       console.log('[INTAKE CORRECTION] Timestamp:', new Date().toISOString());
       console.log('[INTAKE CORRECTION] =========================================');
-      state.intakeData.customerName = explicitNameCorrection;
+      state.intakeData.customerName = normalizeCustomerName(explicitNameCorrection);
       state.intakeData.nameRefused = false;
       if (extractedField === 'customerName') {
         capturedAnswer = explicitNameCorrection;
@@ -8766,8 +8789,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // --- Stage timeout logic ---
   const STAGE_TIMEOUT_MS = 15000; // 15 seconds initial timeout
+  // The greeting's answer-wait is deliberately shorter. When outbound media
+  // never reaches the caller (upstream cut-through/carrier fault that our
+  // send instrumentation cannot see), the caller hears dead air and hangs up
+  // — observed silent-call hangups came ~11s after the mark, inside the old
+  // 15s window, so the designed re-prompt never fired. A faster first
+  // re-prompt recovers the call while the caller is still on the line.
+  const INITIAL_STAGE_ANSWER_WAIT_MS = 8000;
 
-  const startStageTimeout = () => {
+  const startStageTimeout = (timeoutMs: number = STAGE_TIMEOUT_MS) => {
     // Clear any existing timeout
     if (state.stageTimeout) {
       clearTimeout(state.stageTimeout);
@@ -8781,7 +8811,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Set initial timeout
     state.stageTimeout = setTimeout(() => {
       handleStageTimeout(capturedGeneration);
-    }, STAGE_TIMEOUT_MS);
+    }, timeoutMs);
 
     console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
     console.log('[STAGE TIMEOUT LIFECYCLE] event: waiting_for_answer_start');
@@ -8789,7 +8819,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[STAGE TIMEOUT LIFECYCLE] stage:', state.currentStage);
     console.log('[STAGE TIMEOUT LIFECYCLE] turnId:', state.currentTurnId);
     console.log('[STAGE TIMEOUT LIFECYCLE] generation:', capturedGeneration);
-    console.log('[STAGE TIMEOUT LIFECYCLE] timeoutMs:', STAGE_TIMEOUT_MS);
+    console.log('[STAGE TIMEOUT LIFECYCLE] timeoutMs:', timeoutMs);
     console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
     console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
   };
@@ -9084,7 +9114,22 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       streamSid,
       media: { payload: combined.toString('base64') }
     };
-    ws.send(JSON.stringify(mediaMessage));
+    try {
+      ws.send(JSON.stringify(mediaMessage), (err?: Error) => {
+        if (err) {
+          console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+          console.log('[TWILIO_MEDIA_SEND_ERROR] event: media_send_error');
+          console.log('[TWILIO_MEDIA_SEND_ERROR] callSid:', state.callSid);
+          console.log('[TWILIO_MEDIA_SEND_ERROR] path: flushAudioBuffer');
+          console.log('[TWILIO_MEDIA_SEND_ERROR] error:', err.message);
+          console.log('[TWILIO_MEDIA_SEND_ERROR] wsReadyState:', ws.readyState);
+          console.log('[TWILIO_MEDIA_SEND_ERROR] Timestamp:', new Date().toISOString());
+          console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+        }
+      });
+    } catch (sendErr) {
+      console.log('[TWILIO_MEDIA_SEND_ERROR] flushAudioBuffer send exception:', sendErr instanceof Error ? sendErr.message : String(sendErr));
+    }
     const sendLatencyMs = Date.now() - sendStart;
 
     if (DEBUG_AUDIO) {
@@ -9924,16 +9969,22 @@ Reply to this message if you'd like to update or add any information.
       console.log('[COMPLETION OVERWRITE RESULT] =========================================');
 
       // Apply minimal cleanup to name only (split on comma)
-      state.intakeData.customerName = cleanNameMinimal(customerName);
+      state.intakeData.customerName = normalizeCustomerName(cleanNameMinimal(customerName));
 
       // Apply minimal cleanup to address only
       state.intakeData.serviceAddress = cleanAddressMinimal(state.intakeData.serviceAddress);
+
+      // Spoken-digit street-number normalization at the canonical intake-data
+      // boundary — keeps the final SMS identical to the persisted record.
+      const completionAddressNorm = normalizeSpokenStreetNumber(state.intakeData.serviceAddress);
+      emitAddressNormalizationLog(state.intakeData.serviceAddress, completionAddressNorm, state.callSid);
+      state.intakeData.serviceAddress = completionAddressNorm.value;
 
       // Do NOT apply aggressive filtering to callbackTime or serviceRequested
       // Preserve natural callback answers and service descriptions
 
       // Apply per-field CRM normalization after minimal cleanup
-      state.intakeData.customerName        = normalizeCrmField(state.intakeData.customerName,          'name',    'customerName');
+      state.intakeData.customerName        = normalizeCrmField(normalizeCustomerName(state.intakeData.customerName), 'name',    'customerName');
       state.intakeData.serviceRequested    = normalizeCrmField(serviceRequested,                       'service', 'serviceRequested');
       state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address', 'serviceAddress');
       state.intakeData.desiredCompletionTime = normalizeCrmField(state.intakeData.desiredCompletionTime, 'time', 'desiredCompletionTime');
@@ -10971,6 +11022,12 @@ Reply to this message if you'd like to update or add any information.
     const deliveryAttemptStr = deliveryAttempt !== undefined ? `:reprompt-${deliveryAttempt}` : ':initial';
     const deliveryIdentity = `${state.callSid}:${authorizedTurnId}:${promptKey}${deliveryAttemptStr}`;
 
+    // FIRST AUDIO: the greeting's current delivery identity — byte accounting
+    // in the media loop below is keyed on it so only this delivery is tracked.
+    if (source === 'initial_prompt' && state.firstAudio) {
+      state.firstAudio.deliveryIdentity = deliveryIdentity;
+    }
+
     // Determine delivery type for logging
     const deliveryType = deliveryAttempt !== undefined ? 'reprompt' : 'initial';
 
@@ -11175,6 +11232,12 @@ Reply to this message if you'd like to update or add any information.
       }
     }
 
+    // FIRST AUDIO: record cache evidence for the tracked greeting delivery.
+    if (source === 'initial_prompt' && state.firstAudio) {
+      state.firstAudio.cachedAudioFound = !!cachedAudio;
+      state.firstAudio.cachedAudioByteLength = cachedAudio ? Buffer.from(cachedAudio, 'base64').length : 0;
+    }
+
     if (cachedAudio) {
       // Use cached PCMU audio
       console.log('[TARGETED PROMPT DELIVERY] =========================================');
@@ -11217,6 +11280,27 @@ Reply to this message if you'd like to update or add any information.
         const expectedChunks = Math.ceil(audioBuffer.length / chunkSize);
         let totalChunks = 0;
         let authorizationDelayMs = 0; // Declare outside loop for use in last chunk logging
+        // Per-send delivery tracking: ws.send is fire-and-forget, so capture
+        // errors via callback — otherwise a socket-level failure mid-send is
+        // indistinguishable from successful delivery in the logs.
+        let sendErrorCount = 0;
+        let firstSendError: Error | null = null;
+        const recordSendError = (err: unknown) => {
+          sendErrorCount++;
+          if (!firstSendError) {
+            firstSendError = err instanceof Error ? err : new Error(String(err));
+            console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+            console.log('[TWILIO_MEDIA_SEND_ERROR] event: media_send_error');
+            console.log('[TWILIO_MEDIA_SEND_ERROR] callSid:', state.callSid);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] stage:', stage);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] chunkIndex:', totalChunks);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] error:', firstSendError.message);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] wsReadyState:', ws.readyState);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] wsBufferedAmount:', ws.bufferedAmount);
+            console.log('[TWILIO_MEDIA_SEND_ERROR] Timestamp:', new Date().toISOString());
+            console.log('[TWILIO_MEDIA_SEND_ERROR] =========================================');
+          }
+        };
 
         console.log('[AUDIO TIMING] =========================================');
         console.log('[AUDIO TIMING] event: prompt_audio_started');
@@ -11264,6 +11348,54 @@ Reply to this message if you'd like to update or add any information.
           return false;
         }
 
+        // Hard delivery invariant: media with an empty streamSid is silently
+        // dropped by Twilio — never start a prompt without it.
+        if (!state.streamSid) {
+          console.log('[TWILIO_WS_ERROR] =========================================');
+          console.log('[TWILIO_WS_ERROR] event: twilio_stream_sid_missing');
+          console.log('[TWILIO_WS_ERROR] callSid:', state.callSid);
+          console.log('[TWILIO_WS_ERROR] stage:', stage);
+          console.log('[TWILIO_WS_ERROR] Timestamp:', new Date().toISOString());
+          console.log('[TWILIO_WS_ERROR] =========================================');
+
+          if (state.aiSessionTracker) {
+            updateAISessionState(state.aiSessionTracker, 'FAILED', 'Twilio streamSid missing when sending cached audio');
+          }
+
+          triggerVoicemailFallback(
+            ws,
+            twilioHandler,
+            state.aiSessionTracker,
+            'Twilio streamSid missing when sending cached audio - media would be dropped',
+            state.callSid,
+            state.businessId,
+            state.callerPhone,
+            state.businessPhone,
+            state.businessName,
+            state.forwardedFrom
+          );
+          return false;
+        }
+
+        // Stamp the initial greeting start so answer-noise VAD ("hello?")
+        // cannot abort it during its first moments.
+        if (source === 'initial_prompt') {
+          state.initialPromptStartedAt = Date.now();
+        }
+
+        // FIRST AUDIO PREROLL: ~500ms of PCMU silence warms the Twilio
+        // playback path before the greeting's byte 0 — first greeting
+        // delivery only (initial send AND its bounded retry; no later-stage
+        // prompt is delayed). An aborted pre-roll returns false so the
+        // watchdog owns recovery.
+        if (source === 'initial_prompt' && state.firstAudio) {
+          const prerollDelivered = await sendInitialGreetingPreroll();
+          if (!prerollDelivered) {
+            console.log('[AI FIRST AUDIO PREROLL] event: preroll_aborted_returning_false');
+            return false;
+          }
+        }
+
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           // Stop immediately if AI session transitions to FAILED mid-send
           if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
@@ -11288,6 +11420,9 @@ Reply to this message if you'd like to update or add any information.
             console.log('[PROMPT AUDIO LIFECYCLE] authorizedAt:', authorizedAt);
             console.log('[PROMPT AUDIO LIFECYCLE] firstChunkAt:', firstChunkAt);
             console.log('[PROMPT AUDIO LIFECYCLE] authorizationDelayMs:', authorizationDelayMs);
+            console.log('[PROMPT AUDIO LIFECYCLE] streamSid:', state.streamSid);
+            console.log('[PROMPT AUDIO LIFECYCLE] wsReadyState:', ws.readyState);
+            console.log('[PROMPT AUDIO LIFECYCLE] wsBufferedAmount:', ws.bufferedAmount);
             console.log('[PROMPT AUDIO LIFECYCLE] currentStage:', state.currentStage);
             console.log('[PROMPT AUDIO LIFECYCLE] currentTurnId:', state.currentTurnId);
             console.log('[PROMPT AUDIO LIFECYCLE] answerAcceptedForStage:', state.answerAcceptedForStage);
@@ -11369,13 +11504,32 @@ Reply to this message if you'd like to update or add any information.
               payload: base64Chunk
             }
           };
-          ws.send(JSON.stringify(mediaMessage));
+          try {
+            ws.send(JSON.stringify(mediaMessage), (err?: Error) => {
+              if (err) recordSendError(err);
+            });
+          } catch (sendErr) {
+            recordSendError(sendErr);
+          }
           totalChunks++;
+          // FIRST AUDIO: every byte written for the tracked greeting delivery is
+          // evidence — the first chunk is what resolves the watchdog. The
+          // completed PREROLL block is emitted at this moment so its
+          // greetingPayloadStartedAt / msFromTwilioStartToGreetingPayload
+          // fields carry real values.
+          if (state.firstAudio && state.firstAudio.deliveryIdentity === deliveryIdentity && state.firstAudioWatchdog) {
+            const isFirstGreetingPayloadByte = state.firstAudio.firstOutboundMediaAt === null;
+            state.firstAudioWatchdog.noteOutboundBytes(rawChunk.length);
+            if (isFirstGreetingPayloadByte && state.firstAudio.preRollStartedAt !== null) {
+              emitFirstAudioPreroll(state.firstAudio);
+            }
+          }
 
           // Prompt audio lifecycle logging - track last chunk send
           if (i + chunkSize >= audioBuffer.length) {
             const lastChunkAt = Date.now();
             const totalAudioDurationMs = authorizationDelayMs + (totalChunks * 20);
+            state.lastPromptExpectedDurationMs = totalAudioDurationMs;
 
             console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
             console.log('[PROMPT AUDIO LIFECYCLE] event: last_audio_chunk_queued');
@@ -11398,6 +11552,13 @@ Reply to this message if you'd like to update or add any information.
 
           // Send at real-time rate (20ms chunks)
           await new Promise(resolve => setTimeout(resolve, 20));
+
+          // A socket-level send failure means Twilio never got the audio —
+          // abort into the existing error path (voicemail fallback) rather
+          // than logging success while the caller hears silence.
+          if (firstSendError) {
+            throw firstSendError;
+          }
         }
 
         // Check if playback was interrupted before proceeding
@@ -11432,8 +11593,17 @@ Reply to this message if you'd like to update or add any information.
                 payload: silenceChunk
               }
             };
-            ws.send(JSON.stringify(mediaMessage));
+            try {
+              ws.send(JSON.stringify(mediaMessage), (err?: Error) => {
+                if (err) recordSendError(err);
+              });
+            } catch (sendErr) {
+              recordSendError(sendErr);
+            }
             await new Promise(resolve => setTimeout(resolve, 20));
+            if (firstSendError) {
+              throw firstSendError;
+            }
           }
         }
 
@@ -11450,6 +11620,9 @@ Reply to this message if you'd like to update or add any information.
         console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
         console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
         console.log('[TARGETED PROMPT DELIVERY] chunksSent:', totalChunks);
+        console.log('[TARGETED PROMPT DELIVERY] sendErrorCount:', sendErrorCount);
+        console.log('[TARGETED PROMPT DELIVERY] wsBufferedAmount:', ws.bufferedAmount);
+        console.log('[TARGETED PROMPT DELIVERY] streamSid:', state.streamSid);
         console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
 
@@ -11477,6 +11650,10 @@ Reply to this message if you'd like to update or add any information.
           return false;
         }
         ws.send(JSON.stringify(markMessage));
+        // FIRST AUDIO: mark dispatched for the tracked greeting delivery.
+        if (state.firstAudio && state.firstAudio.deliveryIdentity === deliveryIdentity && state.firstAudioWatchdog) {
+          state.firstAudioWatchdog.noteMarkSent();
+        }
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: prompt_mark_sent');
         console.log('[SIMPLE MODE] markName:', markName);
@@ -11548,9 +11725,11 @@ Reply to this message if you'd like to update or add any information.
         // LEGACY SILENCE TIMER DISABLED - current stage-timeout is now authoritative for all stages
         // Including ask_name_reason. This prevents duplicate timer systems.
 
-        // Start stage timeout for all intake stages (including ask_name_reason)
+        // Start stage timeout for all intake stages (including ask_name_reason).
+        // The initial greeting uses a shorter answer window so a caller who
+        // heard dead air gets a re-prompt before hanging up.
         if (stage !== 'complete') {
-          startStageTimeout();
+          startStageTimeout(source === 'initial_prompt' ? INITIAL_STAGE_ANSWER_WAIT_MS : STAGE_TIMEOUT_MS);
         }
 
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
@@ -11657,9 +11836,257 @@ Reply to this message if you'd like to update or add any information.
     }
   };
 
+  // ---------------------------------------------------------------------
+  // FIRST AUDIO (SEV-1): never leave a connected caller in silence.
+  //
+  // Invariant: the greeting is NOT considered delivered because a send
+  // function was invoked — only actual outbound media bytes count.
+  // ---------------------------------------------------------------------
+
+  /**
+   * Transport pre-roll for the FIRST outbound greeting only: ~500ms of valid
+   * PCMU silence (μ-law 0xFF, 8kHz → 4000 bytes, 25×160B chunks at 20ms
+   * cadence) written through the identical media framing as speech. This
+   * settles the caller-side playback path before the greeting's first byte so
+   * the first words are never clipped. Silence bytes are recorded as pre-roll
+   * facts only — they are NOT greeting evidence and cannot satisfy
+   * [AI FIRST AUDIO SUCCESS].
+   */
+  const INITIAL_GREETING_PREROLL_MS = 500;
+  const PCMU_SILENCE_BYTE = 0xff;
+
+  async function sendInitialGreetingPreroll(): Promise<boolean> {
+    const t = state.firstAudio;
+    const chunkSize = 160;
+    const silenceBytesTotal = Math.round((8000 * INITIAL_GREETING_PREROLL_MS) / 1000); // 4000
+    const totalChunks = Math.ceil(silenceBytesTotal / chunkSize); // 25
+    const silenceChunkB64 = Buffer.alloc(chunkSize, PCMU_SILENCE_BYTE).toString('base64');
+
+    t.preRollStartedAt = Date.now();
+    t.preRollChunkCount = 0;
+    t.preRollBytes = 0;
+    t.preRollAborted = false;
+
+    for (let c = 0; c < totalChunks; c++) {
+      // Abort on socket loss, call close (resolved), or an interrupt — never
+      // keep writing silence into a dead stream.
+      if (ws.readyState !== WebSocket.OPEN || t.resolved || state.cachedPlaybackInterrupted) {
+        t.preRollAborted = true;
+        t.preRollCompletedAt = Date.now();
+        emitFirstAudioPreroll(t);
+        return false;
+      }
+      try {
+        ws.send(JSON.stringify({
+          event: 'media',
+          streamSid: state.streamSid,
+          media: { payload: silenceChunkB64 }
+        }));
+        state.firstAudioWatchdog?.notePreRollChunk(chunkSize);
+      } catch {
+        t.preRollAborted = true;
+        t.preRollCompletedAt = Date.now();
+        emitFirstAudioPreroll(t);
+        return false;
+      }
+      if (c < totalChunks - 1) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+    }
+    t.preRollCompletedAt = Date.now();
+    emitFirstAudioPreroll(t);
+    return true;
+  }
+
+  /**
+   * Emergency audible fallback — fully independent of OpenAI Realtime, cached
+   * audio, prompt selection, and the send path that just failed. Uses the
+   * Twilio REST API to redirect the live call through an inline TwiML <Say>
+   * into the existing voicemail endpoint, so the caller hears something and
+   * can still leave their information. If REST is unavailable or fails, the
+   * call is terminated fail-closed (lead preserved) — never silent.
+   */
+  async function emergencyFirstAudioFallback(reason: string): Promise<void> {
+    const tracker = state.firstAudio;
+    console.log('[AI FIRST AUDIO EMERGENCY] =========================================');
+    console.log('[AI FIRST AUDIO EMERGENCY] event: emergency_audible_fallback_started');
+    console.log('[AI FIRST AUDIO EMERGENCY] callSid:', state.callSid);
+    console.log('[AI FIRST AUDIO EMERGENCY] reason:', reason);
+    console.log('[AI FIRST AUDIO EMERGENCY] Timestamp:', new Date().toISOString());
+    console.log('[AI FIRST AUDIO EMERGENCY] =========================================');
+
+    if (state.aiSessionTracker) {
+      recordAIFailure(state.aiSessionTracker, 'VOICEMAIL_FALLBACK', `first_audio: ${reason}`);
+    }
+
+    try {
+      const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+      if (!twilioAccountSid || !twilioAuthToken) {
+        throw new Error('missing_twilio_credentials');
+      }
+      const twilioClient = require('twilio')(twilioAccountSid, twilioAuthToken);
+      const voicemailUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'}/api/twilio/voicemail`;
+      // Inline TwiML — no hosted endpoint dependency. Caller hears one line,
+      // then the existing voicemail flow captures their message.
+      const emergencyTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="alice">Thanks for calling. One moment while I get things ready.</Say><Redirect method="POST">${voicemailUrl}</Redirect></Response>`;
+      await twilioClient.calls(state.callSid).update({ twiml: emergencyTwiml });
+      console.log('[AI FIRST AUDIO EMERGENCY] event: emergency_twiml_redirect_sent');
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close(1008, 'First audio emergency fallback');
+      }
+    } catch (error) {
+      // Emergency path itself failed — fail closed: preserve the lead and
+      // terminate rather than leave a silently connected caller.
+      console.log('[AI FIRST AUDIO EMERGENCY] =========================================');
+      console.log('[AI FIRST AUDIO EMERGENCY] event: emergency_fallback_failed');
+      console.log('[AI FIRST AUDIO EMERGENCY] error:', error instanceof Error ? error.message : String(error));
+      console.log('[AI FIRST AUDIO EMERGENCY] action: terminate_fail_closed');
+      console.log('[AI FIRST AUDIO EMERGENCY] =========================================');
+      try {
+        await createFallbackLead(
+          state.callSid,
+          state.businessId,
+          state.callerPhone,
+          state.businessPhone,
+          state.businessName,
+          state.forwardedFrom,
+          `first_audio_emergency_fallback: ${reason} (${error instanceof Error ? error.message : String(error)})`
+        );
+      } catch {}
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close(1008, 'First audio emergency fallback');
+      }
+    }
+  }
+
+  /**
+   * Arm the first-audio watchdog for this call. Callbacks are wired here so
+   * the watchdog itself stays transport-agnostic and unit-testable.
+   */
+  function armFirstAudioWatchdog(): void {
+    if (state.firstAudioWatchdog || state.firstAudio.resolved) return;
+    state.firstAudioWatchdog = new FirstAudioWatchdog({
+      getWebsocketState: () => ws.readyState,
+      onSuccess: (t) => {
+        emitFirstAudioTrace(t);
+        emitFirstAudioSuccess(t);
+      },
+      onFailure: (t, ctx) => {
+        emitFirstAudioTrace(t);
+        emitFirstAudioFailure(t, ctx);
+      },
+      // Recovery level 1: retry the SAME cached greeting exactly once.
+      // Uses the shared reprompt sequence so the retry's delivery identity can
+      // never collide with the original send or an unrelated reprompt.
+      onRetry: (attempt) => {
+        if (state.firstAudio.resolved) return;
+        if (String(state.aiSessionTracker?.currentState) === 'FAILED') return;
+        const repromptAttempt = nextRepromptDeliveryAttempt(
+          state,
+          state.currentTurnId,
+          state.currentStage,
+          'first_audio_watchdog'
+        );
+        console.log('[AI FIRST AUDIO RECOVERY] =========================================');
+        console.log('[AI FIRST AUDIO RECOVERY] event: greeting_retry_authorized');
+        console.log('[AI FIRST AUDIO RECOVERY] callSid:', state.callSid);
+        console.log('[AI FIRST AUDIO RECOVERY] retryAttempt:', attempt);
+        console.log('[AI FIRST AUDIO RECOVERY] repromptAttempt:', repromptAttempt);
+        console.log('[AI FIRST AUDIO RECOVERY] Timestamp:', new Date().toISOString());
+        console.log('[AI FIRST AUDIO RECOVERY] =========================================');
+        const t = state.firstAudio;
+        t.deliveryInFlight = true;
+        Promise.resolve(
+          sendPrompt(state.currentStage, undefined, 'initial_prompt', state.currentTurnId, repromptAttempt ?? attempt)
+        ).finally(() => {
+          t.deliveryInFlight = false;
+        });
+      },
+      // Recovery level 2: independent emergency audible fallback.
+      onEmergencyFallback: (reason) => {
+        void emergencyFirstAudioFallback(reason);
+      },
+    }, state.firstAudio);
+    state.firstAudioWatchdog.arm();
+  }
+
+  /**
+   * Authorize the initial greeting as soon as the Twilio media stream is
+   * usable — the cached greeting is deterministic PCMU and does not depend on
+   * the OpenAI handshake. Idempotent: initialPromptSent is the latch, and
+   * sendPrompt's sentPrompts identity blocks a duplicate dispatch even if a
+   * later path tries again.
+   */
+  function authorizeInitialGreeting(): void {
+    const t = state.firstAudio;
+    if (!state.streamSid || state.initialPromptSent || t.resolved) return;
+    state.initialPromptSent = true;
+    t.greetingAuthorizedAt = Date.now();
+    t.stage = state.currentStage;
+    emitFirstAudioTrace(t);
+    t.deliveryInFlight = true;
+    Promise.resolve(
+      sendPrompt(state.currentStage, undefined, 'initial_prompt', state.currentTurnId)
+    ).finally(() => {
+      t.deliveryInFlight = false;
+    });
+  }
+
   // Only send the first prompt after both session.created and session.updated arrive
+  // AND the Twilio `start` frame has landed. Media sent before `start` carries no
+  // streamSid and is silently dropped by Twilio — the caller hears silence while
+  // every chunk logs as delivered. The invariant is currently structural (the
+  // OpenAI socket is opened inside the start handler) but is made explicit here
+  // so a future reorder cannot reintroduce the silent-drop race.
   function maybeSendInitialPrompt() {
-    if (state.sessionCreatedReceived && state.sessionUpdatedReceived && !state.initialPromptSent) {
+    // state.firstAudio.resolved — the tracker is terminal once the emergency
+    // path owns the call; a late session handshake must never dispatch a
+    // greeting after that.
+    if (state.sessionCreatedReceived && state.sessionUpdatedReceived && !state.initialPromptSent && !state.firstAudio?.resolved) {
+      if (!state.streamSid) {
+        if (!state.initialPromptWaitingForStart) {
+          state.initialPromptWaitingForStart = true;
+          console.log('[SESSION_READY] =========================================');
+          console.log('[SESSION_READY] event: initial_prompt_deferred_no_streamSid');
+          console.log('[SESSION_READY] callSid:', state.callSid);
+          console.log('[SESSION_READY] reason: twilio_start_not_received_yet');
+          console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
+          console.log('[SESSION_READY] =========================================');
+
+          // Bounded wait: without `start` no audio path exists at all, so fail
+          // safely rather than dead-air the call waiting on a broken stream.
+          state.initialPromptWaitTimeout = setTimeout(() => {
+            state.initialPromptWaitTimeout = null;
+            if (!state.streamSid && !state.initialPromptSent) {
+              console.log('[SESSION_READY] =========================================');
+              console.log('[SESSION_READY] event: twilio_start_never_received');
+              console.log('[SESSION_READY] callSid:', state.callSid);
+              console.log('[SESSION_READY] waitMs: 3000');
+              console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
+              console.log('[SESSION_READY] =========================================');
+              triggerVoicemailFallback(
+                ws,
+                twilioHandler,
+                state.aiSessionTracker,
+                'Twilio start event not received within 3s of session ready - media stream unusable',
+                state.callSid,
+                state.businessId,
+                state.callerPhone,
+                state.businessPhone,
+                state.businessName,
+                state.forwardedFrom
+              );
+            }
+          }, 3000);
+        }
+        return;
+      }
+      state.initialPromptWaitingForStart = false;
+      if (state.initialPromptWaitTimeout) {
+        clearTimeout(state.initialPromptWaitTimeout);
+        state.initialPromptWaitTimeout = null;
+      }
       state.initialPromptSent = true;
       if (state.sessionReadyTimeout) {
         clearTimeout(state.sessionReadyTimeout);
@@ -11693,6 +12120,10 @@ Reply to this message if you'd like to update or add any information.
 
       if (message.event === 'start') {
         state.streamSid = message.streamSid;
+        // FIRST AUDIO: the watchdog clock starts here — the stream is now able
+        // to carry outbound audio.
+        state.firstAudio.streamSid = message.streamSid || '';
+        state.firstAudio.twilioStartReceivedAt = Date.now();
 
         console.log('[TWILIO_START_RECEIVED] =========================================');
         console.log('[TWILIO_START_RECEIVED] event: twilio_start_received');
@@ -11704,6 +12135,11 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_twilio_start_raw_keys');
         console.log('[SIMPLE MODE] startKeys:', Object.keys(message.start || {}));
+        // Stream config values, not just key names — an inbound-only track or
+        // an unexpected mediaFormat would make outbound audio silently
+        // undeliverable, and key names alone cannot prove otherwise.
+        console.log('[SIMPLE MODE] startTracks:', JSON.stringify(message.start?.tracks ?? null));
+        console.log('[SIMPLE MODE] startMediaFormat:', JSON.stringify(message.start?.mediaFormat ?? null));
         console.log('[SIMPLE MODE] =========================================');
 
         // Log custom parameters if present
@@ -11788,6 +12224,14 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] businessId:', state.businessId);
         console.log('[SIMPLE MODE] =========================================');
 
+        // FIRST AUDIO (SEV-1): the media stream can carry outbound audio and
+        // call context is resolved — arm the byte-verified watchdog and
+        // authorize the deterministic cached greeting NOW, before the OpenAI
+        // handshake. Initial audibility must never wait on OpenAI.
+        state.firstAudio.callSid = state.callSid;
+        armFirstAudioWatchdog();
+        authorizeInitialGreeting();
+
         // Load authoritative service_location_type now that businessId is resolved
         try {
           // Fire-and-forget; resolution completes quickly and before any stage advancement matters
@@ -11802,6 +12246,18 @@ Reply to this message if you'd like to update or add any information.
           businessId: state.businessId,
           hasCustomParams: !!customParams && Object.keys(customParams).length > 0
         });
+
+        // If the OpenAI session became ready before this `start` frame, the
+        // initial prompt was deferred waiting for streamSid — release it now.
+        if (state.initialPromptWaitingForStart) {
+          console.log('[SESSION_READY] =========================================');
+          console.log('[SESSION_READY] event: twilio_start_released_deferred_prompt');
+          console.log('[SESSION_READY] callSid:', state.callSid);
+          console.log('[SESSION_READY] streamSid:', state.streamSid);
+          console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
+          console.log('[SESSION_READY] =========================================');
+          maybeSendInitialPrompt();
+        }
 
         // Connect to OpenAI Realtime - use same URL as legacy
         const openAiUrl = createOpenAIRealtimeUrl();
@@ -12009,6 +12465,45 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] session.id:', message.session?.id);
             console.log('[SIMPLE MODE] session.audio:', JSON.stringify(message.session?.audio));
             console.log('[SIMPLE MODE] =========================================');
+
+            // FIRST AUDIO stage-silence parity: under the decoupled greeting,
+            // sendPrompt ran before the OpenAI socket was open and therefore
+            // skipped its stage-specific silence_duration_ms push. Re-apply the
+            // identical payload now — only while still on the greeting stage —
+            // so stage-1 VAD behavior is byte-for-byte what it was when the
+            // greeting was gated on session.updated.
+            if (
+              state.openAiWs &&
+              state.openAiWs.readyState === WebSocket.OPEN &&
+              state.firstAudio &&
+              state.currentStage === state.firstAudio.stage &&
+              state.stageSilenceSyncedForStage !== state.currentStage
+            ) {
+              state.stageSilenceSyncedForStage = state.currentStage;
+              const resyncSilenceMs = getStageSilenceMs(state.currentStage);
+              try {
+                state.openAiWs.send(JSON.stringify({
+                  type: "session.update",
+                  session: {
+                    type: "realtime",
+                    audio: {
+                      input: {
+                        turn_detection: {
+                          type: "server_vad",
+                          threshold: 0.52,
+                          prefix_padding_ms: 500,
+                          silence_duration_ms: resyncSilenceMs,
+                          create_response: false
+                        }
+                      }
+                    }
+                  }
+                }));
+                console.log('[STAGE-SPECIFIC TIMING] session.update sent with silence_duration_ms (first-audio resync):', resyncSilenceMs);
+              } catch (error) {
+                console.log('[STAGE-SPECIFIC TIMING] Failed to send first-audio resync session.update:', error);
+              }
+            }
             maybeSendInitialPrompt();
           } else if (message.type === 'error') {
             console.log('[OPENAI_EVENT_ERROR] =========================================');
@@ -12278,11 +12773,31 @@ Reply to this message if you'd like to update or add any information.
             console.log('[TRANSCRIPTION WATCHDOG] =========================================');
 
             if (state.assistantSpeaking) {
-              console.log('[SIMPLE MODE] =========================================');
-              console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
-              console.log('[SIMPLE MODE] stage:', state.currentStage);
-              console.log('[SIMPLE MODE] =========================================');
-              state.cachedPlaybackInterrupted = true;
+              // Answer-noise grace: a speech_started inside the first moments of
+              // the initial greeting is almost always the caller's "hello?" or
+              // line noise. Aborting the greeting there leaves a one-word
+              // fragment followed by dead air — perceived as total silence.
+              // Suppress interruption during the grace window; barge-in still
+              // applies after the prompt is genuinely underway, and the speech
+              // is still transcribed for extraction regardless.
+              const INITIAL_PROMPT_INTERRUPT_GRACE_MS = 1500;
+              const initialPromptGraceActive =
+                !!state.initialPromptStartedAt &&
+                (speechStartedAt - state.initialPromptStartedAt) < INITIAL_PROMPT_INTERRUPT_GRACE_MS;
+              if (initialPromptGraceActive) {
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: initial_prompt_interrupt_suppressed');
+                console.log('[SIMPLE MODE] stage:', state.currentStage);
+                console.log('[SIMPLE MODE] elapsedMsSincePromptStart:', speechStartedAt - state.initialPromptStartedAt);
+                console.log('[SIMPLE MODE] graceMs:', INITIAL_PROMPT_INTERRUPT_GRACE_MS);
+                console.log('[SIMPLE MODE] =========================================');
+              } else {
+                console.log('[SIMPLE MODE] =========================================');
+                console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
+                console.log('[SIMPLE MODE] stage:', state.currentStage);
+                console.log('[SIMPLE MODE] =========================================');
+                state.cachedPlaybackInterrupted = true;
+              }
             }
           } else if (message.type === 'input_audio_buffer.speech_stopped') {
             const speechStoppedAt = Date.now();
@@ -14083,6 +14598,36 @@ Reply to this message if you'd like to update or add any information.
           console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
           console.log('[MARK VALIDATION] =========================================');
 
+          // FIRST AUDIO: Twilio confirmed the greeting's buffered audio finished.
+          if (state.firstAudio && stage === state.firstAudio.stage && state.firstAudioWatchdog) {
+            state.firstAudioWatchdog.noteMarkReceived();
+          }
+
+          // Playback plausibility: a mark proves only that Twilio consumed the
+          // outbound buffer — NOT that the caller heard anything. Chunks are
+          // streamed at ~real-time pace, so a mark arriving well before the
+          // prompt's audio duration means the buffer was flushed or dropped
+          // (audio physically could not have played). Log it explicitly so a
+          // silent call is distinguishable from healthy playout.
+          const markLatencyMs = state.promptAudioStartedAt ? Date.now() - state.promptAudioStartedAt : null;
+          console.log('[MARK VALIDATION] markLatencyMs:', markLatencyMs);
+          console.log('[MARK VALIDATION] expectedAudioDurationMs:', state.lastPromptExpectedDurationMs);
+          if (
+            markLatencyMs !== null &&
+            state.lastPromptExpectedDurationMs > 0 &&
+            markLatencyMs < state.lastPromptExpectedDurationMs - 1000
+          ) {
+            console.log('[MARK VALIDATION] =========================================');
+            console.log('[MARK VALIDATION] event: implausible_mark_timing');
+            console.log('[MARK VALIDATION] callSid:', state.callSid);
+            console.log('[MARK VALIDATION] markName:', message.mark.name);
+            console.log('[MARK VALIDATION] markLatencyMs:', markLatencyMs);
+            console.log('[MARK VALIDATION] expectedAudioDurationMs:', state.lastPromptExpectedDurationMs);
+            console.log('[MARK VALIDATION] interpretation: outbound buffer consumed too fast - audio likely not played to caller');
+            console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
+            console.log('[MARK VALIDATION] =========================================');
+          }
+
           // Validate that the mark is for the current stage
           if (stage !== state.currentStage) {
             console.log('[MARK VALIDATION] =========================================');
@@ -14226,6 +14771,15 @@ Reply to this message if you'd like to update or add any information.
     if (state.sessionReadyTimeout) {
       clearTimeout(state.sessionReadyTimeout);
       state.sessionReadyTimeout = null;
+    }
+    // FIRST AUDIO: this call's watchdog dies with its socket — a dead timer
+    // can never fire post-close or reach another call.
+    if (state.firstAudioWatchdog) {
+      state.firstAudioWatchdog.clear();
+    }
+    if (state.firstAudio) {
+      state.firstAudio.resolved = true;
+      state.firstAudio.deliveryInFlight = false;
     }
 
     console.log('[SIMPLE MODE] WebSocket closed');
@@ -15535,7 +16089,7 @@ wss.on('connection', (ws, req) => {
         });
 
         try {
-          const callerName = extractedFields.callerName || null;
+          const callerName = normalizeCustomerName(extractedFields.callerName) || null;
           const serviceRequested = extractedFields.reasonForCalling || null;
 
           const notificationPayload = {

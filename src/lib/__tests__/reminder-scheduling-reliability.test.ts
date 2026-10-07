@@ -46,7 +46,9 @@ function makeDeps(overrides: Partial<{
   clearStaleSchedules: () => Promise<number>
   reReadTask: (id: string) => Promise<any | null>
   insertNotification: (n: any) => Promise<any>
-  sendPush: (n: any) => Promise<void>
+  sendPush: (n: any) => Promise<any>
+  findNotificationByIdempotencyKey: (key: string) => Promise<any | null>
+  hasSuccessfulPushDelivery: (notificationId: string) => Promise<boolean>
   clearSchedule: (taskId: string, notifyAt: string) => Promise<void>
 }> = {}) {
   return {
@@ -54,7 +56,10 @@ function makeDeps(overrides: Partial<{
     clearStaleSchedules: overrides.clearStaleSchedules || (async () => 0),
     reReadTask: overrides.reReadTask || (async () => null),
     insertNotification: overrides.insertNotification || (vi.fn().mockResolvedValue({ id: 'notif-123' })),
-    sendPush: overrides.sendPush || (vi.fn().mockResolvedValue(undefined)),
+    sendPush: overrides.sendPush || (vi.fn().mockResolvedValue({ attempted: 1, successful: 1, failed: 0 })),
+    findNotificationByIdempotencyKey: overrides.findNotificationByIdempotencyKey ||
+      (vi.fn().mockResolvedValue({ id: 'notif-123', business_id: 'biz-1', type: 'reminder', title: 'Reminder', message: 'Test Reminder', action_url: '/dashboard/calendar', data: { taskId: 'task-1' } })),
+    hasSuccessfulPushDelivery: overrides.hasSuccessfulPushDelivery || (vi.fn().mockResolvedValue(true)),
     clearSchedule: overrides.clearSchedule || (vi.fn().mockResolvedValue(undefined)),
   }
 }
@@ -91,7 +96,7 @@ describe('Reminder Scheduling Reliability', () => {
 
     it('worker processes a due reminder and creates a notification', async () => {
       const mockInsert = vi.fn().mockResolvedValue({ id: 'notif-123' })
-      const mockSendPush = vi.fn().mockResolvedValue(undefined)
+      const mockSendPush = vi.fn().mockResolvedValue({ attempted: 1, successful: 1, failed: 0 })
       const mockClear = vi.fn().mockResolvedValue(undefined)
       const task = makeTask()
       const deps = makeDeps({
@@ -240,7 +245,7 @@ describe('Reminder Scheduling Reliability', () => {
 
   // 8. Repeated scheduler run does not duplicate
   describe('8. repeated scheduler run does not duplicate', () => {
-    it('duplicate insert (23505) is treated as success and schedule is cleared', async () => {
+    it('duplicate insert (23505) with proven delivery is treated as success and schedule is cleared', async () => {
       const task = makeTask()
       const mockInsert = vi.fn().mockResolvedValue({
         error: { code: '23505' }, // Unique constraint violation
@@ -250,6 +255,7 @@ describe('Reminder Scheduling Reliability', () => {
         fetchEligibleTasks: async () => [task],
         reReadTask: async () => task,
         insertNotification: mockInsert,
+        // Defaults: existing notification row + proven prior delivery
         clearSchedule: mockClear,
       })
       const result = await processReminderNotifications(deps)
@@ -372,8 +378,8 @@ describe('Reminder Scheduling Reliability', () => {
   })
 
   // 12. Transient push failure retries (push layer, not worker)
-  describe('12. transient push failure does not fail the worker', () => {
-    it('worker counts notification as sent even if push throws', async () => {
+  describe('12. unproven push failure is never counted as sent', () => {
+    it('worker counts reminder as failed (not sent) when push throws', async () => {
       const task = makeTask()
       const mockSendPush = vi.fn().mockRejectedValue(new Error('FCM transient error'))
       const mockClear = vi.fn().mockResolvedValue(undefined)
@@ -384,16 +390,16 @@ describe('Reminder Scheduling Reliability', () => {
         clearSchedule: mockClear,
       })
       const result = await processReminderNotifications(deps)
-      expect(result.sent).toBe(1)
-      expect(result.failed).toBe(0)
-      // Schedule is still cleared (notification was created)
-      expect(mockClear).toHaveBeenCalled()
+      expect(result.sent).toBe(0)
+      expect(result.failed).toBe(1)
+      // Schedule is kept so a later run retries through the duplicate path
+      expect(mockClear).not.toHaveBeenCalled()
     })
   })
 
   // 13. Permanent token failure handled correctly
   describe('13. permanent token failure does not block notification', () => {
-    it('worker does not fail if push delivery reports permanent failure', async () => {
+    it('worker reports failed when push delivery throws', async () => {
       const task = makeTask()
       const mockSendPush = vi.fn().mockRejectedValue(
         new Error('messaging/registration-token-not-registered')
@@ -404,9 +410,9 @@ describe('Reminder Scheduling Reliability', () => {
         sendPush: mockSendPush,
       })
       const result = await processReminderNotifications(deps)
-      // Notification is still created and counted as sent
-      expect(result.sent).toBe(1)
-      expect(result.failed).toBe(0)
+      // Delivery was never proven — failed, not silently sent
+      expect(result.sent).toBe(0)
+      expect(result.failed).toBe(1)
     })
   })
 

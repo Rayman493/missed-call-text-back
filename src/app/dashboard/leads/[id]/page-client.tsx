@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
 import AttachmentActionSheet from '@/components/conversation/AttachmentActionSheet'
+import AttachmentPreviewThumb from '@/components/conversation/AttachmentPreviewThumb'
 import BusinessNumberPanel from '@/components/BusinessNumberPanel'
 import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
@@ -27,7 +28,7 @@ import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime } from '@/lib/utils'
+import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName, getInitialsFromName, formatDateTime, capitalizeFirstAlpha } from '@/lib/utils'
 import { formatTime12Hour } from '@/lib/calendar-date-utils'
 import { getCustomerSourceInfo } from '@/lib/customer-source'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -475,6 +476,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [highlightedTimelineItemId, setHighlightedTimelineItemId] = useState<string | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
+  // Desktop sidebar scroll state — drives the "more content below" fade so the
+  // Customer Context panel never looks clipped when sections continue below.
+  const sidebarScrollRef = useRef<HTMLDivElement>(null)
+  const [sidebarHasMoreBelow, setSidebarHasMoreBelow] = useState(false)
+  const updateSidebarScrollState = useCallback(() => {
+    const el = sidebarScrollRef.current
+    if (!el) return
+    setSidebarHasMoreBelow(el.scrollTop + el.clientHeight < el.scrollHeight - 4)
+  }, [])
+  useEffect(() => {
+    const el = sidebarScrollRef.current
+    if (!el) return
+    updateSidebarScrollState()
+    const observer = new ResizeObserver(updateSidebarScrollState)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [updateSidebarScrollState, leadData])
   // Outer mobile conversation card — its height is measured (not estimated)
   // against the live visual viewport so the software keyboard cannot squeeze
   // or hide the composer.
@@ -2187,7 +2205,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // getBoundingClientRect is already in layout-viewport coordinates;
       // visibleBottom converts the visual viewport into the same space.
       const cardTop = card.getBoundingClientRect().top
-      const available = visibleBottom - cardTop - navHeight - 8
+      // cardTop goes NEGATIVE when the outer page is scrolled so the card's
+      // top sits above the viewport. Subtracting it inflated `available`
+      // past the visible viewport and produced a multi-viewport card with a
+      // huge blank region above the composer (observed after scrolling the
+      // customer page down and back). Clamp the top to the viewport edge and
+      // cap the result at the visible area — the card can never legitimately
+      // be taller than the visual viewport minus the bottom nav.
+      const boundedTop = Math.max(0, cardTop)
+      const maxHeight = visibleBottom - navHeight - 8
+      const available = Math.min(maxHeight, visibleBottom - boundedTop - navHeight - 8)
       // Floor must stay below the smallest usable space: iOS keyboards (with
       // the predictive bar) can leave <220px between the customer header and
       // the keyboard on small devices. A 220px floor pushed the composer under
@@ -5497,11 +5524,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           )
                         })()}
                       </div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <p className="text-sm text-muted-foreground leading-tight truncate">
-                          {getLeadRequestTitle(leadData || lead) || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
-                        </p>
-                      </div>
+                      {/* Header subtitle — the same canonical current request
+                          shown as "Reason for Calling" in Customer Context. */}
+                      <p className="text-sm text-muted-foreground leading-tight truncate">
+                        {(() => {
+                          const headerReason = getCurrentCustomerContext(leadData || lead).reasonForCalling
+                          return headerReason ? capitalizeFirstAlpha(headerReason) : 'No request'
+                        })()}
+                      </p>
                       <div className="flex items-center gap-3">
                         <p className="text-sm text-muted-foreground/80 leading-tight">
                           {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
@@ -5640,7 +5670,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
-          <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 h-full min-h-0">
+          <div className="grid grid-cols-[minmax(0,3fr)_minmax(340px,420px)] gap-6 h-full min-h-0">
             {/* Desktop Conversation Section - Primary workspace */}
             <section className="flex flex-col h-full min-h-0 bg-card rounded-xl border border-slate-300 dark:border-border shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
@@ -5757,7 +5787,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Desktop Sidebar - Premium Card */}
             <aside className="h-full min-h-0" data-sidebar>
-              <div className="h-full min-h-0 bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar">
+              <div className="relative h-full min-h-0">
+              <div
+                ref={sidebarScrollRef}
+                onScroll={updateSidebarScrollState}
+                className="h-full min-h-0 bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar"
+              >
                 {(() => {
                   const paymentRequests = leadData?.paymentRequests || []
                   return (
@@ -6122,6 +6157,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )
                 })()}
               </div>
+              {sidebarHasMoreBelow && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 rounded-b-2xl bg-gradient-to-t from-background to-transparent"
+                />
+              )}
+              </div>
             </aside>
           </div>
         )}
@@ -6132,7 +6174,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
           <div className="px-4 sm:px-5 space-y-3 pb-[calc(1rem+var(--bottom-nav-height,72px))]">
           {/* Conversation Workspace Card - Fixed height with internal scrolling */}
-          <div ref={mobileWorkspaceCardRef} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(var(--visual-viewport-height,100dvh)-7rem-var(--bottom-nav-height,72px))]">
+          <div ref={mobileWorkspaceCardRef} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0 h-[calc(var(--visual-viewport-height,100dvh)-7rem-var(--bottom-nav-height,72px))] max-h-[calc(var(--visual-viewport-height,100dvh)-var(--bottom-nav-height,72px))]">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -6233,27 +6275,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <span>{composerError}</span>
                       </div>
                     )}
-                    {/* Image Previews */}
+                    {/* Attachment Previews — images get data-URL thumbnails
+                        (Capacitor-safe); PDF/CSV/video get a compact file card.
+                        Failed image previews degrade to the file card so the
+                        browser broken-image UI is never shown. */}
                     {mobileImages.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-2">
                         {mobileImages.map((file, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt="Preview"
-                              className="w-16 h-16 object-cover rounded-md border border-border/30 transition-opacity duration-200"
-                            />
-                            <button
-                              onClick={() => removeMobileImage(index)}
-                              className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full transition-colors hover:bg-red-600"
-                              type="button"
-                              aria-label="Remove attachment"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
+                          <AttachmentPreviewThumb
+                            key={index}
+                            file={file}
+                            onRemove={() => removeMobileImage(index)}
+                          />
                         ))}
                       </div>
                     )}

@@ -14,6 +14,7 @@ import AddCustomerModal from '@/components/AddCustomerModal'
 import JobTimer from '@/components/jobs/JobTimer'
 import { firstNonPlaceholder, normalizeEditableContext, getCustomerDisplayName } from '@/components/payments/customer-search-helpers'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
+import { showToast as showDomToast } from '@/lib/toast'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { getDateInputValueInTimeZone } from '@/lib/business-date-utils'
 
@@ -103,9 +104,6 @@ export default function JobComposer({
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [scheduledEndTime, setScheduledEndTime] = useState('')
-  // Track whether the user has explicitly touched the end-time field.
-  // Used to avoid overwriting a user-edited end time with the start+1h default.
-  const [endTimeTouched, setEndTimeTouched] = useState(false)
   const [status, setStatus] = useState<JobStatus>('scheduled')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -216,7 +214,6 @@ export default function JobComposer({
       setScheduledDate(editJob.scheduled_date || '')
       setScheduledTime(editJob.scheduled_time?.slice(0, 5) || '')
       setScheduledEndTime(editJob.scheduled_end_time?.slice(0, 5) || '')
-      setEndTimeTouched(true) // Edit mode: never auto-overwrite stored end
       setStatus(editJob.status)
       setLeadId(editJob.lead_id || null)
       setLeadDisplay(editJob.customer_name || editJob.service_address || 'Customer')
@@ -229,7 +226,6 @@ export default function JobComposer({
       setScheduledDate(prefill?.scheduled_date || (defaultDate ? getDateInputValueInTimeZone(defaultDate, timezone) : ''))
       setScheduledTime(prefill?.scheduled_time || '')
       setScheduledEndTime(prefill?.scheduled_end_time || '')
-      setEndTimeTouched(!!prefill?.scheduled_end_time) // Prefilled end is intentional; don't auto-overwrite
       setStatus('scheduled')
       setLeadId(prefill?.lead_id || null)
       setLeadDisplay(prefill?.customer_name || prefill?.service_address || null)
@@ -238,40 +234,32 @@ export default function JobComposer({
     setEditScope('occurrence')
   }, [isOpen, editJob, prefill, defaultDate])
 
-  // Default end time to start + 1 hour, but only while the end field is unset
-  // AND the user has not explicitly touched it. Once touched, the user's value
-  // is preserved even if start changes. Same-day jobs only: if start + 1 hour
-  // would cross midnight (e.g. 23:30 -> 24:30), leave End Time empty and require
-  // the user to select a valid same-day end. Do NOT invent overnight support.
-  useEffect(() => {
-    if (!isOpen || endTimeTouched) return
-    if (!scheduledTime) {
-      setScheduledEndTime('')
-      return
-    }
-    const [h, m] = scheduledTime.split(':').map(Number)
-    if (isNaN(h) || isNaN(m)) return
-    const endH = h + 1
-    if (endH >= 24) {
-      // +1 hour crosses midnight — same-day constraint forbids auto-default.
-      // Leave End Time empty; user must pick a valid same-day end.
-      setScheduledEndTime('')
-      return
-    }
-    setScheduledEndTime(`${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
-  }, [isOpen, scheduledTime, endTimeTouched])
+  // End Time is never auto-derived from Start Time — the app does not know
+  // the job's duration, so the field stays empty until the user picks one.
+  // Server-side validation still requires end > start when both are set.
 
   if (!isOpen) return null
+
+  // Submit-blocking validation errors render inline at the bottom of a
+  // scrollable modal where they are easy to miss — also surface them via the
+  // app's toast. When the host provides no toast channel (e.g. customer detail
+  // page), fall back to the DOM toast util so the feedback is never silent.
+  const notifyValidationError = (message: string) => {
+    if (onShowToast) onShowToast(message, 'error')
+    else showDomToast(message, 'error')
+  }
 
   const handleSave = async () => {
     if (!title.trim()) {
       setError('Job title is required')
+      notifyValidationError('Job title is required.')
       return
     }
     
     // Require lead_id for new jobs (not edits)
     if (!editJob && !leadId) {
       setError('Please select a customer to create this job')
+      notifyValidationError('Please select a customer to create this job.')
       return
     }
     
@@ -362,7 +350,7 @@ export default function JobComposer({
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-5 pb-2">
             {!editJob && (
               <p className="text-sm text-muted-foreground">
                 Create and schedule work for this customer.
@@ -476,26 +464,28 @@ export default function JobComposer({
               </div>
 
             {/* Date + Start/End Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <DatePicker
-                value={scheduledDate}
-                onChange={setScheduledDate}
-                label="Date"
-              />
-              <TimePicker
-                value={scheduledTime}
-                onChange={setScheduledTime}
-                label="Start Time"
-              />
-              <TimePicker
-                value={scheduledEndTime}
-                onChange={(v) => { setScheduledEndTime(v); setEndTimeTouched(true) }}
-                label="End Time"
-              />
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <DatePicker
+                  value={scheduledDate}
+                  onChange={setScheduledDate}
+                  label="Date"
+                />
+                <TimePicker
+                  value={scheduledTime}
+                  onChange={setScheduledTime}
+                  label="Start Time"
+                />
+                <TimePicker
+                  value={scheduledEndTime}
+                  onChange={setScheduledEndTime}
+                  label="End Time"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground/70 leading-snug">
+                Optional. Add a date and time to place this job on your schedule. End time is set only if you choose one.
+              </p>
             </div>
-            <p className="text-[10px] text-muted-foreground/70">
-              Optional. Add a date and time to place this job on your schedule. End time defaults to start + 1 hour.
-            </p>
 
             {/* Recurrence — available whenever this item is not already part
                 of a series; requires a scheduled date (series members use the

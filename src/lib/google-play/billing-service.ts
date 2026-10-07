@@ -278,8 +278,14 @@ export async function verifyAndApplyPurchase(
   // and RTDN paths have no client context).
   const offerId = sub.lineItems?.[0]?.offerDetails?.offerId ?? ''
   const offerIsTrial = /trial/i.test(offerId)
-  const isTrial = args.usedTrialOffer ??
-    (business.google_play_purchase_token === purchaseToken ? business.google_play_is_trial || offerIsTrial : offerIsTrial)
+  // Renewal detection: Google Play renewal order ids carry a "..N" suffix
+  // ("GPA.XXXX-…-XXXXX..0" = first renewal). Once Google has billed a renewal,
+  // the subscription is genuinely paid — the trial label must not persist.
+  // This is authoritative on every verify path (client, reconcile, RTDN).
+  const renewalOccurred = /\.\.\d+$/.test(sub.latestOrderId ?? '')
+  const isTrial = !renewalOccurred &&
+    (args.usedTrialOffer ??
+      (business.google_play_purchase_token === purchaseToken ? business.google_play_is_trial || offerIsTrial : offerIsTrial))
 
   const mapped = mapPlayEntitlement(sub, { isTrial, revoked: args.forceRevoked })
   const expiry = mapped.currentPeriodEnd

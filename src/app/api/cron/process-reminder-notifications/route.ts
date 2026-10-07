@@ -133,7 +133,43 @@ export async function POST(request: Request) {
       },
 
       sendPush: async (notification) => {
-        await sendPushForNotification(notification);
+        const r = await sendPushForNotification(notification);
+        return {
+          attempted: r.android.attempted + r.ios.attempted,
+          successful: r.android.successful + r.ios.successful,
+          failed: r.android.failed + r.ios.failed,
+          terminalFailure: r.allFailuresPermanent === true,
+          error: r.error,
+        };
+      },
+
+      findNotificationByIdempotencyKey: async (key: string) => {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('id, business_id, type, title, message, action_url, data')
+          .eq('idempotency_key', key)
+          .maybeSingle();
+
+        if (error) {
+          console.error('[REMINDER_SCAN] Failed to load notification for idempotency key:', error);
+          return null;
+        }
+        return data;
+      },
+
+      hasSuccessfulPushDelivery: async (notificationId: string) => {
+        const { data, error } = await supabase
+          .from('notification_delivery_attempts')
+          .select('id')
+          .eq('notification_id', notificationId)
+          .eq('status', 'sent')
+          .limit(1);
+
+        if (error) {
+          console.error('[REMINDER_SCAN] Failed to check delivery attempts:', error);
+          return false;
+        }
+        return (data?.length ?? 0) > 0;
       },
 
       clearSchedule: async (taskId: string, originalNotifyAt: string) => {
