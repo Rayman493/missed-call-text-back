@@ -118,9 +118,9 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-4 sm:p-6 border-b border-border/50 flex-shrink-0 bg-muted/30">
+        <div className="flex items-start justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-border/50 flex-shrink-0 bg-muted/30">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2.5 mb-1.5">
+            <div className="flex items-center gap-2.5 mb-1">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary">
                 <PhoneForwarded className="w-4 h-4" />
               </div>
@@ -128,7 +128,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
                 Set Up Call Forwarding
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground/80">
               Forward missed calls to your ReplyFlow number so every lead can be captured and followed up.
             </p>
           </div>
@@ -142,20 +142,20 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         </div>
 
         {/* Body */}
-        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 py-4 overscroll-contain [touch-action:pan-y]" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
           <ForwardingHelpCenter phoneNumber={phoneNumber} />
         </div>
 
         {/* Footer with completion button */}
-        <div className="flex-shrink-0 border-t border-border/50 bg-muted/30 p-4 sm:p-6 pb-safe-bottom sm:pb-6">
-          <div className="space-y-3">
-            <p className="text-xs sm:text-sm text-muted-foreground text-center">
+        <div className="flex-shrink-0 border-t border-border/50 bg-muted/30 px-4 sm:px-6 pt-3 pb-safe-bottom sm:pb-4">
+          <div className="space-y-2.5">
+            <p className="text-xs text-muted-foreground/80 text-center">
               Once you&apos;ve finished dialing the code on your business phone, continue to the final test.
             </p>
             <button
               onClick={handleConfirmForwarding}
               disabled={isConfirming || alreadyConfirmed}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isConfirming ? (
                 <>
