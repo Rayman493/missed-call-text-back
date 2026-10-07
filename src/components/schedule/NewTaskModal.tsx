@@ -329,13 +329,13 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         </>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-5 pb-2">
         {!taskToEdit && (
           <p className="text-sm text-muted-foreground">
             Set a reminder for this customer or job.
           </p>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Section: Basics */}
           <div className="space-y-3">
             <div className="pb-1.5 border-b border-border/40">

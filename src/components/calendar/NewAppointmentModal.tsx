@@ -344,8 +344,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, onSucc
           </>
         }
       >
-        <p className="text-sm text-muted-foreground mb-4">Add an appointment to this customer's calendar.</p>
-        <div className="space-y-4">
+        <div className="space-y-5 pb-2">
+          <p className="text-sm text-muted-foreground">Add an appointment to this customer's calendar.</p>
             {/* Section: Basics */}
             <div className="space-y-3">
               <div className="pb-1.5 border-b border-border/40">
