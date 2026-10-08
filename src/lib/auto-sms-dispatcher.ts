@@ -383,6 +383,59 @@ async function hasAutomaticSmsForCall(conversationId: string | undefined, busine
   return false
 }
 
+// Values that indicate "nothing captured" even though a field exists
+const AI_SUMMARY_CONTENT_PLACEHOLDERS = new Set([
+  'not collected',
+  'not provided',
+  'not provided name',
+  'unknown',
+  'unknown caller',
+  'unknown customer',
+  'caller',
+  'customer',
+  'service request',
+  'general service',
+  'n/a',
+])
+
+// Caller-provided extracted_info fields that count as captured content.
+// Refusal flags (nameRefused/locationRefused) and metadata
+// (serviceLocationType, intakeMode) do not count.
+const AI_SUMMARY_CONTENT_FIELDS = [
+  'callerName',
+  'reasonForCalling',
+  'importantDetails',
+  'desiredCompletionTime',
+  'addressOrLocation',
+  'preferredCallbackTime',
+  'summary',
+] as const
+
+// Terminal AI outcomes where an ai_summary SMS is only meaningful if the call
+// actually captured caller content. Non-terminal outcomes (completed,
+// completed_intake, partial_intake, succeeded, success) are unaffected.
+const AI_TERMINAL_FAILURE_OUTCOMES = new Set([
+  'ai_failed',
+  'ai_connection_failed',
+  'incomplete',
+  'no_speech',
+  'early_hangup',
+  'caller_hung_up',
+  'expired',
+  'emergency_recovery',
+  'dismissed',
+  'ignored',
+  'voicemail_fallback',
+])
+
+// Returns true only for a real caller-provided string — never for
+// null/undefined, empty/whitespace, or known placeholder values.
+function isMeaningfulCapturedText(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const trimmed = value.trim()
+  return trimmed.length > 0 && !AI_SUMMARY_CONTENT_PLACEHOLDERS.has(trimmed.toLowerCase())
+}
+
 // Spam detection patterns
 const SPAM_PATTERNS = {
   INVALID_LENGTH: /^(\d{1,4}|\d{12,})$/, // Too short or too long numbers
@@ -644,10 +697,40 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const summaryPresent = !!aiCallRecord?.summary && aiCallRecord.summary.length > 0
   const alreadySent = await hasAutomaticSmsForCall(conversationId, businessId, callSid)
 
+  // Merge extracted info from all current-call sources before evaluating content.
+  // Priority: params.extractedInfo > aiCallRecord.extracted_info
+  // CRITICAL: lead.raw_metadata is intentionally NOT merged — historical intake
+  // data must not fabricate "captured content" for this call.
+  const mergedExtractedInfo = mergeExtractedInfo(params, aiCallRecord)
+  const extracted = normalizeExtractedInfo(mergedExtractedInfo)
+  const aiOutcome = params.aiOutcome || aiCallRecord?.outcome || null
+
+  // Meaningful captured caller content = a real transcript with caller speech,
+  // any real captured intake field, or a real stored summary. Placeholder
+  // strings ('Not collected', etc.) do NOT count.
+  const transcriptHasCallerContent =
+    isMeaningfulCapturedText(aiCallRecord?.transcript) && aiCallRecord?.had_user_speech !== false
+  const extractedInfoHasMeaningfulContent =
+    AI_SUMMARY_CONTENT_FIELDS.some((field) => isMeaningfulCapturedText((extracted as any)[field])) ||
+    (typeof aiCallRecord?.fields_collected_count === 'number' && aiCallRecord.fields_collected_count > 0)
+  const meaningfulCapturedContent =
+    transcriptHasCallerContent ||
+    extractedInfoHasMeaningfulContent ||
+    isMeaningfulCapturedText(aiCallRecord?.summary)
+
   // NEW POLICY: Send SMS for any call that reached ReplyFlow AI (has ai_call_record)
-  // SMS eligibility does NOT depend on: outcome completion, captured fields, or meaningful data
-  // Valid skip reasons only: no AI record (never reached ReplyFlow), already sent, or destination issues
+  // EXCEPTION: a terminal failed/incomplete AI call that captured ZERO caller
+  // content must never produce an ai_summary SMS — there is nothing to
+  // summarize, and the generic formatter would send a misleading message.
   const reachedReplyFlowAI = !!aiCallRecord && callSidMatch && businessMatch
+  const normalizedAiOutcome = aiOutcome ? String(aiOutcome).trim().toLowerCase() : null
+  // Scoped to AI-summary triggers only — voicemail/recording triggers are
+  // exempt because their SMS covers the voicemail itself, not AI intake.
+  const zeroContentFailedCall =
+    (trigger === 'call_finished' || trigger === 'ai_confirmation') &&
+    normalizedAiOutcome !== null &&
+    AI_TERMINAL_FAILURE_OUTCOMES.has(normalizedAiOutcome) &&
+    !meaningfulCapturedContent
 
   // Skip if any guard fails
   let skipReason = null
@@ -655,6 +738,8 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     skipReason = 'call_did_not_reach_replyflow_ai'
   } else if (alreadySent) {
     skipReason = 'already_sent'
+  } else if (zeroContentFailedCall) {
+    skipReason = 'no_captured_ai_content'
   }
 
   // Structured decision log with all required fields
@@ -663,12 +748,15 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     selectedAiCallRecordId: aiCallRecord?.id,
     selectedRecordCallSid: aiCallRecord?.call_sid,
     selectedRecordOutcome: aiCallRecord?.outcome,
+    aiOutcome: normalizedAiOutcome,
     transcriptPresent,
     extractedInfoPresent,
     summaryPresent,
+    meaningfulCapturedContent,
     reachedReplyFlowAI,
     alreadySent,
     decision: skipReason ? 'skip' : 'send',
+    dispatchDecision: skipReason ? 'skip' : 'send',
     skipReason,
     timestamp: new Date().toISOString()
   })
@@ -689,9 +777,15 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     smsEnabled: true,
     destinationAvailable: true,
     alreadySent,
+    aiOutcome: normalizedAiOutcome,
+    transcriptPresent,
+    extractedInfoPresent,
+    summaryPresent,
+    meaningfulCapturedContent,
     capturedFields,
     dispatchDecision: skipReason ? 'skip' : 'send',
     dispatchReason: skipReason || 'all_checks_passed',
+    skipReason,
     twilioMessageSid: null,
     twilioStatus: null,
     timestamp: new Date().toISOString()
@@ -715,12 +809,8 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     return { success: true, skipped: true, reason: skipReason }
   }
 
-  // Merge extracted info from multiple sources to handle race conditions
-  // Priority: params.extractedInfo > aiCallRecord.extracted_info
-  // CRITICAL: lead.raw_metadata is NOT merged - it contains historical intake data
-  const mergedExtractedInfo = mergeExtractedInfo(params, aiCallRecord)
-  const extracted = normalizeExtractedInfo(mergedExtractedInfo)
-  const aiOutcome = params.aiOutcome || aiCallRecord?.outcome || null
+  // mergedExtractedInfo, extracted, and aiOutcome were computed above the
+  // decision gate so the zero-content check could evaluate real captured data.
   const intakeComplete = isCompleteAIIntake(extracted, (business as any)?.service_location_type || 'onsite')
   const outcome: AutoSmsOutcome = 'SUMMARY'
   const template: AutoSmsTemplate = 'ai_summary'
