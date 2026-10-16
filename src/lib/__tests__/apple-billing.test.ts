@@ -484,6 +484,24 @@ describe('native purchase dispatch', () => {
     expect(read('src/lib/apple-billing.ts')).toContain('native plugin probe')
   })
 
+  it('product lookup logs request id, bundle id, storefront, and result vs throw', () => {
+    // PRODUCT_NOT_FOUND has multiple Apple-side causes (propagation lag,
+    // storefront region, wrong app record). The device console must
+    // distinguish an empty Product.products result from a thrown StoreKit
+    // error — and prove which id/bundle the binary actually queried.
+    const plugin = read('ios/App/App/ReplyflowAppleBillingPlugin.swift')
+    expect(plugin).toContain('products(for:) request id=')
+    expect(plugin).toContain('bundle=')
+    expect(plugin).toContain('storefront=')
+    expect(plugin).toContain('products(for:) returned')
+    expect(plugin).toContain('products(for:) threw domain=')
+    // Both product lookups must share the instrumented path.
+    expect(plugin).toContain('try await fetchProducts(productId)')
+    // A thrown StoreKit error must NOT be rewritten as PRODUCT_NOT_FOUND —
+    // only an empty result set may carry that code.
+    expect(plugin).toContain('Failed to load product:')
+  })
+
   it('plugin source is actually tracked by git (ios/ is gitignored)', () => {
     // ios/ is in .gitignore — a plain `git add -A` silently skips new plugin
     // files while every filesystem-reading test still passes. The pbxproj

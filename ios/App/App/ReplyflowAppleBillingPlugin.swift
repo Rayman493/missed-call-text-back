@@ -71,7 +71,7 @@ public class ReplyflowAppleBillingPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         Task {
             do {
-                let products = try await Product.products(for: [productId])
+                let products = try await fetchProducts(productId)
                 guard let product = products.first else {
                     call.reject("Product not found", "PRODUCT_NOT_FOUND")
                     return
@@ -112,7 +112,7 @@ public class ReplyflowAppleBillingPlugin: CAPPlugin, CAPBridgedPlugin {
         let accountTokenString = call.getString("appAccountToken")
         Task {
             do {
-                let products = try await Product.products(for: [productId])
+                let products = try await fetchProducts(productId)
                 guard let product = products.first else {
                     call.reject("Product not found", "PRODUCT_NOT_FOUND")
                     return
@@ -191,6 +191,32 @@ public class ReplyflowAppleBillingPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             call.resolve(["finished": finished])
         }
+    }
+
+    /**
+     * Product lookup with full diagnostics — an empty result and a thrown
+     * error look identical to callers unless logged separately, and
+     * PRODUCT_NOT_FOUND has several possible causes on the Apple side.
+     * Logs: requested id, runtime bundle id (a stale/suffixed build signs
+     * the wrong app), sandbox storefront country (a product only available
+     * in the US returns empty for a non-US storefront), result count + ids,
+     * or the thrown error's domain/code.
+     */
+    private func fetchProducts(_ productId: String) async throws -> [Product] {
+        print("[APPLE BILLING] products(for:) request id=\(productId) bundle=\(Bundle.main.bundleIdentifier ?? "nil") storefront=\(storefrontCountryCode())")
+        do {
+            let products = try await Product.products(for: [productId])
+            print("[APPLE BILLING] products(for:) returned \(products.count) -> \(products.map { $0.id })")
+            return products
+        } catch let error as NSError {
+            print("[APPLE BILLING] products(for:) threw domain=\(error.domain) code=\(error.code) desc=\(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    /// iOS 15/16-compatible storefront country (Storefront.current is iOS 17+).
+    private func storefrontCountryCode() -> String {
+        SKPaymentQueue.default().storefront?.countryCode ?? "unknown"
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
