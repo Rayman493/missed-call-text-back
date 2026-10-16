@@ -141,6 +141,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, unmatched: true })
     }
 
+    if (!business.user_id) {
+      // Owner deleted — no account may lawfully bind this transaction.
+      // Terminal disposition so Apple stops retrying an event that can
+      // never succeed (the 403 appAccountToken mismatch would otherwise
+      // reclaim and retry it forever).
+      await supabaseAdmin
+        .from('apple_assn_events')
+        .update({ status: 'processed', processed_at: new Date().toISOString(), business_id: business.id, error_message: 'business has no owner - terminated' })
+        .eq('message_id', messageId)
+      return NextResponse.json({ ok: true, skipped: 'no_business_owner' })
+    }
+
     // Protect Stripe/Google-Play entitlements: a dead Apple subscription
     // must never overwrite a live entitlement under another provider. The
     // provider label can be stale (unprovidered webhook writes), so for

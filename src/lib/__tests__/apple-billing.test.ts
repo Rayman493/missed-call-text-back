@@ -24,6 +24,9 @@ import {
   APPLE_SUBSCRIPTION_STATUS,
   APPLE_OFFER_TYPE,
   appleAppAccountTokenForUser,
+  apiBaseForEnvironment,
+  APPLE_API_BASE_PRODUCTION,
+  APPLE_API_BASE_SANDBOX,
 } from '@/lib/apple/billing-service'
 import { verifyAppleJws, verifyX5cChain, decodeAppleJwsUnsafe } from '@/lib/apple/jws'
 
@@ -36,7 +39,7 @@ const TX_BASE = {
   transactionId: '2000000000000001',
   originalTransactionId: '2000000000000000',
   bundleId: 'com.replyflowhq.app',
-  productId: 'com.replyflowhq.monthly',
+  productId: 'replyflow_monthly_apple',
   purchaseDate: Date.now() - 86400000,
   expiresDate: Date.now() + 86400000,
   type: 'Auto-Renewable Subscription',
@@ -540,5 +543,103 @@ describe('native purchase dispatch', () => {
     // never carry Windows path separators into a tracked file.
     const pkg = read('ios/App/CapApp-SPM/Package.swift')
     expect(pkg).not.toContain('\\\\')
+  })
+})
+
+/* ---------- Reliability fixes: reconcile env, empty-reconcile, ---------- */
+/* ---------- product-id fallback, cold-start, ASSN owner guard ---------- */
+
+describe('app store server api environment routing', () => {
+  it('routes Sandbox transactions to the sandbox host and Production to prod', () => {
+    const saved = process.env.APPLE_STOREKIT_API_BASE
+    delete process.env.APPLE_STOREKIT_API_BASE
+    try {
+      expect(apiBaseForEnvironment('Sandbox')).toBe(APPLE_API_BASE_SANDBOX)
+      expect(apiBaseForEnvironment('Production')).toBe(APPLE_API_BASE_PRODUCTION)
+      // Reconcile passes no environment when none was ever persisted —
+      // production is the safe default.
+      expect(apiBaseForEnvironment(undefined)).toBe(APPLE_API_BASE_PRODUCTION)
+      expect(apiBaseForEnvironment(null)).toBe(APPLE_API_BASE_PRODUCTION)
+      // Manual override wins over payload-derived routing (dev/testing).
+      process.env.APPLE_STOREKIT_API_BASE = 'https://example.test'
+      expect(apiBaseForEnvironment('Sandbox')).toBe('https://example.test')
+      expect(apiBaseForEnvironment('Production')).toBe('https://example.test')
+    } finally {
+      if (saved === undefined) delete process.env.APPLE_STOREKIT_API_BASE
+      else process.env.APPLE_STOREKIT_API_BASE = saved
+    }
+  })
+
+  it('verify-transaction reconcile passes the stored apple_environment as the hint', () => {
+    const route = read('src/app/api/apple/verify-transaction/route.ts')
+    // Business lookup must read the persisted environment…
+    expect(route).toContain('apple_environment')
+    // …and feed it into transactionInfoHint for the JWS-less reconcile path,
+    // so a Sandbox originalTransactionId is reconciled against the sandbox
+    // App Store Server API instead of 404ing against production.
+    expect(route).toContain('business.apple_environment')
+    expect(route).toContain('transactionInfoHint: verifiedTx ??')
+  })
+
+  it('reconcile with no stored Apple identity is a truthful no-entitlement no-op', () => {
+    const route = read('src/app/api/apple/verify-transaction/route.ts')
+    // Must return 200 ok:true/entitled:false — not a 400. A signed-in user
+    // with no Apple subscription is a legitimate state, not a bad request.
+    expect(route).toContain("entitled: false, status: 'none'")
+    // The 400 still guards genuinely malformed requests (no JWS, no reconcile).
+    expect(route).toContain('signedTransactionInfo or reconcile:true is required')
+    // The no-op must not touch subscription state — it returns before
+    // verifyAndApplyTransaction is reached.
+    const noopIdx = route.indexOf("status: 'none'")
+    const applyIdx = route.indexOf('verifyAndApplyTransaction(')
+    expect(noopIdx).toBeGreaterThan(-1)
+    expect(noopIdx).toBeLessThan(applyIdx)
+  })
+})
+
+describe('apple product id consistency', () => {
+  it('client and server fallbacks both default to the real product id', () => {
+    const client = read('src/lib/apple-billing.ts')
+    const server = read('src/lib/apple/billing-service.ts')
+    // com.replyflowhq.monthly is not an App Store product — a missing env
+    // var must not silently point lookups at a phantom id.
+    expect(client).toContain("|| 'replyflow_monthly_apple'")
+    expect(server).toContain("|| 'replyflow_monthly_apple'")
+    expect(client).not.toContain('com.replyflowhq.monthly')
+    expect(server).not.toContain('com.replyflowhq.monthly')
+    // Env overrides remain the source of truth when set.
+    expect(client).toContain('NEXT_PUBLIC_APPLE_PRODUCT_ID')
+    expect(server).toContain('APPLE_SUBSCRIPTION_PRODUCT_IDS')
+  })
+})
+
+describe('ios cold-start reconciliation', () => {
+  it('runs resume reconciliation at launch on both native platforms', () => {
+    const init = read('src/capacitor/init.ts')
+    expect(init).toContain("platform === 'android' || platform === 'ios'")
+  })
+
+  it('serializes concurrent resume reconciliation runs', () => {
+    const init = read('src/capacitor/init.ts')
+    expect(init).toContain('appResumeInFlight')
+    expect(init).toContain('already in flight')
+    // All three entry points must go through the guard.
+    for (const source of ["'appStateChange'", "'__handleAppResume'", "'cold-start'"]) {
+      expect(init).toContain(`runAppResume(${source})`)
+    }
+  })
+})
+
+describe('assn deleted-owner handling', () => {
+  it('terminates notifications for ownerless businesses instead of retry-looping', () => {
+    const route = read('src/app/api/apple/assn/route.ts')
+    expect(route).toContain('!business.user_id')
+    expect(route).toContain('no_business_owner')
+    // Terminal disposition must be recorded as processed, not failed — a
+    // failed event gets reclaimed and retried forever.
+    const guardIdx = route.indexOf('no_business_owner')
+    const processedIdx = route.lastIndexOf("'processed'", guardIdx)
+    expect(processedIdx).toBeGreaterThan(-1)
+    expect(processedIdx).toBeLessThan(guardIdx)
   })
 })

@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     const { data: business } = await supabaseAdmin
       .from('businesses')
-      .select('id, user_id, apple_original_transaction_id')
+      .select('id, user_id, apple_original_transaction_id, apple_environment')
       .eq('user_id', user.id)
       .maybeSingle()
     if (!business) {
@@ -72,6 +72,13 @@ export async function POST(request: NextRequest) {
       reconcile ? business.apple_original_transaction_id : null
     )
     if (!originalTransactionId) {
+      if (reconcile) {
+        // Reconcile was requested but this business holds no stored Apple
+        // subscription — a truthful no-entitlement no-op, not a malformed
+        // request. Every non-Apple iOS account hits this on resume; a 400
+        // there is noise that obscures real failures.
+        return NextResponse.json({ ok: true, entitled: false, status: 'none' })
+      }
       return NextResponse.json({ ok: false, error: 'signedTransactionInfo or reconcile:true is required' }, { status: 400 })
     }
 
@@ -80,7 +87,13 @@ export async function POST(request: NextRequest) {
       businessId: business.id,
       userId: user.id,
       expectedProductId: productId ?? verifiedTx?.productId,
-      transactionInfoHint: verifiedTx ?? undefined,
+      // Signed JWS payloads carry their own environment. The reconcile path
+      // has no JWS, so reuse the environment persisted at last verification —
+      // a Sandbox subscription must reconcile against the sandbox App Store
+      // Server API (the default fallback is production and 404s for it).
+      transactionInfoHint: verifiedTx ?? (
+        business.apple_environment ? { environment: business.apple_environment } : undefined
+      ),
     })
 
     if (!result.ok) {
