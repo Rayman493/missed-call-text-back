@@ -26,7 +26,7 @@ import { verifyAppleJws, decodeAppleJwsUnsafe } from './jws'
 export const APPLE_API_BASE_PRODUCTION = 'https://api.storekit.itunes.apple.com'
 export const APPLE_API_BASE_SANDBOX = 'https://api.storekit-sandbox.itunes.apple.com'
 
-const ALLOWED_PRODUCT_IDS = (process.env.APPLE_SUBSCRIPTION_PRODUCT_IDS || 'com.replyflowhq.monthly')
+const ALLOWED_PRODUCT_IDS = (process.env.APPLE_SUBSCRIPTION_PRODUCT_IDS || 'replyflow_monthly_apple')
   .split(',').map(s => s.trim()).filter(Boolean)
 
 /** App Store Server API getAllSubscriptionStatuses status enum. */
@@ -132,7 +132,7 @@ export function appleAppAccountTokenForUser(userId: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
 }
 
-function apiBaseForEnvironment(environment?: string | null): string {
+export function apiBaseForEnvironment(environment?: string | null): string {
   if (process.env.APPLE_STOREKIT_API_BASE) return process.env.APPLE_STOREKIT_API_BASE
   return environment === 'Sandbox' ? APPLE_API_BASE_SANDBOX : APPLE_API_BASE_PRODUCTION
 }

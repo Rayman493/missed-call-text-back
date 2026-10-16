@@ -12,7 +12,7 @@ import { Capacitor } from '@capacitor/core'
 import { supabase } from '@/lib/supabase/browser'
 
 export const APPLE_PRODUCT_ID =
-  process.env.NEXT_PUBLIC_APPLE_PRODUCT_ID || 'com.replyflowhq.monthly'
+  process.env.NEXT_PUBLIC_APPLE_PRODUCT_ID || 'replyflow_monthly_apple'
 
 export interface AppleSubscriptionOffer {
   productId: string

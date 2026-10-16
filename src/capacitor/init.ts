@@ -28,6 +28,27 @@ let pendingReturnUrl: string | null = null;
 let pendingReturnProcessed = false;
 
 /**
+ * Serialize handleAppResume — appStateChange, the native __handleAppResume
+ * bridge, and cold-start can overlap within the same second, and each run
+ * emits native purchase-verification calls. The reconcile inside is
+ * idempotent server-side, so skipping a redundant concurrent run loses
+ * nothing; pending operations persist and are picked up by the next run.
+ */
+let appResumeInFlight = false;
+async function runAppResume(source: string): Promise<void> {
+  if (appResumeInFlight) {
+    console.log(`[ACCOUNT_CREATION_BRIDGE] handleAppResume skipped — already in flight (${source})`);
+    return;
+  }
+  appResumeInFlight = true;
+  try {
+    await handleAppResume();
+  } finally {
+    appResumeInFlight = false;
+  }
+}
+
+/**
  * Validate critical production configuration
  * Fails fast with clear diagnostics if configuration is invalid
  */
@@ -91,7 +112,7 @@ export async function initializeCapacitor() {
   if (typeof window !== 'undefined') {
     (window as any).__handleAppResume = async () => {
       console.log('[ACCOUNT_CREATION_BRIDGE] __handleAppResume called directly from native bridge');
-      await handleAppResume();
+      await runAppResume('__handleAppResume');
     };
     console.log('[ACCOUNT_CREATION_BRIDGE] __handleAppResume exposed globally');
   }
@@ -144,7 +165,7 @@ export async function initializeCapacitor() {
       // Handle external return reconciliation on app resume
       if (isActive) {
         console.log('[ACCOUNT_CREATION_BRIDGE] appStateChange triggering handleAppResume');
-        await handleAppResume();
+        await runAppResume('appStateChange');
         // Warm up Tap to Pay when app returns to foreground
         warmUpTapToPay();
       } else {
@@ -154,10 +175,13 @@ export async function initializeCapacitor() {
 
     // Cold-start reconciliation: appStateChange does not fire on initial
     // launch, so run the same resume reconciliation once here. On Android
-    // this re-verifies Play-held purchases made while the app was closed.
-    if (platform === 'android') {
+    // this re-verifies Play-held purchases made while the app was closed;
+    // on iOS it re-verifies StoreKit-held entitlements the same way.
+    // Serialized via runAppResume so it can never overlap a simultaneous
+    // appStateChange/bridge resume run.
+    if (platform === 'android' || platform === 'ios') {
       console.log('[ACCOUNT_CREATION_BRIDGE] cold-start triggering handleAppResume');
-      void handleAppResume();
+      void runAppResume('cold-start');
     }
 
     // Set up visibilitychange listener for additional lifecycle diagnostics
