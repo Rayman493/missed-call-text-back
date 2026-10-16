@@ -110,11 +110,14 @@ export async function initializeCapacitor() {
     console.log('[Capacitor] Status bar configured');
 
     // iOS: forward StoreKit Transaction.updates (renewals, Ask-to-Buy
-    // approvals, restores) to server-side entitlement verification.
+    // approvals, restores) to server-side entitlement verification. The
+    // probe proves the native plugin is compiled+registered in this binary —
+    // a stale build fails loudly here instead of at purchase time.
     if (platform === 'ios') {
       try {
-        const { registerTransactionUpdateListener } = await import('@/lib/apple-billing');
+        const { registerTransactionUpdateListener, probeAppleBilling } = await import('@/lib/apple-billing');
         registerTransactionUpdateListener();
+        void probeAppleBilling();
       } catch (e) {
         console.warn('[Capacitor] Apple billing listener registration skipped:', e);
       }
