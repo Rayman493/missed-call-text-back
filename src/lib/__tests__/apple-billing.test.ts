@@ -29,6 +29,7 @@ import {
   APPLE_API_BASE_SANDBOX,
 } from '@/lib/apple/billing-service'
 import { verifyAppleJws, verifyX5cChain, decodeAppleJwsUnsafe } from '@/lib/apple/jws'
+import { appleIntroTrialEligible, type AppleSubscriptionOffer } from '@/lib/apple-billing'
 
 const root = process.cwd()
 const read = (p: string) => readFileSync(path.join(root, p), 'utf8')
@@ -641,5 +642,129 @@ describe('assn deleted-owner handling', () => {
     const processedIdx = route.lastIndexOf("'processed'", guardIdx)
     expect(processedIdx).toBeGreaterThan(-1)
     expect(processedIdx).toBeLessThan(guardIdx)
+  })
+})
+
+/* ---------- App Review copy compliance (pure function + page sources) ---------- */
+
+const offerFixture = (over: Partial<AppleSubscriptionOffer> = {}): AppleSubscriptionOffer => ({
+  productId: 'replyflow_monthly_apple',
+  displayName: 'ReplyFlow Monthly',
+  description: 'Missed-call text-back',
+  displayPrice: '$59.99',
+  price: 59.99,
+  currency: 'USD',
+  type: 'Auto-Renewable Subscription',
+  subscriptionPeriod: '1 month',
+  ...over,
+})
+
+describe('appleIntroTrialEligible', () => {
+  it('is true only for a free-trial intro offer the account is eligible for', () => {
+    expect(appleIntroTrialEligible(offerFixture({
+      introOffer: { displayPrice: '$0.00', paymentMode: 'freeTrial', period: '14 days', periodCount: 1 },
+      introOfferEligible: true,
+    }))).toBe(true)
+  })
+
+  it('is false when Apple reports the account is not intro-offer eligible', () => {
+    expect(appleIntroTrialEligible(offerFixture({
+      introOffer: { displayPrice: '$0.00', paymentMode: 'freeTrial', period: '14 days', periodCount: 1 },
+      introOfferEligible: false,
+    }))).toBe(false)
+  })
+
+  it('is false when the product has no introductory offer at all', () => {
+    expect(appleIntroTrialEligible(offerFixture({
+      introOfferEligible: true,
+    }))).toBe(false)
+    expect(appleIntroTrialEligible(offerFixture({
+      introOffer: undefined,
+      introOfferEligible: true,
+    }))).toBe(false)
+  })
+
+  it('is false for non-trial intro offers (payAsYouGo / payUpFront)', () => {
+    for (const paymentMode of ['payAsYouGo', 'payUpFront', 'unknown'] as const) {
+      expect(appleIntroTrialEligible(offerFixture({
+        introOffer: { displayPrice: '$19.99', paymentMode, period: '1 month', periodCount: 3 },
+        introOfferEligible: true,
+      }))).toBe(false)
+    }
+  })
+
+  it('is false for a missing or failed product lookup', () => {
+    expect(appleIntroTrialEligible(null)).toBe(false)
+    expect(appleIntroTrialEligible(undefined)).toBe(false)
+    expect(appleIntroTrialEligible(offerFixture({ introOffer: undefined }))).toBe(false)
+  })
+})
+
+describe('useAppleSubscriptionOffer hook', () => {
+  it('queries StoreKit only on native iOS and fails closed', () => {
+    const hook = read('src/hooks/useAppleSubscriptionOffer.ts')
+    // Non-iOS platforms must never hit the StoreKit bridge — Stripe/GP
+    // surfaces are unaffected.
+    expect(hook).toContain('isNativeIOS()')
+    expect(hook).toContain("status: 'not-ios'")
+    // Lookup failures must surface as a distinct state — never coerced into
+    // a fake "loaded" offer that would justify a trial claim.
+    expect(hook).toContain("status: 'failed'")
+    expect(hook).toContain('.catch(')
+    // Eligibility is never hardcoded — it flows from the fetched offer only.
+    expect(hook).not.toContain('introOfferEligible: true')
+    expect(hook).not.toContain('introOfferEligible = true')
+  })
+})
+
+describe('ios paywall app-store copy', () => {
+  it('complete-setup describes Apple billing and gates the trial claim on the real offer', () => {
+    const page = read('src/app/complete-setup/page.tsx')
+    expect(page).toContain('useAppleSubscriptionOffer()')
+    expect(page).toContain('appleIntroTrialEligible(appleOffer.offer)')
+    // Apple provider language replaces Stripe on iOS only.
+    expect(page).toContain('Billed by Apple through the App Store')
+    expect(page).toContain('Cancel anytime in App Store settings')
+    expect(page).toContain('Opening App Store')
+    // Ineligible users get immediate-billing copy with the real StoreKit price.
+    expect(page).toContain('Your subscription begins immediately')
+    expect(page).toContain('${applePrice}/month')
+    // Eligible users see the offer's real trial period, not a hardcoded claim.
+    expect(page).toContain('${appleTrialPeriod}')
+    // Web/Android copy and Stripe attribution are preserved.
+    expect(page).toContain('billing partner, Stripe')
+    expect(page).toContain("'Redirecting to Stripe...'")
+    expect(page).toContain("'Securely powered by Stripe'")
+    expect(page).toContain("'Activate My Free Trial'")
+    expect(page).toContain("'14-day free trial'")
+    // Eligibility must never be asserted as a literal.
+    expect(page).not.toMatch(/introOfferEligible\s*[:=]\s*true/)
+    expect(page).not.toMatch(/iosTrialEligible\s*=\s*true/)
+    // Pending purchases on iOS must not promise a trial or name Google.
+    expect(page).toContain('waiting for approval')
+    expect(page).toContain('Purchase is pending Google confirmation')
+  })
+
+  it('onboarding gates the pricing strip and CTA label on iOS', () => {
+    const page = read('src/app/onboarding/page.tsx')
+    expect(page).toContain('useAppleSubscriptionOffer()')
+    expect(page).toContain('appleIntroTrialEligible(appleOffer.offer)')
+    expect(page).toContain('billed by Apple')
+    expect(page).toContain('Billed by Apple')
+    expect(page).toContain("onIOS ? 'Continue' : 'Continue to Free Trial'")
+    // Web path keeps the original marketing copy.
+    expect(page).toContain('getTrialDisplay()')
+    expect(page).toContain('after trial')
+    expect(page).not.toMatch(/introOfferEligible\s*[:=]\s*true/)
+  })
+
+  it('leads lock overlay does not claim a trial the offer cannot provide', () => {
+    const page = read('src/app/dashboard/leads/page.tsx')
+    expect(page).toContain('useAppleSubscriptionOffer()')
+    expect(page).toContain('appleIntroTrialEligible(appleOffer.offer)')
+    expect(page).toContain('Subscribe to begin capturing missed-call customers automatically')
+    // iOS uses Apple eligibility; other platforms keep the server-side mode.
+    expect(page).toContain("onIOS ? iosTrialEligible : checkoutMode === 'trial'")
+    expect(page).not.toMatch(/introOfferEligible\s*[:=]\s*true/)
   })
 })

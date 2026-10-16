@@ -10,6 +10,8 @@ import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 import BrandIcon from '@/components/BrandIcon'
 import PasswordInput from '@/components/PasswordInput'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { appleIntroTrialEligible } from '@/lib/apple-billing'
+import { useAppleSubscriptionOffer } from '@/hooks/useAppleSubscriptionOffer'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import { isNativeAndroid } from '@/lib/google-play-billing'
 import AppBackButton from '@/components/AppBackButton'
@@ -33,6 +35,15 @@ export default function CompleteSetupPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [appResumeTrigger, setAppResumeTrigger] = useState(0) // Increment on app resume to trigger retry loop
   const pollingStartedRef = useRef(false)
+
+  // iOS paywall copy must describe the real StoreKit product — Apple's
+  // per-account intro-offer eligibility decides whether a free-trial claim
+  // is truthful. Android/web keep the existing Stripe/GP copy untouched.
+  const onIOS = isNativeIOS()
+  const appleOffer = useAppleSubscriptionOffer()
+  const iosTrialEligible = onIOS && appleOffer.status === 'loaded' && appleIntroTrialEligible(appleOffer.offer)
+  const applePrice = appleOffer.status === 'loaded' ? appleOffer.offer.displayPrice : null
+  const appleTrialPeriod = appleOffer.status === 'loaded' ? appleOffer.offer.introOffer?.period : null
 
   const checkoutCancelled = searchParams?.get('checkout') === 'cancelled'
 
@@ -681,7 +692,9 @@ export default function CompleteSetupPage() {
         onCanceled: () => { setIsRedirectingToStripe(false) },
         onPending: () => {
           setIsRedirectingToStripe(false)
-          setError('Purchase is pending Google confirmation. Your trial will activate automatically once payment clears.')
+          setError(onIOS
+            ? 'Purchase is waiting for approval. Your subscription will activate automatically once approved.'
+            : 'Purchase is pending Google confirmation. Your trial will activate automatically once payment clears.')
         },
         onError: (msg) => {
           setError(msg)
@@ -857,10 +870,16 @@ export default function CompleteSetupPage() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">
-              Complete your free trial setup
+              {onIOS && !iosTrialEligible ? 'Complete your subscription setup' : 'Complete your free trial setup'}
             </h1>
             <p className="text-slate-400">
-              Your account is almost ready. Complete one final step to activate your 14-day free trial through our secure billing partner, Stripe.
+              {onIOS
+                ? iosTrialEligible
+                  ? `Your account is almost ready. Complete one final step to start your free trial${appleTrialPeriod ? ` — ${appleTrialPeriod} free` : ''}${applePrice ? `, then ${applePrice}/month` : ''}, billed through the App Store.`
+                  : applePrice
+                    ? `Your account is almost ready. Subscribe for ${applePrice}/month, billed through the App Store. Your subscription begins immediately.`
+                    : 'Your account is almost ready. Complete one final step to subscribe, billed through the App Store.'
+                : 'Your account is almost ready. Complete one final step to activate your 14-day free trial through our secure billing partner, Stripe.'}
             </p>
           </div>
 
@@ -875,11 +894,24 @@ export default function CompleteSetupPage() {
               {/* Trial benefits */}
               <div className="bg-slate-800/50 rounded-lg p-4">
                 <ul className="space-y-2">
-                  {[
-                    '14-day free trial',
-                    'No charges during your trial',
-                    'Cancel anytime before the trial ends',
-                  ].map((benefit, index) => (
+                  {(onIOS
+                    ? iosTrialEligible
+                      ? [
+                          `Free trial${appleTrialPeriod ? ` — ${appleTrialPeriod}` : ''}`,
+                          'No charge during your trial',
+                          'Cancel anytime in App Store settings',
+                        ]
+                      : [
+                          applePrice ? `${applePrice}/month subscription` : 'Monthly subscription',
+                          'Billed by Apple through the App Store',
+                          'Cancel anytime in App Store settings',
+                        ]
+                    : [
+                        '14-day free trial',
+                        'No charges during your trial',
+                        'Cancel anytime before the trial ends',
+                      ]
+                  ).map((benefit, index) => (
                     <li key={index} className="flex items-center gap-3 text-sm text-slate-300">
                       <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -896,18 +928,20 @@ export default function CompleteSetupPage() {
                 disabled={isRedirectingToStripe}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isRedirectingToStripe ? (isNativeAndroid() ? 'Opening Google Play...' : 'Redirecting to Stripe...') : 'Activate My Free Trial'}
+                {isRedirectingToStripe
+                  ? (onIOS ? 'Opening App Store…' : isNativeAndroid() ? 'Opening Google Play...' : 'Redirecting to Stripe...')
+                  : (onIOS ? (iosTrialEligible ? 'Start Free Trial' : 'Subscribe Now') : 'Activate My Free Trial')}
               </button>
 
               <p className="text-center text-xs text-slate-500">
-                Securely powered by Stripe
+                {onIOS ? 'Billed by Apple through the App Store' : 'Securely powered by Stripe'}
               </p>
 
               {/* Come back later message */}
               <div className="text-center pt-2">
                 <p className="text-sm font-medium text-slate-300 mb-1">Not ready yet?</p>
                 <p className="text-sm text-slate-500">
-                  You can safely close this page and come back later by signing in with your email. We&apos;ll save your progress until you&apos;re ready to activate your free trial.
+                  You can safely close this page and come back later by signing in with your email. We&apos;ll save your progress until you&apos;re ready to {onIOS ? 'subscribe' : 'activate your free trial'}.
                 </p>
               </div>
 
@@ -915,7 +949,7 @@ export default function CompleteSetupPage() {
               <div className="border-t border-slate-800 pt-8 mt-4">
                 <p className="text-sm font-medium text-slate-300 mb-1 text-center">Changed your mind?</p>
                 <p className="text-sm text-slate-500 text-center mb-4">
-                  If you&apos;ve decided ReplyFlow isn&apos;t right for you, you can permanently delete your account before activating your free trial.
+                  If you&apos;ve decided ReplyFlow isn&apos;t right for you, you can permanently delete your account before {onIOS ? 'subscribing' : 'activating your free trial'}.
                 </p>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}

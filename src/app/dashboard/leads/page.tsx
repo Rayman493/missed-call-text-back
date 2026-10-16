@@ -9,6 +9,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AuthGuard from '@/components/AuthGuard'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { appleIntroTrialEligible } from '@/lib/apple-billing'
+import { useAppleSubscriptionOffer } from '@/hooks/useAppleSubscriptionOffer'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
@@ -315,6 +317,11 @@ export default function LeadsPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
+  // iOS trial claims must reflect Apple's intro-offer eligibility, not the
+  // server-side business trial flag (which governs Stripe checkout).
+  const onIOS = isNativeIOS()
+  const appleOffer = useAppleSubscriptionOffer()
+  const iosTrialEligible = onIOS && appleOffer.status === 'loaded' && appleIntroTrialEligible(appleOffer.offer)
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false)
   // Note: removed unused deletedFilter state to simplify filtering state
 
@@ -1142,14 +1149,16 @@ export default function LeadsPage() {
                     </div>
                     <p className="text-white font-medium mb-4">Unlock your customers inbox</p>
                     <p className="text-white/80 text-sm mb-6 max-w-md mx-auto">
-                      Start your trial to begin capturing missed-call customers automatically
+                      {onIOS && !iosTrialEligible
+                        ? 'Subscribe to begin capturing missed-call customers automatically'
+                        : 'Start your trial to begin capturing missed-call customers automatically'}
                     </p>
                     <button
                       onClick={handleStartSubscription}
                       disabled={checkoutLoading || eligibilityLoading}
                       className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : (checkoutMode === 'trial' ? 'Start Free Trial' : 'Subscribe Now'))}
+                      {checkoutLoading ? 'Starting…' : (eligibilityLoading ? 'Checking plan...' : ((onIOS ? iosTrialEligible : checkoutMode === 'trial') ? 'Start Free Trial' : 'Subscribe Now'))}
                     </button>
                     {checkoutError && (
                       <div className="mt-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3 max-w-md mx-auto">

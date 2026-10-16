@@ -10,6 +10,8 @@ import { normalizePhoneNumber } from '@/lib/utils'
 import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES, isActiveSubscription } from '@/lib/subscription'
 import { useSearchParams } from 'next/navigation'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
+import { appleIntroTrialEligible } from '@/lib/apple-billing'
+import { useAppleSubscriptionOffer } from '@/hooks/useAppleSubscriptionOffer'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
@@ -40,6 +42,15 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [provisioningComplete, setProvisioningComplete] = useState(false)
+
+  // iOS marketing copy must match the real StoreKit product — a free-trial
+  // claim is only truthful when the product carries an intro offer and this
+  // Apple account is eligible for it.
+  const onIOS = isNativeIOS()
+  const appleOffer = useAppleSubscriptionOffer()
+  const iosTrialEligible = onIOS && appleOffer.status === 'loaded' && appleIntroTrialEligible(appleOffer.offer)
+  const applePrice = appleOffer.status === 'loaded' ? appleOffer.offer.displayPrice : null
+  const appleTrialPeriod = appleOffer.status === 'loaded' ? appleOffer.offer.introOffer?.period : null
 
   // Check for auth error from callback
   useEffect(() => {
@@ -475,9 +486,15 @@ export default function OnboardingPage() {
           {/* Pricing Information */}
           <div className="bg-slate-700/50 border border-slate-600 rounded-lg p-3 mb-6">
             <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-green-400 font-medium">✓ {getTrialDisplay()}</span>
+              <span className="text-green-400 font-medium">✓ {onIOS ? (iosTrialEligible ? `${appleTrialPeriod ? `${appleTrialPeriod} ` : ''}free trial` : 'Monthly subscription') : getTrialDisplay()}</span>
               <span className="text-slate-300">•</span>
-              <span className="text-slate-300">{getPricingDisplay()} after trial</span>
+              <span className="text-slate-300">
+                {onIOS
+                  ? iosTrialEligible
+                    ? (applePrice ? `then ${applePrice}/month` : 'billed through the App Store')
+                    : (applePrice ? `${applePrice}/month, billed by Apple` : 'Billed by Apple')
+                  : `${getPricingDisplay()} after trial`}
+              </span>
               <span className="text-slate-300">•</span>
               <span className="text-slate-400">Cancel anytime</span>
             </div>
@@ -678,7 +695,7 @@ export default function OnboardingPage() {
                   Setting up your account...
                 </>
               ) : (
-                'Continue to Free Trial'
+                onIOS ? 'Continue' : 'Continue to Free Trial'
               )}
             </button>
             <p className="text-xs text-slate-400 text-center mt-3">Takes about 2 minutes</p>
