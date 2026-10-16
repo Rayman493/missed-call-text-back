@@ -71,6 +71,16 @@ export function isNativeIOS(): boolean {
 }
 
 /**
+ * Whether the paywall may claim a free trial: the StoreKit product must
+ * carry a free-trial introductory offer AND this Apple account must be
+ * eligible for it. Never hardcoded — Apple's own eligibility check decides,
+ * so a subscriber who already consumed an intro offer sees paid copy.
+ */
+export function appleIntroTrialEligible(offer: AppleSubscriptionOffer | null | undefined): boolean {
+  return Boolean(offer?.introOfferEligible && offer?.introOffer?.paymentMode === 'freeTrial')
+}
+
+/**
  * Startup diagnostic — proves the native plugin is compiled into the binary
  * AND registered (registerPluginInstance ran). A stale/misbuilt binary throws
  * UNIMPLEMENTED here at boot instead of surfacing inside the purchase flow.
