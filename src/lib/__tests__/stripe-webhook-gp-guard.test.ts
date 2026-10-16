@@ -121,7 +121,7 @@ describe('production webhook route guard wiring', () => {
     'guards %s against Google Play-managed businesses',
     (eventType) => {
       const block = caseBlock(eventType)
-      expect(block).toContain('skipIfGooglePlayManaged')
+      expect(block).toContain('skipIfNativeManaged')
       expect(block).toContain('markEventProcessed')
     }
   )
@@ -129,7 +129,7 @@ describe('production webhook route guard wiring', () => {
   it('guards run before any entitlement mutation in each handler', () => {
     for (const eventType of casesToGuard) {
       const block = caseBlock(eventType)
-      const guardAt = block.indexOf('skipIfGooglePlayManaged')
+      const guardAt = block.indexOf('skipIfNativeManaged')
       // subscription_status writes and side effects must come after the guard
       // ('subscription_status:' with colon = update payload, not SELECT columns)
       for (const mutation of ["subscription_status:", 'scheduleTwilioRelease']) {
@@ -142,7 +142,7 @@ describe('production webhook route guard wiring', () => {
 
   it('guard precedes Twilio release scheduling and failure notification in invoice.payment_failed', () => {
     const block = caseBlock('invoice.payment_failed')
-    const guardAt = block.indexOf('skipIfGooglePlayManaged')
+    const guardAt = block.indexOf('skipIfNativeManaged')
     expect(guardAt).toBeLessThan(block.indexOf("subscription_status: 'past_due'"))
     expect(guardAt).toBeLessThan(block.indexOf('scheduleTwilioRelease'))
     expect(guardAt).toBeLessThan(block.indexOf('createNotification'))
@@ -150,7 +150,7 @@ describe('production webhook route guard wiring', () => {
 
   it('guard precedes the Stripe re-fetch in customer.subscription.deleted (skipped events cost no API call)', () => {
     const block = caseBlock('customer.subscription.deleted')
-    const guardAt = block.indexOf('skipIfGooglePlayManaged')
+    const guardAt = block.indexOf('skipIfNativeManaged')
     expect(guardAt).toBeLessThan(block.indexOf('subscriptions.retrieve'))
     // The canceled-state clearing must come after the guard.
     expect(guardAt).toBeLessThan(block.indexOf("subscription_status: SUBSCRIPTION_STATES.CANCELED"))
@@ -158,7 +158,7 @@ describe('production webhook route guard wiring', () => {
 
   it('checkout.session.completed is NOT guarded — it is the genuine Stripe activation/switch-back door', () => {
     const block = caseBlock('checkout.session.completed')
-    expect(block).not.toContain('skipIfGooglePlayManaged')
+    expect(block).not.toContain('skipIfNativeManaged')
     // A completed Stripe checkout truthfully marks the provider so a
     // Play→Stripe switch-back engages RTDN stripe-protection.
     expect(block).toContain("subscription_provider: 'stripe'")
@@ -166,9 +166,9 @@ describe('production webhook route guard wiring', () => {
   })
 
   it('shared lookup selects the Google Play evidence fields', () => {
-    expect(routeSource).toContain('GP_GUARD_BUSINESS_FIELDS')
+    expect(routeSource).toContain('NATIVE_GUARD_BUSINESS_FIELDS')
     expect(routeSource).toContain('google_play_last_verified_at')
     expect(routeSource).toContain('checkout_completed_at')
-    expect(routeSource).toContain("import { isGooglePlayManagedBilling } from '@/lib/subscription-utils'")
+    expect(routeSource).toContain("import { isNativeManagedBilling } from '@/lib/subscription-utils'")
   })
 })

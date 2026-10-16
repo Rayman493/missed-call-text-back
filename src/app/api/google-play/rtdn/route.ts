@@ -128,25 +128,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, unmatched: true })
     }
 
-    // Protect Stripe entitlements: never let a dead Play subscription
-    // overwrite a genuine Stripe subscription. subscription_provider can be
-    // stale 'stripe' on a Google-Play-billed account (checkout.session.completed
-    // writes it without a provider guard), so the label alone cannot prove a
-    // switch back to Stripe — persisting fields are identical in both cases.
-    // google_play_revoked_at is the only definitive "GP is dead" marker; for
-    // anything else, ask Google and process only while the token is still a
-    // live billing relationship. A fetch failure throws → 500 → Pub/Sub
-    // retry, so an unverifiable event is never silently lost.
-    if (business.subscription_provider === 'stripe') {
+    // Protect Stripe/Apple entitlements: never let a dead Play subscription
+    // overwrite a genuine entitlement held by another provider.
+    // subscription_provider can be stale 'stripe' on a Google-Play-billed
+    // account (checkout.session.completed writes it without a provider
+    // guard), so the label alone cannot prove a switch back — persisting
+    // fields are identical in both cases. google_play_revoked_at is the only
+    // definitive "GP is dead" marker; for anything else, ask Google and
+    // process only while the token is still a live billing relationship. A
+    // fetch failure throws → 500 → Pub/Sub retry, so an unverifiable event
+    // is never silently lost.
+    if (business.subscription_provider === 'stripe' || business.subscription_provider === 'apple') {
       let shouldProcess = false
-      let skipReason = 'stripe_provider'
+      let skipReason = `${business.subscription_provider}_provider`
       if (business.google_play_revoked_at) {
-        skipReason = 'stripe_provider_gp_revoked'
+        skipReason = `${business.subscription_provider}_provider_gp_revoked`
       } else {
         const sub = await fetchSubscription(subNotif.purchaseToken)
         const mapped = sub && mapPlayEntitlement(sub, { isTrial: false })
         shouldProcess = Boolean(mapped && mapped.status && mapped.status !== 'canceled')
-        if (!shouldProcess) skipReason = 'stripe_provider_gp_dead'
+        if (!shouldProcess) skipReason = `${business.subscription_provider}_provider_gp_dead`
       }
       if (!shouldProcess) {
         await supabaseAdmin
@@ -155,9 +156,9 @@ export async function POST(request: NextRequest) {
           .eq('message_id', messageId)
         return NextResponse.json({ ok: true, skipped: skipReason })
       }
-      // Google says the subscription is still live — the 'stripe' label was
-      // stale (or dual-billing). Fall through and apply; the write restores
-      // subscription_provider='google_play' to match GP truth.
+      // Google says the subscription is still live — the other-provider
+      // label was stale (or dual-billing). Fall through and apply; the write
+      // restores subscription_provider='google_play' to match GP truth.
     }
 
     const result = await verifyAndApplyPurchase(supabaseAdmin, {

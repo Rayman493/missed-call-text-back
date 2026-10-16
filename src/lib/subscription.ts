@@ -61,6 +61,7 @@ export function isScheduledToCancel(cancelAt: string | null | undefined, cancelA
 export interface SubscriptionIdentity {
   subscriptionProvider?: string | null
   googlePlayPurchaseToken?: string | null
+  appleOriginalTransactionId?: string | null
 }
 
 export function hasValidSubscription(subscriptionStatus: string | null | undefined, stripeCustomerId?: string | null, stripeSubscriptionId?: string | null, identity?: SubscriptionIdentity): boolean {
@@ -69,15 +70,21 @@ export function hasValidSubscription(subscriptionStatus: string | null | undefin
   // 2. The provider's purchase identifiers exist:
   //    - stripe: stripe_customer_id + stripe_subscription_id
   //    - google_play: google_play_purchase_token
+  //    - apple: apple_original_transaction_id
   const statusValid = subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE || subscriptionStatus === SUBSCRIPTION_STATES.TRIALING
 
-  // Google Play identity: provider label OR a persisted purchase token. The
-  // token is kept as evidence because subscription_provider can be stale
-  // 'stripe' on a Google-Play-billed account (checkout.session.completed
+  // Native identity: provider label OR a persisted purchase identifier. The
+  // identifier is kept as evidence because subscription_provider can be
+  // stale 'stripe' on a store-billed account (checkout.session.completed
   // writes it unguarded).
   const isGooglePlay = identity?.subscriptionProvider === 'google_play' || !!identity?.googlePlayPurchaseToken
-  const hasCustomerId = isGooglePlay ? !!identity?.googlePlayPurchaseToken : !!stripeCustomerId
-  const hasSubscriptionId = isGooglePlay ? !!identity?.googlePlayPurchaseToken : !!stripeSubscriptionId
+  const isApple = !isGooglePlay && (identity?.subscriptionProvider === 'apple' || !!identity?.appleOriginalTransactionId)
+  const hasCustomerId = isGooglePlay ? !!identity?.googlePlayPurchaseToken
+    : isApple ? !!identity?.appleOriginalTransactionId
+    : !!stripeCustomerId
+  const hasSubscriptionId = isGooglePlay ? !!identity?.googlePlayPurchaseToken
+    : isApple ? !!identity?.appleOriginalTransactionId
+    : !!stripeSubscriptionId
   
   if (process.env.NODE_ENV === 'development') {
     console.log('[Subscription] hasValidSubscription check:', {
@@ -96,7 +103,10 @@ export function hasInvalidTrialState(subscriptionStatus: string | null | undefin
   // Returns true if subscription_status is 'trialing' but the provider's
   // purchase identifiers are missing (invalid state).
   const isGooglePlay = identity?.subscriptionProvider === 'google_play' || !!identity?.googlePlayPurchaseToken
-  const idsMissing = isGooglePlay ? !identity?.googlePlayPurchaseToken : (!stripeCustomerId || !stripeSubscriptionId)
+  const isApple = !isGooglePlay && (identity?.subscriptionProvider === 'apple' || !!identity?.appleOriginalTransactionId)
+  const idsMissing = isGooglePlay ? !identity?.googlePlayPurchaseToken
+    : isApple ? !identity?.appleOriginalTransactionId
+    : (!stripeCustomerId || !stripeSubscriptionId)
   return subscriptionStatus === SUBSCRIPTION_STATES.TRIALING && idsMissing
 }
 

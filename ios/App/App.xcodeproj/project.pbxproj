@@ -16,6 +16,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		WEB0001 /* ReplyflowWebCheckoutPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = WEB0002 /* ReplyflowWebCheckoutPlugin.swift */; };
+		APL0001 /* ReplyflowAppleBillingPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = APL0002 /* ReplyflowAppleBillingPlugin.swift */; };
 		STR0001 /* ReplyflowStripeConnectPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = STR0002 /* ReplyflowStripeConnectPlugin.swift */; };
 		SF0001 /* SFSymbolRendererPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = SF0002 /* SFSymbolRendererPlugin.swift */; };
 /* End PBXBuildFile section */
@@ -33,6 +34,7 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1B2C3D4E5F6789012345678 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		WEB0002 /* ReplyflowWebCheckoutPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyflowWebCheckoutPlugin.swift; sourceTree = "<group>"; };
+		APL0002 /* ReplyflowAppleBillingPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyflowAppleBillingPlugin.swift; sourceTree = "<group>"; };
 		STR0002 /* ReplyflowStripeConnectPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyflowStripeConnectPlugin.swift; sourceTree = "<group>"; };
 		SF0002 /* SFSymbolRendererPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SFSymbolRendererPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -79,6 +81,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				WEB0002 /* ReplyflowWebCheckoutPlugin.swift */,
+				APL0002 /* ReplyflowAppleBillingPlugin.swift */,
 				STR0002 /* ReplyflowStripeConnectPlugin.swift */,
 				SF0002 /* SFSymbolRendererPlugin.swift */,
 			);
@@ -168,6 +171,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				WEB0001 /* ReplyflowWebCheckoutPlugin.swift in Sources */,
+				APL0001 /* ReplyflowAppleBillingPlugin.swift in Sources */,
 				STR0001 /* ReplyflowStripeConnectPlugin.swift in Sources */,
 				SF0001 /* SFSymbolRendererPlugin.swift in Sources */,
 			);

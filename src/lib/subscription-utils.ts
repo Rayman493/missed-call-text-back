@@ -32,6 +32,9 @@ export interface Business {
   google_play_purchase_token?: string | null;
   google_play_revoked_at?: string | null;
   google_play_last_verified_at?: string | null;
+  apple_original_transaction_id?: string | null;
+  apple_revoked_at?: string | null;
+  apple_last_verified_at?: string | null;
   checkout_completed_at?: string | null;
   messaging_status?: string | null;
   a2p_status?: string | null;
@@ -140,12 +143,14 @@ export function isReadyForForwardingSetup(business: Business | null | undefined)
   }
   
   // Billing identity: Stripe accounts need customer + subscription; Google
-  // Play accounts carry a verified purchase token instead. A persisted token
-  // counts as Google Play identity regardless of the provider column, which
-  // can be stale 'stripe' after a checkout.session.completed write.
+  // Play accounts carry a verified purchase token and Apple IAP accounts an
+  // originalTransactionId instead. A persisted native identifier counts as
+  // billing identity regardless of the provider column, which can be stale
+  // 'stripe' after a checkout.session.completed write.
   const hasBillingIdentity =
     (Boolean(business.stripe_customer_id) && Boolean(business.stripe_subscription_id)) ||
-    Boolean(business.google_play_purchase_token)
+    Boolean(business.google_play_purchase_token) ||
+    Boolean(business.apple_original_transaction_id)
   return (
     hasAccess &&
     hasNumber &&
@@ -314,6 +319,62 @@ export function isGooglePlayManagedBilling(
 }
 
 /**
+ * Whether a business should manage its subscription through Apple IAP.
+ * Mirrors hasGooglePlayBillingEvidence: a persisted, unrevoked
+ * apple_original_transaction_id is stronger evidence than a potentially
+ * stale subscription_provider label.
+ */
+export function hasAppleBillingEvidence(
+  business: Pick<Business, 'subscription_provider' | 'apple_original_transaction_id'> & { apple_revoked_at?: string | null } | null | undefined
+): boolean {
+  if (!business) return false
+  if (business.subscription_provider === 'apple') return true
+  return Boolean(business.apple_original_transaction_id) && !business.apple_revoked_at
+}
+
+/**
+ * Whether the business's CURRENT billing entitlement is Apple-managed.
+ * Mirrors isGooglePlayManagedBilling, including the genuine Stripe
+ * switch-back escape hatch (checkout_completed_at after the last Apple
+ * verification means Stripe is current again).
+ */
+export function isAppleManagedBilling(
+  business: Pick<Business, 'subscription_provider' | 'apple_original_transaction_id' | 'apple_revoked_at' | 'apple_last_verified_at' | 'checkout_completed_at'> | null | undefined
+): boolean {
+  if (!business || !hasAppleBillingEvidence(business)) return false
+
+  const checkoutAt = business.checkout_completed_at ? Date.parse(business.checkout_completed_at) : NaN
+  const appleVerifiedAt = business.apple_last_verified_at ? Date.parse(business.apple_last_verified_at) : NaN
+  if (!Number.isNaN(checkoutAt) && (Number.isNaN(appleVerifiedAt) || checkoutAt > appleVerifiedAt)) {
+    return false
+  }
+  return true
+}
+
+/**
+ * Whether a business has ANY native app-store billing evidence (Google Play
+ * purchase token or Apple originalTransactionId, unrevoked). UI uses this to
+ * pick the store-management surface instead of the Stripe portal.
+ */
+export function hasNativeBillingEvidence(
+  business: Pick<Business, 'subscription_provider' | 'google_play_purchase_token' | 'apple_original_transaction_id'> & { google_play_revoked_at?: string | null; apple_revoked_at?: string | null } | null | undefined
+): boolean {
+  return hasGooglePlayBillingEvidence(business) || hasAppleBillingEvidence(business)
+}
+
+/**
+ * Whether the business's entitlement is managed by ANY native app-store
+ * provider (Google Play or Apple). Stripe/RTDN handlers use this so a stale
+ * event from a different provider cannot overwrite a live native-managed
+ * entitlement.
+ */
+export function isNativeManagedBilling(
+  business: Pick<Business, 'subscription_provider' | 'google_play_purchase_token' | 'google_play_revoked_at' | 'google_play_last_verified_at' | 'apple_original_transaction_id' | 'apple_revoked_at' | 'apple_last_verified_at' | 'checkout_completed_at'> | null | undefined
+): boolean {
+  return isGooglePlayManagedBilling(business) || isAppleManagedBilling(business)
+}
+
+/**
  * Account-deletion subscription notice — the billing-provider source of truth
  * for the Delete Account warning.
  *
@@ -322,18 +383,19 @@ export function isGooglePlayManagedBilling(
  * that is actually billed through Google Play. A persisted
  * google_play_purchase_token is stronger evidence of Google Play billing.
  *
+ * - 'apple'        → warn that deletion does NOT cancel the Apple IAP subscription
  * - 'google_play'  → warn that deletion does NOT cancel the GP subscription
  * - 'stripe'       → deletion cancels the Stripe subscription server-side
  * - 'unknown'      → an active subscription exists but provider is ambiguous;
  *                    never promise automatic cancellation
  * - 'none'         → no active subscription; show no cancellation warning
  */
-export type DeletionSubscriptionNotice = 'google_play' | 'stripe' | 'unknown' | 'none'
+export type DeletionSubscriptionNotice = 'apple' | 'google_play' | 'stripe' | 'unknown' | 'none'
 
 const DELETION_ACTIVE_SUB_STATUSES = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete']
 
 export function getDeletionSubscriptionNotice(
-  business: Pick<Business, 'subscription_status' | 'subscription_provider' | 'stripe_subscription_id' | 'google_play_purchase_token'> | null | undefined
+  business: Pick<Business, 'subscription_status' | 'subscription_provider' | 'stripe_subscription_id' | 'google_play_purchase_token' | 'apple_original_transaction_id'> | null | undefined
 ): DeletionSubscriptionNotice {
   const statusIsActive = Boolean(
     business?.subscription_status && DELETION_ACTIVE_SUB_STATUSES.includes(business.subscription_status)
@@ -342,21 +404,28 @@ export function getDeletionSubscriptionNotice(
   // only when status is unknown so cancelled/expired rows don't warn.
   const hasActiveBillingSubscription = statusIsActive || (
     !business?.subscription_status &&
-    Boolean(business?.stripe_subscription_id || business?.google_play_purchase_token)
+    Boolean(business?.stripe_subscription_id || business?.google_play_purchase_token || business?.apple_original_transaction_id)
   )
   if (!hasActiveBillingSubscription) return 'none'
 
   const provider = business?.subscription_provider
   const hasGooglePlayToken = Boolean(business?.google_play_purchase_token)
+  const hasAppleId = Boolean(business?.apple_original_transaction_id)
+  const hasNativeEvidence = hasGooglePlayToken || hasAppleId
+  // Most recent native provider wins the warning copy; both are truthful
+  // "does not auto-cancel" notices when only one kind of evidence exists.
+  if (provider === 'apple' || (hasAppleId && provider !== 'stripe')) {
+    return 'apple'
+  }
   if (provider === 'google_play' || (hasGooglePlayToken && provider !== 'stripe')) {
     return 'google_play'
   }
-  // provider='stripe' AND a Google Play token → ambiguous dual-provider state;
-  // never classify as auto-cancellable Stripe.
+  // provider='stripe' AND a native-provider identifier → ambiguous
+  // dual-provider state; never classify as auto-cancellable Stripe.
   // Also require a concrete stripe_subscription_id: the deletion backend only
   // cancels subscriptions with an id, so promising "canceled automatically"
   // without one would be untruthful.
-  if (provider === 'stripe' && !hasGooglePlayToken && business?.stripe_subscription_id) {
+  if (provider === 'stripe' && !hasNativeEvidence && business?.stripe_subscription_id) {
     return 'stripe'
   }
   return 'unknown'

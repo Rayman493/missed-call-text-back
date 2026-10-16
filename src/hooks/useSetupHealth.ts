@@ -27,7 +27,7 @@ export function useSetupHealth() {
     const checks: HealthCheck[] = []
 
     // Subscription active
-    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token, appleOriginalTransactionId: business.apple_original_transaction_id })
     checks.push({
       id: 'subscription',
       name: business.subscription_status === 'trialing' ? 'Free Trial Active' : 'Subscription Active',

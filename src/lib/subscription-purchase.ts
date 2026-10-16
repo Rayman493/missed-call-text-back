@@ -2,14 +2,16 @@
  * Shared subscription purchase action.
  *
  * Android → native Google Play Billing sheet (server-verified entitlement).
- * Web/iOS → existing Stripe Checkout (caller continues its current path).
+ * iOS     → native StoreKit 2 purchase sheet (server-verified entitlement).
+ * Web     → existing Stripe Checkout (caller continues its current path).
  *
  * Usage: call `maybeStartGooglePlaySubscription` at the top of every
- * subscription-checkout handler. If it returns true, the Android flow was
+ * subscription-checkout handler. If it returns true, the native flow was
  * handled and the caller must return early.
  */
 
 import { isNativeAndroid, purchaseSubscription, reconcilePlayPurchases } from './google-play-billing'
+import { isNativeIOS, purchaseSubscription as purchaseAppleSubscription, reconcileApplePurchases } from './apple-billing'
 import { supabase } from '@/lib/supabase/browser'
 
 export interface NativePurchaseCallbacks {
@@ -33,7 +35,7 @@ export const PLAY_PURCHASE_TIMEOUT_MS = 120_000
 const PURCHASE_TIMEOUT = Symbol('purchase-timeout')
 
 const PURCHASE_TIMEOUT_MESSAGE =
-  'Purchase is taking longer than expected. If you already completed it in Google Play, it will activate automatically — tap "Continue to Free Trial" to check.'
+  'Purchase is taking longer than expected. If you already completed it, it will activate automatically — try again to check.'
 
 /**
  * Last-mile entitlement grace. Google's subscriptionsv2 record can lag the
@@ -83,10 +85,11 @@ const isTransientVerifyFailure = (result: {
     (typeof result.httpStatus === 'number' && result.httpStatus >= 500))
 
 /**
- * @returns true if running on native Android (purchase flow was attempted and
- *          handled); false on web/iOS — caller should continue Stripe Checkout.
+ * @returns true on a native platform (purchase flow was attempted and
+ *          handled); false on web — caller should continue Stripe Checkout.
  */
 export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbacks): Promise<boolean> {
+  if (isNativeIOS()) return runApplePurchase(cb)
   if (!isNativeAndroid()) return false
 
   // Retry paths: the Google account may already hold the purchase (e.g. a
@@ -188,6 +191,109 @@ export async function maybeStartGooglePlaySubscription(cb: NativePurchaseCallbac
       return true
     }
     cb.onError?.(message)
+    return true
+  }
+}
+
+/**
+ * iOS counterpart: re-verify StoreKit-held entitlements a bounded number of
+ * times before reporting a recoverable non-entitled result. Apple's
+ * getAllSubscriptionStatuses record can lag the local purchase by seconds.
+ */
+async function settleRecoverableAppleEntitlement(): Promise<boolean> {
+  for (let i = 0; i < POST_PURCHASE_RECONCILE_ATTEMPTS; i++) {
+    if (i > 0) {
+      await new Promise(r => setTimeout(r, POST_PURCHASE_RECONCILE_INTERVAL_MS))
+    }
+    try {
+      const { entitled } = await reconcileApplePurchases()
+      if (entitled) return true
+    } catch (e) {
+      console.warn('[SubscriptionPurchase] Post-purchase Apple reconcile failed:', e)
+    }
+  }
+  return false
+}
+
+/**
+ * iOS purchase flow — mirrors the Google Play path: restore-before-purchase
+ * happens inside purchaseSubscription; a signed transaction is entitlement
+ * only after the server verifies it against the App Store Server API.
+ */
+async function runApplePurchase(cb: NativePurchaseCallbacks): Promise<boolean> {
+  // Retry paths: the App Store account may already hold the entitlement.
+  if (cb.reconcileFirst) {
+    try {
+      const { entitled } = await reconcileApplePurchases()
+      if (entitled) {
+        await cb.onEntitled?.()
+        return true
+      }
+    } catch (e) {
+      console.warn('[SubscriptionPurchase] Pre-purchase Apple reconcile failed:', e)
+    }
+  }
+
+  let userId = cb.userId
+  if (!userId) {
+    const { data: { session } } = await supabase.auth.getSession()
+    userId = session?.user?.id ?? null
+  }
+  if (!userId) {
+    cb.onError?.('You must be signed in to subscribe.')
+    return true
+  }
+
+  try {
+    const purchasePromise = purchaseAppleSubscription(userId)
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<typeof PURCHASE_TIMEOUT>((resolve) => {
+      timeoutId = setTimeout(() => resolve(PURCHASE_TIMEOUT), PLAY_PURCHASE_TIMEOUT_MS)
+    })
+    const raced = await Promise.race([
+      purchasePromise.then(result => ({ result })),
+      timeoutPromise,
+    ])
+    clearTimeout(timeoutId)
+
+    if (raced === PURCHASE_TIMEOUT) {
+      purchasePromise.then(late => {
+        if (late?.ok && late?.entitled) void cb.onEntitled?.()
+      }).catch(() => {})
+      cb.onError?.(PURCHASE_TIMEOUT_MESSAGE)
+      return true
+    }
+
+    const result = raced.result
+    if (result.canceled) {
+      cb.onCanceled?.()
+      return true
+    }
+    if (!result.ok) {
+      if (isTransientVerifyFailure(result) && await settleRecoverableAppleEntitlement()) {
+        await cb.onEntitled?.()
+        return true
+      }
+      if (result.httpStatus === 409) {
+        await (cb.onConflict ?? cb.onError)?.(result.error || 'Purchase failed. Please try again.')
+        return true
+      }
+      cb.onError?.(result.error || 'Purchase failed. Please try again.')
+      return true
+    }
+    if (result.entitled) {
+      await cb.onEntitled?.()
+      return true
+    }
+    if (await settleRecoverableAppleEntitlement()) {
+      await cb.onEntitled?.()
+      return true
+    }
+    cb.onPending?.()
+    return true
+  } catch (error: any) {
+    console.error('[SubscriptionPurchase] Apple purchase failed:', error)
+    cb.onError?.(error?.message || 'Could not start the App Store purchase.')
     return true
   }
 }

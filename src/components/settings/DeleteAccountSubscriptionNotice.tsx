@@ -38,6 +38,23 @@ export default function DeleteAccountSubscriptionNotice({
             You don't have an active subscription to cancel.
           </p>
         )}
+        {notice === 'apple' && (
+          <div className="mt-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-3">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+              Deleting your ReplyFlow account will not automatically cancel your App Store subscription.
+            </p>
+            <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
+              To avoid future charges, cancel it separately through the App Store before deleting your account. Uninstalling the app does not cancel it.
+            </p>
+            <button
+              type="button"
+              onClick={onManageBilling}
+              className="mt-2 text-sm font-medium text-amber-900 dark:text-amber-100 underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-300"
+            >
+              Manage subscription in the App Store
+            </button>
+          </div>
+        )}
         {notice === 'google_play' && (
           <div className="mt-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-3">
             <p className="text-sm font-medium text-amber-900 dark:text-amber-200">

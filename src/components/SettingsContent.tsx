@@ -44,7 +44,7 @@ import {
   getTrialDisplay,
   SUBSCRIPTION_STATES
 } from '@/lib/subscription'
-import { hasActiveSubscription, hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
+import { hasActiveSubscription, hasGooglePlayBillingEvidence, hasAppleBillingEvidence, hasNativeBillingEvidence } from '@/lib/subscription-utils'
 import DeleteAccountSubscriptionNotice from '@/components/settings/DeleteAccountSubscriptionNotice'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
@@ -188,6 +188,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const [localStripeChargesEnabled, setLocalStripeChargesEnabled] = useState<boolean | null>(null)
   const [localStripeDetailsSubmitted, setLocalStripeDetailsSubmitted] = useState<boolean | null>(null)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
+  const [isRestoringPurchases, setIsRestoringPurchases] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
   const [showBusinessNumberWarning, setShowBusinessNumberWarning] = useState(false)
@@ -5567,7 +5568,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                               business?.cancel_at_period_end,
                               business?.current_period_end,
                               business?.trial_ends_at,
-                              { subscriptionProvider: business?.subscription_provider, googlePlayPurchaseToken: business?.google_play_purchase_token }
+                              { subscriptionProvider: business?.subscription_provider, googlePlayPurchaseToken: business?.google_play_purchase_token, appleOriginalTransactionId: business?.apple_original_transaction_id }
                             )}
                     </p>
                   </div>
@@ -5598,7 +5599,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Opening...' : 'Loading...'}</span>
                           </>
                         ) : (
-                          <span>{hasGooglePlayBillingEvidence(business) ? 'Manage Subscription' : (business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now')}</span>
+                          <span>{hasNativeBillingEvidence(business) ? 'Manage Subscription' : (business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now')}</span>
                         )}
                       </button>
                     )}
@@ -5611,6 +5612,37 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                       ? "Manage or cancel your subscription in Google Play — when you're finished, return to ReplyFlow."
                       : "When you're finished in Stripe, tap X to return to ReplyFlow."}
                   </p>
+                )}
+                {/* iOS-specific guidance — Apple subscriptions are managed in
+                    the App Store sheet, not the Stripe portal */}
+                {typeof window !== 'undefined' && isIOS() && hasAppleBillingEvidence(business) && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Manage or cancel your subscription in the App Store — when you're finished, return to ReplyFlow.
+                  </p>
+                )}
+                {/* Restore Purchases — required App Review affordance on iOS.
+                    Syncs the App Store account and re-verifies held
+                    entitlements server-side. */}
+                {typeof window !== 'undefined' && isIOS() && role === 'owner' && (
+                  <button
+                    onClick={async () => {
+                      if (isRestoringPurchases) return
+                      setIsRestoringPurchases(true)
+                      try {
+                        const { restoreApplePurchases } = await import('@/lib/apple-billing')
+                        const { entitled } = await restoreApplePurchases()
+                        if (entitled) await refreshBusiness(true)
+                      } catch (e) {
+                        console.warn('[Settings] Restore Purchases failed:', e)
+                      } finally {
+                        setIsRestoringPurchases(false)
+                      }
+                    }}
+                    disabled={isRestoringPurchases}
+                    className="mt-3 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+                  >
+                    {isRestoringPurchases ? 'Restoring purchases…' : 'Restore Purchases'}
+                  </button>
                 )}
                 {role === 'owner' && needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
                   <button

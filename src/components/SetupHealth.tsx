@@ -76,7 +76,7 @@ export default function SetupHealth() {
   const healthItems: HealthItem[] = []
 
   // 1. Forwarding connected - only show if subscription is active
-  const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
+  const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token, appleOriginalTransactionId: business.apple_original_transaction_id })
   
   if (subscriptionValid) {
     let forwardingStatus: HealthItem['status']
@@ -117,13 +117,13 @@ export default function SetupHealth() {
   }
 
   // 2. Subscription active
-  const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
+  const hasInvalidTrial = hasInvalidTrialState(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token, appleOriginalTransactionId: business.apple_original_transaction_id })
   const isTrialing = business.subscription_status === SUBSCRIPTION_STATES.TRIALING
   const isActive = business.subscription_status === SUBSCRIPTION_STATES.ACTIVE
   
   healthItems.push({
     title: subscriptionValid ? 'Subscription Status' : 'Subscription Required',
-    description: getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, undefined, undefined, undefined, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token }),
+    description: getSubscriptionStatusDescription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, undefined, undefined, undefined, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token, appleOriginalTransactionId: business.apple_original_transaction_id }),
     status: subscriptionValid ? 'healthy' : 'error',
     details: subscriptionValid 
       ? (isTrialing ? 'Free trial active' : 'Subscription active')
@@ -132,7 +132,7 @@ export default function SetupHealth() {
 
   // Add trust note for inactive users
   if (!subscriptionValid) {
-    const trustNote = getSubscriptionTrustNote(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
+    const trustNote = getSubscriptionTrustNote(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token, appleOriginalTransactionId: business.apple_original_transaction_id })
     if (trustNote) {
       healthItems.push({
         title: 'Trial Information',
@@ -219,7 +219,7 @@ export default function SetupHealth() {
 
   const handleViewInstructions = () => {
     // Only allow phone setup if subscription is active
-    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token })
+    const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id, { subscriptionProvider: business.subscription_provider, googlePlayPurchaseToken: business.google_play_purchase_token, appleOriginalTransactionId: business.apple_original_transaction_id })
     
     if (subscriptionValid) {
       router.push('/setup/phone-forwarding')

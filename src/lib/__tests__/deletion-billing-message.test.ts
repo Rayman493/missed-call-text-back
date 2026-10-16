@@ -85,7 +85,7 @@ describe('getDeletionBillingMessage', () => {
       const msg = getDeletionBillingMessage({ notice: 'unknown' })
       expect(msg!.text).not.toContain('was canceled')
       expect(msg!.text).not.toContain('canceled automatically')
-      expect(msg!.text).toContain('Stripe, Google Play, or another billing provider')
+      expect(msg!.text).toContain('Stripe, Google Play, Apple, or another billing provider')
       expect(msg!.text).toContain('avoid future charges')
       expect(msg!.actionUrl).toBeUndefined()
     })
