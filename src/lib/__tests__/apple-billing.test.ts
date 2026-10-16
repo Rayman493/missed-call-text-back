@@ -483,4 +483,21 @@ describe('native purchase dispatch', () => {
     expect(init).toContain('probeAppleBilling')
     expect(read('src/lib/apple-billing.ts')).toContain('native plugin probe')
   })
+
+  it('plugin source is actually tracked by git (ios/ is gitignored)', () => {
+    // ios/ is in .gitignore — a plain `git add -A` silently skips new plugin
+    // files while every filesystem-reading test still passes. The pbxproj
+    // referencing an untracked file produced "not implemented on ios" on a
+    // clean-checkout build. Assert git, not the disk.
+    const { execSync } = require('child_process')
+    const tracked = execSync('git ls-files ios/App/App/ReplyflowAppleBillingPlugin.swift', {
+      cwd: process.cwd(),
+      encoding: 'utf-8',
+    }).trim()
+    expect(tracked).toBe('ios/App/App/ReplyflowAppleBillingPlugin.swift')
+    // Same guard for the CapApp-SPM manifest — regenerates per-OS and must
+    // never carry Windows path separators into a tracked file.
+    const pkg = read('ios/App/CapApp-SPM/Package.swift')
+    expect(pkg).not.toContain('\\\\')
+  })
 })
