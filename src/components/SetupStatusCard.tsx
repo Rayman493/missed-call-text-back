@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
-import { hasActiveSubscription, hasActiveTrial, deriveSetupState, hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
+import { hasActiveSubscription, hasActiveTrial, deriveSetupState, hasGooglePlayBillingEvidence, hasAppleBillingEvidence } from '@/lib/subscription-utils'
 import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Loader2, HelpCircle, X, Phone, RotateCcw, Check } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
@@ -114,6 +114,16 @@ export default function SetupStatusCard({
       // If user has active subscription, go to portal
       // If user needs to subscribe, go to checkout
       if (hasSubscription) {
+        // Apple IAP subscribers manage their subscription in the App Store.
+        // hasAppleBillingEvidence mirrors the Play check: a persisted
+        // originalTransactionId outranks a potentially stale provider label.
+        if (hasAppleBillingEvidence(business)) {
+          const { Browser } = await import('@capacitor/browser')
+          const { getAppleSubscriptionManageUrl } = await import('@/lib/apple-billing')
+          await Browser.open({ url: getAppleSubscriptionManageUrl() })
+          return
+        }
+
         // Google Play subscribers manage their subscription in the Play Store.
         // hasGooglePlayBillingEvidence also catches stale-provider state where
         // subscription_provider reads 'stripe' on a Google-Play-billed account.

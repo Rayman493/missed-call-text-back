@@ -71,8 +71,8 @@ describe('billing.ts source wiring', () => {
     expect(billingSrc).not.toMatch(/if \(business\?\.subscription_provider === 'google_play'\)/)
   })
 
-  it('keeps the Android new-purchase Play Billing guard intact', () => {
-    expect(billingSrc).toContain("isNativeAndroid() && !(business?.subscription_provider === 'stripe' && hasExistingSubscription)")
+  it('keeps the native-store new-purchase guard intact (Android + iOS)', () => {
+    expect(billingSrc).toContain("(isNativeAndroid() || isNativeIOS()) && !(business?.subscription_provider === 'stripe' && hasExistingSubscription)")
   })
 })
 
@@ -117,13 +117,13 @@ describe('RTDN stale-provider guard', () => {
 
   it('selects google_play_revoked_at for the definitive-dead fast path', () => {
     expect(routeSrc).toContain('google_play_revoked_at')
-    expect(routeSrc).toContain('stripe_provider_gp_revoked')
+    expect(routeSrc).toContain('}_provider_gp_revoked')
   })
 
   it('verifies ambiguous state against Google before deciding', () => {
     expect(routeSrc).toContain('fetchSubscription(subNotif.purchaseToken)')
     expect(routeSrc).toContain('mapPlayEntitlement(sub, { isTrial: false })')
-    expect(routeSrc).toContain('stripe_provider_gp_dead')
+    expect(routeSrc).toContain('}_provider_gp_dead')
   })
 
   it('does not blindly trust or blindly skip the stripe label', () => {
@@ -200,10 +200,13 @@ describe('UI consumers use the shared evidence helper', () => {
     'utf8'
   )
 
-  it('SettingsContent management label/guidance use hasGooglePlayBillingEvidence', () => {
+  it('SettingsContent management label/guidance use native billing evidence helpers', () => {
+    // The management label uses the combined helper (GP OR Apple); the
+    // Android guidance keeps the Play-specific copy.
+    expect(settingsSrc).toContain('hasNativeBillingEvidence(business)')
     const occurrences = settingsSrc.split('hasGooglePlayBillingEvidence(business)').length - 1
-    // label ternary + Android guidance ternary
-    expect(occurrences).toBeGreaterThanOrEqual(2)
+    // Android guidance ternary still uses the Play-specific check
+    expect(occurrences).toBeGreaterThanOrEqual(1)
     expect(settingsSrc).not.toContain("business?.subscription_provider === 'google_play' ? 'Manage Subscription'")
   })
 

@@ -42,7 +42,7 @@ async function resolveStripeBillingManageUrl(): Promise<string | null> {
 const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'incomplete'])
 
 const BUSINESS_DELETION_SELECT =
-  'id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number, is_protected_account'
+  'id, stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, apple_original_transaction_id, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number, is_protected_account'
 
 export interface DeletionContext {
   userId: string

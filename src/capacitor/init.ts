@@ -109,6 +109,17 @@ export async function initializeCapacitor() {
     await StatusBar.setStyle({ style: Style.Dark })
     console.log('[Capacitor] Status bar configured');
 
+    // iOS: forward StoreKit Transaction.updates (renewals, Ask-to-Buy
+    // approvals, restores) to server-side entitlement verification.
+    if (platform === 'ios') {
+      try {
+        const { registerTransactionUpdateListener } = await import('@/lib/apple-billing');
+        registerTransactionUpdateListener();
+      } catch (e) {
+        console.warn('[Capacitor] Apple billing listener registration skipped:', e);
+      }
+    }
+
     // Hide splash screen
     await SplashScreen.hide();
     console.log('[Capacitor] Splash screen hidden');

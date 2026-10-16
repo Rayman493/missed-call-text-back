@@ -579,4 +579,16 @@ export async function handleAppResume(): Promise<void> {
       console.warn('[EXTERNAL RETURN] Google Play reconcile skipped:', e)
     }
   }
+
+  // Apple IAP: same resume reconciliation on iOS — renewals, cancellations
+  // and revocations propagate without waiting for App Store Server
+  // Notifications.
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+    try {
+      const { reconcileApplePurchases } = await import('@/lib/apple-billing')
+      await reconcileApplePurchases()
+    } catch (e) {
+      console.warn('[EXTERNAL RETURN] Apple reconcile skipped:', e)
+    }
+  }
 }

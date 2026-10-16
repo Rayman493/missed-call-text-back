@@ -14,7 +14,7 @@ export interface Business {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
-  subscription_provider?: 'stripe' | 'google_play' | null;
+  subscription_provider?: 'stripe' | 'google_play' | 'apple' | null;
   subscription_price_id?: string | null;
   current_period_end?: string | null;
   cancel_at_period_end?: boolean | null;
@@ -24,6 +24,11 @@ export interface Business {
   google_play_product_id?: string | null;
   google_play_is_trial?: boolean | null;
   google_play_revoked_at?: string | null;
+  apple_original_transaction_id?: string | null;
+  apple_transaction_id?: string | null;
+  apple_product_id?: string | null;
+  apple_is_trial?: boolean | null;
+  apple_revoked_at?: string | null;
   forwarding_phone_number?: string | null;
   carrier?: string | null;
   call_forwarding_enabled?: boolean | null;

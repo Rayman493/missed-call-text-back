@@ -182,9 +182,10 @@ describe('rtdn route', () => {
     expect(route).toContain('23505')
   })
 
-  it('skips Stripe-managed businesses', () => {
+  it('skips Stripe-managed and Apple-managed businesses', () => {
     expect(route).toContain("subscription_provider === 'stripe'")
-    expect(route).toContain('stripe_provider')
+    expect(route).toContain("subscription_provider === 'apple'")
+    expect(route).toContain('_provider`')
   })
 
   it('forces revocation on SUBSCRIPTION_REVOKED (type 12)', () => {
@@ -228,8 +229,8 @@ describe('all six subscription entry points use the shared purchase action', () 
 describe('billing.ts cannot start Stripe checkout on Android', () => {
   const src = read('src/lib/billing.ts')
 
-  it('routes Android non-Stripe-subscribers to the Play purchase action', () => {
-    expect(src).toContain("isNativeAndroid() && !(business?.subscription_provider === 'stripe' && hasExistingSubscription)")
+  it('routes native non-Stripe-subscribers to the store purchase action', () => {
+    expect(src).toContain("(isNativeAndroid() || isNativeIOS()) && !(business?.subscription_provider === 'stripe' && hasExistingSubscription)")
     expect(src).toContain('maybeStartGooglePlaySubscription')
   })
 

@@ -13,6 +13,9 @@
  * - 'google_play' → deletion does NOT cancel Google Play; always includes the
  *                   Play subscription-management destination; never a
  *                   Stripe link.
+ * - 'apple'       → deletion does NOT cancel Apple IAP; always includes the
+ *                   App Store subscription-management destination; never a
+ *                   Stripe link.
  * - 'unknown'     → ambiguous provider; never promise cancellation; no
  *                   provider-specific link without reliable evidence.
  * - 'none'        → no billing copy.
@@ -52,6 +55,11 @@ export function getDeletionPlayManageUrl(): string {
   return `https://play.google.com/store/account/subscriptions?sku=${encodeURIComponent(productId)}&package=${encodeURIComponent(GOOGLE_PLAY_PACKAGE_NAME)}`
 }
 
+/** App Store subscription-management destination (Apple IAP). */
+export function getDeletionAppleManageUrl(): string {
+  return 'https://apps.apple.com/account/subscriptions'
+}
+
 export function getDeletionBillingMessage(ctx: DeletionBillingContext): DeletionBillingMessage | null {
   switch (ctx.notice) {
     case 'stripe': {
@@ -77,9 +85,15 @@ export function getDeletionBillingMessage(ctx: DeletionBillingContext): Deletion
         actionUrl: getDeletionPlayManageUrl(),
         actionLabel: 'Manage subscription in Google Play',
       }
+    case 'apple':
+      return {
+        text: 'Deleting your ReplyFlow account does not automatically cancel your App Store subscription. To avoid future charges, manage or cancel it through Apple.',
+        actionUrl: getDeletionAppleManageUrl(),
+        actionLabel: 'Manage subscription in the App Store',
+      }
     case 'unknown':
       return {
-        text: 'If you still have an active subscription through Stripe, Google Play, or another billing provider, verify and cancel it directly with that provider to avoid future charges.',
+        text: 'If you still have an active subscription through Stripe, Google Play, Apple, or another billing provider, verify and cancel it directly with that provider to avoid future charges.',
       }
     case 'none':
     default:

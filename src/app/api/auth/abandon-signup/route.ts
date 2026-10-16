@@ -56,7 +56,7 @@ export async function POST() {
     // state. Anything owned or active must take the normal deletion path.
     const { data: businesses, error: businessesError } = await supabaseAdmin
       .from('businesses')
-      .select('id, subscription_status, google_play_purchase_token, stripe_customer_id, stripe_subscription_id, twilio_phone_number_sid, provisioning_status, is_protected_account')
+      .select('id, subscription_status, google_play_purchase_token, apple_original_transaction_id, stripe_customer_id, stripe_subscription_id, twilio_phone_number_sid, provisioning_status, is_protected_account')
       .eq('user_id', user.id)
 
     if (businessesError) {
@@ -70,6 +70,7 @@ export async function POST() {
     const isIncomplete = (b: any) =>
       !b.subscription_status &&
       !b.google_play_purchase_token &&
+      !b.apple_original_transaction_id &&
       !b.stripe_customer_id &&
       !b.stripe_subscription_id &&
       !b.twilio_phone_number_sid &&

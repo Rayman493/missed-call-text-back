@@ -3,7 +3,7 @@
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { openNativeWebSession, isNativeIOS, isNativeAndroid } from '@/lib/native-web-session'
 import { setPendingStripeOperation } from '@/lib/external-return-handler'
-import { hasGooglePlayBillingEvidence } from '@/lib/subscription-utils'
+import { hasGooglePlayBillingEvidence, hasAppleBillingEvidence } from '@/lib/subscription-utils'
 
 export interface BillingActionResult {
   success: boolean
@@ -68,7 +68,7 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
     // Determine action based on subscription status and Stripe data
     const { data: business, error: businessError } = await supabase
       .from('businesses')
-      .select('stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, google_play_revoked_at')
+      .select('stripe_customer_id, stripe_subscription_id, subscription_status, subscription_provider, google_play_purchase_token, google_play_revoked_at, apple_original_transaction_id, apple_revoked_at')
       .eq('user_id', session.user.id)
       .limit(1)
       .maybeSingle()
@@ -94,6 +94,18 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
       }
     }
 
+    // APPLE IAP: subscriptions are managed in the App Store, not the
+    // Stripe Billing Portal — open Apple's subscription management page.
+    // Same evidence-first rule as Google Play: a persisted, unrevoked
+    // originalTransactionId counts even when provider reads stale 'stripe'.
+    if (hasAppleBillingEvidence(business)) {
+      console.log('[Billing Action] Apple subscription - opening App Store management')
+      const { Browser } = await import('@capacitor/browser')
+      const { getAppleSubscriptionManageUrl } = await import('@/lib/apple-billing')
+      await Browser.open({ url: getAppleSubscriptionManageUrl() })
+      return { success: true }
+    }
+
     // GOOGLE PLAY: subscriptions are managed in the Play Store, not the
     // Stripe Billing Portal — open the Play subscription management page.
     // A persisted, unrevoked purchase token counts as Google Play evidence
@@ -109,22 +121,22 @@ export async function handleBillingAction(): Promise<BillingActionResult> {
       return { success: true }
     }
 
-    // ANDROID PLAY BILLING: any flow that would create a NEW ReplyFlow
-    // subscription on Android must use Google Play Billing — never Stripe
-    // Checkout. Existing Stripe subscribers keep portal access for account
-    // management (card updates, cancellation) but cannot start a new Stripe
-    // subscription here.
-    if (isNativeAndroid() && !(business?.subscription_provider === 'stripe' && hasExistingSubscription)) {
-      console.log('[Billing Action] Android without manageable Stripe subscription — launching Google Play purchase')
+    // NATIVE STORE BILLING: any flow that would create a NEW ReplyFlow
+    // subscription on Android must use Google Play Billing, and on iOS must
+    // use Apple In-App Purchase — never Stripe Checkout. Existing Stripe
+    // subscribers keep portal access for account management (card updates,
+    // cancellation) but cannot start a new Stripe subscription here.
+    if ((isNativeAndroid() || isNativeIOS()) && !(business?.subscription_provider === 'stripe' && hasExistingSubscription)) {
+      console.log('[Billing Action] Native store without manageable Stripe subscription — launching store purchase')
       const { maybeStartGooglePlaySubscription } = await import('@/lib/subscription-purchase')
-      let playResult: BillingActionResult = { success: false, error: 'Purchase did not complete.' }
+      let storeResult: BillingActionResult = { success: false, error: 'Purchase did not complete.' }
       await maybeStartGooglePlaySubscription({
-        onEntitled: () => { playResult = { success: true } },
-        onCanceled: () => { playResult = { success: true, canceled: true } },
-        onPending: () => { playResult = { success: false, error: 'Purchase is pending — access will activate once Google confirms payment.' } },
-        onError: (message) => { playResult = { success: false, error: message } },
+        onEntitled: () => { storeResult = { success: true } },
+        onCanceled: () => { storeResult = { success: true, canceled: true } },
+        onPending: () => { storeResult = { success: false, error: 'Purchase is pending — access will activate once payment is confirmed.' } },
+        onError: (message) => { storeResult = { success: false, error: message } },
       })
-      return playResult
+      return storeResult
     }
 
     if (hasStripeAccount) {
