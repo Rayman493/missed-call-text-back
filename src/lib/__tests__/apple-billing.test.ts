@@ -449,4 +449,38 @@ describe('native purchase dispatch', () => {
     expect(appDelegate).toContain('ReplyflowAppleBillingPlugin()')
     expect(appDelegate).toContain('registerPluginInstance(appleBillingPlugin)')
   })
+
+  it('plugin swift file is in the Sources build phase and every bridge method is exported', () => {
+    // A PBXFileReference alone does NOT compile the file — it must appear in
+    // the PBXSourcesBuildPhase block. This is the omission that produces
+    // "plugin is not implemented on ios" on a physical device.
+    const pbx = read('ios/App/App.xcodeproj/project.pbxproj')
+    const sourcesPhase = pbx.slice(
+      pbx.indexOf('/* Begin PBXSourcesBuildPhase section */'),
+      pbx.indexOf('/* End PBXSourcesBuildPhase section */')
+    )
+    expect(sourcesPhase).toContain('ReplyflowAppleBillingPlugin.swift in Sources')
+
+    // Every method the TS interface declares must be exported via
+    // pluginMethods — a missing CAPPluginMethod entry rejects at call time.
+    const plugin = read('ios/App/App/ReplyflowAppleBillingPlugin.swift')
+    for (const method of [
+      'isSupported',
+      'getSubscriptionOffer',
+      'launchPurchase',
+      'queryEntitlements',
+      'sync',
+      'finishTransaction',
+    ]) {
+      expect(plugin).toContain(`CAPPluginMethod(name: "${method}"`)
+      expect(plugin).toContain(`@objc func ${method}`)
+    }
+    // Transaction.updates bridge requires the listener event name.
+    expect(plugin).toContain('notifyListeners("transactionUpdate"')
+    // Startup diagnostic must exist in both layers so a stale binary is
+    // detectable in device logs without user-facing failure.
+    const init = read('src/capacitor/init.ts')
+    expect(init).toContain('probeAppleBilling')
+    expect(read('src/lib/apple-billing.ts')).toContain('native plugin probe')
+  })
 })

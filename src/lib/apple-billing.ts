@@ -70,6 +70,23 @@ export function isNativeIOS(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
 }
 
+/**
+ * Startup diagnostic — proves the native plugin is compiled into the binary
+ * AND registered (registerPluginInstance ran). A stale/misbuilt binary throws
+ * UNIMPLEMENTED here at boot instead of surfacing inside the purchase flow.
+ */
+export async function probeAppleBilling(): Promise<boolean> {
+  if (!isNativeIOS()) return false
+  try {
+    const { supported } = await AppleBilling.isSupported()
+    console.log(`[APPLE BILLING] native plugin probe: ok supported=${supported}`)
+    return true
+  } catch (e: any) {
+    console.error('[APPLE BILLING] native plugin probe FAILED — StoreKit bridge missing from this binary:', e?.message || e)
+    return false
+  }
+}
+
 async function sha256Bytes(text: string): Promise<Uint8Array> {
   const data = new TextEncoder().encode(text)
   const digest = await crypto.subtle.digest('SHA-256', data)
