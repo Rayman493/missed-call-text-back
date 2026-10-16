@@ -107,5 +107,12 @@ class CustomBridgeViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(sfSymbolPlugin)
         print("[SF SYMBOL] plugin_registered=true")
         print("[SF SYMBOL] plugin_initialized=true")
+
+        // Register Apple In-App Purchase plugin (StoreKit 2)
+        // App-local plugin requires manual registration like the others.
+        let appleBillingPlugin = ReplyflowAppleBillingPlugin()
+        bridge?.registerPluginInstance(appleBillingPlugin)
+        print("[APPLE BILLING] plugin_registered=true")
+        print("[APPLE BILLING] plugin_initialized=true")
     }
 }

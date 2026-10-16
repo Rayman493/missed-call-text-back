@@ -433,4 +433,20 @@ describe('native purchase dispatch', () => {
     expect(plugin).toContain('appAccountToken')
     expect(plugin).toContain('AppStore.sync()')
   })
+
+  it('js registerPlugin name matches the plugin jsName and is registered in AppDelegate', () => {
+    // registerPlugin(<name>) resolves against the Swift CAPBridgedPlugin
+    // jsName (not identifier) — see ReplyflowStripeConnectPlugin for the
+    // same pattern. A drift here makes every plugin call reject with
+    // "not implemented on ios".
+    const plugin = read('ios/App/App/ReplyflowAppleBillingPlugin.swift')
+    const jsName = plugin.match(/jsName = "([^"]+)"/)?.[1]
+    expect(jsName).toBeTruthy()
+    const bridge = read('src/lib/apple-billing.ts')
+    expect(bridge).toContain(`registerPlugin<AppleBillingPlugin>('${jsName}')`)
+    // App-local plugins are manually registered in capacitorDidLoad().
+    const appDelegate = read('ios/App/App/AppDelegate.swift')
+    expect(appDelegate).toContain('ReplyflowAppleBillingPlugin()')
+    expect(appDelegate).toContain('registerPluginInstance(appleBillingPlugin)')
+  })
 })
