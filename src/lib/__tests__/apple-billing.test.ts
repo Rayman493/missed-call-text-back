@@ -502,6 +502,29 @@ describe('native purchase dispatch', () => {
     expect(plugin).toContain('Failed to load product:')
   })
 
+  it('SK1 diagnostic probe is DEBUG-gated and reports valid/invalid/error', () => {
+    // Temporary PRODUCT_NOT_FOUND diagnostic — must never reach a Release
+    // archive. Assert the probe class sits inside an #if DEBUG block that
+    // extends to end-of-file, and that the call site is gated too.
+    const plugin = read('ios/App/App/ReplyflowAppleBillingPlugin.swift')
+    const classIdx = plugin.indexOf('final class SK1ProductProbe')
+    const ifIdx = plugin.lastIndexOf('#if DEBUG', classIdx)
+    const endifIdx = plugin.indexOf('#endif', classIdx)
+    expect(classIdx).toBeGreaterThan(-1)
+    expect(ifIdx).toBeGreaterThan(-1)
+    expect(endifIdx).toBeGreaterThan(classIdx)
+    // Call site gated as well, on the empty-result branch only.
+    const callIdx = plugin.indexOf('SK1ProductProbe(productId:')
+    expect(plugin.lastIndexOf('#if DEBUG', callIdx)).toBeGreaterThan(-1)
+    // Reports the three diagnostic channels.
+    expect(plugin).toContain('invalidProductIdentifiers')
+    expect(plugin).toContain('SK1 probe valid=')
+    expect(plugin).toContain('SK1 probe threw domain=')
+    // Debug config must define DEBUG for the gate to engage on device.
+    const pbx = read('ios/App/App.xcodeproj/project.pbxproj')
+    expect(pbx).toContain('SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG')
+  })
+
   it('plugin source is actually tracked by git (ios/ is gitignored)', () => {
     // ios/ is in .gitignore — a plain `git add -A` silently skips new plugin
     // files while every filesystem-reading test still passes. The pbxproj

@@ -207,6 +207,11 @@ public class ReplyflowAppleBillingPlugin: CAPPlugin, CAPBridgedPlugin {
         do {
             let products = try await Product.products(for: [productId])
             print("[APPLE BILLING] products(for:) returned \(products.count) -> \(products.map { $0.id })")
+            #if DEBUG
+            if products.isEmpty {
+                SK1ProductProbe(productId: productId).start()
+            }
+            #endif
             return products
         } catch let error as NSError {
             print("[APPLE BILLING] products(for:) threw domain=\(error.domain) code=\(error.code) desc=\(error.localizedDescription)")
@@ -253,3 +258,49 @@ public class ReplyflowAppleBillingPlugin: CAPPlugin, CAPBridgedPlugin {
 enum AppleBillingError: Error {
     case failedVerification
 }
+
+#if DEBUG
+/**
+ * TEMPORARY DIAGNOSTIC — StoreKit 1 SKProductsRequest for the same product
+ * id, fired only when StoreKit 2 returns an empty set. Its response splits
+ * "invalidProductIdentifiers" (Apple's catalog rejects the id outright)
+ * from "products" (catalog knows it), which distinguishes an ASC/catalog
+ * problem from a StoreKit 2-layer problem that an empty array cannot.
+ *
+ * Compiled only in Debug builds — SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG
+ * is absent from the Release configuration, so this cannot ship in the
+ * App Store archive. Deprecation warnings on SKProductsRequest (iOS 16)
+ * are expected and acceptable for a debug-only probe.
+ * Remove before submission once PRODUCT_NOT_FOUND is resolved.
+ */
+private final class SK1ProductProbe: NSObject, SKProductsRequestDelegate {
+    private let request: SKProductsRequest
+    /// SKProductsRequest's delegate is weak — self-retain until the request
+    /// finishes so the callbacks actually fire.
+    private var keepAlive: SK1ProductProbe?
+
+    init(productId: String) {
+        request = SKProductsRequest(productIdentifiers: [productId])
+        super.init()
+        request.delegate = self
+    }
+
+    func start() {
+        keepAlive = self
+        request.start()
+    }
+
+    func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
+        print("[APPLE BILLING] SK1 probe valid=\(response.products.map { $0.productIdentifier }) invalid=\(response.invalidProductIdentifiers)")
+    }
+
+    func request(_ request: SKRequest, didFailWithError error: Error) {
+        let ns = error as NSError
+        print("[APPLE BILLING] SK1 probe threw domain=\(ns.domain) code=\(ns.code) desc=\(ns.localizedDescription)")
+    }
+
+    func requestDidFinish(_ request: SKRequest) {
+        keepAlive = nil
+    }
+}
+#endif
