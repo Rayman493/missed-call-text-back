@@ -206,3 +206,26 @@ describe('Onboarding routing loop — completed business with missing profile fi
     expect(onboarding.indexOf("redirectTarget = '/dashboard'", completedIdx)).toBeGreaterThan(completedIdx)
   })
 })
+
+describe('stripe checkout — paid mode must not require trial-eligibility phone', () => {
+  const route = readSrc('src/app/api/stripe/create-checkout-session/route.ts')
+
+  // Regression: the phone-number gate ran unconditionally before the mode
+  // branch, so checkout_mode 'paid' (expired-trial Update Billing on web)
+  // was 400'd with "No phone number available for eligibility check" even
+  // though a paid checkout grants no trial. The eligibility machinery —
+  // including its trial_overrides counter side-effect — belongs inside
+  // the trial path only.
+  it('phone gate and eligibility call only run for trial checkout mode', () => {
+    const trialGuard = route.indexOf("checkoutMode === 'trial'")
+    const phoneGate = route.indexOf('!phoneNumberForEligibility')
+    const eligibilityCall = route.indexOf('checkTrialEligibility({')
+    expect(trialGuard).toBeGreaterThan(-1)
+    expect(phoneGate).toBeGreaterThan(trialGuard)
+    expect(eligibilityCall).toBeGreaterThan(trialGuard)
+  })
+
+  it('paid mode still logs the proceed-regardless path', () => {
+    expect(route).toContain('Paid checkout mode requested - proceeding regardless of trial eligibility')
+  })
+})

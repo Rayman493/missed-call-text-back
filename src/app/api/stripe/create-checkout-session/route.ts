@@ -169,46 +169,49 @@ export async function POST(request: Request) {
     const siteUrl = getAppBaseUrl()
     const origin = request.headers.get('origin') || siteUrl
 
-    // Check trial eligibility before creating checkout session
-    console.log('[stripe-checkout] Checking trial eligibility using direct helper call');
-    
-    // Use business_phone_number for eligibility check (not twilio_phone_number)
-    // business_phone_number is the user's actual business phone number collected during onboarding
-    const phoneNumberForEligibility = business.business_phone_number || business.twilio_phone_number || business.forwarding_phone_number
-    
-    console.log('[stripe-checkout] Using phone number for eligibility check:', phoneNumberForEligibility)
-    console.log('[stripe-checkout] Eligibility check input values:', {
-      business_phone_number: phoneNumberForEligibility,
-      business_email: user.email,
-      business_id: business.id,
-      user_id: user.id,
-      source: 'direct_helper'
-    })
-    
-    if (!phoneNumberForEligibility) {
-      console.error('[stripe-checkout] No phone number available for eligibility check')
-      return NextResponse.json({ 
-        error: 'Business phone number is required for trial eligibility. Please complete onboarding first.' 
-      }, { status: 400 })
-    }
-    
-    // Call the shared helper function directly instead of making a server-to-server fetch
-    // This avoids authentication issues since we already have the authenticated user
-    const eligibilityResult = await checkTrialEligibility({
-      business_phone_number: phoneNumberForEligibility,
-      business_email: user.email,
-      userId: user.id,
-      businessId: business.id,
-      source: 'direct_helper'
-    });
-    
-    console.log('[stripe-checkout] Eligibility check result:', eligibilityResult);
-    console.log('[stripe-checkout] About to check eligibility with mode:', checkoutMode);
-
     // Determine final checkout mode based on eligibility
     let finalCheckoutMode = checkoutMode
-    
+
+    // Trial eligibility machinery only applies to trial checkouts. A paid
+    // checkout grants no trial, so it must not require a phone number for
+    // trial-abuse deduplication — businesses that only need to (re)subscribe
+    // paid were previously 400'd here before reaching the paid path.
     if (checkoutMode === 'trial') {
+      console.log('[stripe-checkout] Checking trial eligibility using direct helper call');
+
+      // Use business_phone_number for eligibility check (not twilio_phone_number)
+      // business_phone_number is the user's actual business phone number collected during onboarding
+      const phoneNumberForEligibility = business.business_phone_number || business.twilio_phone_number || business.forwarding_phone_number
+
+      console.log('[stripe-checkout] Using phone number for eligibility check:', phoneNumberForEligibility)
+      console.log('[stripe-checkout] Eligibility check input values:', {
+        business_phone_number: phoneNumberForEligibility,
+        business_email: user.email,
+        business_id: business.id,
+        user_id: user.id,
+        source: 'direct_helper'
+      })
+
+      if (!phoneNumberForEligibility) {
+        console.error('[stripe-checkout] No phone number available for eligibility check')
+        return NextResponse.json({
+          error: 'Business phone number is required for trial eligibility. Please complete onboarding first.'
+        }, { status: 400 })
+      }
+
+      // Call the shared helper function directly instead of making a server-to-server fetch
+      // This avoids authentication issues since we already have the authenticated user
+      const eligibilityResult = await checkTrialEligibility({
+        business_phone_number: phoneNumberForEligibility,
+        business_email: user.email,
+        userId: user.id,
+        businessId: business.id,
+        source: 'direct_helper'
+      });
+
+      console.log('[stripe-checkout] Eligibility check result:', eligibilityResult);
+      console.log('[stripe-checkout] About to check eligibility with mode:', checkoutMode);
+
       if (!eligibilityResult.ok || !eligibilityResult.eligible) {
         console.log('[stripe-checkout] Trial not eligible - switching to paid checkout:', {
           eligibilityResult,
