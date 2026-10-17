@@ -160,3 +160,49 @@ describe('Removed-member access UX', () => {
     expect(ctx).toContain('setBusinessMissingConfirmed(true)')
   })
 })
+
+describe('Onboarding routing loop — completed business with missing profile fields', () => {
+  const onboarding = readSrc('src/app/onboarding/page.tsx')
+  const dashboard = readSrc('src/app/dashboard/DashboardContent.tsx')
+
+  // Regression: a business with onboarding_status 'completed' but a null
+  // business_phone_number and no active subscription was ping-ponged
+  // between /onboarding ('completed' -> /dashboard) and /dashboard
+  // (missing fields -> /onboarding), leaving the user on a permanent
+  // "Setting up your account..." spinner. Confirmed release blocker for
+  // the App Review account.
+
+  it('dashboard never bounces a completed-onboarding business back to /onboarding', () => {
+    // The missing-fields redirect must be gated on onboarding_status so a
+    // completed business renders the dashboard (billing surface) instead
+    // of looping forever.
+    const gate = dashboard.indexOf("onboarding_status !== 'completed'")
+    const pushIdx = dashboard.indexOf("router.push('/onboarding')", dashboard.indexOf('missing required fields'))
+    expect(gate).toBeGreaterThan(-1)
+    expect(pushIdx).toBeGreaterThan(-1)
+    expect(gate).toBeLessThan(pushIdx)
+  })
+
+  it('onboarding fetch includes business_phone_number so hasPhone is real', () => {
+    // profileComplete was always false: the select never fetched the
+    // column the hasPhone check reads.
+    const selectLine = onboarding.match(/\.select\('[^']*onboarding_status[^']*'\)/)?.[0] ?? ''
+    expect(selectLine).toContain('business_phone_number')
+    expect(onboarding).toContain('existingBusiness.business_phone_number')
+  })
+
+  it('incomplete-profile business renders the form instead of self-navigating', () => {
+    // router.push('/onboarding') while mounted on /onboarding left
+    // checkingBusiness=true forever — the spinner the reviewer saw.
+    const branch = onboarding.slice(onboarding.indexOf('else if (!profileComplete)'))
+    expect(branch).toContain('setCheckingBusiness(false)')
+    expect(branch.slice(0, 300)).not.toContain("router.push('/onboarding')")
+    expect(onboarding).not.toContain("redirectTarget = '/onboarding'")
+  })
+
+  it('completed-onboarding businesses still route to /dashboard from onboarding', () => {
+    const completedIdx = onboarding.indexOf("onboarding_status === 'completed'")
+    expect(completedIdx).toBeGreaterThan(-1)
+    expect(onboarding.indexOf("redirectTarget = '/dashboard'", completedIdx)).toBeGreaterThan(completedIdx)
+  })
+})

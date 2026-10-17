@@ -1058,9 +1058,13 @@ export default function DashboardContent() {
     // Check if user has active subscription (trialing or active)
     const hasActiveSubscription = isActiveSubscription(business.subscription_status)
 
-    // User has business but missing required fields - ONLY redirect if NO active subscription
+    // User has business but missing required fields - ONLY redirect if NO active subscription.
+    // Never bounce a completed-onboarding business to /onboarding: that page
+    // routes 'completed' straight back to /dashboard, producing an unbreakable
+    // redirect loop on a missing-field data anomaly. Render the dashboard and
+    // let the billing surface handle a lapsed subscription instead.
     if (!business.name || !business.business_phone_number) {
-      if (!hasActiveSubscription) {
+      if (!hasActiveSubscription && business.onboarding_status !== 'completed') {
         logRouteFlashDebug({
           source: 'DashboardContent',
           pathname,

@@ -146,7 +146,7 @@ export default function OnboardingPage() {
       if (existingMembership) {
         const res = await supabase
           .from('businesses')
-          .select('id, name, onboarding_status, subscription_status, twilio_phone_number, forwarding_verified, phone_setup_completed_at')
+          .select('id, name, business_phone_number, onboarding_status, subscription_status, twilio_phone_number, forwarding_verified, phone_setup_completed_at')
           .eq('id', existingMembership.business_id)
           .single()
         existingBusiness = res.data
@@ -188,10 +188,12 @@ export default function OnboardingPage() {
           redirectTarget = '/complete-setup'
           redirectReason = 'Business exists, resume checkout'
         }
-        // Business exists but profile incomplete - stay on onboarding to complete profile
+        // Business exists but profile incomplete - this IS the page that
+        // completes it. Render the form; self-navigating to /onboarding
+        // while already mounted here would leave the loading screen up.
         else if (!profileComplete) {
-          redirectTarget = '/onboarding'
-          redirectReason = 'Business exists but profile incomplete'
+          setCheckingBusiness(false)
+          return
         }
         // Otherwise, go to dashboard
         else {
