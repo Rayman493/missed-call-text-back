@@ -768,3 +768,46 @@ describe('ios paywall app-store copy', () => {
     expect(page).not.toMatch(/introOfferEligible\s*[:=]\s*true/)
   })
 })
+
+/* ---------- Ownership collision: previously-owned transaction on device ---------- */
+
+describe('apple ownership collision handling', () => {
+  it('server rejects a transaction whose appAccountToken belongs to another user (403, before any entitlement write)', () => {
+    const svc = read('src/lib/apple/billing-service.ts')
+    const tokenCheck = svc.indexOf("error: 'Purchase belongs to a different app account', status: 403")
+    const ownershipCheck = svc.indexOf('appleAppAccountTokenForUser(userId)')
+    const businessBinding = svc.indexOf("status: 409")
+    const write = svc.indexOf("subscription_provider: 'apple'")
+    expect(ownershipCheck).toBeGreaterThan(-1)
+    expect(tokenCheck).toBeGreaterThan(-1)
+    // Token mismatch must fire before the business-binding 409 and before
+    // any entitlement update — a foreign-account transaction can never
+    // reach the write path.
+    expect(tokenCheck).toBeLessThan(businessBinding)
+    expect(tokenCheck).toBeLessThan(write)
+    expect(svc).toContain('tx.appAccountToken.toLowerCase() !== expectedAccountToken.toLowerCase()')
+  })
+
+  it('server still binds one original transaction to one business (409 preserved)', () => {
+    const svc = read('src/lib/apple/billing-service.ts')
+    expect(svc).toContain("eq('apple_original_transaction_id', originalTransactionId)")
+    expect(svc).toContain('This Apple subscription already activates a different business')
+  })
+
+  it('client aborts before launchPurchase on any pre-launch verify failure other than 400', () => {
+    const lib = read('src/lib/apple-billing.ts')
+    const abortBlock = lib.indexOf('verification.httpStatus !== 400')
+    const launch = lib.indexOf('AppleBilling.launchPurchase')
+    expect(abortBlock).toBeGreaterThan(-1)
+    expect(launch).toBeGreaterThan(-1)
+    // The abort return must precede the sheet launch — a 403/409 conflict
+    // can never reach the point of charging the customer.
+    expect(abortBlock).toBeLessThan(launch)
+    expect(lib).toContain("verifySignedTransaction(held.jwsRepresentation, 'pre-launch-restore')")
+    // Transactions are finished only after successful verification —
+    // rejected txs stay in the unfinished queue and may be re-delivered.
+    const finishIdx = lib.indexOf('finishTransaction({ transactionId: purchase.transactionId })')
+    const verifyIdx = lib.indexOf("verifySignedTransaction(purchase.jwsRepresentation, 'purchase')")
+    expect(finishIdx).toBeGreaterThan(verifyIdx)
+  })
+})
