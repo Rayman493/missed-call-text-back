@@ -129,3 +129,19 @@ describe('reportSignupConversion', () => {
     expect(payload).not.toHaveProperty('email')
   })
 })
+
+describe('buildGoogleAdsInitSnippet', () => {
+  it('disables ad personalization (remarketing) while keeping measurement', async () => {
+    const { buildGoogleAdsInitSnippet } = await loadModule()
+    const snippet = buildGoogleAdsInitSnippet(ADS_ID)
+    expect(snippet).toContain(`gtag('config', '${ADS_ID}'`)
+    expect(snippet).toContain('allow_ad_personalization_signals: false')
+  })
+
+  it('does not enable enhanced conversions or user data collection', async () => {
+    const { buildGoogleAdsInitSnippet } = await loadModule()
+    const snippet = buildGoogleAdsInitSnippet(ADS_ID)
+    expect(snippet).not.toContain('allow_enhanced_conversions')
+    expect(snippet).not.toContain('user_data')
+  })
+})
