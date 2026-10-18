@@ -34,6 +34,19 @@ export async function enforceApiSubscription(
     return null
   }
 
+  // Internal server-to-server provisioning calls (billing services, number
+  // monitor) authenticate with x-admin-secret validated against
+  // PROVISIONING_ADMIN_SECRET — same check the route itself performs.
+  // Without this bypass, payment-success provisioning would be 401'd and
+  // billing recovery would never restore the business's phone number.
+  if (pathname === '/api/business/trigger-provisioning') {
+    const adminSecret = req.headers.get('x-admin-secret')
+    const expected = process.env.PROVISIONING_ADMIN_SECRET
+    if (expected && adminSecret === expected) {
+      return null
+    }
+  }
+
   const guardResult = user
     ? await requireSubscriptionAccessWithClient(supabase, user.id)
     : await requireSubscriptionAccess(req)

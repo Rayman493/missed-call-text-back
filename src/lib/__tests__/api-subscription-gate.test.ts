@@ -132,4 +132,40 @@ describe('enforceApiSubscription', () => {
     const res = await enforceApiSubscription(makeRequest('/api/leads'), fakeSupabase, { id: 'u1' })
     expect(res!.status).toBe(404)
   })
+
+  describe('trigger-provisioning internal-secret bypass (billing recovery path)', () => {
+    const secretReq = (headers: Record<string, string>, method = 'POST') =>
+      new NextRequest(new URL('https://app.replyflowhq.com/api/business/trigger-provisioning'), { method, headers })
+
+    it('valid x-admin-secret → allowed without auth (billing services keep working)', async () => {
+      process.env.PROVISIONING_ADMIN_SECRET = 'test-secret-123'
+      const res = await enforceApiSubscription(secretReq({ 'x-admin-secret': 'test-secret-123' }), fakeSupabase, null)
+      expect(res).toBeNull()
+      expect(bearerMock).not.toHaveBeenCalled()
+      delete process.env.PROVISIONING_ADMIN_SECRET
+    })
+
+    it('wrong x-admin-secret → gated (falls through to auth check)', async () => {
+      process.env.PROVISIONING_ADMIN_SECRET = 'test-secret-123'
+      bearerMock.mockResolvedValue({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED', statusCode: 401 })
+      const res = await enforceApiSubscription(secretReq({ 'x-admin-secret': 'wrong' }), fakeSupabase, null)
+      expect(res!.status).toBe(401)
+      delete process.env.PROVISIONING_ADMIN_SECRET
+    })
+
+    it('no x-admin-secret → gated like any protected route', async () => {
+      process.env.PROVISIONING_ADMIN_SECRET = 'test-secret-123'
+      bearerMock.mockResolvedValue({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED', statusCode: 401 })
+      const res = await enforceApiSubscription(secretReq({}), fakeSupabase, null)
+      expect(res!.status).toBe(401)
+      delete process.env.PROVISIONING_ADMIN_SECRET
+    })
+
+    it('missing env → never bypasses (fail closed)', async () => {
+      delete process.env.PROVISIONING_ADMIN_SECRET
+      bearerMock.mockResolvedValue({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED', statusCode: 401 })
+      const res = await enforceApiSubscription(secretReq({ 'x-admin-secret': 'anything' }), fakeSupabase, null)
+      expect(res!.status).toBe(401)
+    })
+  })
 })
