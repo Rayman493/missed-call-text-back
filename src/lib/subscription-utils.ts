@@ -29,6 +29,9 @@ export interface Business {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_provider?: string | null;
+  trial_ends_at?: string | null;
+  current_period_end?: string | null;
+  cancel_at_period_end?: boolean | null;
   google_play_purchase_token?: string | null;
   google_play_revoked_at?: string | null;
   google_play_last_verified_at?: string | null;
@@ -65,8 +68,26 @@ export function hasActiveAccess(business: Business | null | undefined): boolean 
     return true
   }
   
-  // Check Stripe subscription status
-  return ACTIVE_ACCESS_STATUSES.includes(business.subscription_status ?? '');
+  const status = business.subscription_status ?? '';
+  if (!ACTIVE_ACCESS_STATUSES.includes(status)) {
+    return false;
+  }
+  
+  // Time-bound enforcement: providers normally flip subscription_status via
+  // webhooks/store verification, but access must not depend on that delivery
+  // timing. When the row carries a recorded entitlement bound that has passed,
+  // the entitlement is expired regardless of the stale status value.
+  // Rows without bounds (beta/comped, providers that don't populate them) are
+  // unaffected.
+  const now = Date.now();
+  if (status === 'trialing' && business.trial_ends_at && new Date(business.trial_ends_at).getTime() <= now) {
+    return false;
+  }
+  if (status === 'active' && business.current_period_end && new Date(business.current_period_end).getTime() <= now) {
+    return false;
+  }
+  
+  return true;
 }
 
 /**
