@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { enforceApiSubscription } from '@/lib/api-subscription-gate'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
@@ -96,6 +97,16 @@ export async function middleware(req: NextRequest) {
     isMobile,
     timestamp: new Date().toISOString()
   })
+
+  // Subscription gate for protected API routes. Applies BEFORE the /api
+  // public-route bypass below so that owner-facing operational endpoints
+  // enforce the canonical entitlement (hasActiveAccess) server-side.
+  // Exempt paths (billing recovery, webhooks, public customer endpoints,
+  // account/team/provisioning) are listed in subscription-access-paths.
+  const apiGateResponse = await enforceApiSubscription(req, supabase, user)
+  if (apiGateResponse) {
+    return apiGateResponse
+  }
 
   // Public routes - no authentication required
   const publicRoutes = [

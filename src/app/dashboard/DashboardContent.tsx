@@ -987,11 +987,7 @@ export default function DashboardContent() {
   const manualAccessActive = (business as any)?.manual_access === true && 
     (!(business as any)?.manual_access_expires_at || new Date((business as any)?.manual_access_expires_at) > new Date())
   const lifetimeAccessActive = (business as any)?.lifetime_access === true
-  const subscriptionActive = business?.subscription_status === 'trialing' || 
-                         business?.subscription_status === 'active' ||
-                         business?.subscription_status === 'beta' ||
-                         business?.subscription_status === 'comped' ||
-                         business?.stripe_subscription_id
+  const subscriptionActive = hasActiveAccess(business)
   const hasValidAccess = subscriptionActive || manualAccessActive || lifetimeAccessActive
 
 
