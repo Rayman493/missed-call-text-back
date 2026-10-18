@@ -1,4 +1,3 @@
 {
-  "$comment": "QA BRANCH: no cron registrations. The QA Vercel project deploys this branch, so removing crons here removes them from QA only — main's vercel.json is untouched and production schedules are unaffected. Restore before merging qa into main. Runtime gating in src/lib/cron-auth.ts is the second layer.",
   "crons": []
 }
