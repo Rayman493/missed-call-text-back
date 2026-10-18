@@ -5,6 +5,7 @@ import ProvidersWrapper from '@/components/ProvidersWrapper'
 import GlobalErrorBoundary from '@/components/GlobalErrorBoundary'
 import { CapacitorInitializer } from '@/components/capacitor/CapacitorInitializer'
 import NativeOfflineBoundary from '@/components/NativeOfflineBoundary'
+import { GoogleAdsTag } from '@/lib/google-ads'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -216,6 +217,7 @@ export default function RootLayout({
             `,
           }}
         />
+        <GoogleAdsTag />
       </head>
       <body className={`${inter.className} antialiased`}>
         <CapacitorInitializer />

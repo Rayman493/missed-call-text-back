@@ -377,7 +377,18 @@ export default function PrivacyPage() {
                         <strong>Supabase</strong> - Authentication and data storage
                       </p>
                     </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>Google Ads</strong> - Advertising conversion measurement. When you arrive from one of our ads, a Google tag may set or read advertising cookies to measure whether a visit leads to account registration. No customer data, emails, or phone numbers are sent to Google for this purpose.
+                      </p>
+                    </div>
                   </div>
+                  <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    You can opt out of this advertising measurement at any time by enabling Global Privacy Control (GPC) in your browser — we honor that signal automatically and load no advertising tag for visitors who set it.
+                  </p>
                   <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>Data Protection:</strong> All third-party providers are evaluated for security and compliance. We only share the minimum data necessary for service delivery.

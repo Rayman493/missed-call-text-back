@@ -15,6 +15,7 @@ import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { openStripeCheckout } from '@/lib/stripe-checkout'
 import { isNativeIOS as checkNativeIOS } from '@/lib/stripe-checkout'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
+import { reportSignupConversion } from '@/lib/google-ads'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { Capacitor } from '@capacitor/core'
 import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
@@ -641,6 +642,11 @@ function AuthContent() {
 
       // Mark account as created to prevent re-submission
       accountCreatedRef.current = true
+
+      // Google Ads signup conversion — fires exactly once, only on fresh
+      // account creation (never on sign-in, refresh, back-nav, or retry).
+      // Non-blocking by contract: a tracking failure cannot break signup.
+      reportSignupConversion({ businessId: businessIdFromCompleteSignup, email })
 
       // Account created successfully - now sign in the client
       console.log('[Auth] Account created, signing in client...')
