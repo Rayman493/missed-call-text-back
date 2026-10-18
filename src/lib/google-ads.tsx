@@ -20,6 +20,7 @@
  * - Never throws: a tracking failure cannot break registration.
  */
 
+import { useEffect, useState } from 'react'
 import Script from 'next/script'
 import { Capacitor } from '@capacitor/core'
 
@@ -28,13 +29,26 @@ export const GOOGLE_ADS_SIGNUP_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP
 
 const SENT_FLAG_PREFIX = 'rf_ads_signup_conv:'
 
+function globalPrivacyControlRequested(): boolean {
+  return (
+    typeof navigator !== 'undefined' &&
+    (navigator as any).globalPrivacyControl === true
+  )
+}
+
 /**
  * Google tag loader for the root layout. Renders nothing when the Ads
  * conversion ID is not configured, so the app ships inert until Google Ads
- * provides a real tag ID.
+ * provides a real tag ID. Mount-gated and honors Global Privacy Control —
+ * no ad-tech request is made for visitors who signal an opt-out.
  */
 export function GoogleAdsTag() {
-  if (!GOOGLE_ADS_CONVERSION_ID) return null
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  if (!GOOGLE_ADS_CONVERSION_ID || !mounted || globalPrivacyControlRequested()) {
+    return null
+  }
 
   return (
     <>
@@ -71,6 +85,7 @@ export function reportSignupConversion({ businessId, email }: SignupConversionOp
     if (!GOOGLE_ADS_CONVERSION_ID || !GOOGLE_ADS_SIGNUP_LABEL) return
     if (!businessId) return
     if (Capacitor.isNativePlatform()) return
+    if (globalPrivacyControlRequested()) return
     if (email && email.toLowerCase().endsWith('@replyflowhq.com')) return
     if (typeof window === 'undefined') return
 

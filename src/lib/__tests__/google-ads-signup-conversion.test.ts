@@ -86,6 +86,13 @@ describe('reportSignupConversion', () => {
     expect(gtagMock).not.toHaveBeenCalled()
   })
 
+  it('suppresses the event when Global Privacy Control is set', () => {
+    ;(navigator as any).globalPrivacyControl = true
+    reportSignupConversion({ businessId: 'biz-gpc', email: 'real@customer.com' })
+    expect(gtagMock).not.toHaveBeenCalled()
+    delete (navigator as any).globalPrivacyControl
+  })
+
   it('suppresses internal/test accounts (@replyflowhq.com)', () => {
     reportSignupConversion({ businessId: 'biz-6', email: 'appreview@replyflowhq.com' })
     reportSignupConversion({ businessId: 'biz-7', email: 'DEV@ReplyFlowHQ.com' })
