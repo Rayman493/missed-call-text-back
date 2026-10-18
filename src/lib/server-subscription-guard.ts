@@ -65,6 +65,9 @@ async function getBusinessWithSubscriptionFields(
     .select(`
       id,
       subscription_status,
+      trial_ends_at,
+      current_period_end,
+      cancel_at_period_end,
       manual_access_enabled,
       manual_access_expires_at,
       user_id,
