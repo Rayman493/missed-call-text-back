@@ -255,24 +255,12 @@ export async function middleware(req: NextRequest) {
     timestamp: new Date().toISOString()
   })
 
-  // Security headers
-  res.headers.set('X-Frame-Options', 'DENY')
-  res.headers.set('X-Content-Type-Options', 'nosniff')
-  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
-  
-  // Content Security Policy (basic CSP that doesn't break Stripe, Supabase, Twilio, Vercel, or Google Maps)
-  const csp = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://cdn.twilio.com https://maps.googleapis.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com",
-    "img-src 'self' data: https: blob: https://maps.gstatic.com https://maps.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://*.stripe.com https://checkout.stripe.com https://api.twilio.com https://maps.googleapis.com https://*.googleapis.com",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://www.google.com",
-  ].join('; ')
-  
-  res.headers.set('Content-Security-Policy', csp)
+  // Security headers are applied globally by next.config.js for every
+  // response, including early returns above. The middleware copy previously
+  // lived here but was unreachable in production (file sat outside src/ and
+  // was never bundled) — and its CSP was a strict subset of the config one,
+  // missing Sentry/Twilio Voice/Supabase realtime/Stripe connect sources.
+  // Emitting both headers would enforce the weaker intersection.
 
   return res
 }
