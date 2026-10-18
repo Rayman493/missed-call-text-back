@@ -32,8 +32,16 @@ export const SUBSCRIPTION_EXEMPT_API_PREFIXES: readonly string[] = [
   '/api/onboarding',
   '/api/offboarding',
   '/api/send-offboarding-email',
-  // Business profile, provisioning, team & device management
-  '/api/business',
+  // Business profile management needed for recovery/setup.
+  // NOTE: /api/business itself is NOT exempt — provisioning endpoints
+  // (provision-number, retry-provisioning, trigger-provisioning) perform
+  // paid Twilio operations and are gated; trigger-provisioning's internal
+  // x-admin-secret billing-service calls bypass inside the gate.
+  '/api/business/get-or-create',
+  '/api/business/update-address',
+  '/api/business/update-phone-number',
+  '/api/business/notification-preferences',
+  '/api/business/tap-to-pay-awareness',
   '/api/team',
   '/api/push',
   // Webhooks, callbacks, cron, internal-secret endpoints
@@ -49,13 +57,14 @@ export const SUBSCRIPTION_EXEMPT_API_PREFIXES: readonly string[] = [
   '/api/booking/requests/by-token',
   '/api/payment/lookup',
   '/api/mms-media/serve',
-  '/api/geocode',
-  '/api/voicemail',
   // Platform infra
   '/api/admin',
   '/api/health',
   '/api/diagnostics',
-  '/api/test',
+  // Unauthenticated TwiML test endpoints — may be configured as Twilio
+  // webhook URLs; gating them would 401 provider calls.
+  '/api/test/voice-twiml',
+  '/api/test/current-voice',
   '/api/demo',
   '/api/dev',
   '/api/beta-feedback',
