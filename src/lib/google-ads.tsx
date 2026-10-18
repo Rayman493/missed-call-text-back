@@ -29,6 +29,20 @@ export const GOOGLE_ADS_SIGNUP_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP
 
 const SENT_FLAG_PREFIX = 'rf_ads_signup_conv:'
 
+/**
+ * Google tag init snippet. `allow_ad_personalization_signals: false` turns
+ * off remarketing/audience data collection (which we don't use) while
+ * keeping gclid attribution and conversion measurement fully functional.
+ */
+export function buildGoogleAdsInitSnippet(conversionId: string): string {
+  return `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${conversionId}', { allow_ad_personalization_signals: false });
+        `
+}
+
 function globalPrivacyControlRequested(): boolean {
   return (
     typeof navigator !== 'undefined' &&
@@ -57,12 +71,7 @@ export function GoogleAdsTag() {
         strategy="afterInteractive"
       />
       <Script id="google-ads-gtag-init" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${GOOGLE_ADS_CONVERSION_ID}');
-        `}
+        {buildGoogleAdsInitSnippet(GOOGLE_ADS_CONVERSION_ID)}
       </Script>
     </>
   )
