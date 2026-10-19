@@ -7,6 +7,7 @@ import { getAppBaseUrl, logUrlResolution } from '@/lib/urls'
 import { db } from '@/lib/supabase/admin'
 import { checkTrialEligibility } from '@/lib/trial-eligibility'
 import { resolveBusinessForUser } from '@/lib/team-access'
+import { isNativeManagedBilling } from '@/lib/subscription-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -164,6 +165,27 @@ export async function POST(request: Request) {
         error: 'You already have an active subscription. Please use the Billing Portal to manage your subscription.',
         reason: 'active_subscription_exists'
       }, { status: 400 })
+    }
+
+    // Cross-provider duplicate guard: a business whose entitlement is
+    // currently managed by Google Play or Apple must not start a second,
+    // parallel Stripe subscription — that double-bills the customer.
+    // Entitled statuses block checkout; canceled/expired native
+    // subscriptions keep the Stripe migration path open
+    // (checkout.session.completed is the documented switch-back door —
+    // it writes provider='stripe' + checkout_completed_at).
+    const NATIVE_ENTITLED_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid', 'canceling'])
+    if (isNativeManagedBilling(business) &&
+        NATIVE_ENTITLED_STATUSES.has(business.subscription_status ?? '')) {
+      console.error('[stripe-checkout] Refusing Stripe checkout — subscription is managed by a native store:', {
+        businessId: business.id,
+        subscriptionProvider: business.subscription_provider,
+        subscriptionStatus: business.subscription_status
+      })
+      return NextResponse.json({
+        error: 'Your subscription is managed through the App Store or Google Play. Please manage it there — starting a web subscription would bill you twice.',
+        reason: 'native_managed_subscription'
+      }, { status: 409 })
     }
 
     const siteUrl = getAppBaseUrl()

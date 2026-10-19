@@ -109,23 +109,35 @@ export function getManualAccessStatus(business: Business | null): ManualAccessSt
  * This is the main access check function that should be used across the app
  */
 export function hasBillingAccess(business: Business | null): boolean {
+  // Unified with the canonical hasActiveAccess (subscription-utils.ts):
+  // manual access OR status in {active, trialing, beta, comped}, with
+  // recorded entitlement bounds enforced. Kept inline rather than imported
+  // because subscription-utils imports hasActiveManualAccess from this
+  // module — a top-level import back would create a circular dependency.
   if (!business) {
     return false
   }
 
-  // Check manual access first
   if (hasActiveManualAccess(business)) {
     return true
   }
 
-  // Check Stripe subscription status
-  const hasActiveSubscription = business.subscription_status === 'active' || business.subscription_status === 'trialing'
-
-  if (hasActiveSubscription) {
-    return true
+  const status = business.subscription_status ?? ''
+  if (!['active', 'trialing', 'beta', 'comped'].includes(status)) {
+    return false
   }
 
-  return false
+  const now = Date.now()
+  const trialEndsAt = (business as { trial_ends_at?: string | null }).trial_ends_at
+  const currentPeriodEnd = (business as { current_period_end?: string | null }).current_period_end
+  if (status === 'trialing' && trialEndsAt && new Date(trialEndsAt).getTime() <= now) {
+    return false
+  }
+  if (status === 'active' && currentPeriodEnd && new Date(currentPeriodEnd).getTime() <= now) {
+    return false
+  }
+
+  return true
 }
 
 /**
