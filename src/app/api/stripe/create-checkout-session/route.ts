@@ -254,17 +254,32 @@ export async function POST(request: Request) {
 
     console.log('[stripe-checkout] Proceeding with checkout - mode:', finalCheckoutMode);
 
-    // Create or retrieve Stripe customer
+    // Create or retrieve Stripe customer. The stable idempotency key makes
+    // concurrent requests for the same business converge on one customer
+    // object instead of creating duplicates.
     let customerId = business.stripe_customer_id
     if (!customerId) {
-      const customer = await stripe.customers.create({
+      const customerParams = {
         email: user.email,
         metadata: {
           business_id: business.id,
           user_id: user.id,
         },
-      })
-      customerId = customer.id
+      }
+      try {
+        const customer = await stripe.customers.create(customerParams, { idempotencyKey: `cust-${business.id}` })
+        customerId = customer.id
+      } catch (custErr: any) {
+        // Idempotent replay with different params (e.g. email changed since
+        // the key was first used) → retry once with a fresh key rather than
+        // permanently blocking this business.
+        if (custErr?.code === 'idempotency_error' || /idempotency/i.test(custErr?.message ?? '')) {
+          const customer = await stripe.customers.create(customerParams, { idempotencyKey: `cust-${business.id}-${Date.now()}` })
+          customerId = customer.id
+        } else {
+          throw custErr
+        }
+      }
 
       // Save customer ID to business
       await supabase
@@ -393,16 +408,56 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString()
     })
     
-    console.log('[stripe-checkout] Final URLs configured:', { 
-      successUrl, 
+    console.log('[stripe-checkout] Final URLs configured:', {
+      successUrl,
       cancelUrl,
       siteUrl,
       origin: request.headers.get('origin')
     });
-    
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
+
+    // ---- Concurrency-safe checkout session ----
+    // Two simultaneous requests (double-click, retry, second device) must
+    // not produce parallel subscription checkouts for one business.
+    //
+    // 1) Reuse an existing OPEN subscription Checkout session for this
+    //    business — identical outcome for concurrent/duplicate requests,
+    //    including ones that arrive after the first request already created
+    //    the session but before the customer completed payment.
+    // 2) sessions.create uses a STABLE idempotency key derived from the
+    //    operation identity (business + customer + price + mode). Requests
+    //    that race past step 1 — or retries after a network timeout or
+    //    process crash — replay the original Stripe response instead of
+    //    creating a second session. Stripe retains keys ~24h; Checkout
+    //    sessions themselves expire within 24h, so a forgotten key can
+    //    never replay a stale live session.
+    // 3) If Stripe replays a session that is no longer open (expired or
+    //    already completed), retry once with a fresh key so a legitimate
+    //    new checkout is never blocked.
+    let session: any = null
+    try {
+      const openSessions = await stripe.checkout.sessions.list({
+        customer: customerId,
+        status: 'open',
+        limit: 10,
+      })
+      const existingOpen = openSessions.data.find(
+        (s) => s.mode === 'subscription' && s.metadata?.business_id === business.id && s.url,
+      )
+      if (existingOpen) {
+        console.log('[stripe-checkout] Reusing existing open checkout session for business:', {
+          businessId: business.id,
+          sessionId: existingOpen.id,
+        })
+        return NextResponse.json({ url: existingOpen.url })
+      }
+    } catch (listError: any) {
+      // Listing is an optimization — never block checkout if it fails.
+      console.warn('[stripe-checkout] Open-session check failed, continuing to create:', listError?.message)
+    }
+
+    const idempotencyKey = `checkout-${business.id}-${customerId}-${priceId}-${finalCheckoutMode}`
+    const sessionParams = {
+      mode: 'subscription' as const,
       customer: customerId,
       line_items: [
         {
@@ -426,11 +481,32 @@ export async function POST(request: Request) {
           checkout_mode: finalCheckoutMode,
         },
       },
-    })
-    
-    console.log('[stripe-checkout] Checkout session created successfully:', { 
-      sessionId: session.id, 
-      url: session.url 
+    }
+    try {
+      session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey })
+    } catch (createErr: any) {
+      // Stable key replayed against different params (e.g. price or URLs
+      // changed since first use) → retry once with a fresh key.
+      if (createErr?.code === 'idempotency_error' || /idempotency/i.test(createErr?.message ?? '')) {
+        session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: `${idempotencyKey}-${Date.now()}` })
+      } else {
+        throw createErr
+      }
+    }
+
+    // A replayed response can be a session that has since expired or
+    // completed — never hand the customer a dead checkout URL.
+    if (session.status !== 'open' || !session.url) {
+      console.warn('[stripe-checkout] Replayed session not usable, retrying with fresh key:', {
+        businessId: business.id,
+        sessionStatus: session.status,
+      })
+      session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: `${idempotencyKey}-${Date.now()}` })
+    }
+
+    console.log('[stripe-checkout] Checkout session created successfully:', {
+      sessionId: session.id,
+      url: session.url
     });
 
     return NextResponse.json({ url: session.url })
