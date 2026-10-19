@@ -28,6 +28,16 @@ export function getPricingDisplay() {
   return PRICING_CONFIG.PRICE_DISPLAY
 }
 
+/**
+ * Provider-specific monthly price for customer-facing copy.
+ * Apple In-App Purchase is billed at the App Store tier ($59.99/month);
+ * Stripe web checkout and Google Play are $59/month. The authoritative
+ * charge always comes from the provider — this is display copy only.
+ */
+export function getProviderPriceDisplay(provider?: 'apple' | 'google_play' | 'stripe' | null): string {
+  return provider === 'apple' ? '$59.99/month' : PRICING_CONFIG.PRICE_DISPLAY
+}
+
 export function getTrialDisplay() {
   return PRICING_CONFIG.TRIAL_DISPLAY
 }

@@ -46,7 +46,7 @@ import {
 } from '@/lib/subscription'
 import { hasActiveSubscription, hasGooglePlayBillingEvidence, hasAppleBillingEvidence, hasNativeBillingEvidence } from '@/lib/subscription-utils'
 import DeleteAccountSubscriptionNotice from '@/components/settings/DeleteAccountSubscriptionNotice'
-import { PRICING_CONFIG } from '@/lib/pricing'
+import { PRICING_CONFIG, getProviderPriceDisplay } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import { openStripeConnectOnboarding } from '@/lib/stripe-connect'
 import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state'
@@ -189,6 +189,20 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
   const [localStripeDetailsSubmitted, setLocalStripeDetailsSubmitted] = useState<boolean | null>(null)
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [isRestoringPurchases, setIsRestoringPurchases] = useState(false)
+  const [restorePurchasesMessage, setRestorePurchasesMessage] = useState<string | null>(null)
+
+  // Display provider for price copy: prefer recorded billing evidence so a
+  // store-billed customer sees the store price on web too; fall back to the
+  // native platform so an unsubscribed iOS/Android user sees the store price
+  // they'd actually be charged.
+  const getDisplayBillingProvider = (): 'apple' | 'google_play' | 'stripe' => {
+    if (hasAppleBillingEvidence(business)) return 'apple'
+    if (hasGooglePlayBillingEvidence(business)) return 'google_play'
+    if (typeof window !== 'undefined' && isNativeMobile()) {
+      return isIOS() ? 'apple' : 'google_play'
+    }
+    return 'stripe'
+  }
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
   const [showBusinessNumberWarning, setShowBusinessNumberWarning] = useState(false)
@@ -5549,8 +5563,8 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     </div>
                     <p className="text-2xl font-bold text-foreground mb-1">
                       {isInTrialPeriod(business?.subscription_status)
-                        ? `ReplyFlow — ${getPricingDisplay()}`
-                        : getPricingDisplay()}
+                        ? `ReplyFlow — ${getProviderPriceDisplay(getDisplayBillingProvider())}`
+                        : getProviderPriceDisplay(getDisplayBillingProvider())}
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       {isInTrialPeriod(business?.subscription_status) && business?.trial_ends_at
@@ -5559,9 +5573,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                             month: 'long',
                             day: 'numeric'
                           })}. You won't be charged until then.`
-                        : (business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid')
-                          ? 'Your latest payment could not be processed. Stripe will retry automatically. Please update your payment method if needed.'
-                          : getSubscriptionStatusDescription(
+                        : getSubscriptionStatusDescription(
                               business?.subscription_status,
                               business?.stripe_customer_id,
                               business?.stripe_subscription_id,
@@ -5628,12 +5640,19 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                     onClick={async () => {
                       if (isRestoringPurchases) return
                       setIsRestoringPurchases(true)
+                      setRestorePurchasesMessage(null)
                       try {
                         const { restoreApplePurchases } = await import('@/lib/apple-billing')
                         const { entitled } = await restoreApplePurchases()
-                        if (entitled) await refreshBusiness(true)
+                        if (entitled) {
+                          await refreshBusiness(true)
+                          setRestorePurchasesMessage('Purchases restored — your subscription is active.')
+                        } else {
+                          setRestorePurchasesMessage('No active subscription was found for this Apple ID. If you recently subscribed, try again in a few minutes.')
+                        }
                       } catch (e) {
                         console.warn('[Settings] Restore Purchases failed:', e)
+                        setRestorePurchasesMessage("Couldn't reach the App Store to restore purchases. Check your connection and try again.")
                       } finally {
                         setIsRestoringPurchases(false)
                       }
@@ -5643,6 +5662,11 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   >
                     {isRestoringPurchases ? 'Restoring purchases…' : 'Restore Purchases'}
                   </button>
+                )}
+                {restorePurchasesMessage && (
+                  <p className="mt-2 text-xs text-muted-foreground" role="status">
+                    {restorePurchasesMessage}
+                  </p>
                 )}
                 {role === 'owner' && needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
                   <button

@@ -312,13 +312,13 @@ export default function TermsPage() {
                     <div>
                       <h3 className="text-lg font-medium text-foreground mb-2">Free Trial</h3>
                       <p className="text-muted-foreground">
-                        ReplyFlowHQ offers a 14-day free trial with no credit card required. No charges are applied during the trial period.
+                        ReplyFlowHQ offers a 14-day free trial. A payment method may be collected at signup, but no charges are applied during the trial period; billing begins only after the trial ends.
                       </p>
                     </div>
                     <div>
                       <h3 className="text-lg font-medium text-foreground mb-2">Subscription Fees</h3>
                       <p className="text-muted-foreground">
-                        After the trial, ReplyFlowHQ services are billed at $59/month with no contracts or long-term commitments.
+                        After the trial, ReplyFlowHQ services are billed at $59/month with no contracts or long-term commitments. Subscriptions purchased in the mobile app are billed through Apple or Google Play at the price shown at checkout and are subject to the applicable store's payment terms.
                       </p>
                     </div>
                     <div>

@@ -54,7 +54,7 @@ import {
   hasValidSubscription,
   isActiveSubscription
 } from '@/lib/subscription'
-import { hasActiveAccess, hasActiveTrial, hasActiveSubscription as hasActiveSubscriptionUtil } from '@/lib/subscription-utils'
+import { hasActiveAccess, hasActiveTrial, hasActiveSubscription as hasActiveSubscriptionUtil, hasNativeBillingEvidence } from '@/lib/subscription-utils'
 import { PRICING_CONFIG } from '@/lib/pricing'
 import { handleBillingAction } from '@/lib/billing'
 import StatusBadge from '@/components/StatusBadge'
@@ -316,7 +316,7 @@ export default function LeadsPage() {
   const [manualRefreshing, setManualRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
+  const { checkoutMode, isLoading: eligibilityLoading, eligibility } = useTrialEligibility()
   // iOS trial claims must reflect Apple's intro-offer eligibility, not the
   // server-side business trial flag (which governs Stripe checkout).
   const onIOS = isNativeIOS()
@@ -999,7 +999,7 @@ export default function LeadsPage() {
 
             {/* Offboarding Banner - only for FULLY canceled/unpaid/expired subscriptions */}
             {/* Do NOT show when just scheduled to cancel (cancel_at_period_end) */}
-            {(business?.subscription_status === 'canceled' || business?.subscription_status === 'unpaid' || business?.subscription_status === 'past_due') && business?.stripe_subscription_id && (
+            {(business?.subscription_status === 'canceled' || business?.subscription_status === 'unpaid' || business?.subscription_status === 'past_due') && (business?.stripe_subscription_id || hasNativeBillingEvidence(business)) && (
               <OffboardingBanner
                 business={business}
                 subscriptionStatus={business?.subscription_status || 'inactive'}
@@ -1153,6 +1153,18 @@ export default function LeadsPage() {
                         ? 'Subscribe to begin capturing missed-call customers automatically'
                         : 'Start your trial to begin capturing missed-call customers automatically'}
                     </p>
+                    {/* F11: surface the server-computed trial-denial reason when
+                        web checkout will fall back to paid mode. The hook copy
+                        is already customer-safe (no internal abuse internals). */}
+                    {!onIOS && !eligibilityLoading && eligibility && !eligibility.eligible && eligibility.failureTitle && (
+                      <div className="mb-4 max-w-md mx-auto bg-slate-800/80 border border-slate-600/50 rounded-lg px-4 py-3 text-left">
+                        <p className="text-white text-sm font-medium">{eligibility.failureTitle}</p>
+                        <p className="text-white/80 text-xs mt-1">{eligibility.failureMessage}</p>
+                        {eligibility.failureDetails && (
+                          <p className="text-white/60 text-xs mt-1">{eligibility.failureDetails}</p>
+                        )}
+                      </div>
+                    )}
                     <button
                       onClick={handleStartSubscription}
                       disabled={checkoutLoading || eligibilityLoading}

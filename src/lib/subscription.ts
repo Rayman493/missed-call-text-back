@@ -1,6 +1,6 @@
 // Subscription state constants and utilities for ReplyFlow billing
 
-import { PRICING_CONFIG } from './pricing'
+import { PRICING_CONFIG, getProviderPriceDisplay } from './pricing'
 
 export const SUBSCRIPTION_STATES = {
   NO_SUBSCRIPTION: 'no_subscription',
@@ -136,6 +136,32 @@ export function getSubscriptionStatusColor(subscriptionStatus: string | null | u
   }
 }
 
+function resolveBillingProvider(identity?: SubscriptionIdentity): 'apple' | 'google_play' | 'stripe' {
+  if (identity?.subscriptionProvider === 'apple' || identity?.appleOriginalTransactionId) return 'apple'
+  if (identity?.subscriptionProvider === 'google_play' || identity?.googlePlayPurchaseToken) return 'google_play'
+  return 'stripe'
+}
+
+function formatBillingDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+/** Provider-aware guidance for a failed renewal payment (F6). */
+export function getPaymentRetryDescription(identity?: SubscriptionIdentity): string {
+  const provider = resolveBillingProvider(identity)
+  if (provider === 'apple') {
+    return 'Your latest App Store payment could not be processed. Apple will keep retrying automatically — check your payment method under Settings → your name → Payment & Shipping on your device.'
+  }
+  if (provider === 'google_play') {
+    return 'Your latest Google Play payment could not be processed. Play will keep retrying automatically — update your payment method in the Play Store under Payments & subscriptions.'
+  }
+  return 'Your latest payment could not be processed. Stripe will retry automatically. Please update your payment method if needed.'
+}
+
 export function getSubscriptionStatusDescription(
   subscriptionStatus: string | null | undefined,
   stripeCustomerId?: string | null,
@@ -150,39 +176,36 @@ export function getSubscriptionStatusDescription(
     return 'Start your free trial to activate ReplyFlow. No charge today.'
   }
 
+  const price = getProviderPriceDisplay(resolveBillingProvider(identity))
+
   // Handle canceled but still active subscription (Stripe behavior)
   if (subscriptionStatus === SUBSCRIPTION_STATES.ACTIVE && cancelAtPeriodEnd === true && currentPeriodEnd) {
-    const endDate = new Date(currentPeriodEnd).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    const endDate = formatBillingDate(currentPeriodEnd)
     return `Your subscription has been canceled, but you'll keep access until ${endDate}.`
   }
 
   switch (subscriptionStatus) {
     case SUBSCRIPTION_STATES.TRIALING:
       if (trialEndsAt) {
-        const endDate = new Date(trialEndsAt).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
+        const endDate = formatBillingDate(trialEndsAt)
         return `Your 14-day free trial ends on ${endDate}.`
       }
-      return 'Your 14-day free trial is active. Billing starts at $59/month after trial unless canceled.'
+      return `Your 14-day free trial is active. Billing starts at ${price} after trial unless canceled.`
     case SUBSCRIPTION_STATES.ACTIVE:
-      return 'Your subscription is active at $59/month.'
+      if (currentPeriodEnd) {
+        return `Your subscription is active at ${price}. Next billing date: ${formatBillingDate(currentPeriodEnd)}.`
+      }
+      return `Your subscription is active at ${price}.`
     case SUBSCRIPTION_STATES.BETA:
       return 'This account has complimentary beta access.'
     case SUBSCRIPTION_STATES.COMPED:
       return 'This account has complimentary access.'
     case SUBSCRIPTION_STATES.PAST_DUE:
-      return 'Payment required - update your billing information'
+      return getPaymentRetryDescription(identity)
     case SUBSCRIPTION_STATES.CANCELED:
       return 'Your access has ended. Your ReplyFlow number is reserved for 30 days.'
     case SUBSCRIPTION_STATES.UNPAID:
-      return 'Payment required - update your billing information'
+      return getPaymentRetryDescription(identity)
     case SUBSCRIPTION_STATES.CANCELING:
       return 'Your subscription is being canceled'
     default:
