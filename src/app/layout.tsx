@@ -6,6 +6,7 @@ import GlobalErrorBoundary from '@/components/GlobalErrorBoundary'
 import { CapacitorInitializer } from '@/components/capacitor/CapacitorInitializer'
 import NativeOfflineBoundary from '@/components/NativeOfflineBoundary'
 import { GoogleAdsTag } from '@/lib/google-ads'
+import { MicrosoftUetTag } from '@/lib/microsoft-uet'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -218,6 +219,7 @@ export default function RootLayout({
           }}
         />
         <GoogleAdsTag />
+        <MicrosoftUetTag />
       </head>
       <body className={`${inter.className} antialiased`}>
         <CapacitorInitializer />

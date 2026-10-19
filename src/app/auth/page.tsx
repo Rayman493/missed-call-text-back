@@ -16,6 +16,7 @@ import { openStripeCheckout } from '@/lib/stripe-checkout'
 import { isNativeIOS as checkNativeIOS } from '@/lib/stripe-checkout'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import { reportSignupConversion } from '@/lib/google-ads'
+import { reportUetSignupConversion } from '@/lib/microsoft-uet'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { Capacitor } from '@capacitor/core'
 import ReplyflowWebCheckoutPlugin from '@/lib/web-checkout'
@@ -647,6 +648,11 @@ function AuthContent() {
       // account creation (never on sign-in, refresh, back-nav, or retry).
       // Non-blocking by contract: a tracking failure cannot break signup.
       reportSignupConversion({ businessId: businessIdFromCompleteSignup, email })
+
+      // Microsoft Ads UET signup custom event — same authoritative point,
+      // independent dedupe key. No parameters are sent (enhanced
+      // conversions disabled; no PII leaves the browser).
+      reportUetSignupConversion({ businessId: businessIdFromCompleteSignup, email })
 
       // Account created successfully - now sign in the client
       console.log('[Auth] Account created, signing in client...')
