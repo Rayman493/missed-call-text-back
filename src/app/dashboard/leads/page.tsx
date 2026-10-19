@@ -899,8 +899,8 @@ export default function LeadsPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          businessId: business?.id,
-          mode: checkoutMode,
+          business_id: business?.id,
+          checkout_mode: checkoutMode,
           return_to_app: isNativeIOS(),
         })
       })
