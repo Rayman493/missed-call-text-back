@@ -44,7 +44,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // MARK: - Capacitor proxy forwarding
 
     @discardableResult
-    private func forwardOpenURL(_ url: URL, options: UIOpenURLContext.Options) -> Bool {
+    private func forwardOpenURL(_ url: URL, options: UIScene.OpenURLOptions) -> Bool {
         var appOptions: [UIApplication.OpenURLOptionsKey: Any] = [:]
         if let source = options.sourceApplication {
             appOptions[.sourceApplication] = source
