@@ -68,13 +68,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         imported: 0,
         skipped: contactsToImport.length,
+        failed: 0,
         total: contactsToImport.length
       });
     }
 
-    // Insert contacts in batches
+    // Insert contacts in batches. Each INSERT is atomic, so a batch either
+    // writes all of its rows or none — failures are counted separately from
+    // genuine duplicates and must never be reported as "skipped".
     const batchSize = 100;
     let importedCount = 0;
+    let failedCount = 0;
 
     for (let i = 0; i < contactsToInsert.length; i += batchSize) {
       const batch = contactsToInsert.slice(i, i + batchSize);
@@ -92,17 +96,19 @@ export async function POST(request: NextRequest) {
 
       if (insertError) {
         console.error('Error inserting batch of ignored contacts:', insertError);
+        failedCount += inserts.length;
         // Continue with next batch even if one fails
       } else {
         importedCount += inserts.length;
       }
     }
 
-    const skippedCount = contactsToImport.length - importedCount;
+    const skippedCount = contactsToImport.length - importedCount - failedCount;
 
     return NextResponse.json({
       imported: importedCount,
       skipped: skippedCount,
+      failed: failedCount,
       total: contactsToImport.length
     });
   } catch (error) {

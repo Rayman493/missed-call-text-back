@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { summarizeImportResult } from '@/lib/personal-contacts'
 import Modal from '@/components/ui/Modal'
 
 interface ContactPreview {
@@ -23,7 +24,7 @@ interface ImportStats {
 interface ImportContactsModalProps {
   isOpen: boolean
   onClose: () => void
-  onImportSuccess: (message: string) => void
+  onImportSuccess: (message: string, hadFailures?: boolean) => void
 }
 
 export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }: ImportContactsModalProps) {
@@ -125,19 +126,19 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
         throw new Error(data.error || 'Failed to import contacts')
       }
 
-      // Build success message
-      let successMessage = ''
-      if (data.imported > 0 && data.skipped === 0) {
-        successMessage = `${data.imported} contact${data.imported === 1 ? '' : 's'} added.`
-      } else if (data.imported > 0 && data.skipped > 0) {
-        successMessage = `${data.imported} added. ${data.skipped} already existed.`
-      } else if (data.imported === 0 && data.skipped > 0) {
-        successMessage = `${data.skipped} already existed.`
-      } else {
-        successMessage = 'No valid phone numbers found.'
+      const result = summarizeImportResult(
+        data.imported ?? 0,
+        data.skipped ?? 0,
+        data.failed ?? 0
+      )
+
+      if (result.outcome === 'error') {
+        // Nothing was imported — keep the modal open so the user can retry.
+        // Retries are safe: duplicates are re-skipped server-side.
+        throw new Error(result.message)
       }
 
-      onImportSuccess(successMessage)
+      onImportSuccess(result.message, result.outcome === 'warning')
       onClose()
       setPreview(null)
       setStats(null)

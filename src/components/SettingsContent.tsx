@@ -54,6 +54,7 @@ import type { Business } from '@/lib/types'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
+import { classifyPersonalContactsFetchFailure } from '@/lib/personal-contacts'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault, getOutOfOfficeStatus } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
@@ -218,6 +219,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
+  const [ignoredContactsFetchFailed, setIgnoredContactsFetchFailed] = useState(false)
   const [isLoadingIgnored, setIsLoadingIgnored] = useState(false)
   const lastFetchedUserIdRef = useRef<string | null>(null)
   
@@ -706,9 +708,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     checkAppleAccountLinkage()
   }, [tapToPayAwareness.state.tapToPaySupportStatus, role])
   
-  const handleImportSuccess = (message: string) => {
-    fetchIgnoredContacts({ showLoading: false })
-    showToast(message, 'success')
+  const handleImportSuccess = async (message: string, hadFailures = false) => {
+    const refreshed = await fetchIgnoredContacts({ showLoading: false })
+    if (refreshed) {
+      showToast(message, hadFailures ? 'warning' : 'success')
+    } else {
+      showToast(`${message} Couldn't refresh the contacts list — reopen Settings to see updates.`, 'warning')
+    }
   }
 
   // Automation section collapsed/expanded states
@@ -1446,21 +1452,24 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          return false
-        }
-        throw new Error('Failed to fetch ignored contacts')
+        // This is a background refresh: stay silent. Auth (401) and
+        // subscription (403) states are owned by dedicated auth/billing UI,
+        // 404 is transient post-signup provisioning, and 5xx/network failures
+        // recover on the next visit — none are "personal contacts" errors.
+        const failure = classifyPersonalContactsFetchFailure(response.status)
+        console.warn(`[Settings] Ignored contacts fetch failed (${failure.kind}, HTTP ${response.status})`)
+        setIgnoredContactsFetchFailed(true)
+        return false
       }
 
       const data = await response.json()
       setIgnoredContacts(data.ignoredContacts || [])
+      setIgnoredContactsFetchFailed(false)
       return true
     } catch (error) {
+      // Network failure etc. — silent for background refresh, retry next visit.
       console.error('[Settings] Error fetching ignored contacts:', error)
-      // Only show toast for non-authentication errors
-      if (error instanceof Error && !error.message.includes('Not authenticated') && !error.message.includes('Unauthorized')) {
-        showToast('Couldn\'t load personal contacts', 'error')
-      }
+      setIgnoredContactsFetchFailed(true)
       return false
     } finally {
       if (showLoading) {
@@ -5209,6 +5218,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   {isLoadingIgnored ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                    </div>
+                  ) : ignoredContactsFetchFailed && ignoredContacts.length === 0 ? (
+                    <div className="text-center py-10 bg-muted/30 rounded-lg border border-border/30">
+                      <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                        Couldn&apos;t load personal contacts. Please refresh to try again.
+                      </p>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
                     <div className="text-center py-10 bg-muted/30 rounded-lg border border-border/30">
