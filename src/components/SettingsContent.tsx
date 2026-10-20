@@ -54,6 +54,7 @@ import type { Business } from '@/lib/types'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
+import { classifyPersonalContactsFetchFailure } from '@/lib/personal-contacts'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate, DEFAULT_BUSINESS_HOURS_TIMEZONE, DEFAULT_BUSINESS_HOURS_START, DEFAULT_BUSINESS_HOURS_END, getBusinessHoursFieldWithDefault, getOutOfOfficeStatus } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
@@ -706,9 +707,13 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
     checkAppleAccountLinkage()
   }, [tapToPayAwareness.state.tapToPaySupportStatus, role])
   
-  const handleImportSuccess = (message: string) => {
-    fetchIgnoredContacts({ showLoading: false })
-    showToast(message, 'success')
+  const handleImportSuccess = async (message: string, hadFailures = false) => {
+    const refreshed = await fetchIgnoredContacts({ showLoading: false })
+    if (refreshed) {
+      showToast(message, hadFailures ? 'warning' : 'success')
+    } else {
+      showToast(`${message} Couldn't refresh the contacts list — reopen Settings to see updates.`, 'warning')
+    }
   }
 
   // Automation section collapsed/expanded states
@@ -1446,21 +1451,21 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          return false
-        }
-        throw new Error('Failed to fetch ignored contacts')
+        // This is a background refresh: stay silent. Auth (401) and
+        // subscription (403) states are owned by dedicated auth/billing UI,
+        // 404 is transient post-signup provisioning, and 5xx/network failures
+        // recover on the next visit — none are "personal contacts" errors.
+        const failure = classifyPersonalContactsFetchFailure(response.status)
+        console.warn(`[Settings] Ignored contacts fetch failed (${failure.kind}, HTTP ${response.status})`)
+        return false
       }
 
       const data = await response.json()
       setIgnoredContacts(data.ignoredContacts || [])
       return true
     } catch (error) {
+      // Network failure etc. — silent for background refresh, retry next visit.
       console.error('[Settings] Error fetching ignored contacts:', error)
-      // Only show toast for non-authentication errors
-      if (error instanceof Error && !error.message.includes('Not authenticated') && !error.message.includes('Unauthorized')) {
-        showToast('Couldn\'t load personal contacts', 'error')
-      }
       return false
     } finally {
       if (showLoading) {
