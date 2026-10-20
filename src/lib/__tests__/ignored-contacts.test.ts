@@ -95,7 +95,8 @@ describe('SettingsContent background fetch (structural)', () => {
 
   it('never toasts a contacts error from the background refresh path', () => {
     expect(fetchBody).not.toContain('showToast(')
-    expect(settings).not.toContain('Couldn\'t load personal contacts')
+    // the message survives only as an inline JSX state (escaped), never a toast
+    expect(settings).not.toMatch(/showToast\('Couldn.*load personal contacts/)
   })
 
   it('classifies HTTP failures instead of throwing a generic error', () => {
@@ -112,6 +113,44 @@ describe('SettingsContent background fetch (structural)', () => {
     const successIdx = effect.indexOf('if (success)')
     expect(successIdx).toBeGreaterThan(-1)
     expect(guardIdx).toBeGreaterThan(successIdx)
+  })
+
+  it('tracks fetch failure distinctly from a successfully-loaded empty list', () => {
+    // failure flag set in BOTH the !response.ok path and the network-error catch
+    expect(fetchBody.match(/setIgnoredContactsFetchFailed\(true\)/g)).toHaveLength(2)
+    // cleared only on the confirmed-success path, right after setting data
+    const successIdx = fetchBody.indexOf('setIgnoredContacts(data.ignoredContacts || [])')
+    const clearIdx = fetchBody.indexOf('setIgnoredContactsFetchFailed(false)')
+    const returnTrueIdx = fetchBody.indexOf('return true')
+    expect(successIdx).toBeGreaterThan(-1)
+    expect(clearIdx).toBeGreaterThan(successIdx)
+    expect(clearIdx).toBeLessThan(returnTrueIdx)
+    expect(fetchBody.match(/setIgnoredContactsFetchFailed\(false\)/g)).toHaveLength(1)
+  })
+
+  it('renders an inline failure message only when fetch failed AND no confirmed data exists', () => {
+    const render = settings.slice(
+      settings.indexOf('isLoadingIgnored ? ('),
+      settings.indexOf('ignoredContacts.map((contact)')
+    )
+    expect(render).toContain('ignoredContactsFetchFailed && ignoredContacts.length === 0')
+    expect(render).toContain('Couldn')
+    expect(render).toContain('load personal contacts')
+    expect(render).toContain('refresh to try again')
+    // the failure branch must precede the "No personal contacts yet" empty state,
+    // so an empty state is only ever rendered after a successful empty response
+    expect(render.indexOf('ignoredContactsFetchFailed &&'))
+      .toBeLessThan(render.indexOf('No personal contacts yet'))
+  })
+
+  it('a populated list still renders after a later refresh failure (stale > hidden)', () => {
+    // failure message is gated on length === 0 — existing contacts never
+    // get replaced by an error just because a background refetch failed
+    const render = settings.slice(
+      settings.indexOf('ignoredContactsFetchFailed && ignoredContacts.length === 0'),
+      settings.indexOf('No personal contacts yet')
+    )
+    expect(render).toContain('&& ignoredContacts.length === 0')
   })
 
   it('post-import refresh failure warns honestly instead of faking success', () => {

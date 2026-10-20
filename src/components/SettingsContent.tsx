@@ -219,6 +219,7 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
 
   // Ignored contacts state
   const [ignoredContacts, setIgnoredContacts] = useState<any[]>([])
+  const [ignoredContactsFetchFailed, setIgnoredContactsFetchFailed] = useState(false)
   const [isLoadingIgnored, setIsLoadingIgnored] = useState(false)
   const lastFetchedUserIdRef = useRef<string | null>(null)
   
@@ -1457,15 +1458,18 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
         // recover on the next visit — none are "personal contacts" errors.
         const failure = classifyPersonalContactsFetchFailure(response.status)
         console.warn(`[Settings] Ignored contacts fetch failed (${failure.kind}, HTTP ${response.status})`)
+        setIgnoredContactsFetchFailed(true)
         return false
       }
 
       const data = await response.json()
       setIgnoredContacts(data.ignoredContacts || [])
+      setIgnoredContactsFetchFailed(false)
       return true
     } catch (error) {
       // Network failure etc. — silent for background refresh, retry next visit.
       console.error('[Settings] Error fetching ignored contacts:', error)
+      setIgnoredContactsFetchFailed(true)
       return false
     } finally {
       if (showLoading) {
@@ -5214,6 +5218,12 @@ export default function SettingsContent({ section }: { section?: string } = {}) 
                   {isLoadingIgnored ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                    </div>
+                  ) : ignoredContactsFetchFailed && ignoredContacts.length === 0 ? (
+                    <div className="text-center py-10 bg-muted/30 rounded-lg border border-border/30">
+                      <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                        Couldn&apos;t load personal contacts. Please refresh to try again.
+                      </p>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
                     <div className="text-center py-10 bg-muted/30 rounded-lg border border-border/30">
