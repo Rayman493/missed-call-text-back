@@ -12,6 +12,7 @@ import PasswordInput from '@/components/PasswordInput'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import { appleIntroTrialEligible } from '@/lib/apple-billing'
 import { useAppleSubscriptionOffer } from '@/hooks/useAppleSubscriptionOffer'
+import IosSubscriptionDisclosure from '@/components/IosSubscriptionDisclosure'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import { isNativeAndroid } from '@/lib/google-play-billing'
 import AppBackButton from '@/components/AppBackButton'
@@ -936,6 +937,10 @@ export default function CompleteSetupPage() {
               <p className="text-center text-xs text-slate-500">
                 {onIOS ? 'Billed by Apple through the App Store' : 'Securely powered by Stripe'}
               </p>
+
+              {/* App Review 3.1.2(c): benefits, localized price, trial
+                  eligibility, auto-renew/cancel terms, legal links, restore. */}
+              <IosSubscriptionDisclosure />
 
               {/* Come back later message */}
               <div className="text-center pt-2">
