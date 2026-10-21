@@ -20,6 +20,7 @@ import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 import NoBusinessAccess from '@/components/NoBusinessAccess'
+import IosSubscriptionDisclosure from '@/components/IosSubscriptionDisclosure'
 
 const supabase = createBrowserClient()
 
@@ -499,6 +500,10 @@ export default function OnboardingPage() {
               </span>
               <span className="text-slate-300">•</span>
               <span className="text-slate-400">Cancel anytime</span>
+            </div>
+            {/* App Review 3.1.2(c) — full iOS disclosure under the summary. */}
+            <div className="mt-3 border-t border-slate-600/50 pt-3">
+              <IosSubscriptionDisclosure />
             </div>
           </div>
           

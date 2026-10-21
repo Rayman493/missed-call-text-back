@@ -11,6 +11,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
+import IosSubscriptionDisclosure from '@/components/IosSubscriptionDisclosure'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
 import CallForwardingInstructions from '@/components/CallForwardingInstructions'
 import TestYourSetupModal from '@/components/TestYourSetupModal'
@@ -481,6 +482,8 @@ export default function SetupStatusCard({
                   Use a Different Email
                 </button>
               </div>
+              {/* App Review 3.1.2(c) — Subscribe Now launches Apple IAP on iOS. */}
+              <IosSubscriptionDisclosure tone="brand" />
             </>
           ) : (
             <>
@@ -510,6 +513,8 @@ export default function SetupStatusCard({
                   </>
                 )}
               </button>
+              {/* May launch Apple IAP on iOS when no Stripe subscription exists. */}
+              <IosSubscriptionDisclosure tone="brand" />
             </>
           )}
         </div>

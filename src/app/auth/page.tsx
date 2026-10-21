@@ -15,6 +15,9 @@ import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 import { openStripeCheckout } from '@/lib/stripe-checkout'
 import { isNativeIOS as checkNativeIOS } from '@/lib/stripe-checkout'
 import { maybeStartGooglePlaySubscription } from '@/lib/subscription-purchase'
+import { useAppleSubscriptionOffer } from '@/hooks/useAppleSubscriptionOffer'
+import { appleIntroTrialEligible } from '@/lib/apple-billing'
+import IosSubscriptionDisclosure from '@/components/IosSubscriptionDisclosure'
 import { reportSignupConversion } from '@/lib/google-ads'
 import { reportUetSignupConversion } from '@/lib/microsoft-uet'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -77,6 +80,13 @@ function AuthContent() {
   // Detect if this is a return from Stripe checkout
   const isCheckoutReturn = redirectParam?.includes('checkout=success')
   
+  // iOS trial claims must match Apple's per-account intro-offer eligibility —
+  // the signup CTA launches the App Store purchase on iOS.
+  const onIOS = checkNativeIOS()
+  const appleOffer = useAppleSubscriptionOffer()
+  const iosTrialEligible = onIOS && appleOffer.status === 'loaded' && appleIntroTrialEligible(appleOffer.offer)
+  const appleTrialPeriod = appleOffer.status === 'loaded' ? appleOffer.offer.introOffer?.period : null
+
   const [isSignIn, setIsSignIn] = useState(mode === 'signin')
   const [signupStep, setSignupStep] = useState(1) // 1 = account details, 2 = business info
   const [email, setEmail] = useState('')
@@ -1546,6 +1556,10 @@ function AuthContent() {
             </button>
           </form>
 
+          {/* App Review 3.1.2(c): signup submits launch the Apple purchase on
+              iOS, so the full disclosure must precede the purchase decision. */}
+          {!isSignIn && <IosSubscriptionDisclosure />}
+
           {/* Trust / Reassurance Bullets */}
           <div className="mt-5 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-700/50">
             <div className="space-y-2 sm:space-y-2.5">
@@ -1553,7 +1567,7 @@ function AuthContent() {
                 <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>14-day free trial</span>
+                <span>{onIOS ? (iosTrialEligible ? `${appleTrialPeriod ?? '14-day'} free trial` : 'Monthly subscription') : '14-day free trial'}</span>
               </div>
               <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400">
                 <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

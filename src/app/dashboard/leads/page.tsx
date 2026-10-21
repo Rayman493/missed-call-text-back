@@ -16,6 +16,7 @@ import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
 import OffboardingBanner from '@/components/OffboardingBanner'
+import IosSubscriptionDisclosure from '@/components/IosSubscriptionDisclosure'
 import GettingStarted from '@/components/GettingStarted'
 import AppHeader from '@/components/AppHeader'
 import BottomNavigation from '@/components/BottomNavigation'
@@ -1141,7 +1142,7 @@ export default function LeadsPage() {
 
                 {/* Lock Overlay */}
                 <div className="absolute inset-0 bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-[2px] rounded-xl flex items-center justify-center">
-                  <div className="text-center">
+                  <div className="text-center max-h-full overflow-y-auto px-3 py-4">
                     <div className="w-12 h-12 bg-slate-800/80 dark:bg-slate-700/80 rounded-full flex items-center justify-center mb-4 mx-auto">
                       <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -1177,6 +1178,11 @@ export default function LeadsPage() {
                         <p className="text-sm text-red-800 dark:text-red-200 font-medium">{checkoutError}</p>
                       </div>
                     )}
+                    {/* App Review 3.1.2(c): price, trial eligibility, renewal,
+                        cancel, legal links, restore — before purchase. */}
+                    <div className="mt-4 max-w-md mx-auto bg-slate-900/70 rounded-lg p-3">
+                      <IosSubscriptionDisclosure />
+                    </div>
                   </div>
                 </div>
               </div>
