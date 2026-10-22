@@ -397,7 +397,9 @@ export default function OnboardingPage() {
         onCanceled: () => { setLoading(false); setError("Purchase canceled. You can try again when you're ready.") },
         onPending: () => {
           setLoading(false)
-          setError('Purchase is pending Google confirmation. Your trial will activate automatically once payment clears.')
+          setError(onIOS
+            ? 'Purchase is waiting for approval. Your subscription will activate automatically once approved.'
+            : 'Purchase is pending Google confirmation. Your trial will activate automatically once payment clears.')
           router.push('/dashboard')
         },
         onError: (msg) => { setError(msg); setLoading(false) },

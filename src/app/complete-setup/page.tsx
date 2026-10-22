@@ -940,7 +940,7 @@ export default function CompleteSetupPage() {
 
               {/* App Review 3.1.2(c): benefits, localized price, trial
                   eligibility, auto-renew/cancel terms, legal links, restore. */}
-              <IosSubscriptionDisclosure />
+              <div className="mt-4"><IosSubscriptionDisclosure /></div>
 
               {/* Come back later message */}
               <div className="text-center pt-2">
