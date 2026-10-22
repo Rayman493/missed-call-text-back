@@ -135,7 +135,9 @@ function AuthContent() {
       setError('Your access to that business is no longer active. Contact the business owner for a new invite, or create your own account below.')
     }
     if (checkoutCancelled) {
-      setError('Your free trial setup isn\'t complete yet. Complete Stripe Checkout to activate your ReplyFlow account.')
+      setError(onIOS
+        ? 'Your subscription setup isn\'t complete yet. Complete the purchase to activate your ReplyFlow account.'
+        : 'Your free trial setup isn\'t complete yet. Complete Stripe Checkout to activate your ReplyFlow account.')
       // Force business data refresh to clear any stale cached subscription status
       if (typeof window !== 'undefined') {
         console.log('[Auth] Stripe cancel detected, clearing business cache')
@@ -150,7 +152,7 @@ function AuthContent() {
       setError(oauthError)
       sessionStorage.removeItem('oauth_error')
     }
-  }, [checkoutCancelled, accessRemoved])
+  }, [checkoutCancelled, accessRemoved, onIOS])
 
   // A failed submit can leave the user scrolled far below the summary (mobile
   // especially). Bring whichever alert surfaced into view and move focus to it.
@@ -482,7 +484,7 @@ function AuthContent() {
               try { await refreshBusiness(true) } catch {}
               router.push('/dashboard?setup=1')
             },
-            onCanceled: () => { setLoading(false); setIsRetryingCheckout(false); setIsSubmitting(false); isSubmittingRef.current = false; setError('Purchase canceled. Tap "Continue to Free Trial" to try again.') },
+            onCanceled: () => { setLoading(false); setIsRetryingCheckout(false); setIsSubmitting(false); isSubmittingRef.current = false; setError(`Purchase canceled. Tap "${onIOS ? 'Continue' : 'Continue to Free Trial'}" to try again.`) },
             onPending: () => { setLoading(false); setIsRetryingCheckout(false); setIsSubmitting(false); isSubmittingRef.current = false; setError('Purchase is pending Google confirmation. Your trial will activate automatically — you can retry in a moment or sign back in later.') },
             onError: (msg) => {
               setError(msg)
@@ -731,7 +733,7 @@ function AuthContent() {
           },
           onCanceled: () => {
             clearPurchaseState()
-            setError('Purchase canceled. Tap "Continue to Free Trial" to try again.')
+            setError(`Purchase canceled. Tap "${onIOS ? 'Continue' : 'Continue to Free Trial'}" to try again.`)
             setCheckoutFailedAfterAccountCreation(true)
           },
           onPending: () => {
@@ -882,7 +884,7 @@ function AuthContent() {
           setIsRetryingCheckout(false)
           setIsSubmitting(false)
           isSubmittingRef.current = false
-          setError('Purchase canceled. Tap "Continue to Free Trial" to try again.')
+          setError(`Purchase canceled. Tap "${onIOS ? 'Continue' : 'Continue to Free Trial'}" to try again.`)
           setCheckoutFailedAfterAccountCreation(true)
         },
         onPending: () => {
@@ -1079,10 +1081,12 @@ function AuthContent() {
                 </svg>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-red-200 mb-0.5">
-                    Google Play subscription already linked
+                    {onIOS ? 'Apple subscription already linked' : 'Google Play subscription already linked'}
                   </p>
                   <p className="text-xs text-red-300/80 mb-2">
-                    This Google Play subscription is already linked to another ReplyFlowHQ account. Sign in to that account to continue.
+                    {onIOS
+                      ? 'This Apple subscription is already associated with another ReplyFlowHQ account. Sign in to the original account to restore your subscription, or contact support if you need help.'
+                      : 'This Google Play subscription is already linked to another ReplyFlowHQ account. Sign in to that account to continue.'}
                   </p>
                   <button
                     onClick={() => router.push('/auth?mode=signin')}
@@ -1551,14 +1555,14 @@ function AuthContent() {
               ) : loading || isSubmitting ? (
                 isRetryingCheckout ? 'Opening Checkout…' : (isSignIn ? 'Signing In...' : (signupStep === 1 ? 'Continuing...' : 'Creating Account...'))
               ) : (
-                isSignIn ? 'Sign In' : (signupStep === 1 ? 'Continue' : 'Continue to Free Trial')
+                isSignIn ? 'Sign In' : (signupStep === 1 ? 'Continue' : (onIOS ? 'Continue' : 'Continue to Free Trial'))
               )}
             </button>
           </form>
 
           {/* App Review 3.1.2(c): signup submits launch the Apple purchase on
               iOS, so the full disclosure must precede the purchase decision. */}
-          {!isSignIn && <IosSubscriptionDisclosure />}
+          {!isSignIn && <div className="mt-4"><IosSubscriptionDisclosure /></div>}
 
           {/* Trust / Reassurance Bullets */}
           <div className="mt-5 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-700/50">

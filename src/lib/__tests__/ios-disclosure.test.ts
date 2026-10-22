@@ -157,3 +157,49 @@ describe('placement: every iOS purchase-decision surface carries the disclosure'
     expect(src).toContain('iosTrialEligible')
   })
 })
+
+describe('consistency: CTA + copy must match the real offer on iOS', () => {
+  const auth = () => readFileSync(join(__dirname, '..', '..', 'app', 'auth', 'page.tsx'), 'utf8')
+  const onboarding = () => readFileSync(join(__dirname, '..', '..', 'app', 'onboarding', 'page.tsx'), 'utf8')
+  const purchase = () => readFileSync(join(__dirname, '..', '..', 'lib', 'subscription-purchase.ts'), 'utf8')
+
+  it('auth signup CTA never promises a free trial on iOS (uses neutral Continue)', () => {
+    const src = auth()
+    // iOS branch of the step-2 button must render 'Continue', matching
+    // onboarding — the trial promise lives only in eligibility-gated copy.
+    expect(src).toContain(`(onIOS ? 'Continue' : 'Continue to Free Trial')`)
+    // no iOS-rendered literal "Continue to Free Trial" button remains
+    expect(src).not.toMatch(/signupStep === 1 \? 'Continue' : 'Continue to Free Trial'/)
+  })
+
+  it('cancel-retry messages name the button the user actually sees on iOS', () => {
+    const src = auth()
+    expect(src).toContain(`onIOS ? 'Continue' : 'Continue to Free Trial'`)
+    expect(src).not.toContain(`'Purchase canceled. Tap "Continue to Free Trial" to try again.'`)
+  })
+
+  it('purchase-conflict UI is provider-aware (Apple on iOS, Google Play elsewhere)', () => {
+    const src = auth()
+    expect(src).toContain('Apple subscription already linked')
+    expect(src).toContain('Google Play subscription already linked')
+    expect(src).toContain('another ReplyFlowHQ account')
+    expect(src).toContain('restore your subscription')
+  })
+
+  it('Apple ownership 403 (appAccountToken mismatch) routes to the conflict path', () => {
+    const src = purchase()
+    expect(src).toContain(`result.httpStatus === 409 || result.error?.includes('different app account')`)
+  })
+
+  it('onboarding pending message does not name Google Play on iOS', () => {
+    const src = onboarding()
+    expect(src).toContain('Purchase is waiting for approval')
+    // the Google string must only appear in the non-iOS ternary branch
+    expect(src).toMatch(/onIOS\s*\?[\s\S]*?:\s*'Purchase is pending Google confirmation/)
+  })
+
+  it('disclosures get breathing room before the purchase button', () => {
+    const src = auth()
+    expect(src).toContain('mt-4"><IosSubscriptionDisclosure />')
+  })
+})

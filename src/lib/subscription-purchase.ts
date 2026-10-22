@@ -274,7 +274,12 @@ async function runApplePurchase(cb: NativePurchaseCallbacks): Promise<boolean> {
         await cb.onEntitled?.()
         return true
       }
-      if (result.httpStatus === 409) {
+      // Ownership conflicts — a transaction bound to a different app account
+      // (403 appAccountToken mismatch) or a different business (409) — route
+      // to the conflict path so surfaces can offer a sign-in/restore flow
+      // instead of showing the raw ownership error. Detection keys on the
+      // backend's canonical message; no ownership check is weakened.
+      if (result.httpStatus === 409 || result.error?.includes('different app account')) {
         await (cb.onConflict ?? cb.onError)?.(result.error || 'Purchase failed. Please try again.')
         return true
       }
