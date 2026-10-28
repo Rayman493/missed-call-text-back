@@ -693,11 +693,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-semibold text-foreground leading-tight">
-                      AI Intake Details
+                      Call Summary &amp; Details
                     </span>
                   </div>
                   <span className="text-[11px] text-muted-foreground font-normal leading-tight">
-                    Captured from AI Voice
+                    Captured from missed call
                   </span>
                 </div>
               </div>
