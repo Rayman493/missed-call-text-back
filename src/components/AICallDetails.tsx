@@ -428,7 +428,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {!isEditMode && aiCallRecord && (
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60 px-2">
             <Info className="w-3.5 h-3.5" />
-            <span>Captured by AI • {formatRelativeTime(aiCallRecord.created_at)}</span>
+            <span>Captured by ReplyFlowHQ • {formatRelativeTime(aiCallRecord.created_at)}</span>
           </div>
         )}
       </div>
