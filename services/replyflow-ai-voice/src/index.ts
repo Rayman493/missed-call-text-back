@@ -324,6 +324,22 @@ export function buildSimpleModeTranscript(
   return transcript;
 }
 
+/**
+ * Caller-only rendering of the role-tagged transcript. Assistant questions
+ * and prompts are never caller-provided facts — customer-facing summary
+ * fallbacks must use this, never the full two-party transcript.
+ * Empty caller speech yields '' so callers that said nothing cannot acquire
+ * artificial summary content.
+ */
+export function buildCallerOnlyTranscript(
+  transcript: Array<{ role: string; text: string }>
+): string {
+  return transcript
+    .filter(entry => entry.role === 'user')
+    .map(entry => `${entry.role}: ${entry.text}`)
+    .join('\n');
+}
+
 // Minimal shared wrapper for Simple Mode websocket-close incomplete finalization
 // Executes the same persistence call used in production, with provided dependencies.
 export async function finalizeIncompleteOnWebsocketCloseSimple(
@@ -15523,6 +15539,9 @@ wss.on('connection', (ws, req) => {
       // Convert structured transcript to string format
       const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
       console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+      // Caller-only variant for customer-facing summary fallbacks —
+      // assistant questions are never caller-provided facts.
+      const callerTranscript = buildCallerOnlyTranscript(transcript);
 
       // Guard: Skip extraction if transcript is empty
       if (!transcript || transcript.length === 0) {
@@ -15638,7 +15657,7 @@ wss.on('connection', (ws, req) => {
         // re-interpreted by a model to produce stored field values.
         const extractedFields = buildDeterministicExtractedFields(callSessionState.intakeData || (ws as any).intakeData);
         if (!extractedFields.summary) {
-          extractedFields.summary = fullTranscript || 'AI call completed';
+          extractedFields.summary = callerTranscript || 'AI call completed';
         }
 
         // Create lead and conversation BEFORE inserting ai_call_records
@@ -19853,6 +19872,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // Convert structured transcript to string format
                 const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
                 console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+                // Caller-only variant for customer-facing summary fallbacks —
+                // assistant questions are never caller-provided facts.
+                const callerTranscript = buildCallerOnlyTranscript(transcript);
 
                 // Guard: Skip extraction if transcript is empty
                 if (!transcript || transcript.length === 0) {
@@ -19879,7 +19901,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   // must not be re-interpreted by a model for stored values.
                   const extractedFields = buildDeterministicExtractedFields(callSessionState.intakeData || (ws as any).intakeData);
                   if (!extractedFields.summary) {
-                    extractedFields.summary = `AI call transcript: ${fullTranscript}`;
+                    extractedFields.summary = callerTranscript
+                      ? `AI call transcript: ${callerTranscript}`
+                      : 'AI call completed';
                   }
 
                   // Update existing AI call record
@@ -19931,6 +19955,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               // Convert structured transcript to string format
               const fullTranscript = transcript.map(entry => `${entry.role}: ${entry.text}`).join('\n');
               console.log('[AI INGEST] full transcript', { transcript: fullTranscript });
+              // Caller-only variant for customer-facing summary fallbacks —
+              // assistant questions are never caller-provided facts.
+              const callerTranscript = buildCallerOnlyTranscript(transcript);
 
               // Guard: Skip extraction if transcript is empty
               if (!transcript || transcript.length === 0) {
@@ -19965,7 +19992,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 // must not be re-interpreted by a model for stored values.
                 const extractedFields = buildDeterministicExtractedFields(callSessionState.intakeData || (ws as any).intakeData);
                 if (!extractedFields.summary) {
-                  extractedFields.summary = `AI call transcript: ${fullTranscript}`;
+                  extractedFields.summary = callerTranscript
+                    ? `AI call transcript: ${callerTranscript}`
+                    : 'AI call completed';
                 }
 
                 // Validate customerName to prevent non-name values from being saved
@@ -20507,7 +20536,9 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                       transcript: Array.isArray(transcript) ? transcript : [],
                       outcome: 'voicemail_fallback',
                       extracted_info: null,
-                      summary: `AI call transcript: ${fullTranscript}`,
+                      summary: callerTranscript
+                        ? `AI call transcript: ${callerTranscript}`
+                        : 'AI call completed',
                       extraction_failed: true
                     };
                   console.log('[AI CALL RECORD OUTCOME]', {
