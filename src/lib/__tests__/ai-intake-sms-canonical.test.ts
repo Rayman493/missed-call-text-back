@@ -13,7 +13,7 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business')
       expect(sms).toContain('Hi John Smith, thanks for reaching out to Test Business.')
-      expect(sms).toContain('• Request: Lawn Mowing')
+      expect(sms).toContain('• Request: Lawn mowing')
       expect(sms).toContain('• Address: 123 Main St')
       expect(sms).toContain('• Desired completion: This week')
       expect(sms).toContain('• Preferred callback: Morning')
@@ -31,7 +31,7 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business')
       expect(sms).toContain('Here\'s what we captured:')
-      expect(sms).toContain('• Request: Lawn Mowing')
+      expect(sms).toContain('• Request: Lawn mowing')
       expect(sms).toContain('Still needed:')
       expect(sms).not.toContain('• Any helpful details') // Details are optional, don't ask for them
       expect(sms).toContain('• Service address')
@@ -332,7 +332,7 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'ReplyFlow Plumbing')
       expect(sms).toContain('Hi Christopher Miller, thanks for reaching out to ReplyFlow Plumbing.')
-      expect(sms).toContain('• Request: Water Heater Installation')
+      expect(sms).toContain('• Request: New water heater installed')
       expect(sms).toContain('• Address: 85 Liberty Avenue')
       expect(sms).toContain('• Desired completion: Next friday')
       expect(sms).toContain('• Preferred callback: Anytime after 4 pm')
@@ -418,7 +418,7 @@ describe('AI Intake SMS - Polished Format', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Desktop Final Testing')
       expect(sms).toContain('Hi, thanks for reaching out to Desktop Final Testing.')
-      expect(sms).toContain('• Request: Plumbing Repair')
+      expect(sms).toContain('• Request: Plumbing repair')
       expect(sms).toContain('• Address: 123 Main St')
       expect(sms).toContain('• Desired completion: This week')
       expect(sms).toContain('• Preferred callback: Morning')

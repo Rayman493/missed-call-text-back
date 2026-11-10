@@ -160,7 +160,7 @@ describe('TITLE/DETAILS SEPARATION - CASE F: Request Embedded in Detail', () => 
     expect(isComplete).toBe(true);
 
     const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
-    expect(sms).toContain('HVAC'); // Canonicalized from "Air Conditioning Repair"
+    expect(sms).toContain('Air Conditioning'); // Caller's words preserved, not rewritten to HVAC
     expect(sms).toContain('Details: Upstairs is not cooling but downstairs is working');
   });
 });

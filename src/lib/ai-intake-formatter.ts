@@ -386,6 +386,11 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   if (!text || text.trim() === '') return 'General Service';
   const original = text.trim().toLowerCase();
   let processed = original;
+  // Caller-wording variant: the same cleanup applied to the original casing,
+  // so the title can stay a nearly-verbatim rendering of what the caller
+  // actually said. Category relabeling below remains only a fallback for
+  // answers too thin to title verbatim.
+  let verbatim = text.trim();
   // Remove all conversational prefixes and filler
   const conversationalPrefixes = [
     /^i would like /i,
@@ -414,6 +419,18 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^i'?m calling about /i,
     /^the reason i'?m calling is /i,
     /^i'?m interested in /i,
+    /^i was just /i,
+    /^i'?m just /i,
+    /^i just /i,
+    /^i'?m calling because\s+/i,
+    /^i'?m calling to\s+/i,
+    /^i was calling because\s+/i,
+    /^calling because\s+/i,
+    /^calling to\s+/i,
+    /^calling about\s+/i,
+    /^i was wondering if\s+(?:you\s+(?:could|can)\s+)?/i,
+    /^i'?m wondering if\s+(?:you\s+(?:could|can)\s+)?/i,
+    /^i was recommended\s+.*?\b(?:to|for)\s+/i,
     /^we were hoping /i,
     /^we'd like /i,
     /^we want /i,
@@ -430,40 +447,133 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^um /i,
     /^uh /i,
     /^yeah /i,
+    // Leading discourse fillers must go before the scaffold pass so an
+    // "actually, I need..." still exposes the "I need" underneath.
+    /^actually[\s,]*/i,
+    /^just[\s,]*/i,
+    /^really[\s,]*/i,
+    /^basically[\s,]*/i,
+    /^literally[\s,]*/i,
+    // Greetings and existential scaffolding are conversational openers,
+    // not part of the reason for calling.
+    /^hi\b[\s,]*/i,
+    /^there,+\s*/i,
+    /^you guys\b[\s,]*/i,
+    /^hello\b[\s,]*/i,
+    /^hey\b[\s,]*/i,
+    /^good\s+(?:morning|afternoon|evening)\b[\s,]*/i,
+    /^there'?s\s+/i,
+    /^there is\s+/i,
+    /^there are\s+/i,
+    /^it'?s\s+/i,
+    /^it is\s+/i,
+    // "I think / I guess" hedging scaffolding is not the request itself —
+    // the caller's own tentative wording ("might", "maybe") is preserved.
+    /^i think\s+/i,
+    /^i guess\s+/i,
+    /^i believe\s+/i,
     // Critical additions to remove command verbs at start
     /^get /i,
     /^need /i,
     /^want /i,
     /^looking /i,
-    /^come /i,
     /^help /i,
     /^someone /i,
     /^trying /i,
     /^see /i,
   ];
-  for (const pattern of conversationalPrefixes) {
-    processed = processed.replace(pattern, '');
+  // Two passes: a leading filler ("actually", "just") may hide a scaffold
+  // ("I need") that only becomes strippable once the filler is gone.
+  for (let pass = 0; pass < 2; pass++) {
+    for (const pattern of conversationalPrefixes) {
+      processed = processed.replace(pattern, '');
+      verbatim = verbatim.replace(pattern, '');
+    }
   }
+  const stripPronouns = (s: string) => s
+    .replace(/^my /i, '')
+    .replace(/^our /i, '')
+    .replace(/^someone to /i, '')
+    .replace(/^somebody to /i, '')
+    .replace(/ my /gi, ' ')
+    .replace(/ our /gi, ' ')
+    .replace(/ me /gi, ' ')
+    .replace(/ us /gi, ' ');
   // Remove pronouns and personal references
-  processed = processed.replace(/^my /i, '');
-  processed = processed.replace(/^our /i, '');
-  processed = processed.replace(/^someone to /i, '');
-  processed = processed.replace(/^somebody to /i, '');
-  processed = processed.replace(/ my /gi, ' ');
-  processed = processed.replace(/ our /gi, ' ');
-  processed = processed.replace(/ me /gi, ' ');
-  processed = processed.replace(/ us /gi, ' ');
+  processed = stripPronouns(processed);
+  verbatim = stripPronouns(verbatim);
+  // A rejected option the caller named only to exclude it (", not the sink")
+  // is not part of the reason — drop the rejected tail, keep the selection.
+  const stripRejectedOption = (s: string) => s
+    .replace(/,\s*not\s+(?:the|a|an|that|it'?s)\s+[^.,;]+[.!?]*$/i, '')
+    // Rejection-first correction: "not the faucet, the drain is clogged" —
+    // the caller's selection follows the comma, so the rejected option goes.
+    .replace(/^not\s+(?:the\s+|a\s+|an\s+)?[^,]+,\s*/i, '');
+  processed = stripRejectedOption(processed);
+  verbatim = stripRejectedOption(verbatim);
+  // A street-address tail is location, not reason — "installed in my new
+  // house at 123 Main Street" must not leak location into the title.
+  const stripAddressTail = (s: string) => s.replace(/\s+(?:at|on|in)\s+(?:the\s+)?\d+\s+[a-z].*$/i, '');
+  processed = stripAddressTail(processed);
+  verbatim = stripAddressTail(verbatim);
   // Remove trailing conversational filler
-  processed = processed.replace(/[.!?,]*\s*(please|thanks|thank you|asap|as soon as possible|when possible|at your earliest convenience)?\s*$/i, '');
+  const stripTrailing = (s: string) => s.replace(/[.!?,]*\s*(please|thanks|thank you|asap|as soon as possible|when possible|at your earliest convenience)?\s*$/i, '');
+  processed = stripTrailing(processed);
+  verbatim = stripTrailing(verbatim);
   // Remove scheduling and timing information
-  processed = processed.replace(/(?:today|tomorrow|this week|next week|this month|next month|as soon as possible|asap|when possible|at your earliest convenience|as soon as you can|whenever|as soon as)\b/gi, '');
-  processed = processed.replace(/(?:morning|afternoon|evening|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, '');
-  processed = processed.replace(/\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.))?/gi, '');
-  // Remove property size and descriptions
-  processed = processed.replace(/(?:quarter|half|full)\s*(?:acre|acres|sq\s*ft|square\s*foot|square\s*feet)\b/gi, '');
-  processed = processed.replace(/\d+\s*(?:bedroom|bath|room|rooms|story|stories|floor|floors)\b/gi, '');
+  const stripTiming = (s: string) => s
+    .replace(/(?:today|tomorrow|this week|next week|this month|next month|as soon as possible|asap|when possible|at your earliest convenience|as soon as you can|whenever|as soon as)\b/gi, '')
+    .replace(/\b(?:(?:next|this|coming|following|last)\s+)?(?:morning|afternoon|evening|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, '')
+    // Clock times only — a bare number may be meaningful ("30-year-old house",
+    // "3 bathrooms") and must not be eaten by the timing strip.
+    .replace(/\d{1,2}:\d{2}\s*(?:a\.?\s?m\.?|p\.?\s?m\.?)?|\d{1,2}\s*(?:a\.?\s?m\.?|p\.?\s?m\.?|o'?clock)\b/gi, '')
+    // Remove property size and descriptions
+    .replace(/(?:quarter|half|full)\s*(?:acre|acres|sq\s*ft|square\s*foot|square\s*feet)\b/gi, '')
+    .replace(/\d+\s*(?:bedrooms?|bathrooms?|baths?|rooms?|stories|story|floors?)\b/gi, '')
+    // Historical references are context, not the current request.
+    .replace(/\b(?:last|this past)\s+(?:week|month|year|summer|winter|spring|fall)\b|\b\d+\s+years?\s+ago\b|\byears?\s+ago\b/gi, '');
+  processed = stripTiming(processed);
+  verbatim = stripTiming(verbatim);
+  // Verbatim-first title: the caller's own words, minus conversational
+  // filler and lead scaffolding. Grammar words (the, a, for) stay so
+  // "estimate for a new deck" reads naturally; only the first sentence is
+  // used so supporting details do not pad the title. The canonical
+  // taxonomy below remains the fallback for answers too thin to title.
+  // "X, but now Y" — the caller's latest clause is the request, not the
+  // historical setup before the pivot.
+  const pivot = verbatim.match(/\bbut\s+(?:now|actually|really)\b[,\s]*/i);
+  const verbatimAfterPivot = pivot?.index !== undefined ? verbatim.slice(pivot.index + pivot[0].length) : verbatim;
+  // A sentence that only negates an intent ("I don't need the fence repaired")
+  // is not the request — prefer a later affirmative sentence when one exists.
+  const negatedIntent = /^i\s+(?:don'?t|do not|doesn'?t|does not|won'?t|wouldn'?t|can'?t|cannot)\b/i;
+  const sentences = verbatimAfterPivot.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+  let firstSentence = (sentences.find(s => !negatedIntent.test(s)) || sentences[0] || '').trim();
+  // The selected sentence may re-expose scaffolding the main pass already
+  // removed ("but now I need..." → the "I need" is still conversational).
+  for (const pattern of conversationalPrefixes) {
+    firstSentence = firstSentence.replace(pattern, '');
+  }
+  const verbatimFiller = new Set(['just', 'really', 'actually', 'basically', 'literally', 'very', 'um', 'uh', 'yeah', 'yep', 'this', 'that', 'kinda', 'sorta']);
+  const verbatimWords = firstSentence.split(/\s+/).filter(w => w.length > 0 && !verbatimFiller.has(w.toLowerCase().replace(/[.,;:!?"'()-]/g, '')));
+  const verbatimTitle = verbatimWords.join(' ')
+    .replace(/\s+([,.!?;:])/g, '$1')
+    .replace(/^(?:the|a|an)\s+/i, '')
+    .replace(/^(?:and|but|so|for|to|with|in|on|at|by|of|about)\s+/i, '')
+    // "on"/"in" stay: they complete phrasal verbs ("won't turn on",
+    // "plugged in") where stripping would change the meaning.
+    .replace(/(?:\s+(?:and|or|but|for|to|of|at|with|by|a|an|the))+$/i, '')
+    .replace(/\b(?:ac|hvac|a\/c)\b/gi, (m) => m.toUpperCase())
+    .trim();
+  // An undecided answer ("not sure", "no idea") or a placeholder label is
+  // not a request — fall through to the canonical fallback rather than
+  // titling the non-answer.
+  const verbatimIsNonAnswer = /^(?:i'?m\s+not\s+sure|i\s+don'?t\s+know|don'?t\s+know|not\s+sure|no\s+idea|i\s+have\s+no\s+idea)\b/i.test(verbatimTitle)
+    || /^(?:service request|general service|not collected)$/i.test(verbatimTitle);
+  if (verbatimWords.length >= 2 && !verbatimIsNonAnswer) {
+    return verbatimTitle.charAt(0).toUpperCase() + verbatimTitle.slice(1);
+  }
   // Remove common filler words
-  const fillerWords = ['a', 'an', 'the', 'to', 'for', 'with', 'by', 'at', 'on', 'in', 'of', 'just', 'really', 'actually', 'basically', 'literally', 'very', 'some', 'any', 'this', 'that'];
+  const fillerWords = ['a', 'an', 'the', 'to', 'for', 'with', 'by', 'at', 'on', 'in', 'of', 'just', 'really', 'actually', 'basically', 'literally', 'very', 'some', 'any', 'this', 'that', 'me', 'i', 'my', 'you', 'we', 'us', 'our', 'your'];
   const words = processed.split(/\s+/).filter(w => w.length > 0 && !fillerWords.includes(w));
   if (words.length === 0) return 'General Service';
   // Define industry-specific service mappings with primary focus

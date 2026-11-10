@@ -50,7 +50,7 @@ describe('Issue 1: customer-list card uses authoritative completed intake', () =
       ],
       raw_metadata: {},
     }
-    expect(getLeadRequestTitle(lead)).toBe('Landscaping Service')
+    expect(getLeadRequestTitle(lead)).toBe('Landscaping help with backyard')
   })
 
   it('older completed + newer ai_failed => older completed remains', () => {
@@ -61,7 +61,7 @@ describe('Issue 1: customer-list card uses authoritative completed intake', () =
       ],
       raw_metadata: {},
     }
-    expect(getLeadRequestTitle(lead)).toBe('Tree Removal')
+    expect(getLeadRequestTitle(lead)).toBe('Tree removal done')
   })
 
   it('older completed + newer incomplete/partial => older completed remains', () => {
@@ -73,7 +73,7 @@ describe('Issue 1: customer-list card uses authoritative completed intake', () =
         ],
         raw_metadata: {},
       }
-      expect(getLeadRequestTitle(lead)).toBe('Tree Removal')
+      expect(getLeadRequestTitle(lead)).toBe('Tree removal done')
     }
   })
 
@@ -85,7 +85,7 @@ describe('Issue 1: customer-list card uses authoritative completed intake', () =
         last_correction_at: '2026-09-12T10:00:00Z',
       },
     }
-    expect(getLeadRequestTitle(lead)).toBe('Landscaping Service')
+    expect(getLeadRequestTitle(lead)).toBe('Landscaping help with backyard')
   })
 
   it('manual customer (no AI records) is unchanged', () => {
@@ -190,18 +190,18 @@ describe('Issue 2: timeline event cannot borrow a previous request', () => {
       callerName: 'Josh Allen',
     })
     const msg = timelineMessageFor(current)
-    expect(msg).toBe('Intake Complete: Fence Repair')
+    expect(msg).toBe('Intake Complete: Fence repair')
     expect(msg).not.toContain('Tree Removal')
     expect(msg).not.toContain('Landscaping')
     // non-completed record that still captured a service gets its own Request event
     const partialSvc = rec('cur2', 'voicemail_fallback', '2026-10-03T10:00:00Z', {
       serviceRequested: 'need a fence repair',
     })
-    expect(timelineMessageFor(partialSvc)).toBe('Request: Fence Repair')
+    expect(timelineMessageFor(partialSvc)).toBe('Request: Fence repair')
   })
 
   it('C: the old completed record still emits its own historical event', () => {
-    expect(timelineMessageFor(OLD)).toBe('Intake Complete: Tree Removal')
+    expect(timelineMessageFor(OLD)).toBe('Intake Complete: Tree removal done')
   })
 
   it('D: legitimate call-history events unchanged for no-service records', () => {

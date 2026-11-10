@@ -470,7 +470,7 @@ describe('formatAdaptiveIntakeSms - Raw data preservation', () => {
     expect(intakeData.reasonForCalling).toBe(originalReason);
   })
 
-  it('demonstrated production input shows Service: New-Construction Plumbing Installation', () => {
+  it('demonstrated production input shows Service: Some new pipes installed in new house', () => {
     const intakeData = {
       customerName: 'Ryan',
       reasonForCalling: 'I was looking to get some new pipes installed in my new house. It\'s getting built right now, and I\'m trying to get the the piping all set up. And I was recommended to you guys by a friend. So I\'d like you guys to come do it for my house',
@@ -488,7 +488,7 @@ describe('formatAdaptiveIntakeSms - Raw data preservation', () => {
     );
 
     // Should show the canonical title in the Service field
-    expect(result).toContain('Service: New-Construction Plumbing Installation');
+    expect(result).toContain('Service: Some new pipes installed in new house');
   })
 })
 
@@ -671,7 +671,7 @@ describe('formatAdaptiveIntakeSms - Live demonstrated intake', () => {
 
     // Check exact required output
     expect(result).toContain('Hi Ryan! Thanks for reaching out to Production.');
-    expect(result).toContain('• Service: New-Construction Plumbing Installation');
+    expect(result).toContain('• Service: Some new pipes installed in new house');
     expect(result).toContain('• Address: 1632 South Pine Drive');
     expect(result).toContain('• Preferred timing: Within the next month');
     expect(result).toContain('• Best callback time: Afternoons');
