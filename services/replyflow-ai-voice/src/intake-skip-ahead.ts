@@ -580,12 +580,35 @@ const COMPLETION_PATTERNS: RegExp[] = [
   // "Friday", "tomorrow would be great", "next week is fine",
   // "sometime later this week", "later this week".
   /\b((?:(?:sometime|later)\s+)*(?:this|next)\s+(?:week|month|weekend))(?:\s+(?:is|works|would|will|'d|'ll)\s+(?:be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
-  /\b((?:(?:next|this|coming|following|upcoming)\s+)?(?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:is|works?|would|will|'d|'ll|sounds?|seems?)\s+(?:be\s+|to\s+be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal))?)(?=\s*[.!?;,]|\s+\band\b|$)/i,
+  /\b((?:(?:next|this|coming|following|upcoming)\s+)?(?:mon|tues|wednes|thurs|fri|satur|sun)day(?:\s+(?:morning|afternoon|evening))?(?:\s+(?:(?:is|works?|would|will|'d|'ll|sounds?|seems?)\s+(?:be\s+|to\s+be\s+)?(?:fine|good|best|ok(?:ay)?|better|great|perfect|easier|ideal)|works?(?:\s+for\s+me)?|(?:would|will|should|could|'d|'ll)\s+work(?:\s+for\s+me)?))?)(?=\s*[.!?;,]|\s+\band\b|$)/i,
   /\b((?:today|tomorrow|tonight)(?:\s+(?:morning|afternoon|evening))?)(?:\s+(?:would|will|is|works|'d|'ll)\s+(?:be\s+)?(?:great|good|fine|best|ok(?:ay)?|better|perfect|easier|ideal))?(?=\s*[.!?;,]|$)/i,
   // Vague completion phrases: keep the full semantic phrase, e.g. "Whenever you can".
   /\b((?:whenever\s+you\s+(?:can|could)|whenever|whenever\s+is\s+(?:fine|good|ok)|no\s+rush|as\s+soon\s+as\s+(?:you\s+can|possible)|asap))(?=\s*(?:,?\s*\band\b|[.!?](?:\s|$)|;|$))/i,
   ...EARLY_COMPLETION_PATTERNS,
 ];
+
+// Tentative-word preservation: a hedge immediately before a temporal match
+// ("maybe Thursday", "probably next week", "i think Friday") is part of the
+// caller's answer — stripping it silently upgrades uncertainty into a
+// commitment. After a match has survived every rejection guard (negation,
+// incident history, callback context), the leading hedge is attached to the
+// stored value and the claimed span, verbatim.
+const TIMING_HEDGE_PREFIX_RE = /(?:^|[\s,;.])(maybe|probably|hopefully|ideally|preferably|i\s+think|i\s+guess|i\s+believe)\s+$/i;
+
+function attachLeadingHedge(transcript: string, match: ExtractedMatch): ExtractedMatch {
+  const prefix = transcript.slice(0, match.startIndex);
+  const hedge = prefix.match(TIMING_HEDGE_PREFIX_RE);
+  if (!hedge) return match;
+  // hedge[0] = optional boundary char + hedge words + trailing whitespace;
+  // hedge[1] is just the hedge words — locate them inside hedge[0].
+  const hedgeWordStart = (hedge.index || 0) + hedge[0].indexOf(hedge[1]);
+  const hedgePhrase = transcript.slice(hedgeWordStart, match.startIndex);
+  return {
+    value: `${hedgePhrase}${match.value}`.trim(),
+    fullMatch: `${hedgePhrase}${match.fullMatch}`.trim(),
+    startIndex: hedgeWordStart,
+  };
+}
 
 function findCompletionMatch(transcript: string): ExtractedMatch | null {
   for (const pattern of COMPLETION_PATTERNS) {
@@ -600,6 +623,12 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
         continue;
       }
       if (CLAUSE_NEGATION_RE.test(clauseContaining(transcript, match.index || 0))) {
+        continue;
+      }
+      // A temporal phrase the caller flagged as undecided ("I'm not sure
+      // about Friday") is not a commitment — skip it so it cannot be stored
+      // as a confirmed preference.
+      if (CLAUSE_UNCERTAINTY_RE.test(clausePrefixBefore(transcript, match.index || 0))) {
         continue;
       }
       // A temporal value directly negated by a bare "not" is a rejected
@@ -645,11 +674,11 @@ function findCompletionMatch(transcript: string): ExtractedMatch | null {
         .trim();
       const fullMatch = (claimedMatch || match[1] || '').trim();
       if (isValidCompletionTime(value)) {
-        return {
+        return attachLeadingHedge(transcript, {
           value,
           fullMatch,
           startIndex: match.index || 0,
-        };
+        });
       }
     }
   }
@@ -685,6 +714,13 @@ function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
     if (/\bnot\s*$/i.test(immediatePrefix)) {
       continue;
     }
+    if (CLAUSE_NEGATION_RE.test(clauseContaining(transcript, match.index))) {
+      continue;
+    }
+    // Undecided clause ("I'm not sure about next week") — not a commitment.
+    if (CLAUSE_UNCERTAINTY_RE.test(clausePrefixBefore(transcript, match.index))) {
+      continue;
+    }
     if (PAST_CONTEXT_MARKERS.test(preceding)) {
       continue;
     }
@@ -694,11 +730,11 @@ function findNaturalCompletionMatch(transcript: string): ExtractedMatch | null {
     if (!SERVICE_CONTEXT_VERBS.test(preceding)) {
       continue;
     }
-    return {
+    return attachLeadingHedge(transcript, {
       value,
       fullMatch,
       startIndex: match.index,
-    };
+    });
   }
   return null;
 }
@@ -756,7 +792,15 @@ const INCIDENT_ANSWER_RE = /\b(?:snapped|broke|broken|burst|started|leak(?:ed|in
 // contradiction, not a preference ("don't call me in the morning; call
 // after 3", "I don't need it tomorrow, next week is fine"). Bare "not" is
 // deliberately excluded so "not before noon" still parses.
-const CLAUSE_NEGATION_RE = /\b(?:don'?t|do\s+not|didn'?t|won'?t|never|ain'?t|isn'?t|aren'?t|shouldn'?t|can'?t)\b/i;
+const CLAUSE_NEGATION_RE = /\b(?:don'?t|dont|do\s+not|didn'?t|didnt|doesn'?t|doesnt|does\s+not|won'?t|wont|will\s+not|wouldn'?t|wouldnt|would\s+not|cannot|can'?t|cant|can\s+not|never|ain'?t|aint|isn'?t|isnt|aren'?t|arent|shouldn'?t|shouldnt|haven'?t|havent|have\s+not|hasn'?t|hasnt|has\s+not)\b/i;
+
+// Unresolved-timing markers: a temporal phrase inside a clause the caller
+// flagged as undecided ("I'm not sure about Friday", "no idea on timing") is
+// not a commitment — it must not be stored as a confirmed preference.
+// Checked only against the clause text BEFORE the match so a stated date
+// followed by uncertainty about something else ("by Friday — I'm not sure
+// about the cost") still records the date the caller actually gave.
+const CLAUSE_UNCERTAINTY_RE = /\b(?:not\s+(?:so\s+)?sure|not\s+certain|unsure|un\s*sure|uncertain|don'?t\s+know|do\s+not\s+know|dont\s+know|doesn'?t\s+know|no\s+idea|can'?t\s+say|cannot\s+say|haven'?t\s+decided|have\s+not\s+decided|not\s+decided|haven'?t\s+made\s+up|up\s+in\s+the\s+air|not\s+confirmed)\b/i;
 
 function clauseContaining(transcript: string, index: number): string {
   const start = Math.max(
@@ -764,12 +808,27 @@ function clauseContaining(transcript: string, index: number): string {
     transcript.lastIndexOf('!', index),
     transcript.lastIndexOf('?', index),
     transcript.lastIndexOf(';', index),
-    transcript.lastIndexOf(',', index)
+    transcript.lastIndexOf(',', index),
+    transcript.lastIndexOf('—', index),
+    transcript.lastIndexOf('–', index)
   ) + 1;
   const rest = transcript.slice(index);
-  const endMatch = rest.search(/[.!?;,]/);
+  const endMatch = rest.search(/[.!?;,—–]/);
   const end = endMatch === -1 ? transcript.length : index + endMatch;
   return transcript.slice(start, end);
+}
+
+function clausePrefixBefore(transcript: string, index: number): string {
+  const start = Math.max(
+    transcript.lastIndexOf('.', index),
+    transcript.lastIndexOf('!', index),
+    transcript.lastIndexOf('?', index),
+    transcript.lastIndexOf(';', index),
+    transcript.lastIndexOf(',', index),
+    transcript.lastIndexOf('—', index),
+    transcript.lastIndexOf('–', index)
+  ) + 1;
+  return transcript.slice(start, index);
 }
 
 function normalizeCallbackTime(value: string): string {
@@ -866,6 +925,10 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
       if (CLAUSE_NEGATION_RE.test(clauseContaining(transcript, match.index || 0))) {
         continue;
       }
+      // Undecided clause ("I'm not sure about tomorrow") — not a commitment.
+      if (CLAUSE_UNCERTAINTY_RE.test(clausePrefixBefore(transcript, match.index || 0))) {
+        continue;
+      }
       const matchEnd = (match.index || 0) + match[0].length;
       const contMatch = transcript.slice(matchEnd).match(CALLBACK_TIME_CONTINUATION_RE);
       const rawValue = (
@@ -878,11 +941,11 @@ function findCallbackMatch(transcript: string): ExtractedMatch | null {
         .trim();
       const fullMatch = (match[0] + (contMatch ? contMatch[0] : '')).trim();
       if (isValidCallbackTime(value) && value.length > 1) {
-        return {
+        return attachLeadingHedge(transcript, {
           value,
           fullMatch,
           startIndex: match.index || 0,
-        };
+        });
       }
     }
   }
@@ -1135,7 +1198,7 @@ const SAME_TURN_CORRECTION_RE = /\b(?:make\s+that|make\s+it|scratch\s+that|sorry
 
 // Continuations after a bare "no" that are conversational, not corrections:
 // "no rush", "no problem", "no worries", "no need", etc.
-const NO_NON_CORRECTION_TAIL_RE = /^(?:rush|hurry|problem|problems|worries|worry|pressure|preference|particular|specific|deadline|need|offense|big\s+deal|biggie|stress|concern|emergency|trouble|issue|hassle)\b/i;
+const NO_NON_CORRECTION_TAIL_RE = /^(?:rush|hurry|problem|problems|worries|worry|pressure|preference|particular|specific|deadline|need|offense|big\s+deal|biggie|stress|concern|emergency|trouble|issue|hassle|idea|clue|notion)\b/i;
 
 function splitCorrectionTail(transcript: string): string | null {
   const matches = [...transcript.matchAll(SAME_TURN_CORRECTION_RE)];
@@ -2281,6 +2344,15 @@ export function enrichIntakeFromTranscript(
     const source = (correctionTail || transcript).trim();
     const cleaned = cleanScalarStageAnswer(field, source, locationRefused);
     if (!cleaned) return;
+    // A negated or undecided timing answer is not a commitment — "Friday
+    // won't work" / "not sure about tomorrow" carry no affirmative timing
+    // value and must not be stored as the caller's request. Bare "not"
+    // timing constraints ("not before noon") are unaffected: "not" is not
+    // part of CLAUSE_NEGATION_RE.
+    if (
+      (field === 'desiredCompletionTime' || field === 'callbackTime') &&
+      (CLAUSE_NEGATION_RE.test(cleaned) || CLAUSE_UNCERTAINTY_RE.test(cleaned))
+    ) return;
     const value = normalizer ? normalizer(cleaned) : cleaned;
     if (value && validator(value) && value !== current) {
       if (alreadySet) {
