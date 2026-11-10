@@ -19,7 +19,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should be canonicalized
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Service:');
 
       // Details should NOT appear
@@ -41,7 +41,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Service:');
 
       // Details should NOT appear (empty string = Not Collected)
@@ -64,7 +64,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should be canonicalized
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Service:');
 
       // Details should appear and contain the actual details
@@ -108,7 +108,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should be canonicalized
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Service:');
 
       // Desired completion should appear
@@ -158,7 +158,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAiIntakeSummary(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Details should NOT appear
       expect(sms).not.toContain('Details:');
@@ -178,7 +178,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAiIntakeSummary(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Details should NOT appear
       expect(sms).not.toContain('Details:');
@@ -198,7 +198,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAiIntakeSummary(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Details should NOT appear
       expect(sms).not.toContain('Details:');
@@ -220,7 +220,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Service:');
 
       // All details should appear
@@ -268,7 +268,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Service:');
 
       // Details from requestDetails should appear
@@ -291,7 +291,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Service:');
 
       // Details from additional_details should appear
@@ -316,7 +316,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Whitespace-only details should NOT appear
       expect(sms).not.toContain('Details:');
@@ -338,7 +338,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Details should NOT appear even though reasonForCalling has extra info
       // (because it's not in a canonical details field)
@@ -360,7 +360,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(intakeData, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Details should come from canonical field, not reasonForCalling
       expect(sms).toContain('Details:');
@@ -384,7 +384,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(extractedInfo, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('• Service:');
 
       // Additional Details should be Not Collected (not duplicated from request)
@@ -406,7 +406,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(extractedInfo, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('• Service:');
 
       // Additional Details should appear with actual details
@@ -428,7 +428,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(extractedInfo, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('• Service:');
 
       // Timing should appear in timing field, not details
@@ -453,7 +453,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(extractedInfo, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('• Service:');
 
       // Additional Details should appear with special instructions
@@ -492,7 +492,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
 
       // When formatted, request should not include details
       const sms = formatAdaptiveIntakeSms(updated, '+15551234567', 'Test Business');
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Details:');
       expect(sms).toContain('half an acre');
       expect(sms).toContain('gate');
@@ -526,7 +526,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
 
       // When formatted, should show new service
       const sms = formatAdaptiveIntakeSms(updated, '+15551234567', 'Test Business');
-      expect(sms).toContain('Tree Service');
+      expect(sms).toContain('Tree trimming');
       expect(sms).not.toContain('Details:');
     });
 
@@ -558,7 +558,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
 
       // When formatted, details should appear
       const sms = formatAdaptiveIntakeSms(updated, '+15551234567', 'Test Business');
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Details:');
       expect(sms).toContain('dog');
     });
@@ -593,7 +593,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
 
       // When formatted, timing should appear but details should not
       const sms = formatAdaptiveIntakeSms(updated, '+15551234567', 'Test Business');
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('Next tuesday');
       expect(sms).not.toContain('Details:');
     });
@@ -628,7 +628,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
 
       // When formatted, callback time should appear but details should not
       const sms = formatAdaptiveIntakeSms(updated, '+15551234567', 'Test Business');
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
       expect(sms).toContain('After 4');
       expect(sms).not.toContain('Details:');
     });
@@ -648,7 +648,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(extractedInfo, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Details should NOT be in "Still needed"
       expect(sms).not.toContain('Still needed:');
@@ -687,7 +687,7 @@ describe('AI INTAKE FIELD SEPARATION REGRESSION - Request/Details Isolation', ()
       const sms = formatAdaptiveIntakeSms(extractedInfo, '+15551234567', 'Test Business');
 
       // Request should appear
-      expect(sms).toContain('Lawn Mowing');
+      expect(sms).toContain('Grass cut');
 
       // Details should appear when provided
       expect(sms).toContain('Details:');

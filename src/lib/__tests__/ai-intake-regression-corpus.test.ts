@@ -43,7 +43,7 @@ describe('AI Intake SMS Regression Corpus', () => {
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
       expect(sms).toContain('Hi John Smith, thanks for reaching out to Test Business.')
-      expect(sms).toContain('• Request: Lawn Mowing')
+      expect(sms).toContain('• Request: Lawn mowing')
       expect(sms).toContain('• Details: You\'d like the lawn mowed again this year')
       expect(sms).toContain('• Address: 123 Main St')
       expect(sms).toContain('• Desired completion: This week')
@@ -67,7 +67,7 @@ describe('AI Intake SMS Regression Corpus', () => {
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
       expect(sms).toContain('Hi Sarah Johnson, thanks for reaching out to Test Business.')
-      expect(sms).toContain('• Request: Plumbing Repair')
+      expect(sms).toContain('• Request: Plumbing repair')
       expect(sms).toContain('Still needed:')
       // Details are optional - do not ask for them
       expect(sms).toContain('• Service address')
@@ -488,7 +488,7 @@ describe('AI Intake SMS Regression Corpus', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('• Request: Lawn Mowing')
+      expect(sms).toContain('• Request: Lawn mowing')
       expect(sms).toContain('• Details: Lawn has gotten tall because the customer was away for three weeks')
     })
 
@@ -504,7 +504,7 @@ describe('AI Intake SMS Regression Corpus', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('• Request: Tree Service')
+      expect(sms).toContain('• Request: Tree service')
       expect(sms).not.toContain('• Details:')
     })
   })
@@ -540,7 +540,7 @@ describe('AI Intake SMS Regression Corpus', () => {
 
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business', undefined, 'onsite')
 
-      expect(sms).toContain('• Request: Plumbing Repair')
+      expect(sms).toContain('• Request: Plumbing repair')
       expect(sms).toContain('Still needed:')
       expect(sms).toContain('• Your name')
     })

@@ -15,7 +15,7 @@ describe('Request Field Resolution Regression', () => {
       const result = generateCanonicalRequestTitle('Fence Repair and Installation')
       expect(result).not.toBe('Service Request')
       expect(result).not.toBe('General Service')
-      expect(result).toBe('Fence repair and installation')
+      expect(result).toBe('Fence Repair and Installation')
     })
 
     it('should include request in SMS for formatAdaptiveIntakeSms', () => {
@@ -28,7 +28,7 @@ describe('Request Field Resolution Regression', () => {
       }
       const sms = formatAdaptiveIntakeSms(extractedInfo, '555-1234', 'Test Business')
       
-      expect(sms).toContain('Service: Fence repair and installation')
+      expect(sms).toContain('Service: Fence Repair and Installation')
       // Should NOT claim request is missing
       expect(sms).not.toContain('Still needed:')
       expect(sms).not.toContain('What you need help with')
@@ -44,7 +44,7 @@ describe('Request Field Resolution Regression', () => {
       }
       const sms = formatAiIntakeSummaryWithMode(extractedInfo, '555-1234', 'Test Business')
       
-      expect(sms).toContain('• Request: Fence repair and installation')
+      expect(sms).toContain('• Request: Fence Repair and Installation')
       // Should NOT claim request is missing (check specific request-related prompts)
       expect(sms).not.toContain('What you\'re looking to have done')
       expect(sms).not.toContain('What you need help with')

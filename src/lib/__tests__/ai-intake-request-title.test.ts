@@ -211,70 +211,41 @@ describe('validateRequestTitle', () => {
   })
 })
 
-describe('generateCanonicalRequestTitle', () => {
-  // Test the main examples from the user requirements
-  it('converts "I was looking to get a Brazilian wax" to "Brazilian Wax"', () => {
-    expect(generateCanonicalRequestTitle('I was looking to get a Brazilian wax')).toBe('Brazilian Wax')
+describe('generateCanonicalRequestTitle — verbatim-first', () => {
+  // The title is a short, nearly-verbatim rendering of the caller's reason —
+  // scaffolding is removed, but the caller's own words and uncertainty are
+  // kept. Category labels only apply when the answer is too thin to title.
+  it.each([
+    ['I was looking to get a Brazilian wax', 'Brazilian wax'],
+    ['I need someone to mow my lawn', 'Mow lawn'],
+    ['My AC is not cooling', 'AC is not cooling'],
+    ['Can you clean my gutters?', 'Clean gutters'],
+    ['I would like piano lessons', 'Piano lessons'],
+    ['I need a water heater installed', 'Water heater installed'],
+    ['Can someone give me a quote to paint my house?', 'Give a quote to paint house'],
+    ['My sink is leaking', 'Sink is leaking'],
+    ['I need my driveway pressure washed', 'Driveway pressure washed'],
+    ['I need my grass cut', 'Grass cut'],
+    ['I need beginner piano lessons', 'Beginner piano lessons'],
+    ['My AC is blowing warm air upstairs', 'AC is blowing warm air upstairs'],
+    ['Need a new fence installed', 'New fence installed'],
+    ['Kitchen sink is leaking', 'Kitchen sink is leaking'],
+    ['I need lawn mowing tomorrow', 'Lawn mowing'],
+    ['Can you fix my AC this afternoon', 'Fix AC'],
+    ['I need lawn mowing for a quarter acre', 'Lawn mowing'],
+    ['Clean my two-story house with 3 bathrooms', 'Clean two-story house'],
+    ['remove the tree and repair the fence', 'Remove the tree and repair the fence'],
+    ['tree removal and fence repair', 'Tree removal and fence repair'],
+    ['my kitchen faucet is leaking and dripping constantly from the handle', 'Kitchen faucet is leaking and dripping constantly from the handle'],
+    ['get a new shower installed for my bathroom', 'New shower installed for bathroom'],
+    ['get a fence installed for my house for the backyard', 'Fence installed for house for the backyard'],
+    ['I need a toilet installed', 'Toilet installed'],
+    ['I was just looking for some landscaping help with my backyard', 'Some landscaping help with backyard'],
+    ['I need some help around the house', 'Some help around the house'],
+  ])('titles "%s" faithfully as "%s"', (input, expected) => {
+    expect(generateCanonicalRequestTitle(input)).toBe(expected)
   })
 
-  it('converts "I need someone to mow my lawn" to "Lawn Mowing"', () => {
-    expect(generateCanonicalRequestTitle('I need someone to mow my lawn')).toBe('Lawn Mowing')
-  })
-
-  it('converts "My AC is not cooling" to "HVAC Repair"', () => {
-    expect(generateCanonicalRequestTitle('My AC is not cooling')).toBe('HVAC Repair')
-  })
-
-  it('converts "Can you clean my gutters?" to "Gutters Cleaning"', () => {
-    expect(generateCanonicalRequestTitle('Can you clean my gutters?')).toBe('Gutters Cleaning')
-  })
-
-  it('converts "I would like piano lessons" to "Piano Lessons"', () => {
-    expect(generateCanonicalRequestTitle('I would like piano lessons')).toBe('Piano Lessons')
-  })
-
-  it('converts "I need a water heater installed" to "Water Heater Installation"', () => {
-    expect(generateCanonicalRequestTitle('I need a water heater installed')).toBe('Water Heater Installation')
-  })
-
-  it('converts "Can someone give me a quote to paint my house?" to "House Painting"', () => {
-    expect(generateCanonicalRequestTitle('Can someone give me a quote to paint my house?')).toBe('House Painting')
-  })
-
-  it('converts "My sink is leaking" to "Plumbing Repair"', () => {
-    expect(generateCanonicalRequestTitle('My sink is leaking')).toBe('Plumbing Repair')
-  })
-
-  it('converts "I need my driveway pressure washed" to "Pressure Washing"', () => {
-    expect(generateCanonicalRequestTitle('I need my driveway pressure washed')).toBe('Pressure Washing')
-  })
-
-  // Test additional service mappings
-  it('converts "I need my grass cut" to "Lawn Mowing"', () => {
-    expect(generateCanonicalRequestTitle('I need my grass cut')).toBe('Lawn Mowing')
-  })
-
-  it('converts "I need beginner piano lessons" to "Piano Lessons"', () => {
-    expect(generateCanonicalRequestTitle('I need beginner piano lessons')).toBe('Piano Lessons')
-  })
-
-  it('converts "My AC is blowing warm air upstairs" to "HVAC Repair"', () => {
-    expect(generateCanonicalRequestTitle('My AC is blowing warm air upstairs')).toBe('HVAC Repair')
-  })
-
-  it('converts "Need a new fence installed" to "Fence Installation"', () => {
-    expect(generateCanonicalRequestTitle('Need a new fence installed')).toBe('Fence Installation')
-  })
-
-  it('converts "Need my driveway pressure washed" to "Pressure Washing"', () => {
-    expect(generateCanonicalRequestTitle('Need my driveway pressure washed')).toBe('Pressure Washing')
-  })
-
-  it('converts "Kitchen sink is leaking" to "Plumbing Repair"', () => {
-    expect(generateCanonicalRequestTitle('Kitchen sink is leaking')).toBe('Plumbing Repair')
-  })
-
-  // Test edge cases
   it('returns "General Service" for empty input', () => {
     expect(generateCanonicalRequestTitle('')).toBe('General Service')
   })
@@ -287,114 +258,56 @@ describe('generateCanonicalRequestTitle', () => {
     expect(generateCanonicalRequestTitle(undefined)).toBe('General Service')
   })
 
-  it('handles already-canonical titles', () => {
+  it('passes already-canonical titles through unchanged', () => {
     expect(generateCanonicalRequestTitle('Lawn Mowing')).toBe('Lawn Mowing')
     expect(generateCanonicalRequestTitle('Plumbing Repair')).toBe('Plumbing Repair')
   })
 
-  // Test removal of timing and scheduling info
-  it('removes timing information', () => {
-    expect(generateCanonicalRequestTitle('I need lawn mowing tomorrow')).toBe('Lawn Mowing')
-    expect(generateCanonicalRequestTitle('Can you fix my AC this afternoon')).toBe('HVAC Repair')
-  })
-
-  // Test removal of property descriptions
-  it('removes property size descriptions', () => {
-    expect(generateCanonicalRequestTitle('I need lawn mowing for a quarter acre')).toBe('Lawn Mowing')
-    expect(generateCanonicalRequestTitle('Clean my two-story house with 3 bathrooms')).toBe('House Cleaning')
-  })
-
-  // Regression tests for the "Not Collected" issue
-  it('handles "Was Looking" with useful details', () => {
-    expect(generateCanonicalRequestTitle('I was looking to get a Brazilian wax')).toBe('Brazilian Wax')
-  })
-
-  it('handles empty input gracefully', () => {
-    expect(generateCanonicalRequestTitle('')).toBe('General Service')
-  })
-
-  it('handles already-canonical titles', () => {
-    expect(generateCanonicalRequestTitle('Lawn Mowing')).toBe('Lawn Mowing')
-    expect(generateCanonicalRequestTitle('Plumbing Repair')).toBe('Plumbing Repair')
-  })
-
-  // Critical test for demonstrated new-construction plumbing case - exact verbatim production input
-  it('recognizes new-construction plumbing installation from exact production input', () => {
+  // Verbose production-style input: the first sentence is the caller's
+  // reason; referral/timing/address commentary must not enter the title.
+  it('titles a verbose construction request by its first stated sentence', () => {
     const input = 'I was looking to get some new pipes installed in my new house. It\'s getting built right now, and I\'m trying to get the the piping all set up. And I was recommended to you guys by a friend. So I\'d like you guys to come do it for my house.'
-    const result = generateCanonicalRequestTitle(input)
-    expect(result).toBe('New-Construction Plumbing Installation')
+    expect(generateCanonicalRequestTitle(input)).toBe('Some new pipes installed in new house')
   })
 
-  // Multi-signal rule tests
-  it('new pipes in existing house does not trigger new-construction', () => {
-    expect(generateCanonicalRequestTitle('I need new pipes installed in my 30-year-old house')).toBe('Pipe Installation')
+  it('keeps spelled-out property age in the caller\'s words', () => {
+    expect(generateCanonicalRequestTitle('I need new pipes installed in my 30-year-old house')).toBe('New pipes installed in 30-year-old house')
   })
 
-  it('explicit construction context triggers new-construction', () => {
-    expect(generateCanonicalRequestTitle('We are building a new house and need the plumbing installed')).toBe('New-Construction Plumbing Installation')
+  it('keeps the caller\'s construction description verbatim', () => {
+    expect(generateCanonicalRequestTitle('We are building a new house and need the plumbing installed')).toBe('We are building a new house and need the plumbing installed')
   })
 
-  it('new house with leak is repair, not new-construction', () => {
-    expect(generateCanonicalRequestTitle('My new house has a leaking pipe')).toBe('Plumbing Repair')
+  it('keeps "new house" and the leak in the caller\'s words', () => {
+    expect(generateCanonicalRequestTitle('My new house has a leaking pipe')).toBe('New house has a leaking pipe')
   })
 
-  it('construction context with burst pipe retains burst priority', () => {
-    expect(generateCanonicalRequestTitle('The house is under construction and a pipe burst')).toBe('Burst Pipe Repair')
+  it('keeps the caller\'s burst-pipe statement verbatim', () => {
+    expect(generateCanonicalRequestTitle('The house is under construction and a pipe burst')).toBe('House is under construction and a pipe burst')
   })
 
-  it('referral commentary does not affect classification', () => {
+  it('referral preamble does not enter the title', () => {
     const input = 'I was recommended by a friend to get some new pipes installed in my new house. It\'s getting built right now.'
-    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
+    const result = generateCanonicalRequestTitle(input)
+    expect(result).toBe('Some new pipes installed in new house')
+    expect(result).not.toContain('recommended')
   })
 
-  it('timing commentary does not affect classification', () => {
+  it('timing commentary stays out of the title', () => {
     const input = 'I need new pipes installed in my new house. It\'s getting built right now. I need it done next month.'
-    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
+    expect(generateCanonicalRequestTitle(input)).toBe('New pipes installed in new house')
   })
 
-  it('callback commentary does not affect classification', () => {
+  it('callback commentary stays out of the title', () => {
     const input = 'I need new pipes installed in my new house. It\'s getting built right now. Call me in the afternoon.'
-    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
+    expect(generateCanonicalRequestTitle(input)).toBe('New pipes installed in new house')
   })
 
-  it('address commentary does not affect classification', () => {
+  it('street address stays out of the title', () => {
     const input = 'I need new pipes installed in my new house at 123 Main Street. It\'s getting built right now.'
-    expect(generateCanonicalRequestTitle(input)).toBe('New-Construction Plumbing Installation')
-  })
-
-  it('preserves tree removal and fence repair as a compound request', () => {
-    expect(generateCanonicalRequestTitle('remove the tree and repair the fence')).toBe('Tree Removal & Fence Repair')
-    expect(generateCanonicalRequestTitle('tree removal and fence repair')).toBe('Tree Removal & Fence Repair')
-  })
-
-  it('preserves existing single-service faucet and lawn labels', () => {
-    expect(generateCanonicalRequestTitle('my kitchen faucet is leaking and dripping constantly from the handle')).toBe('Plumbing Repair')
-    expect(generateCanonicalRequestTitle('I need my grass cut')).toBe('Lawn Mowing')
-  })
-})
-
-describe('compact title — service identity cannot be hijacked by context', () => {
-  it('shower install with "new house" context -> Shower Installation', () => {
-    expect(generateCanonicalRequestTitle('get a new shower installed for my bathroom'))
-      .toBe('Shower Installation')
-  })
-
-  it('fence install with "house" in request -> Fence Installation', () => {
-    expect(generateCanonicalRequestTitle('get a fence installed for my house for the backyard'))
-      .toBe('Fence Installation')
-  })
-
-  it('toilet install -> Toilet Installation', () => {
-    expect(generateCanonicalRequestTitle('I need a toilet installed')).toBe('Toilet Installation')
-  })
-
-  it('landscaping help request -> Landscaping Service', () => {
-    expect(generateCanonicalRequestTitle('I was just looking for some landscaping help with my backyard'))
-      .toBe('Landscaping Service')
-  })
-
-  it('ambiguous request keeps a safe fallback, not a wrong label', () => {
-    expect(generateCanonicalRequestTitle('I need some help around the house'))
-      .toBe('Some help around the house')
+    const result = generateCanonicalRequestTitle(input)
+    expect(result).toBe('New pipes installed in new house')
+    expect(result).not.toContain('123')
+    expect(result).not.toContain('Main')
   })
 })
