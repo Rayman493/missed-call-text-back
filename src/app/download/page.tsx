@@ -5,8 +5,8 @@ import { DownloadSection } from './DownloadSection'
 import { IOS_APP_STORE_URL, GOOGLE_PLAY_STORE_URL } from '@/lib/app-store-links'
 
 export const metadata: Metadata = {
-  title: 'Download ReplyFlow',
-  description: 'Download ReplyFlow for iPhone or Android, or continue using ReplyFlow on the web.',
+  title: 'Download ReplyFlowHQ',
+  description: 'Download ReplyFlowHQ for iPhone or Android, or continue using ReplyFlowHQ on the web.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://www.replyflowhq.com'),
   alternates: {
     canonical: '/download',
@@ -15,22 +15,22 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://replyflowhq.com/download',
-    title: 'Download ReplyFlow',
-    description: 'Download ReplyFlow for iPhone or Android, or continue using ReplyFlow on the web.',
-    siteName: 'ReplyFlow',
+    title: 'Download ReplyFlowHQ',
+    description: 'Download ReplyFlowHQ for iPhone or Android, or continue using ReplyFlowHQ on the web.',
+    siteName: 'ReplyFlowHQ',
     images: [
       {
         url: '/replyflow-r-logo.png',
         width: 512,
         height: 512,
-        alt: 'ReplyFlow - Customer Management and Scheduling',
+        alt: 'ReplyFlowHQ - Customer Management and Scheduling',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Download ReplyFlow',
-    description: 'Download ReplyFlow for iPhone or Android, or continue using ReplyFlow on the web.',
+    title: 'Download ReplyFlowHQ',
+    description: 'Download ReplyFlowHQ for iPhone or Android, or continue using ReplyFlowHQ on the web.',
     images: ['/replyflow-r-logo.png'],
     creator: '@replyflowhq',
   },
@@ -47,7 +47,7 @@ const GOOGLE_PLAY_URL = GOOGLE_PLAY_STORE_URL
 export default function DownloadPage() {
   return (
     <div className="min-h-screen page-gradient">
-      <div className="max-w-xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+      <div className="max-w-xl mx-auto px-4 sm:px-6 py-12 sm:py-20 flex min-h-screen flex-col">
         {/* Logo and Brand */}
         <div className="text-center mb-10 sm:mb-12">
           <div className="flex justify-center mb-5">
@@ -57,7 +57,7 @@ export default function DownloadPage() {
             </div>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-3">
-            ReplyFlow
+            ReplyFlowHQ
           </h1>
           <p className="text-xl sm:text-2xl font-medium text-slate-700 dark:text-slate-300 mb-3">
             Run your business from one place.
@@ -74,7 +74,7 @@ export default function DownloadPage() {
         />
 
         {/* Continue on Web — secondary path */}
-        <div className="mt-10 text-center">
+        <div className="mt-10 mb-14 text-center">
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
             Prefer the browser?
           </p>
@@ -90,9 +90,9 @@ export default function DownloadPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-14 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
+        <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            © {new Date().getFullYear()} ReplyFlow. All rights reserved.
+            © 2026 ReplyFlowHQ LLC. All rights reserved.
           </p>
         </div>
       </div>

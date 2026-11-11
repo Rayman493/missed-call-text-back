@@ -53,10 +53,10 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
             </div>
             <div className="min-w-0">
               <h3 className="font-semibold text-base text-slate-900 dark:text-white">
-                ReplyFlow for Android
+                ReplyFlowHQ for Android
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {validGooglePlayUrl ? 'Available now on Google Play' : 'Coming Soon to Google Play'}
+                {validGooglePlayUrl ? 'Available on Google Play' : 'Coming Soon to Google Play'}
               </p>
             </div>
           </div>
@@ -66,7 +66,7 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-md shadow-blue-600/25 hover:shadow-lg hover:shadow-blue-600/30 flex-shrink-0"
-              aria-label="Download ReplyFlow on Google Play"
+              aria-label="Download ReplyFlowHQ on Google Play"
             >
               Download
             </a>
@@ -93,10 +93,10 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
             </div>
             <div className="min-w-0">
               <h3 className="font-semibold text-base text-slate-700 dark:text-slate-200">
-                ReplyFlow for iPhone
+                ReplyFlowHQ for iPhone
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {validAppStoreUrl ? 'For iPhone and iPad' : 'Coming soon on the App Store'}
+                {validAppStoreUrl ? 'Available on the App Store' : 'Coming soon on the App Store'}
               </p>
             </div>
           </div>
@@ -105,10 +105,10 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
               href={validAppStoreUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-md shadow-blue-600/25 flex-shrink-0"
-              aria-label="Download ReplyFlow on the App Store"
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-md shadow-blue-600/25 hover:shadow-lg hover:shadow-blue-600/30 flex-shrink-0"
+              aria-label="Download ReplyFlowHQ on the App Store"
             >
-              Download on the App Store
+              Download
             </a>
           ) : (
             <span className="inline-flex items-center justify-center px-3.5 py-1.5 border border-slate-300 dark:border-slate-600/60 text-slate-500 dark:text-slate-400 text-xs font-medium rounded-full flex-shrink-0">
@@ -121,7 +121,7 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
       {!validAppStoreUrl && !validGooglePlayUrl && deviceType === 'desktop' && (
         <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-center">
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Mobile apps coming soon. Continue using ReplyFlow on the web for full functionality.
+            Mobile apps coming soon. Continue using ReplyFlowHQ on the web for full functionality.
           </p>
         </div>
       )}
