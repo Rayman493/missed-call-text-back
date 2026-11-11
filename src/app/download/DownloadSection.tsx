@@ -78,7 +78,7 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
         </div>
       </div>
 
-      {/* iOS Download — coming soon */}
+      {/* iOS Download */}
       <div
         className={`bg-white/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-5 transition-shadow ${
           emphasizeIOS ? 'ring-1 ring-slate-400/40 dark:ring-slate-500/40' : ''
@@ -108,7 +108,7 @@ export function DownloadSection({ appStoreUrl, googlePlayUrl }: DownloadSectionP
               className="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all duration-200 shadow-md shadow-blue-600/25 flex-shrink-0"
               aria-label="Download ReplyFlow on the App Store"
             >
-              Download
+              Download on the App Store
             </a>
           ) : (
             <span className="inline-flex items-center justify-center px-3.5 py-1.5 border border-slate-300 dark:border-slate-600/60 text-slate-500 dark:text-slate-400 text-xs font-medium rounded-full flex-shrink-0">

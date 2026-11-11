@@ -5,7 +5,9 @@
  * Both can be overridden via NEXT_PUBLIC_* env vars when listings change.
  */
 
-export const IOS_APP_STORE_URL = process.env.NEXT_PUBLIC_IOS_APP_STORE_URL || null
+export const IOS_APP_STORE_URL =
+  process.env.NEXT_PUBLIC_IOS_APP_STORE_URL ||
+  'https://apps.apple.com/us/app/replyflowhq/id6815518831'
 
 export const GOOGLE_PLAY_STORE_URL =
   process.env.NEXT_PUBLIC_ANDROID_PLAY_STORE_URL ||
