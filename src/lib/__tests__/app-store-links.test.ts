@@ -8,8 +8,9 @@ import {
 } from '@/lib/app-store-links'
 
 /**
- * Homepage Google Play CTA regressions — the public homepage must surface the
- * live ReplyFlowHQ Google Play listing while iOS remains Coming Soon.
+ * Store-link regressions — the shared config must default to the live
+ * ReplyFlowHQ Google Play and iOS App Store listings, and the public
+ * homepage must surface the live Google Play listing.
  */
 
 const homepage = readFileSync('src/app/(public)/page.tsx', 'utf8')
@@ -22,11 +23,9 @@ describe('app-store-links shared config', () => {
     expect(isValidGooglePlayURL(GOOGLE_PLAY_STORE_URL)).toBe(true)
   })
 
-  it('iOS App Store URL stays unset until a live listing is configured', () => {
-    // Without NEXT_PUBLIC_IOS_APP_STORE_URL configured this resolves to null
-    // — iOS must not appear live on any public surface.
-    expect(IOS_APP_STORE_URL).toBeNull()
-    expect(isValidAppStoreURL(IOS_APP_STORE_URL)).toBe(false)
+  it('iOS App Store URL defaults to the live ReplyFlowHQ listing', () => {
+    expect(IOS_APP_STORE_URL).toContain('apps.apple.com/us/app/replyflowhq/id6815518831')
+    expect(isValidAppStoreURL(IOS_APP_STORE_URL)).toBe(true)
   })
 
   it('env override wins for the Google Play URL', async () => {
